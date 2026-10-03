@@ -37,22 +37,26 @@
 
 ## 预览版下载
 
-首个 Windows 预览测试版 v0.1.0-preview.1 已提供下载。已完成代码清理、自动化检查与 Windows 交叉编译，现已收到首轮 Windows 试玩画面与操作反馈，完整的实机、声音、DPI、显卡和性能验收仍未完成。
+当前 Windows 预览测试版为 v0.1.0-preview.2，已根据首轮试玩反馈完成一轮修复，并通过变动审查、自动化检查与 Windows 交叉编译。本候选尚未完成 Windows 实机启动、GPU 画面、声音、DPI 和性能验收，仍需用户试玩确认。
 
-[下载预览测试版及对应源码](https://github.com/grassoflty-dev/wuxian-renzu-jinhua/releases/tag/v0.1.0-preview.1)
+[下载 preview.2 预览测试版及对应源码](https://github.com/grassoflty-dev/wuxian-renzu-jinhua/releases/tag/v0.1.0-preview.2)
 
-展开 Assets，下载 `wuxian-renzu-jinhua-preview-windows-x64.exe`（约262MB），先阅读 `READ_ME_FIRST.txt` 与 `KNOWN_LIMITATIONS.md`。12项发布附件已核对 GitHub 端 SHA256 与审查清单一致。
+展开 Assets，下载 `wuxian-renzu-jinhua-preview.2-windows-x64.exe`（262,469,632 字节，约262MB），先阅读 `READ_ME_FIRST.txt` 与 `KNOWN_LIMITATIONS.md`。12项发布附件已核对 GitHub 端 SHA256 与审查清单一致。
 
-## 当前已知问题
+[首个预览测试版 preview.1](https://github.com/grassoflty-dev/wuxian-renzu-jinhua/releases/tag/v0.1.0-preview.1)及其附件继续保留，供查看首发记录与比较；首轮 Windows 试玩画面与操作反馈来自该版本。
 
-首轮试玩反馈正在处理：角色走路动画与朝向表现不足，部分地图黑色区域与贴图难以辨认，开发调试文字仍显示，Q/E/R技能与受击反馈不够清晰。这些问题尚未在当前下载包中修复，不应把自动化逻辑测试通过当作画面验收通过。
+## 当前修复与待验证项
+
+preview.2 修复了灰巢连续地面与部分图集裁片、人物和设备的脚点遮挡排序、默认显示的开发面板，以及 Q/E/R 权威动作阶段和真实命中、受伤、格挡反馈。玩家增加临时程序化腿部动作与方向表现，敌人改用单体裁片并去除重复静态预览。
+
+程序化腿摆与单体裁片仍不是完整逐帧动画，完整美术和部分功能仍待完善。这些改动尚未经过 Windows/GPU 画面验收，不能把自动化逻辑测试通过当作最终画面验收通过。本版不包含后续 Beacon 持久化和 Sentinel 冲锋改动。
 
 ## 当前验证
 
-干净候选：345 项 Rust 库测试、46 项入口/存档/协议检查、603 项 Web 测试（4 项平台跳过）、12 项打包检查通过。上游版本已有三世界自动化完整流程记录；清理后的候选未重新宣称完整人工试玩通过。
+preview.2 干净源码提交：`0ef917f530f84d2451d718168ab83b7b4938e762`。649 项 Web 检查通过，4 项平台跳过，0 失败；12 项原生打包检查、生产 Web 构建与 Windows x64 交叉编译通过，独立组合定向检查 106 项通过。上游版本已有三世界自动化完整流程记录；本候选未重跑完整三世界旅程，也未完成 Windows 实机或 GPU 视觉验收。详细范围见发布附件 `VERIFICATION.json`。
 
 ## 下载与许可
 
 需要 Windows x64 和 Microsoft Edge WebView2 Runtime。首次测试前请备份存档。发布附件同步提供对应源码包、GNU GPL version 3 许可、第三方通知、已知缺漏及 SHA256 校验。
 
-完整对应源码在 Release 的 `wuxian-renzu-jinhua-preview-corresponding-source.zip` 中；GitHub 自动生成的 Source code ZIP 当前仅包含发布说明，不是游戏完整源码。源码附件不等于 Git 工程树迁移已完成；旧仓库历史不迁入。部分素材仍为占位，功能与画面持续完善。
+完整对应源码在 Release 的 `wuxian-renzu-jinhua-preview.2-corresponding-source.zip` 中；GitHub 自动生成的 Source code ZIP 当前仅包含发布说明，不是游戏完整源码。源码附件不等于 Git 工程树迁移已完成；旧仓库历史不迁入。部分素材仍为占位，功能与画面持续完善。
