@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "canonicalCapabilityIds": [
+    "information.local_map_i",
+    "perception.rear_view_i",
+    "information.enemy_vitals_basic",
+    "body.regeneration_i",
+    "perception.acoustic_mapping_i",
+    "mobility.air_step_i"
+  ],
+  "regeneration": {
+    "delayAfterDamageMs": 1500,
+    "delayAfterCombatMs": 3000,
+    "hpPerSecond": 2.5,
+    "regenCapFraction": 0.75
+  },
+  "notes": "Development defaults only. Balance values are data-driven and are not frozen by interface contract."
+}

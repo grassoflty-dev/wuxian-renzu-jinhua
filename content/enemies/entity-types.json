@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "entityTypes": [
+    "enemy.clockworks.forged_guard",
+    "enemy.clockworks.forged_guard_elite",
+    "enemy.clockworks.furnace_hound",
+    "enemy.clockworks.pressure_drone",
+    "enemy.clockworks.prime_regulator",
+    "enemy.grey_hive.brute",
+    "enemy.grey_hive.sentinel",
+    "enemy.grey_hive.swarm",
+    "enemy.mist_harbor.drowned",
+    "enemy.mist_harbor.resonance_warden",
+    "enemy.mist_harbor.signal_wraith",
+    "enemy.mist_harbor.tidebound",
+    "grey_hive.infected_maintenance_worker",
+    "grey_hive.infected_security"
+  ]
+}

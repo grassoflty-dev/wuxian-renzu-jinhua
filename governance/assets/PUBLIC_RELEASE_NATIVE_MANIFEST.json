@@ -1,0 +1,79 @@
+{
+  "schema": "public-native-component-admission/1",
+  "status": "native-icon source/derivatives reviewed; final executable and publication decision bound externally",
+  "approvals": [
+    {
+      "id": "project-directed-chatgpt-native-icon-20261003",
+      "scope": "native-icon-source-and-format-derivatives",
+      "status": "authorized-for-project-publication",
+      "sourcePath": "server-rs/icons/source/chatgpt-portal-emblem-20261003.png",
+      "sourceSha256": "ba7bb68b31b53ebe390b29eedf3bc4cda2ef9f42129b1cb35f3afb70db06cd21",
+      "iconPath": "server-rs/icons/icon.ico",
+      "iconSha256": "24b1ca62669340f115362191bce2efda61e698da5ee371674606c2ad0d2cd3b4",
+      "frameSizes": [
+        [
+          256,
+          256
+        ],
+        [
+          128,
+          128
+        ],
+        [
+          64,
+          64
+        ],
+        [
+          48,
+          48
+        ],
+        [
+          32,
+          32
+        ],
+        [
+          24,
+          24
+        ],
+        [
+          16,
+          16
+        ]
+      ],
+      "provenanceManifest": "server-rs/icons/ICON_PROVENANCE.json",
+      "reviewedAtUtc": "2026-10-03",
+      "generation": {
+        "generationService": "ChatGPT",
+        "designConversationTitle": "游戏方案策划",
+        "requestAtUtc": "2026-10-03T17:52:00Z",
+        "requestTimePrecision": "minute",
+        "downloadMethod": "original generated PNG downloaded using the designated conversation UI",
+        "description": "Text-free cyan/gold three-ring portal emblem and central light core",
+        "privateGenerationRecordHeldByMaintainer": true,
+        "embeddedProvenanceRef": "server-rs/icons/ICON_PROVENANCE.json"
+      },
+      "permissions": {
+        "id": "project-directed-chatgpt-native-icon-20261003",
+        "status": "authorized-for-project-publication",
+        "basis": "Project owner directed image artwork to be generated in the designated planning Chat and explicitly allowed publication of their requested ChatGPT images; this exact generated original was obtained there",
+        "scope": "This project native icon original and format/size-only ICO derivatives",
+        "limit": "No CC0 dedication, exclusive-rights assertion, trademark clearance, or blanket third-party rights warranty; no old icon, font or reference image was reused",
+        "licenseSpdx": null,
+        "downstreamLicenseGrant": null
+      },
+      "defaultWindowIconSize": [
+        256,
+        256
+      ]
+    }
+  ],
+  "nativeExecutableApproval": {
+    "status": "requires actual matching executable audit and release-owner decision",
+    "identityBinding": "external CANDIDATE-MANIFEST / release manifest; no self-referential commit or EXE hash in source"
+  },
+  "limits": [
+    "not a trademark/copyright guarantee",
+    "not a Windows runtime acceptance result",
+    "not permission to publish the old unknown-provenance glyph icon"
+  ]
+}

@@ -1,0 +1,33 @@
+# Rebuildable dependencies and output
+node_modules
+server-rs/target/
+server-rs/gen/schemas/
+target/
+dist/
+*.pdb
+*.rlib
+*.rmeta
+*.pyc
+__pycache__/
+
+# Local runtime data: authored server-rs/data/*.json files are source inputs.
+formal-save-*.json
+formal-save-*.json.bak
+slots/
+saves/
+*.log
+*.db
+.cache/
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Editor and operating-system files
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/

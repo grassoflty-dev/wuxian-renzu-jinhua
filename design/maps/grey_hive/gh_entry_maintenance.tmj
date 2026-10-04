@@ -1,0 +1,137 @@
+{
+  "compressionlevel": -1,
+  "height": 14,
+  "infinite": false,
+  "layers": [
+    {
+      "id": 1,
+      "name": "visual.floor",
+      "objects": [
+        {"id": 1, "name": "approved_floor_atlas", "x": 320, "y": 224, "width": 640, "height": 448, "properties": [{"name": "assetId", "type": "string", "value": "runtime2d.grey_hive.floor_tiles.v1"}]}
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 2,
+      "name": "visual.props_back",
+      "objects": [
+        {"id": 2, "name": "entry_pipes", "x": 224, "y": 64, "properties": [{"name": "assetId", "type": "string", "value": "runtime2d.grey_hive.pipes_cables.v1"}]},
+        {"id": 3, "name": "entry_wall", "x": 32, "y": 64, "properties": [{"name": "assetId", "type": "string", "value": "runtime2d.grey_hive.wall_tiles.v1"}]},
+        {"id": 4, "name": "entry_clutter", "x": 448, "y": 320, "properties": [{"name": "assetId", "type": "string", "value": "runtime2d.grey_hive.clutter.v1"}]}
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 3,
+      "name": "visual.props_dynamic",
+      "objects": [
+        {"id": 20, "name": "entry_worker_01_visual", "x": 256, "y": 128, "properties": [{"name": "assetId", "type": "string", "value": "runtime2d.enemy.infected_maintenance_worker.v1"}]},
+        {"id": 21, "name": "entry_worker_02_visual", "x": 384, "y": 320, "properties": [{"name": "assetId", "type": "string", "value": "runtime2d.enemy.infected_maintenance_worker.v1"}]}
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 4,
+      "name": "logic.collision",
+      "objects": [
+        {"id": 6, "name": "gh_entry_wall_north", "x": 0, "y": 0, "width": 640, "height": 16},
+        {"id": 7, "name": "gh_entry_wall_south", "x": 0, "y": 432, "width": 640, "height": 16},
+        {"id": 8, "name": "gh_entry_wall_west", "x": 0, "y": 16, "width": 16, "height": 416},
+        {"id": 9, "name": "gh_entry_wall_east_north", "x": 624, "y": 16, "width": 16, "height": 160},
+        {"id": 10, "name": "gh_entry_wall_east_south", "x": 624, "y": 272, "width": 16, "height": 160}
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 5,
+      "name": "logic.navigation",
+      "objects": [
+        {"id": 11, "name": "gh_entry_nav", "x": 64, "y": 224, "properties": [{"name": "neighbors", "type": "string", "value": "gh_entry_cp_nav"}]},
+        {"id": 12, "name": "gh_entry_cp_nav", "x": 96, "y": 224, "properties": [{"name": "neighbors", "type": "string", "value": "gh_entry_exit_nav"}]},
+        {"id": 13, "name": "gh_entry_exit_nav", "x": 576, "y": 224}
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 6,
+      "name": "logic.spawn",
+      "objects": [
+        {"id": 14, "name": "gh_entry_spawn", "x": 64, "y": 224, "properties": [{"name": "kind", "type": "string", "value": "player"}, {"name": "navNode", "type": "string", "value": "gh_entry_nav"}]},
+        {"id": 15, "name": "gh_entry_worker_01", "x": 256, "y": 128, "properties": [{"name": "kind", "type": "string", "value": "enemy"}, {"name": "entityType", "type": "string", "value": "grey_hive.infected_maintenance_worker"}, {"name": "navNode", "type": "string", "value": "gh_entry_cp_nav"}]},
+        {"id": 16, "name": "gh_entry_worker_02", "x": 384, "y": 320, "properties": [{"name": "kind", "type": "string", "value": "enemy"}, {"name": "entityType", "type": "string", "value": "grey_hive.infected_maintenance_worker"}, {"name": "navNode", "type": "string", "value": "gh_entry_exit_nav"}]}
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 7,
+      "name": "logic.interaction",
+      "objects": [
+        {"id": 17, "name": "gh_entry_tutorial_terminal", "x": 128, "y": 224, "properties": [{"name": "kind", "type": "string", "value": "terminal"}]}
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 8,
+      "name": "logic.checkpoint",
+      "objects": [
+        {"id": 18, "name": "gh_entry_checkpoint", "x": 96, "y": 224, "properties": [{"name": "navNode", "type": "string", "value": "gh_entry_cp_nav"}]}
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 9,
+      "name": "logic.transition",
+      "objects": [
+        {"id": 19, "name": "gh_entry_to_power_room", "x": 560, "y": 192, "width": 80, "height": 64, "properties": [{"name": "toSceneId", "type": "string", "value": "gh_power_room"}, {"name": "spawnId", "type": "string", "value": "gh_power_spawn"}]}
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "nextlayerid": 10,
+  "nextobjectid": 22,
+  "orientation": "orthogonal",
+  "properties": [{"name": "worldId", "type": "string", "value": "grey_hive"}, {"name": "sceneId", "type": "string", "value": "gh_entry_maintenance"}, {"name": "pixelsPerMeter", "type": "int", "value": 32}, {"name": "cameraProfile", "type": "string", "value": "facility_oblique"}],
+  "renderorder": "right-down",
+  "tiledversion": "1.10.2",
+  "tileheight": 32,
+  "tilewidth": 32,
+  "type": "map",
+  "version": "1.10",
+  "width": 20
+}

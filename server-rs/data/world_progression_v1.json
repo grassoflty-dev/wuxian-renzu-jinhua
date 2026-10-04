@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "worlds": [
+    {
+      "worldId": "grey_hive",
+      "name": "灰巢设施",
+      "order": 0,
+      "revisitPolicy": { "kind": "afterFirstClearLimited", "maxRevisits": 2 },
+      "requiredEvents": ["hive_power", "hive_lockdown", "hive_extraction"],
+      "postClearTaskCandidates": ["hive_rescue_followup"]
+    },
+    {
+      "worldId": "mist_harbor",
+      "name": "雾港余烬",
+      "order": 1,
+      "revisitPolicy": { "kind": "afterFirstClearLimited", "maxRevisits": 2 },
+      "requiredEvents": ["mist_beacon_west", "mist_beacon_east", "mist_signal"],
+      "postClearTaskCandidates": ["mist_chart_safe_route"]
+    },
+    {
+      "worldId": "clockworks",
+      "name": "钟骨工厂",
+      "order": 2,
+      "revisitPolicy": { "kind": "taskCandidatesLimited", "maxRevisits": 4 },
+      "requiredEvents": ["clockworks_valves", "clockworks_core", "clockworks_shutdown"],
+      "postClearTaskCandidates": ["clockworks_phase_audit", "clockworks_lost_shift", "clockworks_core_salvage"]
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.wav binary
+*.mp3 binary
+*.ogg binary
+*.mp4 binary
+*.webm binary
+*.zip binary
+*.gz binary
+*.crate binary
+*.pdf binary
+# These design inputs carry exact hashes used by source/asset validation.
+docs/*_SOURCE.md -text -eol
+docs/source/deep-research-report.md -text -eol

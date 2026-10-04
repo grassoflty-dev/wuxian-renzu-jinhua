@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "worldId": "return_station",
+  "sceneId": "rs_test_hub",
+  "boundsM": { "x": 0, "z": 0, "width": 12, "depth": 12 },
+  "navigation": { "nodes": [{ "id": "rs_nav", "position": [1, 0, 1] }], "links": [] },
+  "spawns": [{ "id": "rs_spawn", "kind": "player", "entityType": null, "position": [1, 0, 1], "navNode": "rs_nav" }],
+  "checkpoints": [{ "id": "rs_checkpoint", "position": [1, 0, 1], "navNode": "rs_nav" }],
+  "transitions": [
+    { "id": "rs_to_gh", "toSceneId": "gh_test_power", "spawnId": "gh_spawn", "polygon": [[0, 0], [2, 0], [2, 2], [0, 2]] },
+    { "id": "rs_to_mh", "toSceneId": "mh_test_beacons", "spawnId": "mh_spawn", "polygon": [[0, 0], [2, 0], [2, 2], [0, 2]] },
+    { "id": "rs_to_cw", "toSceneId": "cw_test_exit", "spawnId": "cw_spawn", "polygon": [[0, 0], [2, 0], [2, 2], [0, 2]] }
+  ]
+}

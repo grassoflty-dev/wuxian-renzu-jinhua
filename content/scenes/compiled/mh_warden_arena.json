@@ -1,0 +1,439 @@
+{
+  "boundsM": {
+    "depth": 16.0,
+    "width": 24.0,
+    "x": 0,
+    "z": 0
+  },
+  "cameraZones": [],
+  "checkpoints": [
+    {
+      "id": "mh_warden_arena_checkpoint",
+      "navNode": "mh_warden_arena_spawn_nav",
+      "position": [
+        4.0,
+        0.0,
+        8.0
+      ]
+    }
+  ],
+  "collision": [
+    {
+      "id": "warden_wall_north",
+      "polygon": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          0.0,
+          0.5
+        ]
+      ]
+    },
+    {
+      "id": "warden_wall_south",
+      "polygon": [
+        [
+          0.0,
+          15.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          24.0,
+          16.0
+        ],
+        [
+          0.0,
+          16.0
+        ]
+      ]
+    },
+    {
+      "id": "warden_wall_west_north",
+      "polygon": [
+        [
+          0.0,
+          0.5
+        ],
+        [
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ]
+      ]
+    },
+    {
+      "id": "warden_wall_west_south",
+      "polygon": [
+        [
+          0.0,
+          9.5
+        ],
+        [
+          0.5,
+          9.5
+        ],
+        [
+          0.5,
+          15.5
+        ],
+        [
+          0.0,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "warden_wall_east_north",
+      "polygon": [
+        [
+          23.5,
+          0.5
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          24.0,
+          6.0
+        ],
+        [
+          23.5,
+          6.0
+        ]
+      ]
+    },
+    {
+      "id": "warden_wall_east_south",
+      "polygon": [
+        [
+          23.5,
+          9.5
+        ],
+        [
+          24.0,
+          9.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          23.5,
+          15.5
+        ]
+      ]
+    }
+  ],
+  "doors": [],
+  "explorationRegions": [
+    {
+      "id": "mh_wa_entry",
+      "polygon": [
+        [
+          0.5,
+          0.5
+        ],
+        [
+          8.0,
+          0.5
+        ],
+        [
+          8.0,
+          15.5
+        ],
+        [
+          0.5,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "mh_wa_arena_core",
+      "polygon": [
+        [
+          8.0,
+          0.5
+        ],
+        [
+          20.5,
+          0.5
+        ],
+        [
+          20.5,
+          15.5
+        ],
+        [
+          8.0,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "mh_wa_exit",
+      "polygon": [
+        [
+          20.5,
+          0.5
+        ],
+        [
+          23.5,
+          0.5
+        ],
+        [
+          23.5,
+          15.5
+        ],
+        [
+          20.5,
+          15.5
+        ]
+      ]
+    }
+  ],
+  "hazards": [],
+  "interactions": [],
+  "logic": {
+    "traversal": []
+  },
+  "navigation": {
+    "links": [
+      {
+        "from": "mh_warden_arena_spawn_nav",
+        "to": "mh_warden_arena_center_nav"
+      },
+      {
+        "from": "mh_warden_arena_center_nav",
+        "to": "mh_resonance_warden_marker_nav"
+      },
+      {
+        "from": "mh_resonance_warden_marker_nav",
+        "to": "mh_warden_arena_east_nav"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "mh_warden_arena_spawn_nav",
+        "position": [
+          3.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "mh_warden_arena_center_nav",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "mh_resonance_warden_marker_nav",
+        "position": [
+          18.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "mh_warden_arena_east_nav",
+        "position": [
+          21.0,
+          0.0,
+          8.0
+        ]
+      }
+    ]
+  },
+  "objectives": [],
+  "occluders": [],
+  "presentation": {
+    "cameraProfile": "oblique_default",
+    "layers": [
+      {
+        "id": "visual.floor",
+        "zGroup": 0
+      },
+      {
+        "id": "visual.props_back",
+        "zGroup": 10
+      },
+      {
+        "id": "visual.vfx_markers",
+        "zGroup": 20
+      }
+    ],
+    "sprites": [
+      {
+        "assetId": "runtime2d.world.mistharbor.water_edge_stone.v1",
+        "id": "approved_warden_arena_stone_water_module",
+        "layer": "visual.floor",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.mistharbor.fog_bank.v1",
+        "id": "warden_arena_fog_bank",
+        "layer": "visual.props_back",
+        "position": [
+          18.0,
+          0.0,
+          3.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.mistharbor.water_edge.v1",
+        "id": "warden_arena_water_edge",
+        "layer": "visual.props_back",
+        "position": [
+          12.0,
+          0.0,
+          14.5
+        ]
+      }
+    ]
+  },
+  "sceneId": "mh_warden_arena",
+  "schemaVersion": 1,
+  "spawns": [
+    {
+      "entityType": null,
+      "id": "mh_warden_arena_spawn",
+      "kind": "player",
+      "navNode": "mh_warden_arena_spawn_nav",
+      "position": [
+        3.0,
+        0.0,
+        8.0
+      ]
+    },
+    {
+      "entityType": "enemy.mist_harbor.resonance_warden",
+      "id": "mh_resonance_warden_staged_marker",
+      "kind": "enemy",
+      "navNode": "mh_resonance_warden_marker_nav",
+      "position": [
+        18.0,
+        0.0,
+        8.0
+      ]
+    }
+  ],
+  "transitions": [
+    {
+      "id": "mh_warden_arena_to_tower",
+      "polygon": [
+        [
+          0.0,
+          6.5
+        ],
+        [
+          2.0,
+          6.5
+        ],
+        [
+          2.0,
+          9.5
+        ],
+        [
+          0.0,
+          9.5
+        ]
+      ],
+      "spawnId": "mh_resonance_tower_spawn",
+      "toSceneId": "mh_resonance_tower"
+    },
+    {
+      "id": "mh_warden_arena_to_extraction",
+      "polygon": [
+        [
+          22.0,
+          6.5
+        ],
+        [
+          24.0,
+          6.5
+        ],
+        [
+          24.0,
+          9.5
+        ],
+        [
+          22.0,
+          9.5
+        ]
+      ],
+      "spawnId": "mh_extraction_spawn",
+      "toSceneId": "mh_extraction"
+    }
+  ],
+  "triggers": [],
+  "vfxMarkers": [
+    {
+      "assetId": "runtime2d.world.mistharbor.fog_vfx.v1",
+      "id": "warden_arena_ambient_fog_01",
+      "position": [
+        8.0,
+        0.0,
+        4.0
+      ]
+    },
+    {
+      "assetId": "runtime2d.world.mistharbor.fog_vfx.v1",
+      "id": "warden_arena_ambient_fog_02",
+      "position": [
+        18.0,
+        0.0,
+        11.0
+      ]
+    }
+  ],
+  "walkablePolygons": [
+    {
+      "id": "mh_warden_arena_walkable_area",
+      "polygon": [
+        [
+          0.5,
+          0.5
+        ],
+        [
+          23.5,
+          0.5
+        ],
+        [
+          23.5,
+          15.5
+        ],
+        [
+          0.5,
+          15.5
+        ]
+      ]
+    }
+  ],
+  "worldId": "mist_harbor"
+}

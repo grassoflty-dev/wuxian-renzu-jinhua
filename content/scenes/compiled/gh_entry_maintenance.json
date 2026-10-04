@@ -1,0 +1,328 @@
+{
+  "boundsM": {
+    "depth": 14.0,
+    "width": 20.0,
+    "x": 0,
+    "z": 0
+  },
+  "cameraZones": [],
+  "checkpoints": [
+    {
+      "id": "gh_entry_checkpoint",
+      "navNode": "gh_entry_cp_nav",
+      "position": [
+        3.0,
+        0.0,
+        7.0
+      ]
+    }
+  ],
+  "collision": [
+    {
+      "id": "gh_entry_wall_north",
+      "polygon": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          20.0,
+          0.0
+        ],
+        [
+          20.0,
+          0.5
+        ],
+        [
+          0.0,
+          0.5
+        ]
+      ]
+    },
+    {
+      "id": "gh_entry_wall_south",
+      "polygon": [
+        [
+          0.0,
+          13.5
+        ],
+        [
+          20.0,
+          13.5
+        ],
+        [
+          20.0,
+          14.0
+        ],
+        [
+          0.0,
+          14.0
+        ]
+      ]
+    },
+    {
+      "id": "gh_entry_wall_west",
+      "polygon": [
+        [
+          0.0,
+          0.5
+        ],
+        [
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          13.5
+        ],
+        [
+          0.0,
+          13.5
+        ]
+      ]
+    },
+    {
+      "id": "gh_entry_wall_east_north",
+      "polygon": [
+        [
+          19.5,
+          0.5
+        ],
+        [
+          20.0,
+          0.5
+        ],
+        [
+          20.0,
+          5.5
+        ],
+        [
+          19.5,
+          5.5
+        ]
+      ]
+    },
+    {
+      "id": "gh_entry_wall_east_south",
+      "polygon": [
+        [
+          19.5,
+          8.5
+        ],
+        [
+          20.0,
+          8.5
+        ],
+        [
+          20.0,
+          13.5
+        ],
+        [
+          19.5,
+          13.5
+        ]
+      ]
+    }
+  ],
+  "doors": [],
+  "hazards": [],
+  "interactions": [
+    {
+      "event": null,
+      "id": "gh_entry_tutorial_terminal",
+      "kind": "terminal",
+      "position": [
+        4.0,
+        0.0,
+        7.0
+      ]
+    }
+  ],
+  "logic": {
+    "traversal": []
+  },
+  "navigation": {
+    "links": [
+      {
+        "from": "gh_entry_nav",
+        "to": "gh_entry_cp_nav"
+      },
+      {
+        "from": "gh_entry_cp_nav",
+        "to": "gh_entry_exit_nav"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "gh_entry_nav",
+        "position": [
+          2.0,
+          0.0,
+          7.0
+        ]
+      },
+      {
+        "id": "gh_entry_cp_nav",
+        "position": [
+          3.0,
+          0.0,
+          7.0
+        ]
+      },
+      {
+        "id": "gh_entry_exit_nav",
+        "position": [
+          18.0,
+          0.0,
+          7.0
+        ]
+      }
+    ]
+  },
+  "objectives": [],
+  "occluders": [],
+  "presentation": {
+    "cameraProfile": "facility_oblique",
+    "layers": [
+      {
+        "id": "visual.floor",
+        "zGroup": 0
+      },
+      {
+        "id": "visual.props_back",
+        "zGroup": 10
+      },
+      {
+        "id": "visual.props_dynamic",
+        "zGroup": 20
+      }
+    ],
+    "sprites": [
+      {
+        "assetId": "runtime2d.grey_hive.floor_tiles.v1",
+        "id": "approved_floor_atlas",
+        "layer": "visual.floor",
+        "position": [
+          10.0,
+          0.0,
+          7.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.pipes_cables.v1",
+        "id": "entry_pipes",
+        "layer": "visual.props_back",
+        "position": [
+          7.0,
+          0.0,
+          2.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.wall_tiles.v1",
+        "id": "entry_wall",
+        "layer": "visual.props_back",
+        "position": [
+          1.0,
+          0.0,
+          2.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.clutter.v1",
+        "id": "entry_clutter",
+        "layer": "visual.props_back",
+        "position": [
+          14.0,
+          0.0,
+          10.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.enemy.infected_maintenance_worker.v1",
+        "id": "entry_worker_01_visual",
+        "layer": "visual.props_dynamic",
+        "position": [
+          8.0,
+          0.0,
+          4.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.enemy.infected_maintenance_worker.v1",
+        "id": "entry_worker_02_visual",
+        "layer": "visual.props_dynamic",
+        "position": [
+          12.0,
+          0.0,
+          10.0
+        ]
+      }
+    ]
+  },
+  "sceneId": "gh_entry_maintenance",
+  "schemaVersion": 1,
+  "spawns": [
+    {
+      "entityType": null,
+      "id": "gh_entry_spawn",
+      "kind": "player",
+      "navNode": "gh_entry_nav",
+      "position": [
+        2.0,
+        0.0,
+        7.0
+      ]
+    },
+    {
+      "entityType": "grey_hive.infected_maintenance_worker",
+      "id": "gh_entry_worker_01",
+      "kind": "enemy",
+      "navNode": "gh_entry_cp_nav",
+      "position": [
+        8.0,
+        0.0,
+        4.0
+      ]
+    },
+    {
+      "entityType": "grey_hive.infected_maintenance_worker",
+      "id": "gh_entry_worker_02",
+      "kind": "enemy",
+      "navNode": "gh_entry_exit_nav",
+      "position": [
+        12.0,
+        0.0,
+        10.0
+      ]
+    }
+  ],
+  "transitions": [
+    {
+      "id": "gh_entry_to_power_room",
+      "polygon": [
+        [
+          17.5,
+          6.0
+        ],
+        [
+          20.0,
+          6.0
+        ],
+        [
+          20.0,
+          8.0
+        ],
+        [
+          17.5,
+          8.0
+        ]
+      ],
+      "spawnId": "gh_power_spawn",
+      "toSceneId": "gh_power_room"
+    }
+  ],
+  "triggers": [],
+  "vfxMarkers": [],
+  "worldId": "grey_hive"
+}

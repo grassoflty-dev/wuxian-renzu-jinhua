@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 6,
+  "save": {
+    "schemaVersion": 5,
+    "buildVersion": "1.0.0",
+    "contentVersion": "campaign-content-v1",
+    "worldId": "grey_hive",
+    "sceneId": "grey_hive",
+    "checkpointId": null,
+    "player": {
+      "positionM": {
+        "xM": 0.0,
+        "yM": 0.0,
+        "zM": 0.7033334
+      },
+      "velocityMps": {
+        "xM": 0.0,
+        "yM": 0.0,
+        "zM": 10.0
+      },
+      "radiusM": 0.35,
+      "grounded": true,
+      "moveSpeedMps": 4.0,
+      "jumpSpeedMps": 5.5,
+      "gravityMps2": 16.0,
+      "dashSpeedMps": 10.0,
+      "dashRemainingMs": 163,
+      "dashCooldownRemainingMs": 683,
+      "currentHp": 100,
+      "maxHp": 100,
+      "currentEnergy": 100,
+      "maxEnergy": 100
+    },
+    "actors": [],
+    "combatHandledRequestIds": [
+      9301,
+      9302
+    ],
+    "sceneStates": [],
+    "progression": {
+      "schemaVersion": 1,
+      "currentWorldId": "grey_hive",
+      "progress": [
+        {
+          "worldId": "grey_hive",
+          "completed": false,
+          "firstCompletion": false,
+          "visitId": 1,
+          "cycleId": 1,
+          "revisitCount": 0,
+          "completedEvents": [
+            "hive_power"
+          ],
+          "firstMainlineResult": null,
+          "hiveChoice": "unresolved",
+          "sentinelFirstKillRecorded": false
+        },
+        {
+          "worldId": "mist_harbor",
+          "completed": false,
+          "firstCompletion": false,
+          "visitId": 0,
+          "cycleId": 1,
+          "revisitCount": 0,
+          "completedEvents": [],
+          "firstMainlineResult": null,
+          "hiveChoice": "unresolved",
+          "sentinelFirstKillRecorded": false
+        },
+        {
+          "worldId": "clockworks",
+          "completed": false,
+          "firstCompletion": false,
+          "visitId": 0,
+          "cycleId": 1,
+          "revisitCount": 0,
+          "completedEvents": [],
+          "firstMainlineResult": null,
+          "hiveChoice": "unresolved",
+          "sentinelFirstKillRecorded": false
+        }
+      ],
+      "rewardLedger": [],
+      "eventSeq": 2,
+      "processedRequestIds": [
+        "formal-runtime-bootstrap-grey-hive",
+        "return-test-power"
+      ]
+    },
+    "capabilities": {
+      "schemaVersion": 1,
+      "grants": [],
+      "selected": [],
+      "regeneration": {
+        "delayAfterDamageMs": 1500,
+        "delayAfterCombatMs": 3000,
+        "hpPerSecond": 2.5,
+        "regenCapFraction": 0.75
+      },
+      "firstEnhancementChoice": null,
+      "worldId": "grey_hive",
+      "exploredMap": {
+        "worldId": "grey_hive",
+        "playerPositionM": {
+          "xM": 0.0,
+          "yM": 0.0,
+          "zM": 0.7033334
+        },
+        "rooms": [],
+        "connections": [],
+        "objectives": []
+      },
+      "rearViewAuthorization": {
+        "granted": false,
+        "grantId": null,
+        "grantedAtRevision": null
+      },
+      "currentRevision": {
+        "worldEpoch": 2,
+        "serverTick": 9,
+        "authorityRevision": 11
+      },
+      "lastTickRevision": {
+        "worldEpoch": 2,
+        "serverTick": 9,
+        "authorityRevision": 11
+      },
+      "lastNowMs": 153,
+      "lastDamageAtMs": null,
+      "lastCombatAtMs": 153,
+      "fractionalHeal": 0.0,
+      "handledRequestIds": []
+    },
+    "inventory": {
+      "items": []
+    },
+    "dialogFlags": [],
+    "revision": {
+      "worldEpoch": 2,
+      "serverTick": 9,
+      "authorityRevision": 11
+    },
+    "serverTimeMs": 153,
+    "explored": {
+      "worldId": "grey_hive",
+      "playerPositionM": {
+        "xM": 0.0,
+        "yM": 0.0,
+        "zM": 0.7033334
+      },
+      "rooms": [],
+      "connections": [],
+      "objectives": []
+    },
+    "rearView": {
+      "granted": false,
+      "grantId": null,
+      "grantedAtRevision": null
+    },
+    "lastInputSeq": 1,
+    "lastClientTimeMs": 1,
+    "lastDamagedAtMs": null,
+    "lastCombatAtMs": 153,
+    "migrationProvenance": null
+  },
+  "progression": {
+    "inventory": {},
+    "equipment": {},
+    "ownedSkills": [],
+    "equippedSkills": [],
+    "skillProficiency": {},
+    "categoryProficiency": {},
+    "bloodline": null,
+    "bloodlineTier": 0,
+    "bloodlineProficiency": 0,
+    "treasures": [],
+    "geneStage": 0,
+    "cultivation": {},
+    "capabilities": []
+  },
+  "effectSources": []
+}

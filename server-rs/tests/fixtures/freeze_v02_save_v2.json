@@ -1,0 +1,15 @@
+{
+  "hp": 100,
+  "san": 100,
+  "points": 0,
+  "scene_id": "s_office",
+  "px": 1,
+  "py": 1,
+  "floor": 0,
+  "inventory": [],
+  "map_objs": {},
+  "enemies_alive": {},
+  "explored": [],
+  "world_id": "biohazard_ch1",
+  "save_version": 2
+}

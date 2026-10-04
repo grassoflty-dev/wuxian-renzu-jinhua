@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "catalogId": "return_station_narrative_zh_cn_v1",
+  "locale": "zh-CN",
+  "designSource": "docs/source/deep-research-report.md",
+  "designSourceSha256": "fcd027320a01a0fe083b09321deebc85b33598b4efc8642a6e5d624f5aaf51a1",
+  "sourceLineRange": "707-729",
+  "scenes": ["rs_core_room"],
+  "progressionStateBindings": [
+    {"id": "new_journey", "worldId": "return_station", "requiredEvents": [], "status": "implemented_entry_flow", "playabilityClaimed": true},
+    {"id": "grey_hive_first_clear", "worldId": "grey_hive", "requiredEvents": ["hive_power", "hive_lockdown", "hive_extraction"], "status": "implemented_progression_state", "playabilityClaimed": true},
+    {"id": "mist_harbor_first_clear", "worldId": "mist_harbor", "requiredEvents": ["mist_beacon_west", "mist_beacon_east", "mist_signal"], "status": "progression_prerequisite_only", "playabilityClaimed": false},
+    {"id": "clockworks_first_clear", "worldId": "clockworks", "requiredEvents": ["clockworks_valves", "clockworks_core", "clockworks_shutdown"], "status": "progression_prerequisite_only", "playabilityClaimed": false},
+    {"id": "three_worlds_complete", "worldId": "campaign", "requiredEvents": ["hive_power", "hive_lockdown", "hive_extraction", "mist_beacon_west", "mist_beacon_east", "mist_signal", "clockworks_valves", "clockworks_core", "clockworks_shutdown"], "status": "aggregate_prerequisite_only", "playabilityClaimed": false}
+  ],
+  "implementationClaims": {
+    "newJourneyStartsInReturnStation": true,
+    "greyHiveFirstClearReturnsToReturnStation": true,
+    "mistHarborReturnAvailable": false,
+    "clockworksReturnAvailable": false,
+    "capabilityTerminalServiceImplemented": false,
+    "threeWorldEpiloguePlayable": false
+  },
+  "entries": [
+    {
+      "id": "rs_intro",
+      "sceneId": "rs_core_room",
+      "triggerId": "rs_intro",
+      "triggerKind": "new_journey_scene_entry",
+      "triggerStatus": "pending_scene_hook",
+      "progressionStateId": "new_journey",
+      "triggerCondition": "New Journey 已从 Return Station Core Room 开始；但 rs_intro 对应的对白触发 hook 不在编译场景中。",
+      "body": "归航链路稳定。请选择首次回收坐标：灰巢设施。",
+      "bodyStatus": "confirmed",
+      "sourceLine": 724,
+      "evidence": "方案明确给出 rs_intro 原句；A20 实现新旅程从归航站开始，编译场景没有 rs_intro 对白 hook。"
+    },
+    {
+      "id": "rs_after_gh",
+      "sceneId": "rs_core_room",
+      "triggerId": "rs_after_gh",
+      "triggerKind": "grey_hive_first_clear_return_dialogue",
+      "triggerStatus": "pending_scene_hook",
+      "progressionStateId": "grey_hive_first_clear",
+      "triggerCondition": "灰巢 hive_extraction 首通完成并返回归航站后；正文有来源，场景尚无对应对白 hook。",
+      "body": "灰巢信标已解析。检测到第二组低可信坐标：雾港余烬。",
+      "bodyStatus": "confirmed",
+      "sourceLine": 725,
+      "evidence": "方案明确给出 rs_after_gh 原句；A20 已实现灰巢首通返回归航站，但没有该对白 marker。"
+    },
+    {
+      "id": "rs_first_evolution",
+      "sceneId": "rs_core_room",
+      "triggerId": "rs_capability_terminal_marker",
+      "triggerKind": "capability_terminal_marker",
+      "triggerStatus": "staged_marker",
+      "progressionStateId": "grey_hive_first_clear",
+      "triggerCondition": "灰巢首通后在能力终端选择 Local Map、Rear View 或 Regeneration；终端 marker 为静态，选择服务和正文未提供。",
+      "body": null,
+      "bodyStatus": "pending",
+      "sourceLine": 726,
+      "evidence": "方案只规定首次明确进化选择和三个选项，没有提供逐字文案；当前编译场景只有静态能力终端 marker。"
+    },
+    {
+      "id": "rs_after_mh",
+      "sceneId": "rs_core_room",
+      "triggerId": "rs_after_mh",
+      "triggerKind": "mist_harbor_first_clear_return_dialogue",
+      "triggerStatus": "pending_scene_hook",
+      "progressionStateId": "mist_harbor_first_clear",
+      "triggerCondition": "设计条件为雾港首通后返回归航站；当前没有可用的雾港返回流程或对白 hook。",
+      "body": "声学映射已固化。第三坐标的机械周期与信号高度同步。",
+      "bodyStatus": "confirmed",
+      "sourceLine": 727,
+      "evidence": "方案明确给出 rs_after_mh 原句；雾港进度事件仍只在编译交互中作者化，未宣称首通返回可玩。"
+    },
+    {
+      "id": "rs_after_cw",
+      "sceneId": "rs_core_room",
+      "triggerId": "rs_after_cw",
+      "triggerKind": "clockworks_first_clear_return_dialogue",
+      "triggerStatus": "pending_scene_hook",
+      "progressionStateId": "clockworks_first_clear",
+      "triggerCondition": "设计条件为钟骨工厂首通后返回归航站；当前没有可用的钟骨工厂回归流程或对白 hook。",
+      "body": "三处坐标不是孤立事件。网络中仍存在未识别节点。",
+      "bodyStatus": "confirmed",
+      "sourceLine": 728,
+      "evidence": "方案明确给出 rs_after_cw 原句；钟骨工厂事件与回归流程未宣称已可玩。"
+    },
+    {
+      "id": "rs_v1_epilogue",
+      "sceneId": "rs_core_room",
+      "triggerId": "rs_v1_epilogue",
+      "triggerKind": "three_world_campaign_epilogue",
+      "triggerStatus": "pending_scene_hook",
+      "progressionStateId": "three_worlds_complete",
+      "triggerCondition": "全部三世界完成后展示 World Network；当前无汇总 epilogue hook，三世界完成也未接通。",
+      "body": null,
+      "bodyStatus": "pending",
+      "sourceLine": 729,
+      "evidence": "方案只描述三个已完成节点与多个未知节点的呈现，没有提供逐字 epilogue 文案。"
+    }
+  ]
+}

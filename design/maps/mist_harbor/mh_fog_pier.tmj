@@ -1,0 +1,533 @@
+{
+  "compressionlevel": -1,
+  "height": 16,
+  "infinite": false,
+  "layers": [
+    {
+      "id": 1,
+      "name": "visual.floor",
+      "objects": [
+        {
+          "id": 1,
+          "name": "approved_stone_water_module",
+          "x": 384,
+          "y": 256,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.mistharbor.water_edge_stone.v1"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 2,
+      "name": "visual.props_back",
+      "objects": [
+        {
+          "id": 2,
+          "name": "approved_fog_bank_north",
+          "x": 416,
+          "y": 80,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.mistharbor.fog_bank.v1"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "name": "approved_fog_bank_east",
+          "x": 640,
+          "y": 352,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.mistharbor.fog_bank.v1"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 3,
+      "name": "visual.props_dynamic",
+      "objects": [],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 4,
+      "name": "visual.foreground",
+      "objects": [
+        {
+          "id": 6,
+          "name": "approved_outer_water_edge",
+          "x": 384,
+          "y": 464,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.mistharbor.water_edge.v1"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 5,
+      "name": "visual.vfx_markers",
+      "objects": [
+        {
+          "id": 7,
+          "name": "fog_bank_vfx_north",
+          "x": 288,
+          "y": 128,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.mistharbor.fog_vfx.v1"
+            }
+          ]
+        },
+        {
+          "id": 8,
+          "name": "fog_bank_vfx_east",
+          "x": 608,
+          "y": 320,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.mistharbor.fog_vfx.v1"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 6,
+      "name": "logic.collision",
+      "objects": [
+        {
+          "id": 9,
+          "name": "pier_wall_north",
+          "x": 0,
+          "y": 0,
+          "width": 768,
+          "height": 16,
+          "properties": []
+        },
+        {
+          "id": 10,
+          "name": "pier_wall_south",
+          "x": 0,
+          "y": 496,
+          "width": 768,
+          "height": 16,
+          "properties": []
+        },
+        {
+          "id": 11,
+          "name": "pier_wall_west_north",
+          "x": 0,
+          "y": 16,
+          "width": 16,
+          "height": 176,
+          "properties": []
+        },
+        {
+          "id": 12,
+          "name": "pier_wall_west_south",
+          "x": 0,
+          "y": 304,
+          "width": 16,
+          "height": 192,
+          "properties": []
+        },
+        {
+          "id": 13,
+          "name": "pier_wall_east_north",
+          "x": 752,
+          "y": 16,
+          "width": 16,
+          "height": 176,
+          "properties": []
+        },
+        {
+          "id": 14,
+          "name": "pier_wall_east_south",
+          "x": 752,
+          "y": 304,
+          "width": 16,
+          "height": 192,
+          "properties": []
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 7,
+      "name": "logic.navigation",
+      "objects": [
+        {
+          "id": 15,
+          "name": "mh_fog_pier_spawn_nav",
+          "x": 96,
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "mh_fog_pier_center_nav"
+            }
+          ]
+        },
+        {
+          "id": 16,
+          "name": "mh_fog_pier_center_nav",
+          "x": 384,
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "mh_fog_pier_foghorn_nav,mh_fog_pier_warehouse_nav"
+            }
+          ]
+        },
+        {
+          "id": 17,
+          "name": "mh_fog_pier_foghorn_nav",
+          "x": 384,
+          "y": 128,
+          "properties": []
+        },
+        {
+          "id": 18,
+          "name": "mh_fog_pier_warehouse_nav",
+          "x": 672,
+          "y": 256,
+          "properties": []
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 8,
+      "name": "logic.spawn",
+      "objects": [
+        {
+          "id": 19,
+          "name": "mh_fog_pier_spawn",
+          "x": 96,
+          "y": 256,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "player"
+            },
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "mh_fog_pier_spawn_nav"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "name": "mh_fog_pier_drowned_01",
+          "x": 448,
+          "y": 288,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "enemy"
+            },
+            {
+              "name": "entityType",
+              "type": "string",
+              "value": "enemy.mist_harbor.drowned"
+            },
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "mh_fog_pier_center_nav"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "name": "mh_fog_pier_drowned_02",
+          "x": 576,
+          "y": 368,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "enemy"
+            },
+            {
+              "name": "entityType",
+              "type": "string",
+              "value": "enemy.mist_harbor.drowned"
+            },
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "mh_fog_pier_warehouse_nav"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 9,
+      "name": "logic.interaction",
+      "objects": [
+        {
+          "id": 20,
+          "name": "mh_entry_beacon_marker",
+          "x": 128,
+          "y": 256,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "world_entry_beacon_marker"
+            }
+          ]
+        },
+        {
+          "id": 21,
+          "name": "mh_sys_entry_marker",
+          "x": 256,
+          "y": 256,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "entry_context_marker"
+            }
+          ]
+        },
+        {
+          "id": 22,
+          "name": "mh_foghorn_source_marker",
+          "x": 384,
+          "y": 128,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "foghorn_direction_marker"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 10,
+      "name": "logic.checkpoint",
+      "objects": [
+        {
+          "id": 23,
+          "name": "mh_fog_pier_checkpoint",
+          "x": 128,
+          "y": 256,
+          "properties": [
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "mh_fog_pier_spawn_nav"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 11,
+      "name": "logic.transition",
+      "objects": [
+        {
+          "id": 24,
+          "name": "mh_to_tidal_warehouse",
+          "x": 704,
+          "y": 208,
+          "width": 64,
+          "height": 96,
+          "properties": [
+            {
+              "name": "toSceneId",
+              "type": "string",
+              "value": "mh_tidal_warehouse"
+            },
+            {
+              "name": "spawnId",
+              "type": "string",
+              "value": "mh_warehouse_spawn"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "name": "logic.walkable",
+      "objects": [
+        {
+          "id": 25,
+          "name": "mh_fog_pier_walkable_area",
+          "x": 16.0,
+          "y": 16.0,
+          "width": 736.0,
+          "height": 480.0,
+          "rotation": 0,
+          "visible": true,
+          "properties": []
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 12
+    },
+    {
+      "name": "logic.exploration",
+      "objects": [
+        {
+          "id": 26,
+          "name": "mh_fp_entry_berth",
+          "x": 16.0,
+          "y": 16.0,
+          "width": 240.0,
+          "height": 480.0,
+          "rotation": 0,
+          "visible": true,
+          "properties": []
+        },
+        {
+          "id": 27,
+          "name": "mh_fp_foghorn_pier",
+          "x": 256,
+          "y": 16.0,
+          "width": 256,
+          "height": 480.0,
+          "rotation": 0,
+          "visible": true,
+          "properties": []
+        },
+        {
+          "id": 28,
+          "name": "mh_fp_warehouse_approach",
+          "x": 512,
+          "y": 16.0,
+          "width": 240.0,
+          "height": 480.0,
+          "rotation": 0,
+          "visible": true,
+          "properties": []
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 13
+    }
+  ],
+  "nextlayerid": 14,
+  "nextobjectid": 29,
+  "orientation": "orthogonal",
+  "properties": [
+    {
+      "name": "worldId",
+      "type": "string",
+      "value": "mist_harbor"
+    },
+    {
+      "name": "sceneId",
+      "type": "string",
+      "value": "mh_fog_pier"
+    },
+    {
+      "name": "pixelsPerMeter",
+      "type": "int",
+      "value": 32
+    },
+    {
+      "name": "cameraProfile",
+      "type": "string",
+      "value": "oblique_default"
+    }
+  ],
+  "renderorder": "right-down",
+  "tiledversion": "1.10.2",
+  "tileheight": 32,
+  "tilewidth": 32,
+  "type": "map",
+  "version": "1.10",
+  "width": 24
+}

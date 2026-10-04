@@ -1,0 +1,2704 @@
+{
+  "assets": [
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "animation": {
+        "directions": [
+          "south",
+          "south_west",
+          "west",
+          "north_east",
+          "north",
+          "north_west",
+          "east",
+          "south_east"
+        ],
+        "frames": [
+          {
+            "anchor": [
+              0.5,
+              0.98392857
+            ],
+            "atlasFrame": [
+              2,
+              2,
+              336,
+              560
+            ],
+            "atlasPage": 13,
+            "direction": "south",
+            "extrudedFrame": [
+              0,
+              0,
+              340,
+              564
+            ],
+            "sourceFrame": {
+              "png": {
+                "path": "assets/derived/cenyao-runtime-master-v1/png/cenyao_idle_south.png",
+                "sha256": "b6cff22dabb303f0a9c95ba24a41fb3c2f5159ff191adefacf0c6dad38ffe875"
+              },
+              "webp": {
+                "path": "assets/derived/cenyao-runtime-master-v1/webp/cenyao_idle_south.webp",
+                "sha256": "627292d979d0a8a3334dec47630ad9ac531f023a87140f52edcc9ce523ffe433"
+              }
+            },
+            "state": "idle"
+          },
+          {
+            "anchor": [
+              0.5,
+              0.98392857
+            ],
+            "atlasFrame": [
+              342,
+              2,
+              336,
+              560
+            ],
+            "atlasPage": 13,
+            "direction": "south_west",
+            "extrudedFrame": [
+              340,
+              0,
+              340,
+              564
+            ],
+            "sourceFrame": {
+              "png": {
+                "path": "assets/derived/cenyao-runtime-master-v1/png/cenyao_idle_south_west.png",
+                "sha256": "3d3e34d0a5d388de522fd6a94fd2769efbf8137aea1ae7c0b69881c5416520be"
+              },
+              "webp": {
+                "path": "assets/derived/cenyao-runtime-master-v1/webp/cenyao_idle_south_west.webp",
+                "sha256": "c5f2eddc15e71e0ca388ba55b17b15d53fe4df262dbc3cad7055cbf939591ea3"
+              }
+            },
+            "state": "idle"
+          },
+          {
+            "anchor": [
+              0.5,
+              0.98392857
+            ],
+            "atlasFrame": [
+              682,
+              2,
+              336,
+              560
+            ],
+            "atlasPage": 13,
+            "direction": "west",
+            "extrudedFrame": [
+              680,
+              0,
+              340,
+              564
+            ],
+            "sourceFrame": {
+              "png": {
+                "path": "assets/derived/cenyao-runtime-master-v1/png/cenyao_idle_west.png",
+                "sha256": "fc8e0b132c48f594a49a20bd39955d731f02077502e33131499608cc3bd7a70c"
+              },
+              "webp": {
+                "path": "assets/derived/cenyao-runtime-master-v1/webp/cenyao_idle_west.webp",
+                "sha256": "a33a153ba557b47f8460732895a8b2d819a39f733607a9332d4eb2d4d553e1f1"
+              }
+            },
+            "state": "idle"
+          },
+          {
+            "anchor": [
+              0.5,
+              0.98392857
+            ],
+            "atlasFrame": [
+              1022,
+              2,
+              336,
+              560
+            ],
+            "atlasPage": 13,
+            "direction": "north_east",
+            "extrudedFrame": [
+              1020,
+              0,
+              340,
+              564
+            ],
+            "sourceFrame": {
+              "png": {
+                "path": "assets/derived/cenyao-runtime-master-v1/png/cenyao_idle_north_east.png",
+                "sha256": "19b8e318bf5216d6075f64ac986ef7c3c3299241816b472843aac24bbf4a7676"
+              },
+              "webp": {
+                "path": "assets/derived/cenyao-runtime-master-v1/webp/cenyao_idle_north_east.webp",
+                "sha256": "464b2b653711a44cabcfa400004c78ff32bf5fd39c810a14cea334e14c3c6f38"
+              }
+            },
+            "state": "idle"
+          },
+          {
+            "anchor": [
+              0.5,
+              0.98392857
+            ],
+            "atlasFrame": [
+              2,
+              566,
+              336,
+              560
+            ],
+            "atlasPage": 13,
+            "direction": "north",
+            "extrudedFrame": [
+              0,
+              564,
+              340,
+              564
+            ],
+            "sourceFrame": {
+              "png": {
+                "path": "assets/derived/cenyao-runtime-master-v1/png/cenyao_idle_north.png",
+                "sha256": "6608ed34685f28f3380849d7fe5e5319078e8feb1fbd66cbcd4cb3782a1a8221"
+              },
+              "webp": {
+                "path": "assets/derived/cenyao-runtime-master-v1/webp/cenyao_idle_north.webp",
+                "sha256": "ca89a1ee487252dcf1eeb0ad9e9d25abec10ae61882374a17839ecff2b5de770"
+              }
+            },
+            "state": "idle"
+          },
+          {
+            "anchor": [
+              0.5,
+              0.98392857
+            ],
+            "atlasFrame": [
+              342,
+              566,
+              336,
+              560
+            ],
+            "atlasPage": 13,
+            "direction": "north_west",
+            "extrudedFrame": [
+              340,
+              564,
+              340,
+              564
+            ],
+            "sourceFrame": {
+              "png": {
+                "path": "assets/derived/cenyao-runtime-master-v1/png/cenyao_idle_north_west.png",
+                "sha256": "8dc527b975b1da5ed7b36a54cf4ad260cdcd9d7d3ccba24660308cf971c3164e"
+              },
+              "webp": {
+                "path": "assets/derived/cenyao-runtime-master-v1/webp/cenyao_idle_north_west.webp",
+                "sha256": "fec4be62fc81d025a18a1248803355c590bb9fe31234f3b757eb2328c11a0cf5"
+              }
+            },
+            "state": "idle"
+          },
+          {
+            "anchor": [
+              0.5,
+              0.98392857
+            ],
+            "atlasFrame": [
+              682,
+              566,
+              336,
+              560
+            ],
+            "atlasPage": 13,
+            "direction": "east",
+            "extrudedFrame": [
+              680,
+              564,
+              340,
+              564
+            ],
+            "sourceFrame": {
+              "png": {
+                "path": "assets/derived/cenyao-runtime-master-v1/png/cenyao_idle_east.png",
+                "sha256": "fd38db1daec829c0a7c2adffcdfd5c605f54b3611bb515599cd8deeea1f47402"
+              },
+              "webp": {
+                "path": "assets/derived/cenyao-runtime-master-v1/webp/cenyao_idle_east.webp",
+                "sha256": "daad53355ccfd7262f2c102381e665e07918c2e4352523d43a020bbed272605a"
+              }
+            },
+            "state": "idle"
+          },
+          {
+            "anchor": [
+              0.5,
+              0.98392857
+            ],
+            "atlasFrame": [
+              1022,
+              566,
+              336,
+              560
+            ],
+            "atlasPage": 13,
+            "direction": "south_east",
+            "extrudedFrame": [
+              1020,
+              564,
+              340,
+              564
+            ],
+            "sourceFrame": {
+              "png": {
+                "path": "assets/derived/cenyao-runtime-master-v1/png/cenyao_idle_south_east.png",
+                "sha256": "bfe0107fe1efdcd73b90d57b01283a22658960b5847bb5e88b401dae9857be56"
+              },
+              "webp": {
+                "path": "assets/derived/cenyao-runtime-master-v1/webp/cenyao_idle_south_east.webp",
+                "sha256": "7126d9cf50ef316f990e1d8b0eab4f7538425fa92cee4a3fcee03cb0c0e01448"
+              }
+            },
+            "state": "idle"
+          }
+        ],
+        "sourceAsset": {
+          "assetId": "runtime2d.actor.cenyao.base.v1",
+          "path": "batch01/01_runtime2d.actor.cenyao.base.v1.png",
+          "sha256": "1915e77897a4facea0bfee4c529daf5cd4961998fe4887efc4a340f253424801"
+        },
+        "sourceMasterSha256": "80a810ec6fdbcda50a0daeebcf53cd2173c0a411f043861e869187061cb59f61",
+        "sourceMetadata": {
+          "path": "assets/metadata/cenyao-runtime-master-v1/cenyao-idle-atlas-v1.json",
+          "sha256": "a1d5f40c2a7ae47f45dbf2b85432291be3be0badb855f1f386ec9905d533641c"
+        },
+        "states": [
+          "idle"
+        ]
+      },
+      "assetId": "runtime2d.actor.cenyao.base.v1",
+      "atlasFrame": [
+        2,
+        2,
+        1422,
+        1086
+      ],
+      "atlasPage": 3,
+      "category": "actor",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          0,
+          0,
+          1422,
+          1086
+        ],
+        "outputSize": [
+          1422,
+          1086
+        ],
+        "sourceSize": [
+          1448,
+          1086
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.actor.cenyao.base.v1.png",
+          "sha256": "5bcdc7662c6d7cdbe1972113aa415a61a2a79e12fede6d35d0ed5af587d8d2ac"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.actor.cenyao.base.v1.webp",
+          "sha256": "46e46561bce6d67b3093cd65668b8f7db2a94b7a5f8fff20f2cf6e9d9d7af098"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch01/01_runtime2d.actor.cenyao.base.v1.png",
+      "sourceSha256": "1915e77897a4facea0bfee4c529daf5cd4961998fe4887efc4a340f253424801",
+      "streamingGroup": "shared"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "assetId": "runtime2d.actor.cenyao.parts.v1",
+      "atlasFrame": [
+        2,
+        1092,
+        1430,
+        1055
+      ],
+      "atlasPage": 3,
+      "category": "actor",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          18,
+          31,
+          1448,
+          1086
+        ],
+        "outputSize": [
+          1430,
+          1055
+        ],
+        "sourceSize": [
+          1448,
+          1086
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.actor.cenyao.parts.v1.png",
+          "sha256": "b936ae8af95a57e9dbfff29f4b51f0db5c5af58ce24a7d6283abb7230d4ce911"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.actor.cenyao.parts.v1.webp",
+          "sha256": "5b2d7f25dd2a2836bd59dcdf8bde1d2a8152c86072ec1ceae82f8decf0bd5b25"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch01/02_runtime2d.actor.cenyao.parts.v1.png",
+      "sourceSha256": "5ec63d9e17743ab12ffc57144258fb1c46430643e3c00ec4338c89771bf28644",
+      "streamingGroup": "shared"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "assetId": "runtime2d.grey_hive.floor_tiles.v1",
+      "atlasFrame": [
+        2,
+        2099,
+        1434,
+        980
+      ],
+      "atlasPage": 10,
+      "category": "world",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          0,
+          49,
+          1434,
+          1029
+        ],
+        "outputSize": [
+          1434,
+          980
+        ],
+        "sourceSize": [
+          1448,
+          1086
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.grey_hive.floor_tiles.v1.png",
+          "sha256": "4c93e192505e71d6ec4e414aeb5c9b76376b7407d677017b31b8eba5e24e744f"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.grey_hive.floor_tiles.v1.webp",
+          "sha256": "35176a085b974fd68c58d775baa68ae6dd42cd97f20e926cfe4ce8ceee7492b7"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch01/03_runtime2d.grey_hive.floor_tiles.v1.png",
+      "sourceSha256": "ac36eb55fe0e5404b8b11ee6904d886703de6b5873d5b34be8c8f1008e5fc1e6",
+      "streamingGroup": "grey_hive"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "assetId": "runtime2d.grey_hive.wall_tiles.v1",
+      "atlasFrame": [
+        2,
+        1067,
+        1418,
+        1028
+      ],
+      "atlasPage": 10,
+      "category": "world",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          0,
+          58,
+          1418,
+          1086
+        ],
+        "outputSize": [
+          1418,
+          1028
+        ],
+        "sourceSize": [
+          1448,
+          1086
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.grey_hive.wall_tiles.v1.png",
+          "sha256": "c5a18cae9a3ddc95c8515f6b342cb7ca3be12c23ff502ab5b3f16000bb4c9a5b"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.grey_hive.wall_tiles.v1.webp",
+          "sha256": "9c2885818c96ccd6e4e820b79d284974d4ef01f5a09904ebcb90c0d8779c35ae"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch01/04_runtime2d.grey_hive.wall_tiles.v1.png",
+      "sourceSha256": "a00aa90244b37b7b322d53b4323f77af380ff3bca869a40beed256ec76c2f94b",
+      "streamingGroup": "grey_hive"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "assetId": "runtime2d.grey_hive.pipes_cables.v1",
+      "atlasFrame": [
+        1434,
+        2,
+        1414,
+        1047
+      ],
+      "atlasPage": 10,
+      "category": "world",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          18,
+          21,
+          1432,
+          1068
+        ],
+        "outputSize": [
+          1414,
+          1047
+        ],
+        "sourceSize": [
+          1448,
+          1086
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.grey_hive.pipes_cables.v1.png",
+          "sha256": "7f3c67879398e89adc9026fc2aca5fbe7792b1dc360b73c737c1b2299eac96da"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.grey_hive.pipes_cables.v1.webp",
+          "sha256": "936a75beb71400061b0fa787f17d1d0f869dc308c14819c0705423d5e2afca82"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch01/05_runtime2d.grey_hive.pipes_cables.v1.png",
+      "sourceSha256": "856ac9f64c56c58090d900fb406f0796cdccf7ac843cf2dfa7e1f7df5176b2ca",
+      "streamingGroup": "grey_hive"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "assetId": "runtime2d.prop.power_console.off_on.v1",
+      "atlasFrame": [
+        1413,
+        2350,
+        1448,
+        1018
+      ],
+      "atlasPage": 5,
+      "category": "prop",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          0,
+          68,
+          1448,
+          1086
+        ],
+        "outputSize": [
+          1448,
+          1018
+        ],
+        "sourceSize": [
+          1448,
+          1086
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.power_console.off_on.v1.png",
+          "sha256": "740eaaf0d0b9c0b1ba3b9f2c6650ffc3e270e70e15d0d979f2637df4092f048c"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.prop.power_console.off_on.v1.webp",
+          "sha256": "abd81e6845d3c3640ec7fedf10f3bb15c4017a9a9fe8986e114020b85b8e048a"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch01/06_runtime2d.prop.power_console.off_on.v1.png",
+      "sourceSha256": "4cc2443664940a54e776e4cfd8d682b8477a1848dc420b2df4990d8d398f9961",
+      "streamingGroup": "grey_hive"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "assetId": "runtime2d.prop.gate_a.closed_open.v1",
+      "atlasFrame": [
+        2,
+        2350,
+        1407,
+        1039
+      ],
+      "atlasPage": 5,
+      "category": "prop",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          15,
+          21,
+          1422,
+          1060
+        ],
+        "outputSize": [
+          1407,
+          1039
+        ],
+        "sourceSize": [
+          1448,
+          1086
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.gate_a.closed_open.v1.png",
+          "sha256": "0fa3981a0abfa5a1f7a5d4b75033f392e46f1b91f901605dcacf415c796e1b7b"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.prop.gate_a.closed_open.v1.webp",
+          "sha256": "567fff07a19fab2e5b405162090a3721c0d21a64bb1d3c33d319b12efcc2d1ed"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch01/07_runtime2d.prop.gate_a.closed_open.v1.png",
+      "sourceSha256": "7d4b352063775818773e3bbda6ae1296645e09a84f2a2940ae17075be8c00fed",
+      "streamingGroup": "grey_hive"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "assetId": "runtime2d.vfx.dash.v1",
+      "atlasFrame": [
+        2,
+        2,
+        1448,
+        1086
+      ],
+      "atlasPage": 8,
+      "category": "vfx",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          0,
+          0,
+          1448,
+          1086
+        ],
+        "outputSize": [
+          1448,
+          1086
+        ],
+        "sourceSize": [
+          1448,
+          1086
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.vfx.dash.v1.png",
+          "sha256": "3043fdbd65c6b885f89da4ed1fd55d023515d0ff912df4ff21d84f896f4b5917"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.vfx.dash.v1.webp",
+          "sha256": "95b3e7038aff27c2366adfffe60407a143a5ed52930142ac6ae0142515880d61"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch01/08_runtime2d.vfx.dash.v1.png",
+      "sourceSha256": "69ef29a1798b2ecc29ed38eeb1fafddbf25b151d75cd89b538f36b8412d0fe18",
+      "streamingGroup": "shared"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "assetId": "runtime2d.vfx.pulse.v1",
+      "atlasFrame": [
+        2,
+        1092,
+        1448,
+        1086
+      ],
+      "atlasPage": 8,
+      "category": "vfx",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          0,
+          0,
+          1448,
+          1086
+        ],
+        "outputSize": [
+          1448,
+          1086
+        ],
+        "sourceSize": [
+          1448,
+          1086
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.vfx.pulse.v1.png",
+          "sha256": "c83331ce706f810b40cc05a949c4d83e0d5ab8a696bdb24c392c2d843e16ef9b"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.vfx.pulse.v1.webp",
+          "sha256": "9eb554ff088257093985b0f9172ceff0368465a7604f35a84b90644b6eaa7f40"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch01/09_runtime2d.vfx.pulse.v1.png",
+      "sourceSha256": "f178a0477718b1cfa8f11454d9d0e7fa9272d773d21ec79be2cc313c5b7c06c2",
+      "streamingGroup": "shared"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "assetId": "runtime2d.vfx.guard_pierce.v1",
+      "atlasFrame": [
+        1454,
+        2,
+        1448,
+        1086
+      ],
+      "atlasPage": 8,
+      "category": "vfx",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          0,
+          0,
+          1448,
+          1086
+        ],
+        "outputSize": [
+          1448,
+          1086
+        ],
+        "sourceSize": [
+          1448,
+          1086
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.vfx.guard_pierce.v1.png",
+          "sha256": "4c1f574f03cf0f4dba35cb8d495f37bd7271848c290027fdb51e561a4bdf286b"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.vfx.guard_pierce.v1.webp",
+          "sha256": "c8f076e68874cf09c58abb5c26628da73308a2ceb810e5297198d3dd163c20b7"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch01/10_runtime2d.vfx.guard_pierce.v1.png",
+      "sourceSha256": "6b850c7eedb5ecea14c196c8b0306fc6eb8fd9cdcb698a8efb51ee1c687b5d96",
+      "streamingGroup": "shared"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "assetId": "runtime2d.enemy.infected_maintenance_worker.v1",
+      "atlasFrame": [
+        2,
+        2,
+        1447,
+        1086
+      ],
+      "atlasPage": 1,
+      "category": "actor",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          0,
+          0,
+          1447,
+          1086
+        ],
+        "outputSize": [
+          1447,
+          1086
+        ],
+        "sourceSize": [
+          1448,
+          1086
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.infected_maintenance_worker.v1.png",
+          "sha256": "f7ee9460d18be46a8aea81fda2e566b29e5ac7b80d9ad2b20fd58f2f7e7a8168"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.enemy.infected_maintenance_worker.v1.webp",
+          "sha256": "0e37bf04868097e0460efb74a5790ffa815ebaf7169392c5a5d122e6a5b7a4d8"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch02/03_runtime2d.enemy.infected_maintenance_worker.v1.png",
+      "sourceSha256": "6b7055df24acfa58edfdf0342c67efb60f9fac892c80110d449700bf7021477d",
+      "streamingGroup": "grey_hive"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "assetId": "runtime2d.enemy.infected_security.v1",
+      "atlasFrame": [
+        2,
+        1092,
+        1407,
+        1072
+      ],
+      "atlasPage": 1,
+      "category": "actor",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          25,
+          0,
+          1432,
+          1072
+        ],
+        "outputSize": [
+          1407,
+          1072
+        ],
+        "sourceSize": [
+          1448,
+          1086
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.infected_security.v1.png",
+          "sha256": "cee3c171a14d82317e98ef00f39c3341a16364931dd8d56ec0ced330bcbecf66"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.enemy.infected_security.v1.webp",
+          "sha256": "cc2a1da571af684452673447a43e9e3b8a481682a3e0e7230b027d361d6d8b96"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch02/04_runtime2d.enemy.infected_security.v1.png",
+      "sourceSha256": "7bd9d4cf19f36d189cdf81530c3dee48450179696a7dbceb24eaf375714de4e4",
+      "streamingGroup": "grey_hive"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "assetId": "runtime2d.enemy.sentinel.base.v1",
+      "atlasFrame": [
+        2,
+        2,
+        1442,
+        1072
+      ],
+      "atlasPage": 4,
+      "category": "boss",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          0,
+          0,
+          1442,
+          1072
+        ],
+        "outputSize": [
+          1442,
+          1072
+        ],
+        "sourceSize": [
+          1448,
+          1086
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.sentinel.base.v1.png",
+          "sha256": "c490ace4eb8ec9bf27e176359aefb8c3cd36c55a0651452be39ef25e4864df1d"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.enemy.sentinel.base.v1.webp",
+          "sha256": "de34593f99118f8d493cc51e11c62c705cf6296f594a07cefe218874de1ce17d"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch02/05_runtime2d.enemy.sentinel.base.v1.png",
+      "sourceSha256": "f7ced75a0fcf35afacf796f23630a40c309682c86ef67af79de5414a8a16fbe2",
+      "streamingGroup": "sentinel"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "assetId": "runtime2d.enemy.sentinel.parts.v1",
+      "atlasFrame": [
+        2,
+        1078,
+        1434,
+        1068
+      ],
+      "atlasPage": 4,
+      "category": "boss",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          0,
+          0,
+          1434,
+          1068
+        ],
+        "outputSize": [
+          1434,
+          1068
+        ],
+        "sourceSize": [
+          1448,
+          1086
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.sentinel.parts.v1.png",
+          "sha256": "6615f51c60cd1d5ec64abbc5de1e78fd50153b45a5d89018811331658c449962"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.enemy.sentinel.parts.v1.webp",
+          "sha256": "862f8b8a5cefda1214f277e26003d50b885d0fd67cbf47b81414ed913a8401a9"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch02/06_runtime2d.enemy.sentinel.parts.v1.png",
+      "sourceSha256": "18014ec4dfd953d4054bd11df74b416bd2f9f6252b7732396edba406f4044b05",
+      "streamingGroup": "sentinel"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "assetId": "runtime2d.prop.gate_b.v1",
+      "atlasFrame": [
+        1276,
+        1260,
+        1448,
+        1073
+      ],
+      "atlasPage": 5,
+      "category": "prop",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          0,
+          13,
+          1448,
+          1086
+        ],
+        "outputSize": [
+          1448,
+          1073
+        ],
+        "sourceSize": [
+          1448,
+          1086
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.gate_b.v1.png",
+          "sha256": "fdad9675bb90b37bc3c452773934536918fa56f4bef2b6f95c10a9823e2a67f6"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.prop.gate_b.v1.webp",
+          "sha256": "6b264e3c683fc43ec2cdd7a822da2843eeefde9674abdbb25c2a35b9dcf1cf85"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch02/07_runtime2d.prop.gate_b.v1.png",
+      "sourceSha256": "433a56c7960d19e09fb77ea55aa1787197e4a2eecc12face0ab29d5eaac39450",
+      "streamingGroup": "grey_hive"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "assetId": "runtime2d.prop.beacon.folded.v1",
+      "atlasFrame": [
+        2865,
+        2350,
+        1226,
+        1005
+      ],
+      "atlasPage": 5,
+      "category": "prop",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          89,
+          49,
+          1315,
+          1054
+        ],
+        "outputSize": [
+          1226,
+          1005
+        ],
+        "sourceSize": [
+          1448,
+          1086
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.beacon.folded.v1.png",
+          "sha256": "e31b18c233f03f39cdbfd51aeaf3541dd7141550d17c4c2c65bfbae043d7f080"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.prop.beacon.folded.v1.webp",
+          "sha256": "24558f046e040199e2fe1ddc1ea42fa72f44f4cffc57c074e97989552ed29c15"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch02/08_runtime2d.prop.beacon.folded.v1.png",
+      "sourceSha256": "335b4658d533d501b8758070742ca3a7fff8ca30acbfa69703ec1519265c79d1",
+      "streamingGroup": "grey_hive"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "assetId": "runtime2d.prop.beacon.deployed.v1",
+      "atlasFrame": [
+        2728,
+        1260,
+        1333,
+        1054
+      ],
+      "atlasPage": 5,
+      "category": "prop",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          33,
+          0,
+          1366,
+          1054
+        ],
+        "outputSize": [
+          1333,
+          1054
+        ],
+        "sourceSize": [
+          1448,
+          1086
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.beacon.deployed.v1.png",
+          "sha256": "2b2fe4729122f66740dcb1a00c2ea0cb7cd18bfbc3816822a5be4294f8c7d1e4"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.prop.beacon.deployed.v1.webp",
+          "sha256": "29789adf38c849cb6974858d3343d3246ed0d970612a47029e9ec1bb9098b383"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch02/09_runtime2d.prop.beacon.deployed.v1.png",
+      "sourceSha256": "1bb59407d43b218a56f04ba5b0451844e0328549e8f448c48975aae165b36e6b",
+      "streamingGroup": "grey_hive"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "assetId": "runtime2d.prop.lockdown_terminal.v1",
+      "atlasFrame": [
+        2,
+        1260,
+        1270,
+        1086
+      ],
+      "atlasPage": 5,
+      "category": "prop",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          57,
+          0,
+          1327,
+          1086
+        ],
+        "outputSize": [
+          1270,
+          1086
+        ],
+        "sourceSize": [
+          1448,
+          1086
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.lockdown_terminal.v1.png",
+          "sha256": "e917f9b4677d49e6d534b6b5f32b8756fb2934dbe4e87e76391c09ccd786361c"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.prop.lockdown_terminal.v1.webp",
+          "sha256": "1e712d402a8a61e7695ec8c65edfaeb50a893738124b1b1fb1a90a0fc4cc3402"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch02/10_runtime2d.prop.lockdown_terminal.v1.png",
+      "sourceSha256": "ee6bed917621ddbb85edbd0a915bae07ede776917590b18c759ce3511299460d",
+      "streamingGroup": "grey_hive"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "assetId": "runtime2d.prop.bio_pod.v1",
+      "atlasFrame": [
+        2,
+        2,
+        1171,
+        1254
+      ],
+      "atlasPage": 5,
+      "category": "prop",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          59,
+          0,
+          1230,
+          1254
+        ],
+        "outputSize": [
+          1171,
+          1254
+        ],
+        "sourceSize": [
+          1254,
+          1254
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.bio_pod.v1.png",
+          "sha256": "d71d51dea193527c71262ccb54d7d7b14d80e43346b017dede9a4122e2589588"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.prop.bio_pod.v1.webp",
+          "sha256": "a732507b887bc699681b83fcaf43b7def1b18da9640f144286bf32f3eee8e719"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch03/01_runtime2d.prop.bio_pod.v1.png",
+      "sourceSha256": "aed2f8398fb30710b84b2b6e449ec46ddfe1f23c65b05cbc32de8fa3f7ff05a5",
+      "streamingGroup": "grey_hive"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "assetId": "runtime2d.prop.supply_crates.v1",
+      "atlasFrame": [
+        1177,
+        2,
+        1238,
+        1233
+      ],
+      "atlasPage": 5,
+      "category": "prop",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          0,
+          21,
+          1238,
+          1254
+        ],
+        "outputSize": [
+          1238,
+          1233
+        ],
+        "sourceSize": [
+          1254,
+          1254
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.supply_crates.v1.png",
+          "sha256": "0dbad1364c14649b021f20510b9faf970ff317e6202131bd4cb2c32648b34b00"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.prop.supply_crates.v1.webp",
+          "sha256": "0bffdf5bf91da409ad95d26b13dd04d65ddef41fbf878b9efd6cecc08f72dc5b"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch03/02_runtime2d.prop.supply_crates.v1.png",
+      "sourceSha256": "e8250132f14a9c621fd819c9b188a7a1d100e20b4da010966b45d987d51eac68",
+      "streamingGroup": "grey_hive"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "assetId": "runtime2d.prop.medical_station.v1",
+      "atlasFrame": [
+        2419,
+        2,
+        969,
+        1215
+      ],
+      "atlasPage": 5,
+      "category": "prop",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          93,
+          11,
+          1062,
+          1226
+        ],
+        "outputSize": [
+          969,
+          1215
+        ],
+        "sourceSize": [
+          1254,
+          1254
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.medical_station.v1.png",
+          "sha256": "de4fdadfd8b9fc21afd1bf430a1da846129fa09b2a303a064eaedeb8552dc0f2"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.prop.medical_station.v1.webp",
+          "sha256": "90d2a7aad63568ac59617f13a266c0f13af38026d68b6eb77dd2480096a35746"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch03/03_runtime2d.prop.medical_station.v1.png",
+      "sourceSha256": "57e58fe63b903d2a39c5ddb689c663c2fea47fc6488a21c452abe805a628e55e",
+      "streamingGroup": "grey_hive"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "assetId": "runtime2d.grey_hive.clutter.v1",
+      "atlasFrame": [
+        2,
+        2,
+        1428,
+        1061
+      ],
+      "atlasPage": 10,
+      "category": "world",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          0,
+          25,
+          1428,
+          1086
+        ],
+        "outputSize": [
+          1428,
+          1061
+        ],
+        "sourceSize": [
+          1448,
+          1086
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.grey_hive.clutter.v1.png",
+          "sha256": "4743030e58286fdac5c4e119941608763d1ceb1d3bbed79ca1d7361ceab97ebe"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.grey_hive.clutter.v1.webp",
+          "sha256": "ad7c9f14d9ffa67cc9cec2c8328568236001b30ea0c75edd1f7cac994c8aace3"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch03/04_runtime2d.grey_hive.clutter.v1.png",
+      "sourceSha256": "d9b7f424d0ac278c9029d7ddc2ad9559f08a3c56562770eefc7ed301d9094a6c",
+      "streamingGroup": "grey_hive"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "assetId": "portrait.cenyao.v1",
+      "atlasFrame": [
+        2,
+        2,
+        1215,
+        1254
+      ],
+      "atlasPage": 6,
+      "category": "ui",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          23,
+          0,
+          1238,
+          1254
+        ],
+        "outputSize": [
+          1215,
+          1254
+        ],
+        "sourceSize": [
+          1254,
+          1254
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/portrait.cenyao.v1.png",
+          "sha256": "74137f60a3f9b580c21d677d3268794f52eb190f3d722458674219a9f3d43726"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/portrait.cenyao.v1.webp",
+          "sha256": "6c7c2b7daaa928ddc31dec002f869932dcd274c80f721b8851d0c2324981d9e9"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch03/09_portrait.cenyao.v1.png",
+      "sourceSha256": "13ebb98a6fb6414a7f9f928a1ec204c42108aa07cbdff4a5f60a39b8f49e69dc",
+      "streamingGroup": "shared"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "assetId": "runtime2d.world.mistharbor.fog_vfx.v1",
+      "atlasFrame": [
+        1454,
+        1092,
+        1448,
+        1086
+      ],
+      "atlasPage": 8,
+      "category": "vfx",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          0,
+          0,
+          1448,
+          1086
+        ],
+        "outputSize": [
+          1448,
+          1086
+        ],
+        "sourceSize": [
+          1448,
+          1086
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.mistharbor.fog_vfx.v1.png",
+          "sha256": "ee45ad9981d7499d74e0ffc74a3fb5d158d98ee15f9ccc35d7ebcc74f6462182"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.mistharbor.fog_vfx.v1.webp",
+          "sha256": "2284513e95b7181655d9855644a57e623a196fbb79256205e673328dea663926"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch06/01_runtime2d.world.mistharbor.fog_vfx.v1.png",
+      "sourceSha256": "7be96eddcb4dd820eccb142ad9343bedd76f4597643e0c305481648200f8338c",
+      "streamingGroup": "shared"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "assetId": "runtime2d.world.mistharbor.water_edge.v1",
+      "atlasFrame": [
+        2492,
+        2,
+        1448,
+        1063
+      ],
+      "atlasPage": 11,
+      "category": "world",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          0,
+          9,
+          1448,
+          1072
+        ],
+        "outputSize": [
+          1448,
+          1063
+        ],
+        "sourceSize": [
+          1448,
+          1086
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.mistharbor.water_edge.v1.png",
+          "sha256": "adc828475b6a45a82c9f27c913f20b9f368bf6fa4347dc17b27b34240d7731fc"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.mistharbor.water_edge.v1.webp",
+          "sha256": "afd0e86fa9b74ef87056338c417f51a84087d91d67ef8a3357f756c0db5a9874"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch06/02_runtime2d.world.mistharbor.water_edge.v1.png",
+      "sourceSha256": "66749eb4ce1ef51d02a034526bb1c6ad29f190fa21fa8e591405b4d5e1363ff7",
+      "streamingGroup": "mistharbor"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "assetId": "runtime2d.enemy.mistharbor.drowned.v1",
+      "atlasFrame": [
+        1259,
+        2,
+        1240,
+        1254
+      ],
+      "atlasPage": 2,
+      "category": "actor",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          0,
+          0,
+          1240,
+          1254
+        ],
+        "outputSize": [
+          1240,
+          1254
+        ],
+        "sourceSize": [
+          1254,
+          1254
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.mistharbor.drowned.v1.png",
+          "sha256": "c5dc238233817d9e89fd46e961bb75ab87e3379a8143dcfcb8219ca364c672a8"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.enemy.mistharbor.drowned.v1.webp",
+          "sha256": "36930099495af6b3fba7742c21364119dc2a1d8aaba2165239f5d99fd947cdfe"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch06/03_runtime2d.enemy.mistharbor.drowned.v1.png",
+      "sourceSha256": "6db84004a7f9a95c2652ad0e84aa17da1c201ab0b15b995bc11cdeec67da1bb9",
+      "streamingGroup": "mistharbor"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "assetId": "runtime2d.enemy.mistharbor.signal_wraith.v1",
+      "atlasFrame": [
+        2,
+        2,
+        1253,
+        1254
+      ],
+      "atlasPage": 2,
+      "category": "actor",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          0,
+          0,
+          1253,
+          1254
+        ],
+        "outputSize": [
+          1253,
+          1254
+        ],
+        "sourceSize": [
+          1254,
+          1254
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.mistharbor.signal_wraith.v1.png",
+          "sha256": "f353f33cae02d49208a02d51ee404f328d89515488d69b83a82cf7030c8a8c6a"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.enemy.mistharbor.signal_wraith.v1.webp",
+          "sha256": "496cd7795e2213d86c9958cca06a5847b71fb8ed57c7e5e34003d1af359889a7"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch06/04_runtime2d.enemy.mistharbor.signal_wraith.v1.png",
+      "sourceSha256": "84029a7adb1b7d6af297d6165994a076c5190da0990887a06073964025c22ec3",
+      "streamingGroup": "mistharbor"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "assetId": "runtime2d.world.clockworks.factory_tiles.v1",
+      "atlasFrame": [
+        2655,
+        1260,
+        1428,
+        1086
+      ],
+      "atlasPage": 9,
+      "category": "world",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          0,
+          0,
+          1428,
+          1086
+        ],
+        "outputSize": [
+          1428,
+          1086
+        ],
+        "sourceSize": [
+          1448,
+          1086
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.clockworks.factory_tiles.v1.png",
+          "sha256": "601f819dcf6f61a0c0003b117c7752617e054ce6d14c491bc03a3ef4950d0130"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.clockworks.factory_tiles.v1.webp",
+          "sha256": "21363448f85374ef2d1a49c7f0daae929a0e84e2dff2568779fb7ba088113dff"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch06/05_runtime2d.world.clockworks.factory_tiles.v1.png",
+      "sourceSha256": "513042e366cf87203a64f3263c4ed92bb1c6bf53fab2f1250afa00c0b6cf13bf",
+      "streamingGroup": "clockworks"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "assetId": "runtime2d.world.clockworks.pressure_pipes.v1",
+      "atlasFrame": [
+        1203,
+        1260,
+        1448,
+        1086
+      ],
+      "atlasPage": 9,
+      "category": "world",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          0,
+          0,
+          1448,
+          1086
+        ],
+        "outputSize": [
+          1448,
+          1086
+        ],
+        "sourceSize": [
+          1448,
+          1086
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.clockworks.pressure_pipes.v1.png",
+          "sha256": "3b653f643bd0f806bb5fef318c5e80271fc4b3e19cfedbf0f5051843898e0b9b"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.clockworks.pressure_pipes.v1.webp",
+          "sha256": "2541c9986e78a4e3ecf130ce397d7b23facb2c18717a91e33d878c1f92c3a7fa"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch06/06_runtime2d.world.clockworks.pressure_pipes.v1.png",
+      "sourceSha256": "7304224124ccf1d7526402fd67367ea99f64c426b80da40c6f3fa2652b519e27",
+      "streamingGroup": "clockworks"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "assetId": "runtime2d.world.clockworks.furnace.v1",
+      "atlasFrame": [
+        2,
+        2,
+        1193,
+        1254
+      ],
+      "atlasPage": 9,
+      "category": "world",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          0,
+          0,
+          1193,
+          1254
+        ],
+        "outputSize": [
+          1193,
+          1254
+        ],
+        "sourceSize": [
+          1254,
+          1254
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.clockworks.furnace.v1.png",
+          "sha256": "4a36e98fec3057bac6e59e01bcd2287ee5e412071a5396731c50082a351aec44"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.clockworks.furnace.v1.webp",
+          "sha256": "88ceab4f4cd8ec8bb586f2e847a9ee33676802f686bb8b98c3b1cde3dea6bc95"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch06/07_runtime2d.world.clockworks.furnace.v1.png",
+      "sourceSha256": "2432858d959734ec8111c9eb0e7ad9bd56ff99e66c07df1ff1fc8b4a8b2016bd",
+      "streamingGroup": "clockworks"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "assetId": "runtime2d.enemy.clockworks.forged_guard.v1",
+      "atlasFrame": [
+        2,
+        1260,
+        1191,
+        1243
+      ],
+      "atlasPage": 0,
+      "category": "actor",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          19,
+          11,
+          1210,
+          1254
+        ],
+        "outputSize": [
+          1191,
+          1243
+        ],
+        "sourceSize": [
+          1254,
+          1254
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.clockworks.forged_guard.v1.png",
+          "sha256": "e654a27ece2155ba1a127187af75e5e2b6139a082e58f0da75c0a1a02629087b"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.enemy.clockworks.forged_guard.v1.webp",
+          "sha256": "1bffaf4a937c5a1684aca5836a6a6699d9dfaffe022f9cd340dd56dc53f599f4"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch06/08_runtime2d.enemy.clockworks.forged_guard.v1.png",
+      "sourceSha256": "27be399e6c1a8bc3d3a55ff7d83e1f60f0812b099c3322d0b33adb44087165dd",
+      "streamingGroup": "clockworks"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "assetId": "runtime2d.world.returnstation.terminals.v1",
+      "atlasFrame": [
+        2,
+        1224,
+        1176,
+        1065
+      ],
+      "atlasPage": 12,
+      "category": "world",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          57,
+          21,
+          1233,
+          1086
+        ],
+        "outputSize": [
+          1176,
+          1065
+        ],
+        "sourceSize": [
+          1448,
+          1086
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.returnstation.terminals.v1.png",
+          "sha256": "9cbee889ed0f97f3b2bb122e5b3abc6cbd41edf8dc15beaf816fa00570e8691d"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.returnstation.terminals.v1.webp",
+          "sha256": "58afdf57327af8daff32e9af7f06c31dfa8eb1e90084ac58841d43acbc279192"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch06/09_runtime2d.world.returnstation.terminals.v1.png",
+      "sourceSha256": "83008caf30bcd0cd40e1d9720be7176dbbdf1e0072983551e3e1784b25f352fb",
+      "streamingGroup": "returnstation"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "assetId": "runtime2d.world.mistharbor.fog_bank.v1",
+      "atlasFrame": [
+        1234,
+        2,
+        1254,
+        1236
+      ],
+      "atlasPage": 11,
+      "category": "world",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          0,
+          18,
+          1254,
+          1254
+        ],
+        "outputSize": [
+          1254,
+          1236
+        ],
+        "sourceSize": [
+          1254,
+          1254
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.mistharbor.fog_bank.v1.png",
+          "sha256": "9bbbfd9783f70a8b1f6ffeaabd44e568074f4c20f1f7500d7ef4f0e534edeac2"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.mistharbor.fog_bank.v1.webp",
+          "sha256": "49b22444320ecb5f3232cf95e977dbdf0f47a1ec8dee56fab8f661ffba19bf47"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch07/01_runtime2d.world.mistharbor.fog_bank.v1.png",
+      "sourceSha256": "775aa450a148488eeb6e67e14bb0dd7fd2db51429d086f6f9109ccb96c4d06c0",
+      "streamingGroup": "mistharbor"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "assetId": "runtime2d.world.mistharbor.water_edge_stone.v1",
+      "atlasFrame": [
+        2,
+        2,
+        1228,
+        1254
+      ],
+      "atlasPage": 11,
+      "category": "world",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          0,
+          0,
+          1228,
+          1254
+        ],
+        "outputSize": [
+          1228,
+          1254
+        ],
+        "sourceSize": [
+          1254,
+          1254
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.mistharbor.water_edge_stone.v1.png",
+          "sha256": "e823434b3fbc420fc14270200f81e0a459e594597304b1323d336e532a924f9d"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.mistharbor.water_edge_stone.v1.webp",
+          "sha256": "44fe08f5f77dba5b069bdbbe4592b7a042662cdffd16a9a639d6e8a6287c1c3b"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch07/02_runtime2d.world.mistharbor.water_edge_stone.v1.png",
+      "sourceSha256": "dc09452bf3f55c57cca1a93bb09f169ef441af90321dff47d91c4be7e62d3a83",
+      "streamingGroup": "mistharbor"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "assetId": "runtime2d.enemy.mistharbor.drowned.v2",
+      "atlasFrame": [
+        2,
+        1260,
+        1221,
+        1254
+      ],
+      "atlasPage": 2,
+      "category": "actor",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          19,
+          0,
+          1240,
+          1254
+        ],
+        "outputSize": [
+          1221,
+          1254
+        ],
+        "sourceSize": [
+          1254,
+          1254
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.mistharbor.drowned.v2.png",
+          "sha256": "752ac830587fc957d5695cd7714c57e584f40ec1a8f511f324ee491adaee7f2d"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.enemy.mistharbor.drowned.v2.webp",
+          "sha256": "f5476703cfa844d8f8e09c6ca8ca20c78dbce2999e3024490171340b108e3fd1"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch07/03_runtime2d.enemy.mistharbor.drowned.v2.png",
+      "sourceSha256": "1b57a57c4fc7dc1d853b82cc1c6a3525e97af5853006ad17a8e25d0de6ca993e",
+      "streamingGroup": "mistharbor"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "assetId": "runtime2d.enemy.mistharbor.signal_wraith.v2",
+      "atlasFrame": [
+        2503,
+        2,
+        1236,
+        1254
+      ],
+      "atlasPage": 2,
+      "category": "actor",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          0,
+          0,
+          1236,
+          1254
+        ],
+        "outputSize": [
+          1236,
+          1254
+        ],
+        "sourceSize": [
+          1254,
+          1254
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.mistharbor.signal_wraith.v2.png",
+          "sha256": "942a294e86076bfa91762113cd9bb14c81db329baabf5804ba9138942cc7166b"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.enemy.mistharbor.signal_wraith.v2.webp",
+          "sha256": "3b652829ddb56b10d348ee800ae335a4261828f87505224e70c998bc25519aa9"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch07/04_runtime2d.enemy.mistharbor.signal_wraith.v2.png",
+      "sourceSha256": "fcaad0d40dc3a9dca4c24d147c656d4c751b6a729d265ae3f60d421fe69dd055",
+      "streamingGroup": "mistharbor"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "assetId": "runtime2d.world.clockworks.floor_steel.v1",
+      "atlasFrame": [
+        2,
+        1260,
+        1197,
+        1132
+      ],
+      "atlasPage": 9,
+      "category": "world",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          31,
+          122,
+          1228,
+          1254
+        ],
+        "outputSize": [
+          1197,
+          1132
+        ],
+        "sourceSize": [
+          1254,
+          1254
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.clockworks.floor_steel.v1.png",
+          "sha256": "0b4555021799ac849756e0f11c207d4e9309df19f4b8f68d0f4e8177f5204043"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.clockworks.floor_steel.v1.webp",
+          "sha256": "94b96626f07acb36d00ca0f87b4a831f94c6879e82ec1691ebf4e33a74bdcbfc"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch07/05_runtime2d.world.clockworks.floor_steel.v1.png",
+      "sourceSha256": "1a01e851654d9f5c98b5486cbe489f357ed99c55ffc601c492af63044d90b190",
+      "streamingGroup": "clockworks"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "assetId": "runtime2d.world.clockworks.pressure_pipe_valve.v1",
+      "atlasFrame": [
+        2368,
+        2,
+        1210,
+        1179
+      ],
+      "atlasPage": 9,
+      "category": "world",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          28,
+          51,
+          1238,
+          1230
+        ],
+        "outputSize": [
+          1210,
+          1179
+        ],
+        "sourceSize": [
+          1254,
+          1254
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.clockworks.pressure_pipe_valve.v1.png",
+          "sha256": "cb411faf57aacc7be0c116b3806b64dac0f75a9a421875b2215f54e9447a6e3a"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.clockworks.pressure_pipe_valve.v1.webp",
+          "sha256": "f1591e1273ffb46564dad104a27dc959f4fc7fda0cc6f4db4673749443c7fc56"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch07/06_runtime2d.world.clockworks.pressure_pipe_valve.v1.png",
+      "sourceSha256": "300ab8665768ecfafd33107cf41f2d7997864f9f6205f32ecd83a61e385b5995",
+      "streamingGroup": "clockworks"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "assetId": "runtime2d.world.clockworks.furnace.v2",
+      "atlasFrame": [
+        1199,
+        2,
+        1165,
+        1240
+      ],
+      "atlasPage": 9,
+      "category": "world",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          65,
+          14,
+          1230,
+          1254
+        ],
+        "outputSize": [
+          1165,
+          1240
+        ],
+        "sourceSize": [
+          1254,
+          1254
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.clockworks.furnace.v2.png",
+          "sha256": "207e2b4c1759e49bfd03613958f86787586410dc0abe6da526f34679f17cc74d"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.clockworks.furnace.v2.webp",
+          "sha256": "88c969861604ad271462ae57bb05c122d84653b0fe81d03b8c9edd89577dc0b2"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch07/07_runtime2d.world.clockworks.furnace.v2.png",
+      "sourceSha256": "30d37d59557e22b1ae8c35e93ade967ea357b58c5ad4e9f55f7b0f31fd0b7d12",
+      "streamingGroup": "clockworks"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "assetId": "runtime2d.enemy.clockworks.forged_guard.v2",
+      "atlasFrame": [
+        2,
+        2,
+        1226,
+        1254
+      ],
+      "atlasPage": 0,
+      "category": "actor",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          0,
+          0,
+          1226,
+          1254
+        ],
+        "outputSize": [
+          1226,
+          1254
+        ],
+        "sourceSize": [
+          1254,
+          1254
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.clockworks.forged_guard.v2.png",
+          "sha256": "b41cdc83c587805d0beee9d48668a9328001882595e0ab97fa69347d9bcf8cb4"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.enemy.clockworks.forged_guard.v2.webp",
+          "sha256": "dc3986baeaebd65da34112b2e7cd3156857936fcb791ae04f77f171119bcba2a"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch07/08_runtime2d.enemy.clockworks.forged_guard.v2.png",
+      "sourceSha256": "5c542927516e2e393eccada493e5ca4e20d4bc5d75db8431d57f306910c5d0c0",
+      "streamingGroup": "clockworks"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "assetId": "runtime2d.world.returnstation.terminal.v1",
+      "atlasFrame": [
+        2,
+        2,
+        1071,
+        1218
+      ],
+      "atlasPage": 12,
+      "category": "world",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          97,
+          17,
+          1168,
+          1235
+        ],
+        "outputSize": [
+          1071,
+          1218
+        ],
+        "sourceSize": [
+          1254,
+          1254
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.returnstation.terminal.v1.png",
+          "sha256": "a9bdd20187d6944f5e485291fe8c8d36e2464daca2a6a1487ad0bbabdd37221a"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.returnstation.terminal.v1.webp",
+          "sha256": "b924f9f06e90daa69a2f9ea928e0737f0c385e7fa07be12ef8371da6bfeefeb0"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch07/09_runtime2d.world.returnstation.terminal.v1.png",
+      "sourceSha256": "f6a5fc8855d2080ce081a51d1ed2d136c9075a104c1eadca1467eedf2bdf406d",
+      "streamingGroup": "returnstation"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "assetId": "runtime2d.ui.capability.local_map.v1",
+      "atlasFrame": [
+        2,
+        2,
+        1224,
+        1198
+      ],
+      "atlasPage": 7,
+      "category": "ui",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          0,
+          28,
+          1224,
+          1226
+        ],
+        "outputSize": [
+          1224,
+          1198
+        ],
+        "sourceSize": [
+          1254,
+          1254
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.ui.capability.local_map.v1.png",
+          "sha256": "e8c86cdcf20486755cff69d67023ddcfc550240b7d696f81db08e384c17ad375"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.ui.capability.local_map.v1.webp",
+          "sha256": "6481d308d7cf5d1488fb185dfe98c7af0d973574b16bdc4eb637566900154c4d"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch07/10_runtime2d.ui.capability.local_map.v1.png",
+      "sourceSha256": "8b4b624a2532698d85be41cc8b01628b9a9bd0cdbe0932583ccb4df8a730d80d",
+      "streamingGroup": "shared"
+    },
+    {
+      "admission": "release_approved",
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "assetId": "runtime2d.world.grey_hive.sentinel_arena.v1.attempt",
+      "atlasFrame": [
+        1424,
+        1067,
+        1536,
+        1024
+      ],
+      "atlasPage": 10,
+      "category": "world",
+      "crop": {
+        "alphaCleanup": "crop-alpha-bounds; zero-rgb-where-alpha-zero",
+        "cropRect": [
+          0,
+          0,
+          1536,
+          1024
+        ],
+        "outputSize": [
+          1536,
+          1024
+        ],
+        "sourceSize": [
+          1536,
+          1024
+        ]
+      },
+      "outputs": {
+        "png": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.grey_hive.sentinel_arena.v1.attempt.png",
+          "sha256": "766029367f61fb21e9eedd8f1e8077d58c769ccd892f73fe493dd114db590882"
+        },
+        "webp": {
+          "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.grey_hive.sentinel_arena.v1.attempt.webp",
+          "sha256": "327eb0f65a54daf5a3cd4751b88139ff84ed7c4806cfd6f231bc9db91366300e"
+        }
+      },
+      "runtimeStatus": "ADOPT",
+      "scale": 1.0,
+      "sourcePath": "batch08/08_runtime2d.world.grey_hive.sentinel_arena.v1.attempt.png",
+      "sourceSha256": "532f0b697bc9da79c1c1a166ada0f009f513ba02232c7d44698dc48d3feabf67",
+      "streamingGroup": "grey_hive"
+    }
+  ],
+  "atlases": [
+    {
+      "category": "actor",
+      "decodedRgbaMiB": 19.57,
+      "maxSide": 4096,
+      "pageIndex": 0,
+      "pngPath": "assets/derived/asset-pipeline-v1/atlases/actor-clockworks-00.png",
+      "pngSha256": "530d98841157b03d003cdf3de6c1e7e5564789ea7f1e53c67aeaa4144d2c62a9",
+      "size": [
+        2048,
+        2505
+      ],
+      "streamingGroup": "clockworks",
+      "webpPath": "assets/derived/asset-pipeline-v1/atlases/actor-clockworks-00.webp",
+      "webpSha256": "4f643ebe053114b5b0fba658213eb246b015e86622876279d463ea88b381e879"
+    },
+    {
+      "category": "actor",
+      "decodedRgbaMiB": 16.922,
+      "maxSide": 4096,
+      "pageIndex": 1,
+      "pngPath": "assets/derived/asset-pipeline-v1/atlases/actor-grey_hive-00.png",
+      "pngSha256": "b22bfe7b4fcd178bb4703b0234c194ce860e9378c551ee9784fb7bc5efa2ed60",
+      "size": [
+        2048,
+        2166
+      ],
+      "streamingGroup": "grey_hive",
+      "webpPath": "assets/derived/asset-pipeline-v1/atlases/actor-grey_hive-00.webp",
+      "webpSha256": "89576d022f469d0077956b23898c4e1e74d1f1cc229fff922853c0716e305608"
+    },
+    {
+      "category": "actor",
+      "decodedRgbaMiB": 39.312,
+      "maxSide": 4096,
+      "pageIndex": 2,
+      "pngPath": "assets/derived/asset-pipeline-v1/atlases/actor-mistharbor-00.png",
+      "pngSha256": "aab8940001c56b3b82c7bf68cc2bd8e20dcbd47f0cb38315258e4c1fb9177216",
+      "size": [
+        4096,
+        2516
+      ],
+      "streamingGroup": "mistharbor",
+      "webpPath": "assets/derived/asset-pipeline-v1/atlases/actor-mistharbor-00.webp",
+      "webpSha256": "c563ff9f54d222d7c7020017557b9c8addc32603a166fecba93442c7a7431c9c"
+    },
+    {
+      "category": "actor",
+      "decodedRgbaMiB": 16.789,
+      "maxSide": 4096,
+      "pageIndex": 3,
+      "pngPath": "assets/derived/asset-pipeline-v1/atlases/actor-shared-00.png",
+      "pngSha256": "7213ad36b3b39c14f1ee294973c88661c2599aefc3267cd9aa2b169ee48be040",
+      "size": [
+        2048,
+        2149
+      ],
+      "streamingGroup": "shared",
+      "webpPath": "assets/derived/asset-pipeline-v1/atlases/actor-shared-00.webp",
+      "webpSha256": "6686673c4977a8b04d806f56f5680449d591a190c1980ffe15a67816c1437c5c"
+    },
+    {
+      "category": "boss",
+      "decodedRgbaMiB": 16.781,
+      "maxSide": 4096,
+      "pageIndex": 4,
+      "pngPath": "assets/derived/asset-pipeline-v1/atlases/boss-sentinel-00.png",
+      "pngSha256": "85a83a47b0620ecc2cba782e3d8ef0d6d23e3186e0f402e69ee00cfac11e73a4",
+      "size": [
+        2048,
+        2148
+      ],
+      "streamingGroup": "sentinel",
+      "webpPath": "assets/derived/asset-pipeline-v1/atlases/boss-sentinel-00.webp",
+      "webpSha256": "53d24b81d3862241753b01ac56351fd1a9a0923dcfb2111bb29063b0f28c4c43"
+    },
+    {
+      "category": "prop",
+      "decodedRgbaMiB": 52.984,
+      "maxSide": 4096,
+      "pageIndex": 5,
+      "pngPath": "assets/derived/asset-pipeline-v1/atlases/prop-grey_hive-00.png",
+      "pngSha256": "e0e06057bb0eff78962b2dfc6af36cc4c3abc5f080b1ffd7e9bb7b6f52eb8f58",
+      "size": [
+        4096,
+        3391
+      ],
+      "streamingGroup": "grey_hive",
+      "webpPath": "assets/derived/asset-pipeline-v1/atlases/prop-grey_hive-00.webp",
+      "webpSha256": "73c4f5cecd3d71441ac49ff4df8b15a89eb6a31f6caab7980b79cfef2a86a490"
+    },
+    {
+      "category": "ui",
+      "decodedRgbaMiB": 9.828,
+      "maxSide": 2048,
+      "pageIndex": 6,
+      "pngPath": "assets/derived/asset-pipeline-v1/atlases/ui-shared-00.png",
+      "pngSha256": "61d4dfaf37b6f6be6959f16a5eb77cbdac734bdcea3298a9beec03fd0d324dd2",
+      "size": [
+        2048,
+        1258
+      ],
+      "streamingGroup": "shared",
+      "webpPath": "assets/derived/asset-pipeline-v1/atlases/ui-shared-00.webp",
+      "webpSha256": "af7d91cdb87958b5637315cf43538d7da701afaf560cb70ff8395b8c7cfe1dbe"
+    },
+    {
+      "category": "ui",
+      "decodedRgbaMiB": 9.391,
+      "maxSide": 2048,
+      "pageIndex": 7,
+      "pngPath": "assets/derived/asset-pipeline-v1/atlases/ui-shared-01.png",
+      "pngSha256": "191a81f5644ecf9fa91df6edd0c92d7ac0cc83b6d5d7ad92d94b7d6607982ca2",
+      "size": [
+        2048,
+        1202
+      ],
+      "streamingGroup": "shared",
+      "webpPath": "assets/derived/asset-pipeline-v1/atlases/ui-shared-01.webp",
+      "webpSha256": "69f3bf15726c4b28604b7b096ce88b680f0c40f9802b8199c8ec2315964b3ff1"
+    },
+    {
+      "category": "vfx",
+      "decodedRgbaMiB": 34.062,
+      "maxSide": 4096,
+      "pageIndex": 8,
+      "pngPath": "assets/derived/asset-pipeline-v1/atlases/vfx-shared-00.png",
+      "pngSha256": "c13f2b5961e23cd12054edf58a63e367cbed516cd99b6fe96ccd06d01296b2a1",
+      "size": [
+        4096,
+        2180
+      ],
+      "streamingGroup": "shared",
+      "webpPath": "assets/derived/asset-pipeline-v1/atlases/vfx-shared-00.webp",
+      "webpSha256": "cf4257092eb3977c6dd81ab35de218a0403e54b1377ab3cb69265817d3edded9"
+    },
+    {
+      "category": "world",
+      "decodedRgbaMiB": 37.406,
+      "maxSide": 4096,
+      "pageIndex": 9,
+      "pngPath": "assets/derived/asset-pipeline-v1/atlases/world-clockworks-00.png",
+      "pngSha256": "842bbd92a06f4fceb0a8db864333a95869d43ddbc355c071cb20b998f9aaf919",
+      "size": [
+        4096,
+        2394
+      ],
+      "streamingGroup": "clockworks",
+      "webpPath": "assets/derived/asset-pipeline-v1/atlases/world-clockworks-00.webp",
+      "webpSha256": "0714240d8a859b713e760dbee6a3fb8fb432e7bc6bb7ddf845d14356b26873e5"
+    },
+    {
+      "category": "world",
+      "decodedRgbaMiB": 48.141,
+      "maxSide": 4096,
+      "pageIndex": 10,
+      "pngPath": "assets/derived/asset-pipeline-v1/atlases/world-grey_hive-00.png",
+      "pngSha256": "a042cdeda255b2cca79e0d01b878f38ee58889acd14f1ec174b79784dc834ef9",
+      "size": [
+        4096,
+        3081
+      ],
+      "streamingGroup": "grey_hive",
+      "webpPath": "assets/derived/asset-pipeline-v1/atlases/world-grey_hive-00.webp",
+      "webpSha256": "3a98a11d171fda3ebd49dd0cf7ff4b123fc374c55d3b510ff9930038ff5ad32b"
+    },
+    {
+      "category": "world",
+      "decodedRgbaMiB": 19.656,
+      "maxSide": 4096,
+      "pageIndex": 11,
+      "pngPath": "assets/derived/asset-pipeline-v1/atlases/world-mistharbor-00.png",
+      "pngSha256": "7adc44539fae389a063e209f38c6f85953597b28e5ad56ab0ecb2880c4d71cad",
+      "size": [
+        4096,
+        1258
+      ],
+      "streamingGroup": "mistharbor",
+      "webpPath": "assets/derived/asset-pipeline-v1/atlases/world-mistharbor-00.webp",
+      "webpSha256": "c7feb923e84e9a7d4b1a68d02b068be7152dea324b8979fa5431b39801e28aad"
+    },
+    {
+      "category": "world",
+      "decodedRgbaMiB": 17.898,
+      "maxSide": 4096,
+      "pageIndex": 12,
+      "pngPath": "assets/derived/asset-pipeline-v1/atlases/world-returnstation-00.png",
+      "pngSha256": "bdf41d43c50ebb83d70458a0ab6363640520245e2e5b9887df5f3ff6a25579d2",
+      "size": [
+        2048,
+        2291
+      ],
+      "streamingGroup": "returnstation",
+      "webpPath": "assets/derived/asset-pipeline-v1/atlases/world-returnstation-00.webp",
+      "webpSha256": "6d3f695375a38c7cab3dcbdf903d5ec96472d553e4f9403014e1530538aaa13e"
+    },
+    {
+      "category": "actor",
+      "decodedRgbaMiB": 5.852,
+      "maxSide": 4096,
+      "pageIndex": 13,
+      "pngPath": "assets/derived/cenyao-runtime-master-v1/atlas/cenyao-idle-atlas-v1.png",
+      "pngSha256": "2146eeedc2945149fbee98a4f24739bff6cefeeef548e0bdace37fe8217028fe",
+      "size": [
+        1360,
+        1128
+      ],
+      "streamingGroup": "shared",
+      "webpPath": "assets/derived/cenyao-runtime-master-v1/atlas/cenyao-idle-atlas-v1.webp",
+      "webpSha256": "b0cc05697fdb89a3f55fdbce2bd558e6800a088f1147f7f8edce8fad842c5af0"
+    }
+  ],
+  "parameters": {
+    "alpha": "trim non-zero alpha bounds",
+    "anchor": "name-category heuristic",
+    "atlasMaxSideByCategory": {
+      "actor": 4096,
+      "boss": 4096,
+      "prop": 4096,
+      "ui": 2048,
+      "vfx": 4096,
+      "world": 4096
+    },
+    "atlasPadding": 2,
+    "cenyaoIdleAtlas": {
+      "integration": "dedicated actor/shared page; B6a bytes are reused without rewriting",
+      "metadataPath": "assets/metadata/cenyao-runtime-master-v1/cenyao-idle-atlas-v1.json",
+      "metadataSha256": "a1d5f40c2a7ae47f45dbf2b85432291be3be0badb855f1f386ec9905d533641c",
+      "sourceMasterSha256": "80a810ec6fdbcda50a0daeebcf53cd2173c0a411f043861e869187061cb59f61"
+    },
+    "packOrder": "height,width,id; shelf",
+    "png": "RGBA; optimize=false; compress_level=9",
+    "scale": 1.0,
+    "transparentRgb": "zero",
+    "webp": "lossless=true; method=6; exact=true"
+  },
+  "pendingAssets": [],
+  "residency": {
+    "budgetMiB": 220,
+    "method": "RGBA decoded texture footprint; lazy-load shared plus one active world; nearest-rank P95 over four world profiles",
+    "p95MiB": 210.75,
+    "profiles": [
+      {
+        "activeWorld": "grey_hive",
+        "residentGroups": [
+          [
+            "actor",
+            "grey_hive"
+          ],
+          [
+            "actor",
+            "shared"
+          ],
+          [
+            "boss",
+            "sentinel"
+          ],
+          [
+            "prop",
+            "grey_hive"
+          ],
+          [
+            "ui",
+            "shared"
+          ],
+          [
+            "vfx",
+            "shared"
+          ],
+          [
+            "world",
+            "grey_hive"
+          ]
+        ],
+        "residentTextureMiB": 210.75
+      },
+      {
+        "activeWorld": "mistharbor",
+        "residentGroups": [
+          [
+            "actor",
+            "mistharbor"
+          ],
+          [
+            "actor",
+            "shared"
+          ],
+          [
+            "ui",
+            "shared"
+          ],
+          [
+            "vfx",
+            "shared"
+          ],
+          [
+            "world",
+            "mistharbor"
+          ]
+        ],
+        "residentTextureMiB": 134.89
+      },
+      {
+        "activeWorld": "clockworks",
+        "residentGroups": [
+          [
+            "actor",
+            "clockworks"
+          ],
+          [
+            "actor",
+            "shared"
+          ],
+          [
+            "ui",
+            "shared"
+          ],
+          [
+            "vfx",
+            "shared"
+          ],
+          [
+            "world",
+            "clockworks"
+          ]
+        ],
+        "residentTextureMiB": 132.898
+      },
+      {
+        "activeWorld": "returnstation",
+        "residentGroups": [
+          [
+            "actor",
+            "shared"
+          ],
+          [
+            "ui",
+            "shared"
+          ],
+          [
+            "vfx",
+            "shared"
+          ],
+          [
+            "world",
+            "returnstation"
+          ]
+        ],
+        "residentTextureMiB": 93.82
+      }
+    ]
+  },
+  "schemaId": "asset-pipeline-provenance/1",
+  "sourceCommit": "030eb9bf8194ad5534dc77315567ff339cd2c625",
+  "sourceManifestSha256": "c644b5953e9265d45796dfb8a6dad1c0fd8abfbffb3eb4ace84987d8238cee2d",
+  "tool": {
+    "pillow": "12.3.0",
+    "python": "3.12.14",
+    "version": "asset-pipeline-core/1.0.0",
+    "webpEncoder": "1.6.0"
+  }
+}

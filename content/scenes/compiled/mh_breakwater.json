@@ -1,0 +1,502 @@
+{
+  "boundsM": {
+    "depth": 16.0,
+    "width": 24.0,
+    "x": 0,
+    "z": 0
+  },
+  "cameraZones": [],
+  "checkpoints": [
+    {
+      "id": "mh_breakwater_checkpoint",
+      "navNode": "mh_breakwater_spawn_nav",
+      "position": [
+        4.0,
+        0.0,
+        8.0
+      ]
+    }
+  ],
+  "collision": [
+    {
+      "id": "breakwater_wall_north",
+      "polygon": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          0.0,
+          0.5
+        ]
+      ]
+    },
+    {
+      "id": "breakwater_wall_south",
+      "polygon": [
+        [
+          0.0,
+          15.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          24.0,
+          16.0
+        ],
+        [
+          0.0,
+          16.0
+        ]
+      ]
+    },
+    {
+      "id": "breakwater_wall_west_north",
+      "polygon": [
+        [
+          0.0,
+          0.5
+        ],
+        [
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ]
+      ]
+    },
+    {
+      "id": "breakwater_wall_west_south",
+      "polygon": [
+        [
+          0.0,
+          9.5
+        ],
+        [
+          0.5,
+          9.5
+        ],
+        [
+          0.5,
+          15.5
+        ],
+        [
+          0.0,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "breakwater_wall_east_north",
+      "polygon": [
+        [
+          23.5,
+          0.5
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          24.0,
+          6.0
+        ],
+        [
+          23.5,
+          6.0
+        ]
+      ]
+    },
+    {
+      "id": "breakwater_wall_east_south",
+      "polygon": [
+        [
+          23.5,
+          9.5
+        ],
+        [
+          24.0,
+          9.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          23.5,
+          15.5
+        ]
+      ]
+    }
+  ],
+  "doors": [],
+  "explorationRegions": [
+    {
+      "id": "mh_bw_west_seawall",
+      "polygon": [
+        [
+          0.5,
+          0.5
+        ],
+        [
+          8.5,
+          0.5
+        ],
+        [
+          8.5,
+          15.5
+        ],
+        [
+          0.5,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "mh_bw_center_seawall",
+      "polygon": [
+        [
+          8.5,
+          0.5
+        ],
+        [
+          16.5,
+          0.5
+        ],
+        [
+          16.5,
+          15.5
+        ],
+        [
+          8.5,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "mh_bw_east_beacon",
+      "polygon": [
+        [
+          16.5,
+          0.5
+        ],
+        [
+          23.5,
+          0.5
+        ],
+        [
+          23.5,
+          15.5
+        ],
+        [
+          16.5,
+          15.5
+        ]
+      ]
+    }
+  ],
+  "hazards": [],
+  "interactions": [
+    {
+      "event": "mist_beacon_east",
+      "id": "mh_east_beacon",
+      "kind": "beacon",
+      "position": [
+        17.0,
+        0.0,
+        8.0
+      ]
+    }
+  ],
+  "logic": {
+    "traversal": []
+  },
+  "navigation": {
+    "links": [
+      {
+        "from": "mh_breakwater_spawn_nav",
+        "to": "mh_breakwater_center_nav"
+      },
+      {
+        "from": "mh_breakwater_center_nav",
+        "to": "mh_east_beacon_nav"
+      },
+      {
+        "from": "mh_east_beacon_nav",
+        "to": "mh_breakwater_pump_nav"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "mh_breakwater_spawn_nav",
+        "position": [
+          3.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "mh_breakwater_center_nav",
+        "position": [
+          10.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "mh_east_beacon_nav",
+        "position": [
+          17.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "mh_breakwater_pump_nav",
+        "position": [
+          21.0,
+          0.0,
+          8.0
+        ]
+      }
+    ]
+  },
+  "objectives": [],
+  "occluders": [],
+  "presentation": {
+    "cameraProfile": "oblique_default",
+    "layers": [
+      {
+        "id": "visual.floor",
+        "zGroup": 0
+      },
+      {
+        "id": "visual.props_back",
+        "zGroup": 10
+      },
+      {
+        "id": "visual.props_dynamic",
+        "zGroup": 20
+      },
+      {
+        "id": "visual.foreground",
+        "zGroup": 30
+      },
+      {
+        "id": "visual.vfx_markers",
+        "zGroup": 40
+      }
+    ],
+    "sprites": [
+      {
+        "assetId": "runtime2d.world.mistharbor.water_edge_stone.v1",
+        "id": "approved_seawall_stone_water_module",
+        "layer": "visual.floor",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.mistharbor.fog_bank.v1",
+        "id": "breakwater_heavy_fog_bank",
+        "layer": "visual.props_back",
+        "position": [
+          8.0,
+          0.0,
+          3.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.mistharbor.water_edge.v1",
+        "id": "breakwater_outer_water_edge",
+        "layer": "visual.props_back",
+        "position": [
+          12.0,
+          0.0,
+          14.5
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.mistharbor.fog_bank.v1",
+        "id": "breakwater_fog_bank_foreground",
+        "layer": "visual.foreground",
+        "position": [
+          20.0,
+          0.0,
+          4.0
+        ]
+      }
+    ]
+  },
+  "sceneId": "mh_breakwater",
+  "schemaVersion": 1,
+  "spawns": [
+    {
+      "entityType": null,
+      "id": "mh_breakwater_spawn",
+      "kind": "player",
+      "navNode": "mh_breakwater_spawn_nav",
+      "position": [
+        3.0,
+        0.0,
+        8.0
+      ]
+    },
+    {
+      "entityType": "enemy.mist_harbor.signal_wraith",
+      "id": "mh_breakwater_signal_wraith_01",
+      "kind": "enemy",
+      "navNode": "mh_breakwater_center_nav",
+      "position": [
+        13.0,
+        0.0,
+        6.0
+      ]
+    },
+    {
+      "entityType": "enemy.mist_harbor.signal_wraith",
+      "id": "mh_breakwater_signal_wraith_02",
+      "kind": "enemy",
+      "navNode": "mh_east_beacon_nav",
+      "position": [
+        19.0,
+        0.0,
+        11.0
+      ]
+    },
+    {
+      "entityType": "enemy.mist_harbor.tidebound",
+      "id": "mh_breakwater_tidebound_01",
+      "kind": "enemy",
+      "navNode": "mh_breakwater_center_nav",
+      "position": [
+        10.0,
+        0.0,
+        5.0
+      ]
+    },
+    {
+      "entityType": "enemy.mist_harbor.tidebound",
+      "id": "mh_breakwater_tidebound_02",
+      "kind": "enemy",
+      "navNode": "mh_east_beacon_nav",
+      "position": [
+        17.0,
+        0.0,
+        11.0
+      ]
+    }
+  ],
+  "transitions": [
+    {
+      "id": "mh_breakwater_to_drowned_quay",
+      "polygon": [
+        [
+          0.0,
+          6.5
+        ],
+        [
+          2.0,
+          6.5
+        ],
+        [
+          2.0,
+          9.5
+        ],
+        [
+          0.0,
+          9.5
+        ]
+      ],
+      "spawnId": "mh_drowned_quay_spawn",
+      "toSceneId": "mh_drowned_quay"
+    },
+    {
+      "id": "mh_breakwater_to_pump_station",
+      "polygon": [
+        [
+          22.0,
+          6.5
+        ],
+        [
+          24.0,
+          6.5
+        ],
+        [
+          24.0,
+          9.5
+        ],
+        [
+          22.0,
+          9.5
+        ]
+      ],
+      "requiresEvent": "mist_beacon_east",
+      "spawnId": "mh_pump_station_spawn",
+      "toSceneId": "mh_pump_station"
+    }
+  ],
+  "triggers": [],
+  "vfxMarkers": [
+    {
+      "assetId": "runtime2d.world.mistharbor.fog_vfx.v1",
+      "id": "breakwater_fog_marker_01",
+      "position": [
+        6.0,
+        0.0,
+        5.0
+      ]
+    },
+    {
+      "assetId": "runtime2d.world.mistharbor.fog_vfx.v1",
+      "id": "breakwater_fog_marker_02",
+      "position": [
+        17.5,
+        0.0,
+        10.0
+      ]
+    }
+  ],
+  "walkablePolygons": [
+    {
+      "id": "mh_breakwater_walkable_area",
+      "polygon": [
+        [
+          0.5,
+          0.5
+        ],
+        [
+          23.5,
+          0.5
+        ],
+        [
+          23.5,
+          15.5
+        ],
+        [
+          0.5,
+          15.5
+        ]
+      ]
+    }
+  ],
+  "worldId": "mist_harbor"
+}

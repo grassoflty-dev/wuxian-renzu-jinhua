@@ -1,0 +1,556 @@
+{
+  "boundsM": {
+    "depth": 16.0,
+    "width": 24.0,
+    "x": 0,
+    "z": 0
+  },
+  "cameraZones": [],
+  "checkpoints": [
+    {
+      "id": "gh_decon_safety_alcove_checkpoint",
+      "navNode": "gh_decon_safe_nav",
+      "position": [
+        3.0,
+        0.0,
+        12.0
+      ]
+    }
+  ],
+  "collision": [
+    {
+      "id": "deep_decon_wall_north",
+      "polygon": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          0.0,
+          0.5
+        ]
+      ]
+    },
+    {
+      "id": "deep_decon_wall_south",
+      "polygon": [
+        [
+          0.0,
+          15.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          24.0,
+          16.0
+        ],
+        [
+          0.0,
+          16.0
+        ]
+      ]
+    },
+    {
+      "id": "deep_decon_wall_west_north",
+      "polygon": [
+        [
+          0.0,
+          0.5
+        ],
+        [
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          6.5
+        ],
+        [
+          0.0,
+          6.5
+        ]
+      ]
+    },
+    {
+      "id": "deep_decon_wall_west_south",
+      "polygon": [
+        [
+          0.0,
+          9.5
+        ],
+        [
+          0.5,
+          9.5
+        ],
+        [
+          0.5,
+          15.5
+        ],
+        [
+          0.0,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "deep_decon_wall_east_north",
+      "polygon": [
+        [
+          23.5,
+          0.5
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          24.0,
+          6.5
+        ],
+        [
+          23.5,
+          6.5
+        ]
+      ]
+    },
+    {
+      "id": "deep_decon_wall_east_south",
+      "polygon": [
+        [
+          23.5,
+          9.5
+        ],
+        [
+          24.0,
+          9.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          23.5,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "deep_decon_safety_alcove_west",
+      "polygon": [
+        [
+          1.0,
+          10.5
+        ],
+        [
+          1.5,
+          10.5
+        ],
+        [
+          1.5,
+          13.5
+        ],
+        [
+          1.0,
+          13.5
+        ]
+      ]
+    },
+    {
+      "id": "deep_decon_safety_alcove_south",
+      "polygon": [
+        [
+          1.0,
+          13.0
+        ],
+        [
+          4.0,
+          13.0
+        ],
+        [
+          4.0,
+          13.5
+        ],
+        [
+          1.0,
+          13.5
+        ]
+      ]
+    }
+  ],
+  "doors": [],
+  "hazards": [
+    {
+      "environment": {
+        "activeMs": 700,
+        "damage": 8,
+        "damageIntervalMs": 700,
+        "recoveryMs": 2400,
+        "tag": "pressure",
+        "warningMs": 900
+      },
+      "id": "gh_decon_steam_jet_zone",
+      "kind": "steam_jet",
+      "polygon": [
+        [
+          7.0,
+          4.0
+        ],
+        [
+          10.0,
+          4.0
+        ],
+        [
+          10.0,
+          6.5
+        ],
+        [
+          7.0,
+          6.5
+        ]
+      ]
+    },
+    {
+      "environment": {
+        "activeMs": 4000,
+        "damage": 6,
+        "damageIntervalMs": 1000,
+        "recoveryMs": 1500,
+        "tag": "toxin",
+        "warningMs": 1200
+      },
+      "id": "gh_decon_mist_zone",
+      "kind": "decon_mist",
+      "polygon": [
+        [
+          14.0,
+          9.0
+        ],
+        [
+          18.0,
+          9.0
+        ],
+        [
+          18.0,
+          14.0
+        ],
+        [
+          14.0,
+          14.0
+        ]
+      ]
+    }
+  ],
+  "interactions": [
+    {
+      "cooldownMs": 8000,
+      "environmentControl": {
+        "exposureReductionUnits": 0,
+        "suppressionMs": 6000,
+        "targetHazardIds": [
+          "gh_decon_steam_jet_zone"
+        ]
+      },
+      "event": null,
+      "id": "gh_decon_valve_01_static_marker",
+      "kind": "environment_control",
+      "position": [
+        7.0,
+        0.0,
+        3.0
+      ],
+      "rangeM": 2.5
+    },
+    {
+      "cooldownMs": 8000,
+      "environmentControl": {
+        "exposureReductionUnits": 0,
+        "suppressionMs": 6000,
+        "targetHazardIds": [
+          "gh_decon_mist_zone"
+        ]
+      },
+      "event": null,
+      "id": "gh_decon_valve_02_static_marker",
+      "kind": "environment_control",
+      "position": [
+        17.0,
+        0.0,
+        13.0
+      ],
+      "rangeM": 2.5
+    }
+  ],
+  "logic": {
+    "traversal": []
+  },
+  "navigation": {
+    "links": [
+      {
+        "from": "gh_decon_spawn_nav",
+        "to": "gh_decon_safe_nav"
+      },
+      {
+        "from": "gh_decon_safe_nav",
+        "to": "gh_decon_valve_01_nav"
+      },
+      {
+        "from": "gh_decon_valve_01_nav",
+        "to": "gh_decon_valve_02_nav"
+      },
+      {
+        "from": "gh_decon_valve_02_nav",
+        "to": "gh_decon_exit_nav"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "gh_decon_spawn_nav",
+        "position": [
+          2.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "gh_decon_safe_nav",
+        "position": [
+          3.0,
+          0.0,
+          12.0
+        ]
+      },
+      {
+        "id": "gh_decon_valve_01_nav",
+        "position": [
+          7.0,
+          0.0,
+          3.0
+        ]
+      },
+      {
+        "id": "gh_decon_valve_02_nav",
+        "position": [
+          17.0,
+          0.0,
+          13.0
+        ]
+      },
+      {
+        "id": "gh_decon_exit_nav",
+        "position": [
+          22.0,
+          0.0,
+          8.0
+        ]
+      }
+    ]
+  },
+  "objectives": [],
+  "occluders": [],
+  "presentation": {
+    "cameraProfile": "oblique_default",
+    "layers": [
+      {
+        "id": "visual.floor",
+        "zGroup": 0
+      },
+      {
+        "id": "visual.props_back",
+        "zGroup": 10
+      },
+      {
+        "id": "visual.props_dynamic",
+        "zGroup": 20
+      }
+    ],
+    "sprites": [
+      {
+        "assetId": "runtime2d.grey_hive.floor_tiles.v1",
+        "id": "deep_decon_approved_floor",
+        "layer": "visual.floor",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.wall_tiles.v1",
+        "id": "deep_decon_wall_tiles",
+        "layer": "visual.props_back",
+        "position": [
+          12.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.pipes_cables.v1",
+        "id": "deep_decon_service_pipes",
+        "layer": "visual.props_back",
+        "position": [
+          10.0,
+          0.0,
+          3.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.prop.supply_crates.v1",
+        "id": "deep_decon_safety_corner_crates",
+        "layer": "visual.props_back",
+        "position": [
+          3.0,
+          0.0,
+          12.5
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.clutter.v1",
+        "id": "deep_decon_drainage_clutter",
+        "layer": "visual.props_back",
+        "position": [
+          18.0,
+          0.0,
+          12.5
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.pipes_cables.v1",
+        "id": "deep_decon_valve_01_pipe_anchor",
+        "layer": "visual.props_back",
+        "position": [
+          7.0,
+          0.0,
+          3.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.pipes_cables.v1",
+        "id": "deep_decon_valve_02_pipe_anchor",
+        "layer": "visual.props_back",
+        "position": [
+          17.0,
+          0.0,
+          13.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.enemy.infected_maintenance_worker.v1",
+        "id": "deep_decon_worker_01_visual",
+        "layer": "visual.props_dynamic",
+        "position": [
+          9.0,
+          0.0,
+          5.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.enemy.infected_maintenance_worker.v1",
+        "id": "deep_decon_worker_02_visual",
+        "layer": "visual.props_dynamic",
+        "position": [
+          17.0,
+          0.0,
+          10.5
+        ]
+      }
+    ]
+  },
+  "sceneId": "gh_deep_decon",
+  "schemaVersion": 1,
+  "spawns": [
+    {
+      "entityType": null,
+      "id": "gh_deep_decon_spawn",
+      "kind": "player",
+      "navNode": "gh_decon_spawn_nav",
+      "position": [
+        2.0,
+        0.0,
+        8.0
+      ]
+    },
+    {
+      "entityType": "grey_hive.infected_maintenance_worker",
+      "id": "gh_decon_worker_01",
+      "kind": "enemy",
+      "navNode": "gh_decon_valve_01_nav",
+      "position": [
+        9.0,
+        0.0,
+        5.0
+      ]
+    },
+    {
+      "entityType": "grey_hive.infected_maintenance_worker",
+      "id": "gh_decon_worker_02",
+      "kind": "enemy",
+      "navNode": "gh_decon_valve_02_nav",
+      "position": [
+        17.0,
+        0.0,
+        10.5
+      ]
+    },
+    {
+      "entityType": "enemy.grey_hive.swarm",
+      "id": "gh_deep_decon_swarm_01",
+      "kind": "enemy",
+      "navNode": "gh_decon_valve_01_nav",
+      "position": [
+        11.5,
+        0.0,
+        8.0
+      ]
+    },
+    {
+      "entityType": "enemy.grey_hive.swarm",
+      "id": "gh_deep_decon_swarm_02",
+      "kind": "enemy",
+      "navNode": "gh_decon_exit_nav",
+      "position": [
+        20.0,
+        0.0,
+        5.0
+      ]
+    }
+  ],
+  "transitions": [
+    {
+      "id": "gh_deep_decon_to_sentinel_arena",
+      "polygon": [
+        [
+          22.0,
+          7.0
+        ],
+        [
+          24.0,
+          7.0
+        ],
+        [
+          24.0,
+          9.0
+        ],
+        [
+          22.0,
+          9.0
+        ]
+      ],
+      "spawnId": "gh_sentinel_arena_spawn",
+      "toSceneId": "gh_sentinel_arena"
+    }
+  ],
+  "triggers": [],
+  "vfxMarkers": [],
+  "worldId": "grey_hive"
+}

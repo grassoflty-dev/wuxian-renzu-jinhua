@@ -1,0 +1,744 @@
+{
+  "schemaId": "ai-asset-release-manifest/1",
+  "schemaVersion": 1,
+  "decisionSource": {
+    "path": "deep-research-report.md",
+    "sha256": "fcd027320a01a0fe083b09321deebc85b33598b4efc8642a6e5d624f5aaf51a1"
+  },
+  "sourceTree": {
+    "commit": "030eb9bf8194ad5534dc77315567ff339cd2c625",
+    "prefix": "chatgptimage/wuxian-renzu-jinhua_2d_asset_pack_10_batches_2026-09-25/"
+  },
+  "counts": {
+    "rows": 94,
+    "concept_only": 30,
+    "reject": 21,
+    "release_approved": 43
+  },
+  "byBatch": {
+    "batch01": {
+      "concept_only": 0,
+      "reject": 0,
+      "release_approved": 10
+    },
+    "batch02": {
+      "concept_only": 2,
+      "reject": 0,
+      "release_approved": 8
+    },
+    "batch03": {
+      "concept_only": 5,
+      "reject": 0,
+      "release_approved": 5
+    },
+    "batch04": {
+      "concept_only": 3,
+      "reject": 5,
+      "release_approved": 0
+    },
+    "batch05": {
+      "concept_only": 10,
+      "reject": 0,
+      "release_approved": 0
+    },
+    "batch06": {
+      "concept_only": 1,
+      "reject": 0,
+      "release_approved": 9
+    },
+    "batch07": {
+      "concept_only": 0,
+      "reject": 0,
+      "release_approved": 10
+    },
+    "batch08": {
+      "concept_only": 6,
+      "reject": 3,
+      "release_approved": 1
+    },
+    "batch09": {
+      "concept_only": 2,
+      "reject": 9,
+      "release_approved": 0
+    },
+    "batch10": {
+      "concept_only": 1,
+      "reject": 4,
+      "release_approved": 0
+    }
+  },
+  "legacyManifests": [
+    {
+      "path": "chatgptimage/wuxian-renzu-jinhua_2d_asset_pack_10_batches_2026-09-25/manifest.csv",
+      "sha256": "2833d9409c823ffdf731ac0cce2967343fb8059375bd0bed8e3cb72b56df25ba",
+      "classification": "ARCHIVE",
+      "runtimeAuthority": false
+    },
+    {
+      "path": "chatgptimage/wuxian-renzu-jinhua_2d_asset_pack_10_batches_2026-09-25/manifest.json",
+      "sha256": "100195406103f11d0b558aafa228d3a40b3ecfee5a39e12527375c1b7994f742",
+      "classification": "ARCHIVE",
+      "runtimeAuthority": false
+    }
+  ],
+  "assets": [
+    {
+      "relative_path": "batch01/01_runtime2d.actor.cenyao.base.v1.png",
+      "asset_id": "runtime2d.actor.cenyao.base.v1",
+      "sha256": "1915e77897a4facea0bfee4c529daf5cd4961998fe4887efc4a340f253424801",
+      "release_status": "release_approved",
+      "suggested_use": "actor-source → 岑遥 runtime master"
+    },
+    {
+      "relative_path": "batch01/02_runtime2d.actor.cenyao.parts.v1.png",
+      "asset_id": "runtime2d.actor.cenyao.parts.v1",
+      "sha256": "5ec63d9e17743ab12ffc57144258fb1c46430643e3c00ec4338c89771bf28644",
+      "release_status": "release_approved",
+      "suggested_use": "actor-parts → cutout rig"
+    },
+    {
+      "relative_path": "batch01/03_runtime2d.grey_hive.floor_tiles.v1.png",
+      "asset_id": "runtime2d.grey_hive.floor_tiles.v1",
+      "sha256": "ac36eb55fe0e5404b8b11ee6904d886703de6b5873d5b34be8c8f1008e5fc1e6",
+      "release_status": "release_approved",
+      "suggested_use": "GH tiles runtime source"
+    },
+    {
+      "relative_path": "batch01/04_runtime2d.grey_hive.wall_tiles.v1.png",
+      "asset_id": "runtime2d.grey_hive.wall_tiles.v1",
+      "sha256": "a00aa90244b37b7b322d53b4323f77af380ff3bca869a40beed256ec76c2f94b",
+      "release_status": "release_approved",
+      "suggested_use": "GH wall runtime source"
+    },
+    {
+      "relative_path": "batch01/05_runtime2d.grey_hive.pipes_cables.v1.png",
+      "asset_id": "runtime2d.grey_hive.pipes_cables.v1",
+      "sha256": "856ac9f64c56c58090d900fb406f0796cdccf7ac843cf2dfa7e1f7df5176b2ca",
+      "release_status": "release_approved",
+      "suggested_use": "GH props runtime source"
+    },
+    {
+      "relative_path": "batch01/06_runtime2d.prop.power_console.off_on.v1.png",
+      "asset_id": "runtime2d.prop.power_console.off_on.v1",
+      "sha256": "4cc2443664940a54e776e4cfd8d682b8477a1848dc420b2df4990d8d398f9961",
+      "release_status": "release_approved",
+      "suggested_use": "Power Console states"
+    },
+    {
+      "relative_path": "batch01/07_runtime2d.prop.gate_a.closed_open.v1.png",
+      "asset_id": "runtime2d.prop.gate_a.closed_open.v1",
+      "sha256": "7d4b352063775818773e3bbda6ae1296645e09a84f2a2940ae17075be8c00fed",
+      "release_status": "release_approved",
+      "suggested_use": "Gate A states"
+    },
+    {
+      "relative_path": "batch01/08_runtime2d.vfx.dash.v1.png",
+      "asset_id": "runtime2d.vfx.dash.v1",
+      "sha256": "69ef29a1798b2ecc29ed38eeb1fafddbf25b151d75cd89b538f36b8412d0fe18",
+      "release_status": "release_approved",
+      "suggested_use": "Dash VFX source"
+    },
+    {
+      "relative_path": "batch01/09_runtime2d.vfx.pulse.v1.png",
+      "asset_id": "runtime2d.vfx.pulse.v1",
+      "sha256": "f178a0477718b1cfa8f11454d9d0e7fa9272d773d21ec79be2cc313c5b7c06c2",
+      "release_status": "release_approved",
+      "suggested_use": "Pulse VFX source"
+    },
+    {
+      "relative_path": "batch01/10_runtime2d.vfx.guard_pierce.v1.png",
+      "asset_id": "runtime2d.vfx.guard_pierce.v1",
+      "sha256": "6b850c7eedb5ecea14c196c8b0306fc6eb8fd9cdcb698a8efb51ee1c687b5d96",
+      "release_status": "release_approved",
+      "suggested_use": "Guard/Pierce VFX source"
+    },
+    {
+      "relative_path": "batch02/01_runtime2d.actor.baizhi.base.v1.png",
+      "asset_id": "runtime2d.actor.baizhi.base.v1",
+      "sha256": "7caa3427314fc4f0b543ae0f3c3e7fbae915488096c946a34f7116602925ec16",
+      "release_status": "concept_only",
+      "suggested_use": "白芷造型 reference only"
+    },
+    {
+      "relative_path": "batch02/02_runtime2d.actor.baizhi.parts.v1.png",
+      "asset_id": "runtime2d.actor.baizhi.parts.v1",
+      "sha256": "48277fed2e05c6a4766e389f8d8beaa5b76aace21c66c2d10d60d2cb429b4d4a",
+      "release_status": "concept_only",
+      "suggested_use": "白芷 parts reference"
+    },
+    {
+      "relative_path": "batch02/03_runtime2d.enemy.infected_maintenance_worker.v1.png",
+      "asset_id": "runtime2d.enemy.infected_maintenance_worker.v1",
+      "sha256": "6b7055df24acfa58edfdf0342c67efb60f9fac892c80110d449700bf7021477d",
+      "release_status": "release_approved",
+      "suggested_use": "GH enemy runtime source"
+    },
+    {
+      "relative_path": "batch02/04_runtime2d.enemy.infected_security.v1.png",
+      "asset_id": "runtime2d.enemy.infected_security.v1",
+      "sha256": "7bd9d4cf19f36d189cdf81530c3dee48450179696a7dbceb24eaf375714de4e4",
+      "release_status": "release_approved",
+      "suggested_use": "GH enemy runtime source"
+    },
+    {
+      "relative_path": "batch02/05_runtime2d.enemy.sentinel.base.v1.png",
+      "asset_id": "runtime2d.enemy.sentinel.base.v1",
+      "sha256": "f7ced75a0fcf35afacf796f23630a40c309682c86ef67af79de5414a8a16fbe2",
+      "release_status": "release_approved",
+      "suggested_use": "Sentinel master"
+    },
+    {
+      "relative_path": "batch02/06_runtime2d.enemy.sentinel.parts.v1.png",
+      "asset_id": "runtime2d.enemy.sentinel.parts.v1",
+      "sha256": "18014ec4dfd953d4054bd11df74b416bd2f9f6252b7732396edba406f4044b05",
+      "release_status": "release_approved",
+      "suggested_use": "Sentinel rig parts"
+    },
+    {
+      "relative_path": "batch02/07_runtime2d.prop.gate_b.v1.png",
+      "asset_id": "runtime2d.prop.gate_b.v1",
+      "sha256": "433a56c7960d19e09fb77ea55aa1787197e4a2eecc12face0ab29d5eaac39450",
+      "release_status": "release_approved",
+      "suggested_use": "Gate B source"
+    },
+    {
+      "relative_path": "batch02/08_runtime2d.prop.beacon.folded.v1.png",
+      "asset_id": "runtime2d.prop.beacon.folded.v1",
+      "sha256": "335b4658d533d501b8758070742ca3a7fff8ca30acbfa69703ec1519265c79d1",
+      "release_status": "release_approved",
+      "suggested_use": "Beacon folded"
+    },
+    {
+      "relative_path": "batch02/09_runtime2d.prop.beacon.deployed.v1.png",
+      "asset_id": "runtime2d.prop.beacon.deployed.v1",
+      "sha256": "1bb59407d43b218a56f04ba5b0451844e0328549e8f448c48975aae165b36e6b",
+      "release_status": "release_approved",
+      "suggested_use": "Beacon deployed"
+    },
+    {
+      "relative_path": "batch02/10_runtime2d.prop.lockdown_terminal.v1.png",
+      "asset_id": "runtime2d.prop.lockdown_terminal.v1",
+      "sha256": "ee6bed917621ddbb85edbd0a915bae07ede776917590b18c759ce3511299460d",
+      "release_status": "release_approved",
+      "suggested_use": "Lockdown terminal"
+    },
+    {
+      "relative_path": "batch03/01_runtime2d.prop.bio_pod.v1.png",
+      "asset_id": "runtime2d.prop.bio_pod.v1",
+      "sha256": "aed2f8398fb30710b84b2b6e449ec46ddfe1f23c65b05cbc32de8fa3f7ff05a5",
+      "release_status": "release_approved",
+      "suggested_use": "GH bio prop"
+    },
+    {
+      "relative_path": "batch03/02_runtime2d.prop.supply_crates.v1.png",
+      "asset_id": "runtime2d.prop.supply_crates.v1",
+      "sha256": "e8250132f14a9c621fd819c9b188a7a1d100e20b4da010966b45d987d51eac68",
+      "release_status": "release_approved",
+      "suggested_use": "shared industrial props"
+    },
+    {
+      "relative_path": "batch03/03_runtime2d.prop.medical_station.v1.png",
+      "asset_id": "runtime2d.prop.medical_station.v1",
+      "sha256": "57e58fe63b903d2a39c5ddb689c663c2fea47fc6488a21c452abe805a628e55e",
+      "release_status": "release_approved",
+      "suggested_use": "medical prop"
+    },
+    {
+      "relative_path": "batch03/04_runtime2d.grey_hive.clutter.v1.png",
+      "asset_id": "runtime2d.grey_hive.clutter.v1",
+      "sha256": "d9b7f424d0ac278c9029d7ddc2ad9559f08a3c56562770eefc7ed301d9094a6c",
+      "release_status": "release_approved",
+      "suggested_use": "GH clutter atlas"
+    },
+    {
+      "relative_path": "batch03/05_runtime2d.world.grey_hive.central_shaft.v1.png",
+      "asset_id": "runtime2d.world.grey_hive.central_shaft.v1",
+      "sha256": "0bd2ddb2011e4a8b2234549659537a2a7c02327eb452ece7c8d8bfe061addb7d",
+      "release_status": "concept_only",
+      "suggested_use": "Central Shaft scene reference"
+    },
+    {
+      "relative_path": "batch03/06_runtime2d.world.grey_hive.lockdown_zone.v1.png",
+      "asset_id": "runtime2d.world.grey_hive.lockdown_zone.v1",
+      "sha256": "6f794e24effc1c8ad6071676b194abec09732507c11c858a3990fabde26bcc6f",
+      "release_status": "concept_only",
+      "suggested_use": "Lockdown reference"
+    },
+    {
+      "relative_path": "batch03/07_runtime2d.world.grey_hive.bio_isolation.v1.png",
+      "asset_id": "runtime2d.world.grey_hive.bio_isolation.v1",
+      "sha256": "f43a3768c04dd62e144554b6ec4d3caa504d9d7e9f6cadb5a30acb3477b1e645",
+      "release_status": "concept_only",
+      "suggested_use": "Bio Isolation reference"
+    },
+    {
+      "relative_path": "batch03/08_runtime2d.world.grey_hive.sentinel_arena.v1.png",
+      "asset_id": "runtime2d.world.grey_hive.sentinel_arena.v1",
+      "sha256": "1d7cfbea57f57171093d04148a0527d2b90a1467e9505e9a239d9539cddd1fff",
+      "release_status": "concept_only",
+      "suggested_use": "arena composition reference"
+    },
+    {
+      "relative_path": "batch03/09_portrait.cenyao.v1.png",
+      "asset_id": "portrait.cenyao.v1",
+      "sha256": "13ebb98a6fb6414a7f9f928a1ec204c42108aa07cbdff4a5f60a39b8f49e69dc",
+      "release_status": "release_approved",
+      "suggested_use": "Cenyao portrait"
+    },
+    {
+      "relative_path": "batch03/10_portrait.baizhi.v1.png",
+      "asset_id": "portrait.baizhi.v1",
+      "sha256": "f9401cf121ade25fe80f681dece698ac682abd45625daef7817db008197f4cac",
+      "release_status": "concept_only",
+      "suggested_use": "Bai Zhi portrait reference"
+    },
+    {
+      "relative_path": "batch04/01_batch04.original_collage_attempt.png",
+      "asset_id": "batch04.original_collage_attempt",
+      "sha256": "a973e94e83c964ecb97a30cab608f9efc6e2b9c3c0ead9db031312c51f6bd437",
+      "release_status": "reject",
+      "suggested_use": "none"
+    },
+    {
+      "relative_path": "batch04/02_runtime2d.npc.engineer.v1.attempt.png",
+      "asset_id": "runtime2d.npc.engineer.v1.attempt",
+      "sha256": "c6105aae74c380389cecfc348fb530719c381493bd810870bf155ad0f0e643aa",
+      "release_status": "concept_only",
+      "suggested_use": "NPC reference"
+    },
+    {
+      "relative_path": "batch04/03_runtime2d.npc.researcher.v1.attempt_a.png",
+      "asset_id": "runtime2d.npc.researcher.v1.attempt_a",
+      "sha256": "b20dfe34318b0822519db08ccf9b0c3b094a57ca11ba0843841535b28619dc27",
+      "release_status": "reject",
+      "suggested_use": "none"
+    },
+    {
+      "relative_path": "batch04/04_runtime2d.npc.researcher.v1.attempt_b.png",
+      "asset_id": "runtime2d.npc.researcher.v1.attempt_b",
+      "sha256": "9a0252b2a97b45723ff0cc7221bfcac8a89f3fe56b7602404e4bc7d72d8f2011",
+      "release_status": "concept_only",
+      "suggested_use": "NPC reference"
+    },
+    {
+      "relative_path": "batch04/05_runtime2d.enemy.swarm.v1.attempt.png",
+      "asset_id": "runtime2d.enemy.swarm.v1.attempt",
+      "sha256": "e1963a31e67e8752d2eaa87f7f12d6ce8ffda0a70226d98776c61514ce64e95e",
+      "release_status": "reject",
+      "suggested_use": "none"
+    },
+    {
+      "relative_path": "batch04/06_runtime2d.enemy.brute.v1.attempt.png",
+      "asset_id": "runtime2d.enemy.brute.v1.attempt",
+      "sha256": "042aa88ab1d8a917bc96126c4dbc137e8c8b7c9829427f24d62fcb75c1ab531a",
+      "release_status": "reject",
+      "suggested_use": "none"
+    },
+    {
+      "relative_path": "batch04/07_batch04.remaining_attempt.png",
+      "asset_id": "batch04.remaining_attempt",
+      "sha256": "a2d2019b05610e5be72cc6096f2f0544a1144ad83278011fff296be15757a467",
+      "release_status": "reject",
+      "suggested_use": "none"
+    },
+    {
+      "relative_path": "batch04/08_batch04.maintenance_room_extra.png",
+      "asset_id": "batch04.maintenance_room_extra",
+      "sha256": "2c7050df0b9edbb61c1ec4538b27ae78ff458e8bd7ad0ae05c9582e9d36ed29e",
+      "release_status": "concept_only",
+      "suggested_use": "GH scene reference"
+    },
+    {
+      "relative_path": "batch05/01_runtime2d.npc.engineer.v1.png",
+      "asset_id": "runtime2d.npc.engineer.v1",
+      "sha256": "fc842ee8efa66246c43795b86190b77a9ffd89f7c8d4c712a2ba05bfacfd8a20",
+      "release_status": "concept_only",
+      "suggested_use": "NPC reference"
+    },
+    {
+      "relative_path": "batch05/02_runtime2d.npc.researcher.v1.png",
+      "asset_id": "runtime2d.npc.researcher.v1",
+      "sha256": "2ba886401ff785c703ce84811d7579179d1f808c487545e7064b2d0c57820bb4",
+      "release_status": "concept_only",
+      "suggested_use": "NPC reference"
+    },
+    {
+      "relative_path": "batch05/03_runtime2d.enemy.swarm.v1.png",
+      "asset_id": "runtime2d.enemy.swarm.v1",
+      "sha256": "a87484581ffaea3d150f13645f71396a041a7e0460621496ad6e6712cbd86538",
+      "release_status": "concept_only",
+      "suggested_use": "Swarm design reference"
+    },
+    {
+      "relative_path": "batch05/04_runtime2d.enemy.brute.v1.png",
+      "asset_id": "runtime2d.enemy.brute.v1",
+      "sha256": "1de2c5160fe4c5b09b825c44880df4c26b617f8694b5e405c549c33faf0fee84",
+      "release_status": "concept_only",
+      "suggested_use": "Brute design reference"
+    },
+    {
+      "relative_path": "batch05/05_runtime2d.boss.mother.v1.png",
+      "asset_id": "runtime2d.boss.mother.v1",
+      "sha256": "1a3f2ed7b99324c311bbdaefaff0cb36f14b5e0a75c1c8ff8304cbd9729a179d",
+      "release_status": "concept_only",
+      "suggested_use": "非 v1 canonical Boss；reference only"
+    },
+    {
+      "relative_path": "batch05/06_runtime2d.world.mistharbor.tiles.v1.png",
+      "asset_id": "runtime2d.world.mistharbor.tiles.v1",
+      "sha256": "7f91117826e0a007328544726627da3331a509da44ecd34bf429ae8b038e8d28",
+      "release_status": "concept_only",
+      "suggested_use": "MH tiles reference"
+    },
+    {
+      "relative_path": "batch05/07_runtime2d.world.mistharbor.props.v1.png",
+      "asset_id": "runtime2d.world.mistharbor.props.v1",
+      "sha256": "1179c4c068d74b8449eb9d5fdd1ccdd1af6eeb3a3fbcb52f38eda2a05802efe9",
+      "release_status": "concept_only",
+      "suggested_use": "MH props reference"
+    },
+    {
+      "relative_path": "batch05/08_runtime2d.world.returnstation.v1.png",
+      "asset_id": "runtime2d.world.returnstation.v1",
+      "sha256": "4dac3dafa57424193e1a21f35f4a98e3380cf74cfdf6fde5331ec490b793b1b2",
+      "release_status": "concept_only",
+      "suggested_use": "Return Station composition reference"
+    },
+    {
+      "relative_path": "batch05/09_runtime2d.prop.machinery.v1.png",
+      "asset_id": "runtime2d.prop.machinery.v1",
+      "sha256": "d43c0cdaef6e0c574f1da000a970e1ff074c264f5fbdb9857505913123939570",
+      "release_status": "concept_only",
+      "suggested_use": "machinery reference"
+    },
+    {
+      "relative_path": "batch05/10_runtime2d.ui.windows.v1.png",
+      "asset_id": "runtime2d.ui.windows.v1",
+      "sha256": "27f4f242d704ceb9ccf226945ed9d1895e2cf3f7d8c702af5a395b604fcf920c",
+      "release_status": "concept_only",
+      "suggested_use": "UI reference only；HTML/CSS 重做"
+    },
+    {
+      "relative_path": "batch06/01_runtime2d.world.mistharbor.fog_vfx.v1.png",
+      "asset_id": "runtime2d.world.mistharbor.fog_vfx.v1",
+      "sha256": "7be96eddcb4dd820eccb142ad9343bedd76f4597643e0c305481648200f8338c",
+      "release_status": "release_approved",
+      "suggested_use": "MH fog VFX"
+    },
+    {
+      "relative_path": "batch06/02_runtime2d.world.mistharbor.water_edge.v1.png",
+      "asset_id": "runtime2d.world.mistharbor.water_edge.v1",
+      "sha256": "66749eb4ce1ef51d02a034526bb1c6ad29f190fa21fa8e591405b4d5e1363ff7",
+      "release_status": "release_approved",
+      "suggested_use": "MH water edge"
+    },
+    {
+      "relative_path": "batch06/03_runtime2d.enemy.mistharbor.drowned.v1.png",
+      "asset_id": "runtime2d.enemy.mistharbor.drowned.v1",
+      "sha256": "6db84004a7f9a95c2652ad0e84aa17da1c201ab0b15b995bc11cdeec67da1bb9",
+      "release_status": "release_approved",
+      "suggested_use": "Drowned runtime source"
+    },
+    {
+      "relative_path": "batch06/04_runtime2d.enemy.mistharbor.signal_wraith.v1.png",
+      "asset_id": "runtime2d.enemy.mistharbor.signal_wraith.v1",
+      "sha256": "84029a7adb1b7d6af297d6165994a076c5190da0990887a06073964025c22ec3",
+      "release_status": "release_approved",
+      "suggested_use": "Wraith runtime source"
+    },
+    {
+      "relative_path": "batch06/05_runtime2d.world.clockworks.factory_tiles.v1.png",
+      "asset_id": "runtime2d.world.clockworks.factory_tiles.v1",
+      "sha256": "513042e366cf87203a64f3263c4ed92bb1c6bf53fab2f1250afa00c0b6cf13bf",
+      "release_status": "release_approved",
+      "suggested_use": "CW factory tiles"
+    },
+    {
+      "relative_path": "batch06/06_runtime2d.world.clockworks.pressure_pipes.v1.png",
+      "asset_id": "runtime2d.world.clockworks.pressure_pipes.v1",
+      "sha256": "7304224124ccf1d7526402fd67367ea99f64c426b80da40c6f3fa2652b519e27",
+      "release_status": "release_approved",
+      "suggested_use": "CW pressure pipes"
+    },
+    {
+      "relative_path": "batch06/07_runtime2d.world.clockworks.furnace.v1.png",
+      "asset_id": "runtime2d.world.clockworks.furnace.v1",
+      "sha256": "2432858d959734ec8111c9eb0e7ad9bd56ff99e66c07df1ff1fc8b4a8b2016bd",
+      "release_status": "release_approved",
+      "suggested_use": "furnace source"
+    },
+    {
+      "relative_path": "batch06/08_runtime2d.enemy.clockworks.forged_guard.v1.png",
+      "asset_id": "runtime2d.enemy.clockworks.forged_guard.v1",
+      "sha256": "27be399e6c1a8bc3d3a55ff7d83e1f60f0812b099c3322d0b33adb44087165dd",
+      "release_status": "release_approved",
+      "suggested_use": "Forged Guard source"
+    },
+    {
+      "relative_path": "batch06/09_runtime2d.world.returnstation.terminals.v1.png",
+      "asset_id": "runtime2d.world.returnstation.terminals.v1",
+      "sha256": "83008caf30bcd0cd40e1d9720be7176dbbdf1e0072983551e3e1784b25f352fb",
+      "release_status": "release_approved",
+      "suggested_use": "Return Station terminal source"
+    },
+    {
+      "relative_path": "batch06/10_runtime2d.ui.capability_icons.v1.png",
+      "asset_id": "runtime2d.ui.capability_icons.v1",
+      "sha256": "bcbcd0a2ec1ae1ff883ce49e864b4ff959baa0bb46d251c9158a8f8121848b77",
+      "release_status": "concept_only",
+      "suggested_use": "capability icon reference"
+    },
+    {
+      "relative_path": "batch07/01_runtime2d.world.mistharbor.fog_bank.v1.png",
+      "asset_id": "runtime2d.world.mistharbor.fog_bank.v1",
+      "sha256": "775aa450a148488eeb6e67e14bb0dd7fd2db51429d086f6f9109ccb96c4d06c0",
+      "release_status": "release_approved",
+      "suggested_use": "MH fog bank"
+    },
+    {
+      "relative_path": "batch07/02_runtime2d.world.mistharbor.water_edge_stone.v1.png",
+      "asset_id": "runtime2d.world.mistharbor.water_edge_stone.v1",
+      "sha256": "dc09452bf3f55c57cca1a93bb09f169ef441af90321dff47d91c4be7e62d3a83",
+      "release_status": "release_approved",
+      "suggested_use": "MH stone/water module"
+    },
+    {
+      "relative_path": "batch07/03_runtime2d.enemy.mistharbor.drowned.v2.png",
+      "asset_id": "runtime2d.enemy.mistharbor.drowned.v2",
+      "sha256": "1b57a57c4fc7dc1d853b82cc1c6a3525e97af5853006ad17a8e25d0de6ca993e",
+      "release_status": "release_approved",
+      "suggested_use": "Drowned variant/master candidate"
+    },
+    {
+      "relative_path": "batch07/04_runtime2d.enemy.mistharbor.signal_wraith.v2.png",
+      "asset_id": "runtime2d.enemy.mistharbor.signal_wraith.v2",
+      "sha256": "fcaad0d40dc3a9dca4c24d147c656d4c751b6a729d265ae3f60d421fe69dd055",
+      "release_status": "release_approved",
+      "suggested_use": "Wraith variant/master candidate"
+    },
+    {
+      "relative_path": "batch07/05_runtime2d.world.clockworks.floor_steel.v1.png",
+      "asset_id": "runtime2d.world.clockworks.floor_steel.v1",
+      "sha256": "1a01e851654d9f5c98b5486cbe489f357ed99c55ffc601c492af63044d90b190",
+      "release_status": "release_approved",
+      "suggested_use": "CW floor"
+    },
+    {
+      "relative_path": "batch07/06_runtime2d.world.clockworks.pressure_pipe_valve.v1.png",
+      "asset_id": "runtime2d.world.clockworks.pressure_pipe_valve.v1",
+      "sha256": "300ab8665768ecfafd33107cf41f2d7997864f9f6205f32ecd83a61e385b5995",
+      "release_status": "release_approved",
+      "suggested_use": "CW valve prop"
+    },
+    {
+      "relative_path": "batch07/07_runtime2d.world.clockworks.furnace.v2.png",
+      "asset_id": "runtime2d.world.clockworks.furnace.v2",
+      "sha256": "30d37d59557e22b1ae8c35e93ade967ea357b58c5ad4e9f55f7b0f31fd0b7d12",
+      "release_status": "release_approved",
+      "suggested_use": "furnace variant"
+    },
+    {
+      "relative_path": "batch07/08_runtime2d.enemy.clockworks.forged_guard.v2.png",
+      "asset_id": "runtime2d.enemy.clockworks.forged_guard.v2",
+      "sha256": "5c542927516e2e393eccada493e5ca4e20d4bc5d75db8431d57f306910c5d0c0",
+      "release_status": "release_approved",
+      "suggested_use": "Forged Guard variant"
+    },
+    {
+      "relative_path": "batch07/09_runtime2d.world.returnstation.terminal.v1.png",
+      "asset_id": "runtime2d.world.returnstation.terminal.v1",
+      "sha256": "f6a5fc8855d2080ce081a51d1ed2d136c9075a104c1eadca1467eedf2bdf406d",
+      "release_status": "release_approved",
+      "suggested_use": "Return Station terminal"
+    },
+    {
+      "relative_path": "batch07/10_runtime2d.ui.capability.local_map.v1.png",
+      "asset_id": "runtime2d.ui.capability.local_map.v1",
+      "sha256": "8b4b624a2532698d85be41cc8b01628b9a9bd0cdbe0932583ccb4df8a730d80d",
+      "release_status": "release_approved",
+      "suggested_use": "Local Map capability icon source"
+    },
+    {
+      "relative_path": "batch08/01_runtime2d.world.grey_hive.lockdown_zone.v1.attempt.png",
+      "asset_id": "runtime2d.world.grey_hive.lockdown_zone.v1.attempt",
+      "sha256": "af443d90c2cb4bf6935a6f3b9b5a11e2035a6c0de89e6b8b5aef59a9aa2f1362",
+      "release_status": "concept_only",
+      "suggested_use": "Lockdown reference"
+    },
+    {
+      "relative_path": "batch08/02_runtime2d.prop.lockdown_terminal.v1.attempt.png",
+      "asset_id": "runtime2d.prop.lockdown_terminal.v1.attempt",
+      "sha256": "66b7b9edfe8a661cd770a4fc576dff98f9d453ad069d08a94fba7437a28c19cb",
+      "release_status": "concept_only",
+      "suggested_use": "terminal reference；优先使用 approved 版本"
+    },
+    {
+      "relative_path": "batch08/03_runtime2d.world.grey_hive.bio_isolation.v1.attempt.png",
+      "asset_id": "runtime2d.world.grey_hive.bio_isolation.v1.attempt",
+      "sha256": "a9109f7801e13bcabf4bf5b82b0db55049539fd65bb0cddc95be112a0468fbba",
+      "release_status": "concept_only",
+      "suggested_use": "scene reference"
+    },
+    {
+      "relative_path": "batch08/04_runtime2d.prop.sample_case.v1.attempt.png",
+      "asset_id": "runtime2d.prop.sample_case.v1.attempt",
+      "sha256": "049e6d9a08e3d271b27709c3476287a14fc18df9d2a8d72673bec944c73777d9",
+      "release_status": "reject",
+      "suggested_use": "none；必须重做"
+    },
+    {
+      "relative_path": "batch08/05_runtime2d.prop.gate_b.closed_open.v1.attempt.png",
+      "asset_id": "runtime2d.prop.gate_b.closed_open.v1.attempt",
+      "sha256": "070975930fc1bbd0e5aea87dc9c64e306ef00ab44b8903a773e24c28550683a4",
+      "release_status": "reject",
+      "suggested_use": "none；使用 batch02 approved Gate B"
+    },
+    {
+      "relative_path": "batch08/06_runtime2d.world.grey_hive.deep_decon.v1.attempt.png",
+      "asset_id": "runtime2d.world.grey_hive.deep_decon.v1.attempt",
+      "sha256": "4430713526dbf905dcf1e13a32b4acc3ab42fa85c339dbaf341f9ea50b77867c",
+      "release_status": "concept_only",
+      "suggested_use": "Deep Decon reference"
+    },
+    {
+      "relative_path": "batch08/07_runtime2d.vfx.decon_hazard.v1.attempt.png",
+      "asset_id": "runtime2d.vfx.decon_hazard.v1.attempt",
+      "sha256": "c796f85e49096f82388848e72c5679c93c8e2776491ecb43ae8bc36dbc960047",
+      "release_status": "reject",
+      "suggested_use": "none；VFX 重做"
+    },
+    {
+      "relative_path": "batch08/08_runtime2d.world.grey_hive.sentinel_arena.v1.attempt.png",
+      "asset_id": "runtime2d.world.grey_hive.sentinel_arena.v1.attempt",
+      "sha256": "532f0b697bc9da79c1c1a166ada0f009f513ba02232c7d44698dc48d3feabf67",
+      "release_status": "release_approved",
+      "suggested_use": "Sentinel Arena source/layer production"
+    },
+    {
+      "relative_path": "batch08/09_runtime2d.enemy.sentinel.telegraph.v1.attempt.png",
+      "asset_id": "runtime2d.enemy.sentinel.telegraph.v1.attempt",
+      "sha256": "04bc95fc60ecb6bbe583b842a5501237b21a562ec2c647cd69d6b3c9ffb1105c",
+      "release_status": "concept_only",
+      "suggested_use": "telegraph reference"
+    },
+    {
+      "relative_path": "batch08/10_runtime2d.world.grey_hive.exit.v1.attempt.png",
+      "asset_id": "runtime2d.world.grey_hive.exit.v1.attempt",
+      "sha256": "7bec084114d7b3d832641c4ff36f2a23ba525514e77ec4ffffb27a2c5bf9ffed",
+      "release_status": "concept_only",
+      "suggested_use": "Exit reference"
+    },
+    {
+      "relative_path": "batch09/01_batch09.initial_ui_collage.png",
+      "asset_id": "batch09.initial_ui_collage",
+      "sha256": "d679013a64a84130202d10280577ec02173f5833ecd1ca56ba86f557b0b4daff",
+      "release_status": "reject",
+      "suggested_use": "none"
+    },
+    {
+      "relative_path": "batch09/02_runtime2d.world.returnstation.core_room.v1.attempt.png",
+      "asset_id": "runtime2d.world.returnstation.core_room.v1.attempt",
+      "sha256": "279efe92a5f28d7b076214f40190c2697ff54ccd1866c63851dc8b583d96c069",
+      "release_status": "reject",
+      "suggested_use": "none；Core Room 重做"
+    },
+    {
+      "relative_path": "batch09/03_runtime2d.world.returnstation.world_gate.v1.attempt.png",
+      "asset_id": "runtime2d.world.returnstation.world_gate.v1.attempt",
+      "sha256": "49690a031e6a4cc408aba4b45ca71a24884307d158fd2ab86160e7ad39a71df7",
+      "release_status": "reject",
+      "suggested_use": "none；World Gate 重做"
+    },
+    {
+      "relative_path": "batch09/04_runtime2d.world.returnstation.character_terminal.v1.attempt.png",
+      "asset_id": "runtime2d.world.returnstation.character_terminal.v1.attempt",
+      "sha256": "ac690479e9e73a7718e7756243f5a83f44fe0319c1a3023391053b21040f2698",
+      "release_status": "reject",
+      "suggested_use": "none"
+    },
+    {
+      "relative_path": "batch09/05_runtime2d.world.returnstation.capability_terminal.v1.attempt.png",
+      "asset_id": "runtime2d.world.returnstation.capability_terminal.v1.attempt",
+      "sha256": "87168531b3d2027ba54978393eed4a13a9b0eba2dae2cd5c210c8f3d4647ace5",
+      "release_status": "reject",
+      "suggested_use": "none；terminal 新做/由 approved terminal 派生"
+    },
+    {
+      "relative_path": "batch09/06_runtime2d.ui.world_network.v1.attempt.png",
+      "asset_id": "runtime2d.ui.world_network.v1.attempt",
+      "sha256": "0f538a43031f84b26cf8d3c027b636eeb24e762795d6acd3a4728253d644bc86",
+      "release_status": "concept_only",
+      "suggested_use": "World Network layout reference"
+    },
+    {
+      "relative_path": "batch09/07_runtime2d.ui.capability_tree.v1.attempt.png",
+      "asset_id": "runtime2d.ui.capability_tree.v1.attempt",
+      "sha256": "93c014135e44754818ea99c8df38a37007b6f9831e07a5fc66c23d6352dc9cba",
+      "release_status": "reject",
+      "suggested_use": "none；HTML/CSS 重做"
+    },
+    {
+      "relative_path": "batch09/08_runtime2d.ui.inventory.v1.attempt.png",
+      "asset_id": "runtime2d.ui.inventory.v1.attempt",
+      "sha256": "b84b2d53ca60a1ca22d6f914a202f7c0779c71045d3aef91e606a2883ddd653a",
+      "release_status": "reject",
+      "suggested_use": "none；HTML/CSS 重做"
+    },
+    {
+      "relative_path": "batch09/09_runtime2d.ui.character_status.v1.attempt.png",
+      "asset_id": "runtime2d.ui.character_status.v1.attempt",
+      "sha256": "f3094084d7007888134d9c13563e12d60f4f77b15f9876faafc7931c6bacc9d4",
+      "release_status": "reject",
+      "suggested_use": "none；HTML/CSS 重做"
+    },
+    {
+      "relative_path": "batch09/10_runtime2d.ui.mission_terminal.v1.attempt.png",
+      "asset_id": "runtime2d.ui.mission_terminal.v1.attempt",
+      "sha256": "97a3f11cf811dc739357c6ff8588d25ca61027cba352d9fd86128b5902be203f",
+      "release_status": "concept_only",
+      "suggested_use": "terminal UI reference"
+    },
+    {
+      "relative_path": "batch09/11_runtime2d.ui.save_slots.v1.attempt.png",
+      "asset_id": "runtime2d.ui.save_slots.v1.attempt",
+      "sha256": "b9604b6739b773d4efb635f13ef33bda36a56d2b8ce347f3ebc7b16dc672c8b7",
+      "release_status": "reject",
+      "suggested_use": "none；HTML/CSS 重做"
+    },
+    {
+      "relative_path": "batch10/01_batch10.collage_attempt_01.png",
+      "asset_id": "batch10.collage_attempt_01",
+      "sha256": "091f870acb0560b551cb4dcbd6ad24e803988de5ebd351ba95fdd8ea98d48130",
+      "release_status": "reject",
+      "suggested_use": "none"
+    },
+    {
+      "relative_path": "batch10/02_batch10.collage_attempt_02.png",
+      "asset_id": "batch10.collage_attempt_02",
+      "sha256": "d374a480d4de597a249081486bd01a9ffc5b1803ba83c99ffeb693c87a874993",
+      "release_status": "reject",
+      "suggested_use": "none"
+    },
+    {
+      "relative_path": "batch10/03_batch10.collage_attempt_03.png",
+      "asset_id": "batch10.collage_attempt_03",
+      "sha256": "70e4a0d5b64faebae2a98ab2b24c7ace8a6737a119415074f612ea3f78f73f7f",
+      "release_status": "reject",
+      "suggested_use": "none"
+    },
+    {
+      "relative_path": "batch10/04_batch10.collage_attempt_04.png",
+      "asset_id": "batch10.collage_attempt_04",
+      "sha256": "77e8c426374dbac3a3f510e9d85788e9ef7ab3a47d7052842bdca0f2417a7f54",
+      "release_status": "concept_only",
+      "suggested_use": "composition reference only"
+    },
+    {
+      "relative_path": "batch10/05_batch10.collage_attempt_05.png",
+      "asset_id": "batch10.collage_attempt_05",
+      "sha256": "0f3e253c4cd5bb44dd1926518ccc8c25711ec11b79463db49290d99dc286f3e8",
+      "release_status": "reject",
+      "suggested_use": "none"
+    }
+  ]
+}

@@ -1,0 +1,203 @@
+{
+  "schemaVersion": 6,
+  "save": {
+    "schemaVersion": 5,
+    "buildVersion": "1.0.0",
+    "contentVersion": "campaign-content-v1",
+    "worldId": "clockworks",
+    "sceneId": "cw_shutdown_exit",
+    "checkpointId": null,
+    "player": {
+      "positionM": {
+        "xM": 8.0,
+        "yM": 0.0,
+        "zM": 6.0
+      },
+      "velocityMps": {
+        "xM": 0.0,
+        "yM": 0.0,
+        "zM": 0.0
+      },
+      "radiusM": 0.35,
+      "grounded": true,
+      "moveSpeedMps": 4.0,
+      "jumpSpeedMps": 5.5,
+      "gravityMps2": 16.0,
+      "dashSpeedMps": 10.0,
+      "dashRemainingMs": 0,
+      "dashCooldownRemainingMs": 0,
+      "currentHp": 100,
+      "maxHp": 100,
+      "currentEnergy": 100,
+      "maxEnergy": 100
+    },
+    "actors": [],
+    "combatHandledRequestIds": [],
+    "sceneStates": [
+      {
+        "sceneId": "cw_shutdown_exit",
+        "activatedIds": [
+          "cw_master_shutdown_staged"
+        ],
+        "emittedEventIds": [
+          "clockworks_shutdown"
+        ],
+        "checkpointId": null
+      }
+    ],
+    "progression": {
+      "schemaVersion": 1,
+      "currentWorldId": "clockworks",
+      "progress": [
+        {
+          "worldId": "grey_hive",
+          "completed": false,
+          "firstCompletion": false,
+          "visitId": 1,
+          "cycleId": 1,
+          "revisitCount": 0,
+          "completedEvents": [],
+          "firstMainlineResult": null,
+          "hiveChoice": "unresolved",
+          "sentinelFirstKillRecorded": false
+        },
+        {
+          "worldId": "mist_harbor",
+          "completed": false,
+          "firstCompletion": false,
+          "visitId": 0,
+          "cycleId": 1,
+          "revisitCount": 0,
+          "completedEvents": [],
+          "firstMainlineResult": null,
+          "hiveChoice": "unresolved",
+          "sentinelFirstKillRecorded": false
+        },
+        {
+          "worldId": "clockworks",
+          "completed": false,
+          "firstCompletion": false,
+          "visitId": 0,
+          "cycleId": 1,
+          "revisitCount": 0,
+          "completedEvents": [
+            "clockworks_valves",
+            "clockworks_core",
+            "clockworks_shutdown"
+          ],
+          "firstMainlineResult": null,
+          "hiveChoice": "unresolved",
+          "sentinelFirstKillRecorded": false
+        }
+      ],
+      "rewardLedger": [],
+      "eventSeq": 4,
+      "processedRequestIds": [
+        "formal-runtime-bootstrap-grey-hive",
+        "shutdown-test-prerequisite-0",
+        "shutdown-test-prerequisite-1",
+        "scene-event-shutdown-valid"
+      ]
+    },
+    "capabilities": {
+      "schemaVersion": 1,
+      "grants": [
+        {
+          "capabilityId": "mobility.air_step_i",
+          "grantedAtRevision": {
+            "worldEpoch": 1,
+            "serverTick": 0,
+            "authorityRevision": 1
+          }
+        }
+      ],
+      "selected": [
+        "mobility.air_step_i"
+      ],
+      "regeneration": {
+        "delayAfterDamageMs": 1500,
+        "delayAfterCombatMs": 3000,
+        "hpPerSecond": 2.5,
+        "regenCapFraction": 0.75
+      },
+      "firstEnhancementChoice": null,
+      "worldId": "clockworks",
+      "exploredMap": {
+        "worldId": "clockworks",
+        "playerPositionM": {
+          "xM": 3.0,
+          "yM": 0.0,
+          "zM": 8.0
+        },
+        "rooms": [],
+        "connections": [],
+        "objectives": []
+      },
+      "rearViewAuthorization": {
+        "granted": false,
+        "grantId": null,
+        "grantedAtRevision": null
+      },
+      "currentRevision": {
+        "worldEpoch": 1,
+        "serverTick": 0,
+        "authorityRevision": 1
+      },
+      "lastTickRevision": null,
+      "lastNowMs": null,
+      "lastDamageAtMs": null,
+      "lastCombatAtMs": null,
+      "fractionalHeal": 0.0,
+      "handledRequestIds": []
+    },
+    "inventory": {
+      "items": []
+    },
+    "dialogFlags": [],
+    "revision": {
+      "worldEpoch": 1,
+      "serverTick": 0,
+      "authorityRevision": 2
+    },
+    "serverTimeMs": 0,
+    "explored": {
+      "worldId": "clockworks",
+      "playerPositionM": {
+        "xM": 3.0,
+        "yM": 0.0,
+        "zM": 8.0
+      },
+      "rooms": [],
+      "connections": [],
+      "objectives": []
+    },
+    "rearView": {
+      "granted": false,
+      "grantId": null,
+      "grantedAtRevision": null
+    },
+    "lastInputSeq": 0,
+    "lastClientTimeMs": 0,
+    "lastDamagedAtMs": null,
+    "lastCombatAtMs": null,
+    "migrationProvenance": null
+  },
+  "progression": {
+    "inventory": {},
+    "equipment": {},
+    "ownedSkills": [],
+    "equippedSkills": [],
+    "skillProficiency": {},
+    "categoryProficiency": {},
+    "bloodline": null,
+    "bloodlineTier": 0,
+    "bloodlineProficiency": 0,
+    "treasures": [],
+    "geneStage": 0,
+    "cultivation": {},
+    "capabilities": [
+      "mobility.air_step_i"
+    ]
+  },
+  "effectSources": []
+}

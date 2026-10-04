@@ -1,0 +1,614 @@
+{
+  "compressionlevel": -1,
+  "height": 16,
+  "infinite": false,
+  "layers": [
+    {
+      "name": "visual.floor",
+      "objects": [
+        {
+          "name": "approved_tower_stone_water_module",
+          "x": 384,
+          "y": 256,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.mistharbor.water_edge_stone.v1"
+            }
+          ],
+          "id": 1
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 1
+    },
+    {
+      "name": "visual.props_back",
+      "objects": [
+        {
+          "name": "tower_fog_bank_north",
+          "x": 288,
+          "y": 96,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.mistharbor.fog_bank.v1"
+            }
+          ],
+          "id": 2
+        },
+        {
+          "name": "tower_outer_water_edge",
+          "x": 384,
+          "y": 464,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.mistharbor.water_edge.v1"
+            }
+          ],
+          "id": 3
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 2
+    },
+    {
+      "name": "visual.props_dynamic",
+      "objects": [],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 3
+    },
+    {
+      "name": "visual.vfx_markers",
+      "objects": [
+        {
+          "name": "tower_ambient_fog_01",
+          "x": 224,
+          "y": 128,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.mistharbor.fog_vfx.v1"
+            }
+          ],
+          "id": 8
+        },
+        {
+          "name": "tower_ambient_fog_02",
+          "x": 608,
+          "y": 352,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.mistharbor.fog_vfx.v1"
+            }
+          ],
+          "id": 9
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 4
+    },
+    {
+      "name": "logic.collision",
+      "objects": [
+        {
+          "name": "tower_wall_north",
+          "x": 0,
+          "y": 0,
+          "width": 768,
+          "height": 16,
+          "properties": [],
+          "id": 10
+        },
+        {
+          "name": "tower_wall_south",
+          "x": 0,
+          "y": 496,
+          "width": 768,
+          "height": 16,
+          "properties": [],
+          "id": 11
+        },
+        {
+          "name": "tower_wall_west_north",
+          "x": 0,
+          "y": 16,
+          "width": 16,
+          "height": 176,
+          "properties": [],
+          "id": 12
+        },
+        {
+          "name": "tower_wall_west_south",
+          "x": 0,
+          "y": 304,
+          "width": 16,
+          "height": 192,
+          "properties": [],
+          "id": 13
+        },
+        {
+          "name": "tower_wall_east_north",
+          "x": 752,
+          "y": 16,
+          "width": 16,
+          "height": 176,
+          "properties": [],
+          "id": 14
+        },
+        {
+          "name": "tower_wall_east_south",
+          "x": 752,
+          "y": 304,
+          "width": 16,
+          "height": 192,
+          "properties": [],
+          "id": 15
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 5
+    },
+    {
+      "name": "logic.navigation",
+      "objects": [
+        {
+          "name": "mh_resonance_tower_spawn_nav",
+          "x": 96,
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "mh_resonance_tower_center_nav"
+            }
+          ],
+          "id": 16
+        },
+        {
+          "name": "mh_resonance_tower_center_nav",
+          "x": 320,
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "mh_signal_console_nav"
+            }
+          ],
+          "id": 17
+        },
+        {
+          "name": "mh_signal_console_nav",
+          "x": 512,
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "mh_resonance_tower_arena_nav"
+            }
+          ],
+          "id": 18
+        },
+        {
+          "name": "mh_resonance_tower_arena_nav",
+          "x": 672,
+          "y": 256,
+          "properties": [],
+          "id": 19
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 6
+    },
+    {
+      "name": "logic.spawn",
+      "objects": [
+        {
+          "name": "mh_resonance_tower_spawn",
+          "x": 96,
+          "y": 256,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "player"
+            },
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "mh_resonance_tower_spawn_nav"
+            }
+          ],
+          "id": 20
+        },
+        {
+          "id": 4,
+          "name": "mh_resonance_tower_signal_wraith_01",
+          "x": 288,
+          "y": 192,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "enemy"
+            },
+            {
+              "name": "entityType",
+              "type": "string",
+              "value": "enemy.mist_harbor.signal_wraith"
+            },
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "mh_resonance_tower_center_nav"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "name": "mh_resonance_tower_signal_wraith_02",
+          "x": 384,
+          "y": 160,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "enemy"
+            },
+            {
+              "name": "entityType",
+              "type": "string",
+              "value": "enemy.mist_harbor.signal_wraith"
+            },
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "mh_resonance_tower_center_nav"
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "name": "mh_resonance_tower_signal_wraith_03",
+          "x": 480,
+          "y": 288,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "enemy"
+            },
+            {
+              "name": "entityType",
+              "type": "string",
+              "value": "enemy.mist_harbor.signal_wraith"
+            },
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "mh_signal_console_nav"
+            }
+          ]
+        },
+        {
+          "id": 7,
+          "name": "mh_resonance_tower_signal_wraith_04",
+          "x": 608,
+          "y": 192,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "enemy"
+            },
+            {
+              "name": "entityType",
+              "type": "string",
+              "value": "enemy.mist_harbor.signal_wraith"
+            },
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "mh_resonance_tower_arena_nav"
+            }
+          ]
+        },
+        {
+          "id": 31,
+          "name": "mh_resonance_tower_tidebound_01",
+          "x": 384.0,
+          "y": 336.0,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "enemy"
+            },
+            {
+              "name": "entityType",
+              "type": "string",
+              "value": "enemy.mist_harbor.tidebound"
+            },
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "mh_resonance_tower_center_nav"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 7
+    },
+    {
+      "name": "logic.interaction",
+      "objects": [
+        {
+          "name": "mh_signal_console_staged",
+          "x": 512,
+          "y": 256,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "terminal"
+            },
+            {
+              "name": "event",
+              "type": "string",
+              "value": "mist_signal"
+            }
+          ],
+          "id": 21
+        },
+        {
+          "name": "mh_cy_map_01_staged_marker",
+          "x": 512,
+          "y": 224,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "dialogue_content_marker"
+            }
+          ],
+          "id": 22
+        },
+        {
+          "name": "mh_acoustic_mapping_staged_marker",
+          "x": 512,
+          "y": 288,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "capability_staged_marker"
+            }
+          ],
+          "id": 23
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 8
+    },
+    {
+      "name": "logic.checkpoint",
+      "objects": [
+        {
+          "name": "mh_resonance_tower_checkpoint",
+          "x": 128,
+          "y": 256,
+          "properties": [
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "mh_resonance_tower_spawn_nav"
+            }
+          ],
+          "id": 24
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 9
+    },
+    {
+      "name": "logic.transition",
+      "objects": [
+        {
+          "name": "mh_tower_to_pump_station",
+          "x": 0,
+          "y": 208,
+          "width": 64,
+          "height": 96,
+          "properties": [
+            {
+              "name": "toSceneId",
+              "type": "string",
+              "value": "mh_pump_station"
+            },
+            {
+              "name": "spawnId",
+              "type": "string",
+              "value": "mh_pump_station_spawn"
+            }
+          ],
+          "id": 25
+        },
+        {
+          "name": "mh_tower_to_warden_arena",
+          "x": 704,
+          "y": 208,
+          "width": 64,
+          "height": 96,
+          "properties": [
+            {
+              "name": "toSceneId",
+              "type": "string",
+              "value": "mh_warden_arena"
+            },
+            {
+              "name": "spawnId",
+              "type": "string",
+              "value": "mh_warden_arena_spawn"
+            },
+            {
+              "name": "requiresEvent",
+              "type": "string",
+              "value": "mist_signal"
+            }
+          ],
+          "id": 26
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 10
+    },
+    {
+      "name": "logic.walkable",
+      "objects": [
+        {
+          "id": 27,
+          "name": "mh_resonance_tower_walkable_area",
+          "x": 16.0,
+          "y": 16.0,
+          "width": 736.0,
+          "height": 480.0,
+          "rotation": 0,
+          "visible": true,
+          "properties": []
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 11
+    },
+    {
+      "name": "logic.exploration",
+      "objects": [
+        {
+          "id": 28,
+          "name": "mh_rt_entry",
+          "x": 16.0,
+          "y": 16.0,
+          "width": 288.0,
+          "height": 480.0,
+          "rotation": 0,
+          "visible": true,
+          "properties": []
+        },
+        {
+          "id": 29,
+          "name": "mh_rt_resonance_floor",
+          "x": 304.0,
+          "y": 16.0,
+          "width": 208.0,
+          "height": 480.0,
+          "rotation": 0,
+          "visible": true,
+          "properties": []
+        },
+        {
+          "id": 30,
+          "name": "mh_rt_signal_section",
+          "x": 512,
+          "y": 16.0,
+          "width": 240.0,
+          "height": 480.0,
+          "rotation": 0,
+          "visible": true,
+          "properties": []
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 12
+    }
+  ],
+  "orientation": "orthogonal",
+  "properties": [
+    {
+      "name": "worldId",
+      "type": "string",
+      "value": "mist_harbor"
+    },
+    {
+      "name": "sceneId",
+      "type": "string",
+      "value": "mh_resonance_tower"
+    },
+    {
+      "name": "pixelsPerMeter",
+      "type": "int",
+      "value": 32
+    },
+    {
+      "name": "cameraProfile",
+      "type": "string",
+      "value": "oblique_default"
+    }
+  ],
+  "renderorder": "right-down",
+  "tiledversion": "1.10.2",
+  "tileheight": 32,
+  "tilewidth": 32,
+  "type": "map",
+  "version": "1.10",
+  "width": 24,
+  "nextlayerid": 13,
+  "nextobjectid": 32
+}

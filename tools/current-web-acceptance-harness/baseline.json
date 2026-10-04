@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "status": "pending-reviewed-windows-edge-baseline",
+  "evidenceKind": "current-web-production-bundle-mocked-ipc",
+  "nativeGameplayAcceptance": false,
+  "platform": "win32",
+  "channel": "msedge",
+  "playwrightVersion": "1.63.0",
+  "deviceScaleFactor": 1,
+  "locale": "zh-CN",
+  "timezoneId": "UTC",
+  "viewports": [{ "width": 1280, "height": 720 }, { "width": 1920, "height": 1080 }],
+  "environment": null,
+  "reviewedSourceGitSha": null,
+  "reviewedBundleSha256": null
+}

@@ -1,0 +1,273 @@
+{
+  "boundsM": {
+    "depth": 10.0,
+    "width": 10.0,
+    "x": 0,
+    "z": 0
+  },
+  "cameraZones": [],
+  "checkpoints": [
+    {
+      "heightRangeM": [
+        0.0,
+        0.1
+      ],
+      "id": "checkpoint",
+      "navNode": "nav_b",
+      "position": [
+        4.0,
+        0.0,
+        4.0
+      ]
+    }
+  ],
+  "collision": [
+    {
+      "id": "wall",
+      "polygon": [
+        [
+          5.0,
+          5.0
+        ],
+        [
+          6.0,
+          5.0
+        ],
+        [
+          6.0,
+          6.0
+        ],
+        [
+          5.0,
+          6.0
+        ]
+      ]
+    }
+  ],
+  "doors": [],
+  "hazards": [],
+  "interactions": [
+    {
+      "event": null,
+      "heightRangeM": [
+        1.9,
+        2.1
+      ],
+      "id": "upper_console",
+      "kind": "console",
+      "position": [
+        4.0,
+        2.0,
+        4.0
+      ]
+    }
+  ],
+  "logic": {
+    "traversal": [
+      {
+        "cooldownMs": 350,
+        "from": [
+          4.0,
+          2.0,
+          4.0
+        ],
+        "fromHeightRangeM": [
+          1.9,
+          2.1
+        ],
+        "id": "upper_vault",
+        "rangeM": 1.2,
+        "requiredCapabilities": [],
+        "to": [
+          6.5,
+          2.0,
+          4.0
+        ]
+      }
+    ]
+  },
+  "movingSupports": [
+    {
+      "endpointHoldMs": 750,
+      "id": "lift",
+      "lowerM": 0.0,
+      "polygon": [
+        [
+          1.5,
+          3.0
+        ],
+        [
+          4.0,
+          3.0
+        ],
+        [
+          4.0,
+          5.0
+        ],
+        [
+          1.5,
+          5.0
+        ]
+      ],
+      "travelMs": 1000,
+      "upperM": 2.0
+    }
+  ],
+  "navigation": {
+    "links": [
+      {
+        "from": "nav_a",
+        "to": "nav_b"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "nav_a",
+        "position": [
+          1.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "id": "nav_b",
+        "position": [
+          4.0,
+          0.0,
+          4.0
+        ]
+      }
+    ]
+  },
+  "objectives": [
+    {
+      "completingEvent": "hive_power",
+      "id": "restore_power",
+      "position": [
+        1.0,
+        0.0,
+        1.0
+      ]
+    }
+  ],
+  "occluders": [],
+  "presentation": {
+    "cameraProfile": "oblique_default",
+    "layers": [
+      {
+        "id": "visual.floor",
+        "zGroup": 0
+      }
+    ],
+    "sprites": [
+      {
+        "assetId": "runtime2d.grey_hive.floor_tiles.v1",
+        "id": "floor",
+        "layer": "visual.floor",
+        "position": [
+          1.0,
+          0.0,
+          1.0
+        ]
+      }
+    ]
+  },
+  "sceneId": "gh_test",
+  "schemaVersion": 1,
+  "spawns": [
+    {
+      "entityType": null,
+      "id": "entry",
+      "kind": "player",
+      "navNode": "nav_a",
+      "position": [
+        1.0,
+        0.0,
+        1.0
+      ]
+    }
+  ],
+  "standingDecks": [
+    {
+      "heightM": 2.0,
+      "id": "upper_deck",
+      "polygon": [
+        [
+          3.0,
+          3.0
+        ],
+        [
+          7.0,
+          3.0
+        ],
+        [
+          7.0,
+          5.0
+        ],
+        [
+          3.0,
+          5.0
+        ]
+      ]
+    }
+  ],
+  "transitions": [
+    {
+      "heightRangeM": [
+        1.9,
+        2.1
+      ],
+      "id": "upper_exit",
+      "polygon": [
+        [
+          3.5,
+          3.5
+        ],
+        [
+          4.5,
+          3.5
+        ],
+        [
+          4.5,
+          4.5
+        ],
+        [
+          3.5,
+          4.5
+        ]
+      ],
+      "spawnId": "gh_spawn",
+      "toSceneId": "gh_test_power"
+    }
+  ],
+  "triggers": [
+    {
+      "event": "hive_power",
+      "heightRangeM": [
+        0.0,
+        0.1
+      ],
+      "id": "power",
+      "polygon": [
+        [
+          2.0,
+          2.0
+        ],
+        [
+          3.0,
+          2.0
+        ],
+        [
+          3.0,
+          3.0
+        ],
+        [
+          2.0,
+          3.0
+        ]
+      ]
+    }
+  ],
+  "vfxMarkers": [],
+  "worldId": "grey_hive"
+}

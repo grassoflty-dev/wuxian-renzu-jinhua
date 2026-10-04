@@ -1,0 +1,1315 @@
+{
+  "linkage": "GitHub authenticated commit metadata; tree hashes are independently reconstructible; commit linkage is provider-attested, not an offline commit-object proof",
+  "manifestSha256": "c644b5953e9265d45796dfb8a6dad1c0fd8abfbffb3eb4ace84987d8238cee2d",
+  "repository": "dHR-P/wuxian-renzu-jinhua",
+  "schema": "approved-source-tree-proof/1",
+  "sourceCommit": "030eb9bf8194ad5534dc77315567ff339cd2c625",
+  "sourcePrefix": "chatgptimage/wuxian-renzu-jinhua_2d_asset_pack_10_batches_2026-09-25/",
+  "sourceTree": "d4cdb185b292466c10675c0f4bedcc7dc6e5beb0",
+  "sources": [
+    {
+      "blob": "ce0afeccb56a9e2952091ea052b36634b9cde9dd",
+      "path": "batch01/01_runtime2d.actor.cenyao.base.v1.png",
+      "sha256": "1915e77897a4facea0bfee4c529daf5cd4961998fe4887efc4a340f253424801",
+      "size": 1198679
+    },
+    {
+      "blob": "89bf6ad762e68ced33614f2a79e99da6a786eb3a",
+      "path": "batch01/02_runtime2d.actor.cenyao.parts.v1.png",
+      "sha256": "5ec63d9e17743ab12ffc57144258fb1c46430643e3c00ec4338c89771bf28644",
+      "size": 1702686
+    },
+    {
+      "blob": "987fda89bd05b45d1d58e99a29f4857bb38a7347",
+      "path": "batch01/03_runtime2d.grey_hive.floor_tiles.v1.png",
+      "sha256": "ac36eb55fe0e5404b8b11ee6904d886703de6b5873d5b34be8c8f1008e5fc1e6",
+      "size": 1344837
+    },
+    {
+      "blob": "5142a1ec5073470a8c469be81afb72452a666379",
+      "path": "batch01/04_runtime2d.grey_hive.wall_tiles.v1.png",
+      "sha256": "a00aa90244b37b7b322d53b4323f77af380ff3bca869a40beed256ec76c2f94b",
+      "size": 1710082
+    },
+    {
+      "blob": "02fbf481540fc68964715f85f96d0652df784f7d",
+      "path": "batch01/05_runtime2d.grey_hive.pipes_cables.v1.png",
+      "sha256": "856ac9f64c56c58090d900fb406f0796cdccf7ac843cf2dfa7e1f7df5176b2ca",
+      "size": 1083804
+    },
+    {
+      "blob": "c59a2a6af5601eb8451eaf1ecacf8543e18fcb5c",
+      "path": "batch01/06_runtime2d.prop.power_console.off_on.v1.png",
+      "sha256": "4cc2443664940a54e776e4cfd8d682b8477a1848dc420b2df4990d8d398f9961",
+      "size": 2348980
+    },
+    {
+      "blob": "9730859e85c59a553e2923c5baaa184d271463b2",
+      "path": "batch01/07_runtime2d.prop.gate_a.closed_open.v1.png",
+      "sha256": "7d4b352063775818773e3bbda6ae1296645e09a84f2a2940ae17075be8c00fed",
+      "size": 1429841
+    },
+    {
+      "blob": "4ceec67c2601e8df1e1ab36a0da2327576f76622",
+      "path": "batch01/08_runtime2d.vfx.dash.v1.png",
+      "sha256": "69ef29a1798b2ecc29ed38eeb1fafddbf25b151d75cd89b538f36b8412d0fe18",
+      "size": 1953481
+    },
+    {
+      "blob": "44ba695b13443dc3a596654ddf2eea4d108d848f",
+      "path": "batch01/09_runtime2d.vfx.pulse.v1.png",
+      "sha256": "f178a0477718b1cfa8f11454d9d0e7fa9272d773d21ec79be2cc313c5b7c06c2",
+      "size": 2382218
+    },
+    {
+      "blob": "7a2751483c9410706c2b13b5e594630a63e8f042",
+      "path": "batch01/10_runtime2d.vfx.guard_pierce.v1.png",
+      "sha256": "6b850c7eedb5ecea14c196c8b0306fc6eb8fd9cdcb698a8efb51ee1c687b5d96",
+      "size": 2850021
+    },
+    {
+      "blob": "e1f7c5ab006fdaef997b1f316963097db8e7de02",
+      "path": "batch02/03_runtime2d.enemy.infected_maintenance_worker.v1.png",
+      "sha256": "6b7055df24acfa58edfdf0342c67efb60f9fac892c80110d449700bf7021477d",
+      "size": 1910307
+    },
+    {
+      "blob": "5dba94e4f550046873e4e3c4449f2f3aa8930537",
+      "path": "batch02/04_runtime2d.enemy.infected_security.v1.png",
+      "sha256": "7bd9d4cf19f36d189cdf81530c3dee48450179696a7dbceb24eaf375714de4e4",
+      "size": 1866882
+    },
+    {
+      "blob": "468735aaef416d6ad4b533b2a2739c7b1a868a9b",
+      "path": "batch02/05_runtime2d.enemy.sentinel.base.v1.png",
+      "sha256": "f7ced75a0fcf35afacf796f23630a40c309682c86ef67af79de5414a8a16fbe2",
+      "size": 2199446
+    },
+    {
+      "blob": "82c30093472012910953a0aba46a5d17e9474e76",
+      "path": "batch02/06_runtime2d.enemy.sentinel.parts.v1.png",
+      "sha256": "18014ec4dfd953d4054bd11df74b416bd2f9f6252b7732396edba406f4044b05",
+      "size": 1711278
+    },
+    {
+      "blob": "06ed0f610bc79b66037a4bae144edc989b426c07",
+      "path": "batch02/07_runtime2d.prop.gate_b.v1.png",
+      "sha256": "433a56c7960d19e09fb77ea55aa1787197e4a2eecc12face0ab29d5eaac39450",
+      "size": 2442085
+    },
+    {
+      "blob": "ff77448aefc2bc67346574c4399e0290b92d067b",
+      "path": "batch02/08_runtime2d.prop.beacon.folded.v1.png",
+      "sha256": "335b4658d533d501b8758070742ca3a7fff8ca30acbfa69703ec1519265c79d1",
+      "size": 1389978
+    },
+    {
+      "blob": "1066a44dc76657615fdbc687605f9bf2464a994d",
+      "path": "batch02/09_runtime2d.prop.beacon.deployed.v1.png",
+      "sha256": "1bb59407d43b218a56f04ba5b0451844e0328549e8f448c48975aae165b36e6b",
+      "size": 739756
+    },
+    {
+      "blob": "c2525762eb15286c5b72c8e4c14ef3e37a2e37dd",
+      "path": "batch02/10_runtime2d.prop.lockdown_terminal.v1.png",
+      "sha256": "ee6bed917621ddbb85edbd0a915bae07ede776917590b18c759ce3511299460d",
+      "size": 1909262
+    },
+    {
+      "blob": "0d654463930fef8d7577cb8336a6a94efdb7b430",
+      "path": "batch03/01_runtime2d.prop.bio_pod.v1.png",
+      "sha256": "aed2f8398fb30710b84b2b6e449ec46ddfe1f23c65b05cbc32de8fa3f7ff05a5",
+      "size": 1405473
+    },
+    {
+      "blob": "191cd5ed87cc77c3fe1aefb20a504760801aa415",
+      "path": "batch03/02_runtime2d.prop.supply_crates.v1.png",
+      "sha256": "e8250132f14a9c621fd819c9b188a7a1d100e20b4da010966b45d987d51eac68",
+      "size": 2104112
+    },
+    {
+      "blob": "97d7f3795d16fb3a398f0bcb476fb118706c7202",
+      "path": "batch03/03_runtime2d.prop.medical_station.v1.png",
+      "sha256": "57e58fe63b903d2a39c5ddb689c663c2fea47fc6488a21c452abe805a628e55e",
+      "size": 1474137
+    },
+    {
+      "blob": "4e2fbf3569102a3e0e3ff72c594a6215c74bc87b",
+      "path": "batch03/04_runtime2d.grey_hive.clutter.v1.png",
+      "sha256": "d9b7f424d0ac278c9029d7ddc2ad9559f08a3c56562770eefc7ed301d9094a6c",
+      "size": 1894441
+    },
+    {
+      "blob": "052a2c417d406714f718666dc7a59ee6c12f9748",
+      "path": "batch03/09_portrait.cenyao.v1.png",
+      "sha256": "13ebb98a6fb6414a7f9f928a1ec204c42108aa07cbdff4a5f60a39b8f49e69dc",
+      "size": 1809094
+    },
+    {
+      "blob": "21fb57694f6cc1f0fa3b23c9a29ac38e401473ef",
+      "path": "batch06/01_runtime2d.world.mistharbor.fog_vfx.v1.png",
+      "sha256": "7be96eddcb4dd820eccb142ad9343bedd76f4597643e0c305481648200f8338c",
+      "size": 1179676
+    },
+    {
+      "blob": "d15f6679cf0ae2e87b63b23de908163eb55118b4",
+      "path": "batch06/02_runtime2d.world.mistharbor.water_edge.v1.png",
+      "sha256": "66749eb4ce1ef51d02a034526bb1c6ad29f190fa21fa8e591405b4d5e1363ff7",
+      "size": 2234074
+    },
+    {
+      "blob": "4c71988c56d2e071ba17fabdb54060d08c39d783",
+      "path": "batch06/03_runtime2d.enemy.mistharbor.drowned.v1.png",
+      "sha256": "6db84004a7f9a95c2652ad0e84aa17da1c201ab0b15b995bc11cdeec67da1bb9",
+      "size": 1322325
+    },
+    {
+      "blob": "4a48a1b210c118665ebfb29f3d15068f6fc7ecef",
+      "path": "batch06/04_runtime2d.enemy.mistharbor.signal_wraith.v1.png",
+      "sha256": "84029a7adb1b7d6af297d6165994a076c5190da0990887a06073964025c22ec3",
+      "size": 1507505
+    },
+    {
+      "blob": "5d4fb4f8605a0e931714b4554564898111cf18cf",
+      "path": "batch06/05_runtime2d.world.clockworks.factory_tiles.v1.png",
+      "sha256": "513042e366cf87203a64f3263c4ed92bb1c6bf53fab2f1250afa00c0b6cf13bf",
+      "size": 1870403
+    },
+    {
+      "blob": "ba384029e36e0db2cf8cd5286dbc6664274f640d",
+      "path": "batch06/06_runtime2d.world.clockworks.pressure_pipes.v1.png",
+      "sha256": "7304224124ccf1d7526402fd67367ea99f64c426b80da40c6f3fa2652b519e27",
+      "size": 1156335
+    },
+    {
+      "blob": "be885a0460faf26bbdbb4199f5bc1160cfc64f9e",
+      "path": "batch06/07_runtime2d.world.clockworks.furnace.v1.png",
+      "sha256": "2432858d959734ec8111c9eb0e7ad9bd56ff99e66c07df1ff1fc8b4a8b2016bd",
+      "size": 1971128
+    },
+    {
+      "blob": "5ceea71ac5ef03559443e0c96da2eb9f250691af",
+      "path": "batch06/08_runtime2d.enemy.clockworks.forged_guard.v1.png",
+      "sha256": "27be399e6c1a8bc3d3a55ff7d83e1f60f0812b099c3322d0b33adb44087165dd",
+      "size": 1400209
+    },
+    {
+      "blob": "9628633677bfc311ed8605d7b9c09344b6b6f41f",
+      "path": "batch06/09_runtime2d.world.returnstation.terminals.v1.png",
+      "sha256": "83008caf30bcd0cd40e1d9720be7176dbbdf1e0072983551e3e1784b25f352fb",
+      "size": 821472
+    },
+    {
+      "blob": "fecfca74cb4cd3e3471186b2837f11e89a389d01",
+      "path": "batch07/01_runtime2d.world.mistharbor.fog_bank.v1.png",
+      "sha256": "775aa450a148488eeb6e67e14bb0dd7fd2db51429d086f6f9109ccb96c4d06c0",
+      "size": 725802
+    },
+    {
+      "blob": "891daf32a9b9135e59abf15f4aabb19eabf6264b",
+      "path": "batch07/02_runtime2d.world.mistharbor.water_edge_stone.v1.png",
+      "sha256": "dc09452bf3f55c57cca1a93bb09f169ef441af90321dff47d91c4be7e62d3a83",
+      "size": 2011988
+    },
+    {
+      "blob": "5b11d83423005419dce12dff74ef9bc128a0040d",
+      "path": "batch07/03_runtime2d.enemy.mistharbor.drowned.v2.png",
+      "sha256": "1b57a57c4fc7dc1d853b82cc1c6a3525e97af5853006ad17a8e25d0de6ca993e",
+      "size": 1157176
+    },
+    {
+      "blob": "69a3f24425f79803335c3c208dca317323dbcb7f",
+      "path": "batch07/04_runtime2d.enemy.mistharbor.signal_wraith.v2.png",
+      "sha256": "fcaad0d40dc3a9dca4c24d147c656d4c751b6a729d265ae3f60d421fe69dd055",
+      "size": 1470333
+    },
+    {
+      "blob": "97eb0a87045fed877cbde47ce9d6adf51fb738b2",
+      "path": "batch07/05_runtime2d.world.clockworks.floor_steel.v1.png",
+      "sha256": "1a01e851654d9f5c98b5486cbe489f357ed99c55ffc601c492af63044d90b190",
+      "size": 1640237
+    },
+    {
+      "blob": "37b6140775a2e2d05c87f5dd5d898a2a451cbb33",
+      "path": "batch07/06_runtime2d.world.clockworks.pressure_pipe_valve.v1.png",
+      "sha256": "300ab8665768ecfafd33107cf41f2d7997864f9f6205f32ecd83a61e385b5995",
+      "size": 1413128
+    },
+    {
+      "blob": "51fa5ca0a9618dbb703881d48bb711c6197f1fcf",
+      "path": "batch07/07_runtime2d.world.clockworks.furnace.v2.png",
+      "sha256": "30d37d59557e22b1ae8c35e93ade967ea357b58c5ad4e9f55f7b0f31fd0b7d12",
+      "size": 1618065
+    },
+    {
+      "blob": "276b180c6418175c24c14f0b5fcdd384463dae1d",
+      "path": "batch07/08_runtime2d.enemy.clockworks.forged_guard.v2.png",
+      "sha256": "5c542927516e2e393eccada493e5ca4e20d4bc5d75db8431d57f306910c5d0c0",
+      "size": 1330037
+    },
+    {
+      "blob": "2eac06402730e83f3ccf529032b849f4a271f695",
+      "path": "batch07/09_runtime2d.world.returnstation.terminal.v1.png",
+      "sha256": "f6a5fc8855d2080ce081a51d1ed2d136c9075a104c1eadca1467eedf2bdf406d",
+      "size": 1073754
+    },
+    {
+      "blob": "c746eeda71bd121b81cb49e117d2069710846bc2",
+      "path": "batch07/10_runtime2d.ui.capability.local_map.v1.png",
+      "sha256": "8b4b624a2532698d85be41cc8b01628b9a9bd0cdbe0932583ccb4df8a730d80d",
+      "size": 1927664
+    },
+    {
+      "blob": "0194309d0a2a3736278f8f6fea2602e79790e257",
+      "path": "batch08/08_runtime2d.world.grey_hive.sentinel_arena.v1.attempt.png",
+      "sha256": "532f0b697bc9da79c1c1a166ada0f009f513ba02232c7d44698dc48d3feabf67",
+      "size": 2541458
+    }
+  ],
+  "trees": [
+    {
+      "entries": [
+        {
+          "mode": "100644",
+          "path": ".gitattributes",
+          "sha": "caa3736703e0d1d81df58642b57bec9b34910f4f",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": ".gitignore",
+          "sha": "7898afa5e3b1df982b2f4dba48015f47178b3f02",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "CONTRIBUTING.md",
+          "sha": "4b2bc61dce751db5532f27665f81eae2b0912afd",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "LICENSE",
+          "sha": "f288702d2fa16d3cdf0035b15a9fcbc552cd88e7",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "README.md",
+          "sha": "c3a09722325e0b05cb9ec73eace6b5f5acf215c0",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "SECURITY.md",
+          "sha": "e908923ad835cb5b43e49553cc69656b89c9a9c3",
+          "type": "blob"
+        },
+        {
+          "mode": "040000",
+          "path": "artifacts",
+          "sha": "9deab555e87521347fab88334b1d19abe4e1a841",
+          "type": "tree"
+        },
+        {
+          "mode": "040000",
+          "path": "chatgptimage",
+          "sha": "0bebdd2af1be930456182633db6d6d2a5996e5aa",
+          "type": "tree"
+        },
+        {
+          "mode": "040000",
+          "path": "design",
+          "sha": "a998027c603a832ac978a10c980f4682e81fdc98",
+          "type": "tree"
+        },
+        {
+          "mode": "040000",
+          "path": "docs",
+          "sha": "2dd24aba0dfe0bf237a267a758514c40ce0f904e",
+          "type": "tree"
+        },
+        {
+          "mode": "040000",
+          "path": "governance",
+          "sha": "1745d04aa22d0f99d1cc44728c9bfb3010936a7d",
+          "type": "tree"
+        },
+        {
+          "mode": "040000",
+          "path": "rules",
+          "sha": "11740fd912aa39fc26853a7a2e388ea4cca3a200",
+          "type": "tree"
+        },
+        {
+          "mode": "040000",
+          "path": "server-rs",
+          "sha": "84ed38e4fb8bd9500d85605585c499ef3394f4a5",
+          "type": "tree"
+        },
+        {
+          "mode": "040000",
+          "path": "tools",
+          "sha": "ed5cda3d6938b8964206c66f7674fdc9816383e5",
+          "type": "tree"
+        }
+      ],
+      "path": "",
+      "sha": "d4cdb185b292466c10675c0f4bedcc7dc6e5beb0"
+    },
+    {
+      "entries": [
+        {
+          "mode": "100644",
+          "path": "concept.character.baizhi.v1.png",
+          "sha": "124f56deea780766c2633493e7f8068599625570",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "concept.character.cenyao.components.v1.png",
+          "sha": "3401bc71ba92b2b613ab01e05a7abfa49311f9ca",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "concept.character.cenyao.v1.png",
+          "sha": "def75133eddc1cea36d0415b7eb88a21a9af66e2",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "concept.character.cenyao.v2.png",
+          "sha": "c512d5cc47e5f524abeaea1b75d53e4eeccf9d47",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "concept.character.cenyao.v3.png",
+          "sha": "c3b847064d5bdf27aab1140061c905839b3d05ac",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "concept.enemy.sentinel.motion.v1.png",
+          "sha": "2d4435aef2c94dd9453281b400b645c48cd7c1ae",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "concept.enemy.sentinel.v1.png",
+          "sha": "2b93f5d8ecd6256185afc8626cf3c198407e55c5",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "concept.world.clockworks.v1.png",
+          "sha": "86d11fb9ee1b5ffcdeb9bd1fa959a451c52ad7e0",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "concept.world.grey_hive.beacon.v1.png",
+          "sha": "868fd89531d44a687078f7060f6f9a469ce7bd4e",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "concept.world.grey_hive.facility-props.v1.png",
+          "sha": "b0878c66148639acf635a6c81e55d650fd34275a",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "concept.world.grey_hive.gates.v1.png",
+          "sha": "88e5723eacf8d0c9a7e7266babcea437ba95fc25",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "concept.world.grey_hive.material-kit.v1.png",
+          "sha": "114f6da1b0d9925c5f82c4dff18c14ab6331479a",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "concept.world.grey_hive.shaft.v1.png",
+          "sha": "a0945525bdfbc9f6b48f69893250c6513a90622a",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "concept.world.mist_harbor.v1.png",
+          "sha": "73d6a2f3e92097d319de4d4903b2adc079cd538e",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "game_design_and_assets_handoff_2026-09-25.zip",
+          "sha": "df9922b24e20f142da4020826eaac527cc6c0ded",
+          "type": "blob"
+        },
+        {
+          "mode": "040000",
+          "path": "wuxian-renzu-jinhua_2d_asset_pack_10_batches_2026-09-25",
+          "sha": "e1439ade4a081d503ea81643f86faa215e789050",
+          "type": "tree"
+        }
+      ],
+      "path": "chatgptimage",
+      "sha": "0bebdd2af1be930456182633db6d6d2a5996e5aa"
+    },
+    {
+      "entries": [
+        {
+          "mode": "100644",
+          "path": "ASSET_USAGE_MASTER.md",
+          "sha": "22c30648a1974b36e80b5c3c9b81bfd63e2e369e",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "README.md",
+          "sha": "1cb8e669e9eff23db3df6f0b36b3ce2bd221110b",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "REVIEW_STATUS.md",
+          "sha": "e952b797ff394efca7a95e2b1a55ba9cacd2f2e2",
+          "type": "blob"
+        },
+        {
+          "mode": "040000",
+          "path": "batch01",
+          "sha": "4105fce7ee64f543fdc75c7a42b943115444e9d9",
+          "type": "tree"
+        },
+        {
+          "mode": "040000",
+          "path": "batch02",
+          "sha": "e4ed60f99d986797c4be73079436bc5bae2607f8",
+          "type": "tree"
+        },
+        {
+          "mode": "040000",
+          "path": "batch03",
+          "sha": "440cee943851336ed4fce16ce364472f6313be86",
+          "type": "tree"
+        },
+        {
+          "mode": "040000",
+          "path": "batch04",
+          "sha": "91547d4dc3e66ca342941018ea2691e08a4e3d84",
+          "type": "tree"
+        },
+        {
+          "mode": "040000",
+          "path": "batch05",
+          "sha": "910fb29b6e140de2311e3d1a62aac3b119a4f66e",
+          "type": "tree"
+        },
+        {
+          "mode": "040000",
+          "path": "batch06",
+          "sha": "fa37daae90bab79b3d895349b0fd8c2a4af39bb5",
+          "type": "tree"
+        },
+        {
+          "mode": "040000",
+          "path": "batch07",
+          "sha": "cc19669e2a4a670dd5de3e0e04d98b877df99218",
+          "type": "tree"
+        },
+        {
+          "mode": "040000",
+          "path": "batch08",
+          "sha": "4ce8df982cd390abf2a2281a861c2079bd8c39ab",
+          "type": "tree"
+        },
+        {
+          "mode": "040000",
+          "path": "batch09",
+          "sha": "742976bb513ef3c6f1bba930eca80bc766a22d3c",
+          "type": "tree"
+        },
+        {
+          "mode": "040000",
+          "path": "batch10",
+          "sha": "329267f2977ddb136f06937da6e950f6cebe4b4f",
+          "type": "tree"
+        },
+        {
+          "mode": "100644",
+          "path": "manifest.csv",
+          "sha": "daf7d15c0bf2f1caa227fa3ef31c0d2262dc0610",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "manifest.json",
+          "sha": "3e686b7597304b48029eb29abb78f0f1e4457a72",
+          "type": "blob"
+        }
+      ],
+      "path": "chatgptimage/wuxian-renzu-jinhua_2d_asset_pack_10_batches_2026-09-25",
+      "sha": "e1439ade4a081d503ea81643f86faa215e789050"
+    },
+    {
+      "entries": [
+        {
+          "mode": "100644",
+          "path": "01_runtime2d.actor.cenyao.base.v1.md",
+          "sha": "2efb946bd59c76372e121fdc0febadc60ce3de64",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "01_runtime2d.actor.cenyao.base.v1.png",
+          "sha": "ce0afeccb56a9e2952091ea052b36634b9cde9dd",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "02_runtime2d.actor.cenyao.parts.v1.md",
+          "sha": "6f82326bfd95d8bb77118448908217a92a0764a8",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "02_runtime2d.actor.cenyao.parts.v1.png",
+          "sha": "89bf6ad762e68ced33614f2a79e99da6a786eb3a",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "03_runtime2d.grey_hive.floor_tiles.v1.md",
+          "sha": "a13057ed0e4c78e3d4e8f5e67a28dbe02fa245eb",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "03_runtime2d.grey_hive.floor_tiles.v1.png",
+          "sha": "987fda89bd05b45d1d58e99a29f4857bb38a7347",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "04_runtime2d.grey_hive.wall_tiles.v1.md",
+          "sha": "2a70a6d5df8b8245a97647f9013933af6530e5f4",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "04_runtime2d.grey_hive.wall_tiles.v1.png",
+          "sha": "5142a1ec5073470a8c469be81afb72452a666379",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "05_runtime2d.grey_hive.pipes_cables.v1.md",
+          "sha": "1997a7c34d4ec0e9735f72c2d9224ea9038f9ec9",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "05_runtime2d.grey_hive.pipes_cables.v1.png",
+          "sha": "02fbf481540fc68964715f85f96d0652df784f7d",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "06_runtime2d.prop.power_console.off_on.v1.md",
+          "sha": "c4f9f5b9cbee4ebc7a6bd915da994da3434c6e0e",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "06_runtime2d.prop.power_console.off_on.v1.png",
+          "sha": "c59a2a6af5601eb8451eaf1ecacf8543e18fcb5c",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "07_runtime2d.prop.gate_a.closed_open.v1.md",
+          "sha": "85613428af76e0dca9b059abdc7a46aab19ecf6d",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "07_runtime2d.prop.gate_a.closed_open.v1.png",
+          "sha": "9730859e85c59a553e2923c5baaa184d271463b2",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "08_runtime2d.vfx.dash.v1.md",
+          "sha": "cd22ed2d2635ecccab48d64717b487ecc686fa63",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "08_runtime2d.vfx.dash.v1.png",
+          "sha": "4ceec67c2601e8df1e1ab36a0da2327576f76622",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "09_runtime2d.vfx.pulse.v1.md",
+          "sha": "76cb9f16a92441430c0284b7da95d35a1b8786a1",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "09_runtime2d.vfx.pulse.v1.png",
+          "sha": "44ba695b13443dc3a596654ddf2eea4d108d848f",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "10_runtime2d.vfx.guard_pierce.v1.md",
+          "sha": "b2daf96eace3f19cf7b47bfcfe4d6d66d5d1a75d",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "10_runtime2d.vfx.guard_pierce.v1.png",
+          "sha": "7a2751483c9410706c2b13b5e594630a63e8f042",
+          "type": "blob"
+        }
+      ],
+      "path": "chatgptimage/wuxian-renzu-jinhua_2d_asset_pack_10_batches_2026-09-25/batch01",
+      "sha": "4105fce7ee64f543fdc75c7a42b943115444e9d9"
+    },
+    {
+      "entries": [
+        {
+          "mode": "100644",
+          "path": "01_runtime2d.actor.baizhi.base.v1.md",
+          "sha": "856c62419592949c0b76b7b1454d8b3308045986",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "01_runtime2d.actor.baizhi.base.v1.png",
+          "sha": "9c9e5725f02959bf0068c86af6beaa6b545d5626",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "02_runtime2d.actor.baizhi.parts.v1.md",
+          "sha": "b8ab5245e2b3ba1ef4c3784f921d61e1ed0b30da",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "02_runtime2d.actor.baizhi.parts.v1.png",
+          "sha": "f2045697453e48a6fe4810e1201205b0951fa517",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "03_runtime2d.enemy.infected_maintenance_worker.v1.md",
+          "sha": "9d4a03a255eecf75ede34eaa13cd7a79b296913c",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "03_runtime2d.enemy.infected_maintenance_worker.v1.png",
+          "sha": "e1f7c5ab006fdaef997b1f316963097db8e7de02",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "04_runtime2d.enemy.infected_security.v1.md",
+          "sha": "23f89958859ea99df9bd41e25c578f68be50cbd0",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "04_runtime2d.enemy.infected_security.v1.png",
+          "sha": "5dba94e4f550046873e4e3c4449f2f3aa8930537",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "05_runtime2d.enemy.sentinel.base.v1.md",
+          "sha": "97307e5c0dc94e9fa7f32011474df6b69f6a90ea",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "05_runtime2d.enemy.sentinel.base.v1.png",
+          "sha": "468735aaef416d6ad4b533b2a2739c7b1a868a9b",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "06_runtime2d.enemy.sentinel.parts.v1.md",
+          "sha": "48554204d19a0729b9ea3eaf501855973f4ca45b",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "06_runtime2d.enemy.sentinel.parts.v1.png",
+          "sha": "82c30093472012910953a0aba46a5d17e9474e76",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "07_runtime2d.prop.gate_b.v1.md",
+          "sha": "02889a23e7efad01b4cce06059aa82948e27d25d",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "07_runtime2d.prop.gate_b.v1.png",
+          "sha": "06ed0f610bc79b66037a4bae144edc989b426c07",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "08_runtime2d.prop.beacon.folded.v1.md",
+          "sha": "11f335c8fd2318c74261d3951d8589215ca0dd0b",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "08_runtime2d.prop.beacon.folded.v1.png",
+          "sha": "ff77448aefc2bc67346574c4399e0290b92d067b",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "09_runtime2d.prop.beacon.deployed.v1.md",
+          "sha": "ae8d2ed66ebe6b9ef61827e2deb4ff2400661a02",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "09_runtime2d.prop.beacon.deployed.v1.png",
+          "sha": "1066a44dc76657615fdbc687605f9bf2464a994d",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "10_runtime2d.prop.lockdown_terminal.v1.md",
+          "sha": "51e81b1fe49f8b9517ae92be0b184784c8d697ab",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "10_runtime2d.prop.lockdown_terminal.v1.png",
+          "sha": "c2525762eb15286c5b72c8e4c14ef3e37a2e37dd",
+          "type": "blob"
+        }
+      ],
+      "path": "chatgptimage/wuxian-renzu-jinhua_2d_asset_pack_10_batches_2026-09-25/batch02",
+      "sha": "e4ed60f99d986797c4be73079436bc5bae2607f8"
+    },
+    {
+      "entries": [
+        {
+          "mode": "100644",
+          "path": "01_runtime2d.prop.bio_pod.v1.md",
+          "sha": "05aaf95a0d2dcf6631dad4dada208ba31d892cb1",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "01_runtime2d.prop.bio_pod.v1.png",
+          "sha": "0d654463930fef8d7577cb8336a6a94efdb7b430",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "02_runtime2d.prop.supply_crates.v1.md",
+          "sha": "7584144fc633934cfdb42a5c5feb4f85503caa8a",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "02_runtime2d.prop.supply_crates.v1.png",
+          "sha": "191cd5ed87cc77c3fe1aefb20a504760801aa415",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "03_runtime2d.prop.medical_station.v1.md",
+          "sha": "7d421a399d13693d8ba3003537a3fd0a799b1f82",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "03_runtime2d.prop.medical_station.v1.png",
+          "sha": "97d7f3795d16fb3a398f0bcb476fb118706c7202",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "04_runtime2d.grey_hive.clutter.v1.md",
+          "sha": "8d1802584bf6238fe9cc9585bc4aa015d46df9f4",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "04_runtime2d.grey_hive.clutter.v1.png",
+          "sha": "4e2fbf3569102a3e0e3ff72c594a6215c74bc87b",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "05_runtime2d.world.grey_hive.central_shaft.v1.md",
+          "sha": "a2e27ace4f34af228496c4b4eb9f6f8c901c6f22",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "05_runtime2d.world.grey_hive.central_shaft.v1.png",
+          "sha": "00e4de24a1ec0eeb3ed22c898386311c31940d3a",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "06_runtime2d.world.grey_hive.lockdown_zone.v1.md",
+          "sha": "dbff2febe96504e9650d154f50d74262a1ffe746",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "06_runtime2d.world.grey_hive.lockdown_zone.v1.png",
+          "sha": "1c3e19bc3cfa9621ceb210817b1c2de37607efc9",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "07_runtime2d.world.grey_hive.bio_isolation.v1.md",
+          "sha": "2798c4069eebb4c6a74767b817dd4ff645afbde4",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "07_runtime2d.world.grey_hive.bio_isolation.v1.png",
+          "sha": "2f1aa420636d551d474b70364dc78a92ab74360b",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "08_runtime2d.world.grey_hive.sentinel_arena.v1.md",
+          "sha": "48bf55433b06de04a7ae943ffe2420168e474082",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "08_runtime2d.world.grey_hive.sentinel_arena.v1.png",
+          "sha": "b7c7e84104ee7a94d2745c19e504234bb2149f90",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "09_portrait.cenyao.v1.md",
+          "sha": "82ed2e1df4cee1398fbb71c5fe6f159e4d1d181f",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "09_portrait.cenyao.v1.png",
+          "sha": "052a2c417d406714f718666dc7a59ee6c12f9748",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "10_portrait.baizhi.v1.md",
+          "sha": "00635a95e737a149d080e4bde96e8566ae1232d2",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "10_portrait.baizhi.v1.png",
+          "sha": "5d360a0cb9d9b837f5b514412720e381b2c218d1",
+          "type": "blob"
+        }
+      ],
+      "path": "chatgptimage/wuxian-renzu-jinhua_2d_asset_pack_10_batches_2026-09-25/batch03",
+      "sha": "440cee943851336ed4fce16ce364472f6313be86"
+    },
+    {
+      "entries": [
+        {
+          "mode": "100644",
+          "path": "01_runtime2d.world.mistharbor.fog_vfx.v1.md",
+          "sha": "6869c7731bd7b56cfca68d41119a433aa40e099b",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "01_runtime2d.world.mistharbor.fog_vfx.v1.png",
+          "sha": "21fb57694f6cc1f0fa3b23c9a29ac38e401473ef",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "02_runtime2d.world.mistharbor.water_edge.v1.md",
+          "sha": "eeecdc4d2168f6545daa1db5ac6c6d744bddef5f",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "02_runtime2d.world.mistharbor.water_edge.v1.png",
+          "sha": "d15f6679cf0ae2e87b63b23de908163eb55118b4",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "03_runtime2d.enemy.mistharbor.drowned.v1.md",
+          "sha": "d1ae5eab9491a9bed6b5fa605bd9e0a24d8c773c",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "03_runtime2d.enemy.mistharbor.drowned.v1.png",
+          "sha": "4c71988c56d2e071ba17fabdb54060d08c39d783",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "04_runtime2d.enemy.mistharbor.signal_wraith.v1.md",
+          "sha": "d86e3921ae0d2110408ed67aec6db9b2755a89b0",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "04_runtime2d.enemy.mistharbor.signal_wraith.v1.png",
+          "sha": "4a48a1b210c118665ebfb29f3d15068f6fc7ecef",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "05_runtime2d.world.clockworks.factory_tiles.v1.md",
+          "sha": "0cb45a803e6d39193261bddd2c01aad0e54419a9",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "05_runtime2d.world.clockworks.factory_tiles.v1.png",
+          "sha": "5d4fb4f8605a0e931714b4554564898111cf18cf",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "06_runtime2d.world.clockworks.pressure_pipes.v1.md",
+          "sha": "6b77ac9a9f772840ab26b3d91f0fee34ff76dc33",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "06_runtime2d.world.clockworks.pressure_pipes.v1.png",
+          "sha": "ba384029e36e0db2cf8cd5286dbc6664274f640d",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "07_runtime2d.world.clockworks.furnace.v1.md",
+          "sha": "2c57c88030b6ef3f96099a7d2817586bf19e27d3",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "07_runtime2d.world.clockworks.furnace.v1.png",
+          "sha": "be885a0460faf26bbdbb4199f5bc1160cfc64f9e",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "08_runtime2d.enemy.clockworks.forged_guard.v1.md",
+          "sha": "5a89f8e5e660bf92c429420c79e1ecaf6b4eccd1",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "08_runtime2d.enemy.clockworks.forged_guard.v1.png",
+          "sha": "5ceea71ac5ef03559443e0c96da2eb9f250691af",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "09_runtime2d.world.returnstation.terminals.v1.md",
+          "sha": "2f1462210aca14edd6ed1082326114356fbf8f77",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "09_runtime2d.world.returnstation.terminals.v1.png",
+          "sha": "9628633677bfc311ed8605d7b9c09344b6b6f41f",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "10_runtime2d.ui.capability_icons.v1.md",
+          "sha": "f549951234271c0042098b281bcb197b53bd1166",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "10_runtime2d.ui.capability_icons.v1.png",
+          "sha": "aa8a84fbbf5063895d6df20e4f69da4b08fba2d7",
+          "type": "blob"
+        }
+      ],
+      "path": "chatgptimage/wuxian-renzu-jinhua_2d_asset_pack_10_batches_2026-09-25/batch06",
+      "sha": "fa37daae90bab79b3d895349b0fd8c2a4af39bb5"
+    },
+    {
+      "entries": [
+        {
+          "mode": "100644",
+          "path": "01_runtime2d.world.mistharbor.fog_bank.v1.md",
+          "sha": "c6e53f11d5dec981474a01f9b85863feaf3f30f7",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "01_runtime2d.world.mistharbor.fog_bank.v1.png",
+          "sha": "fecfca74cb4cd3e3471186b2837f11e89a389d01",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "02_runtime2d.world.mistharbor.water_edge_stone.v1.md",
+          "sha": "b415719dcb3c17a62c312b33ee81d882be0d5988",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "02_runtime2d.world.mistharbor.water_edge_stone.v1.png",
+          "sha": "891daf32a9b9135e59abf15f4aabb19eabf6264b",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "03_runtime2d.enemy.mistharbor.drowned.v2.md",
+          "sha": "76bd4cfbeb797dae5f832b03cd7dbf5ee637c1db",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "03_runtime2d.enemy.mistharbor.drowned.v2.png",
+          "sha": "5b11d83423005419dce12dff74ef9bc128a0040d",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "04_runtime2d.enemy.mistharbor.signal_wraith.v2.md",
+          "sha": "9ed17f1efbe6f10ea94cab918a32df99b22d913c",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "04_runtime2d.enemy.mistharbor.signal_wraith.v2.png",
+          "sha": "69a3f24425f79803335c3c208dca317323dbcb7f",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "05_runtime2d.world.clockworks.floor_steel.v1.md",
+          "sha": "5a6282125b13e3099684cf2cd5df2df454a41804",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "05_runtime2d.world.clockworks.floor_steel.v1.png",
+          "sha": "97eb0a87045fed877cbde47ce9d6adf51fb738b2",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "06_runtime2d.world.clockworks.pressure_pipe_valve.v1.md",
+          "sha": "f26a4b980553ced28f21d3b0d65608d7b72757c9",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "06_runtime2d.world.clockworks.pressure_pipe_valve.v1.png",
+          "sha": "37b6140775a2e2d05c87f5dd5d898a2a451cbb33",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "07_runtime2d.world.clockworks.furnace.v2.md",
+          "sha": "c2cd8304e06f14fb46ff88a8545dac49e3d4fd51",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "07_runtime2d.world.clockworks.furnace.v2.png",
+          "sha": "51fa5ca0a9618dbb703881d48bb711c6197f1fcf",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "08_runtime2d.enemy.clockworks.forged_guard.v2.md",
+          "sha": "0d491c85461c81404215a65267508fe82bab5b56",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "08_runtime2d.enemy.clockworks.forged_guard.v2.png",
+          "sha": "276b180c6418175c24c14f0b5fcdd384463dae1d",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "09_runtime2d.world.returnstation.terminal.v1.md",
+          "sha": "bc9ddfe6d5291023b5057ba89315eab7585952ae",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "09_runtime2d.world.returnstation.terminal.v1.png",
+          "sha": "2eac06402730e83f3ccf529032b849f4a271f695",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "10_runtime2d.ui.capability.local_map.v1.md",
+          "sha": "e36bdf0e10fd012e16a206c76adced5b13cba600",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "10_runtime2d.ui.capability.local_map.v1.png",
+          "sha": "c746eeda71bd121b81cb49e117d2069710846bc2",
+          "type": "blob"
+        }
+      ],
+      "path": "chatgptimage/wuxian-renzu-jinhua_2d_asset_pack_10_batches_2026-09-25/batch07",
+      "sha": "cc19669e2a4a670dd5de3e0e04d98b877df99218"
+    },
+    {
+      "entries": [
+        {
+          "mode": "100644",
+          "path": "01_runtime2d.world.grey_hive.lockdown_zone.v1.attempt.md",
+          "sha": "3c1347ee14f851e6f018c38618876b5d557d9304",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "01_runtime2d.world.grey_hive.lockdown_zone.v1.attempt.png",
+          "sha": "211ef3c8e7c867fa6fa99b3459fd187faa31a58b",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "02_runtime2d.prop.lockdown_terminal.v1.attempt.md",
+          "sha": "af4ae621f55be08dcffa97f7f194ecb53a746166",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "02_runtime2d.prop.lockdown_terminal.v1.attempt.png",
+          "sha": "98e6956d0abf43f0a3e6efb0f85f18564175199b",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "03_runtime2d.world.grey_hive.bio_isolation.v1.attempt.md",
+          "sha": "df5883eeebdf7b2a9fe14fe1a266e4ff6f84133a",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "03_runtime2d.world.grey_hive.bio_isolation.v1.attempt.png",
+          "sha": "4e0deec95e85be2687435864b67d5b54c61cab10",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "04_runtime2d.prop.sample_case.v1.attempt.md",
+          "sha": "32d1af67fa71b7b18531df088f5be4a7c1d7d7e4",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "04_runtime2d.prop.sample_case.v1.attempt.png",
+          "sha": "baf08aa06bb6149671731d2af9b4e6007e02e207",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "05_runtime2d.prop.gate_b.closed_open.v1.attempt.md",
+          "sha": "d0cc2916828a8c0cab0154c565c0b662d52f4b57",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "05_runtime2d.prop.gate_b.closed_open.v1.attempt.png",
+          "sha": "54ff37e2cf8a82fa5dbad595473af95febb2d8f7",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "06_runtime2d.world.grey_hive.deep_decon.v1.attempt.md",
+          "sha": "b6df67baff3f80cecbe9295996ecb55ce19a8118",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "06_runtime2d.world.grey_hive.deep_decon.v1.attempt.png",
+          "sha": "6082978a5a52528fb6efc248d5908c974d0aa917",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "07_runtime2d.vfx.decon_hazard.v1.attempt.md",
+          "sha": "2c828cbad96b60a32ce5374ca82004931aae2551",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "07_runtime2d.vfx.decon_hazard.v1.attempt.png",
+          "sha": "d4eee12132f3421d55712a13669f712e7ddac819",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "08_runtime2d.world.grey_hive.sentinel_arena.v1.attempt.md",
+          "sha": "d8531d679e2c00ee035e61cfdf14f859e4970b88",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "08_runtime2d.world.grey_hive.sentinel_arena.v1.attempt.png",
+          "sha": "0194309d0a2a3736278f8f6fea2602e79790e257",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "09_runtime2d.enemy.sentinel.telegraph.v1.attempt.md",
+          "sha": "ee06539c0e3aced3da32fbfb8633b6b7c26252e8",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "09_runtime2d.enemy.sentinel.telegraph.v1.attempt.png",
+          "sha": "7ed12ae5effab34f4cb96025a140982419743a76",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "10_runtime2d.world.grey_hive.exit.v1.attempt.md",
+          "sha": "20616f742cf2d8577451e8440cdc639966e42179",
+          "type": "blob"
+        },
+        {
+          "mode": "100644",
+          "path": "10_runtime2d.world.grey_hive.exit.v1.attempt.png",
+          "sha": "9e0a6bd1ad55298436e3c8cbea51f2d36f662630",
+          "type": "blob"
+        }
+      ],
+      "path": "chatgptimage/wuxian-renzu-jinhua_2d_asset_pack_10_batches_2026-09-25/batch08",
+      "sha": "4ce8df982cd390abf2a2281a861c2079bd8c39ab"
+    }
+  ]
+}

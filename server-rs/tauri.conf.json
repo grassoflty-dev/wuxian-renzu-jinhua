@@ -1,0 +1,31 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "无限人族进化",
+  "version": "1.0.0",
+  "identifier": "com.wuxian.humanevolution",
+  "build": {
+    "beforeBuildCommand": "npm --prefix ../apps/web run build",
+    "frontendDist": "../apps/web/dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "无限人族进化",
+        "width": 1280,
+        "height": 720,
+        "minWidth": 1280,
+        "minHeight": 720,
+        "resizable": true,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": ["icons/icon.ico"]
+  }
+}

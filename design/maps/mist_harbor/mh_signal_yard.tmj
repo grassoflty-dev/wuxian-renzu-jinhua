@@ -1,0 +1,571 @@
+{
+  "compressionlevel": -1,
+  "height": 16,
+  "infinite": false,
+  "layers": [
+    {
+      "name": "visual.floor",
+      "objects": [
+        {
+          "name": "approved_stone_water_surface",
+          "x": 384,
+          "y": 256,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.mistharbor.water_edge_stone.v1"
+            }
+          ],
+          "id": 1
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 1
+    },
+    {
+      "name": "visual.props_back",
+      "objects": [
+        {
+          "name": "yard_north_fog_bank",
+          "x": 256,
+          "y": 96,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.mistharbor.fog_bank.v1"
+            }
+          ],
+          "id": 2
+        },
+        {
+          "name": "yard_south_water_edge",
+          "x": 384,
+          "y": 464,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.mistharbor.water_edge.v1"
+            }
+          ],
+          "id": 3
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 2
+    },
+    {
+      "name": "visual.props_dynamic",
+      "objects": [],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 3
+    },
+    {
+      "name": "visual.vfx_markers",
+      "objects": [
+        {
+          "name": "yard_ambient_fog_01",
+          "x": 224,
+          "y": 160,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.mistharbor.fog_vfx.v1"
+            }
+          ],
+          "id": 7
+        },
+        {
+          "name": "yard_ambient_fog_02",
+          "x": 576,
+          "y": 352,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.mistharbor.fog_vfx.v1"
+            }
+          ],
+          "id": 8
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 4
+    },
+    {
+      "name": "logic.collision",
+      "objects": [
+        {
+          "name": "yard_wall_north",
+          "x": 0,
+          "y": 0,
+          "width": 768,
+          "height": 16,
+          "properties": [],
+          "id": 9
+        },
+        {
+          "name": "yard_wall_south",
+          "x": 0,
+          "y": 496,
+          "width": 768,
+          "height": 16,
+          "properties": [],
+          "id": 10
+        },
+        {
+          "name": "yard_wall_west_north",
+          "x": 0,
+          "y": 16,
+          "width": 16,
+          "height": 176,
+          "properties": [],
+          "id": 11
+        },
+        {
+          "name": "yard_wall_west_south",
+          "x": 0,
+          "y": 304,
+          "width": 16,
+          "height": 192,
+          "properties": [],
+          "id": 12
+        },
+        {
+          "name": "yard_wall_east_north",
+          "x": 752,
+          "y": 16,
+          "width": 16,
+          "height": 176,
+          "properties": [],
+          "id": 13
+        },
+        {
+          "name": "yard_wall_east_south",
+          "x": 752,
+          "y": 304,
+          "width": 16,
+          "height": 192,
+          "properties": [],
+          "id": 14
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 5
+    },
+    {
+      "name": "logic.navigation",
+      "objects": [
+        {
+          "name": "mh_signal_yard_spawn_nav",
+          "x": 96,
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "mh_signal_yard_center_nav"
+            }
+          ],
+          "id": 15
+        },
+        {
+          "name": "mh_signal_yard_center_nav",
+          "x": 320,
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "mh_signal_interference_nav,mh_signal_yard_quay_nav"
+            }
+          ],
+          "id": 16
+        },
+        {
+          "name": "mh_signal_interference_nav",
+          "x": 480,
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "mh_signal_yard_quay_nav"
+            }
+          ],
+          "id": 17
+        },
+        {
+          "name": "mh_signal_yard_quay_nav",
+          "x": 672,
+          "y": 256,
+          "properties": [],
+          "id": 18
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 6
+    },
+    {
+      "name": "logic.spawn",
+      "objects": [
+        {
+          "name": "mh_signal_yard_spawn",
+          "x": 96,
+          "y": 256,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "player"
+            },
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "mh_signal_yard_spawn_nav"
+            }
+          ],
+          "id": 19
+        },
+        {
+          "id": 4,
+          "name": "mh_signal_yard_signal_wraith_01",
+          "x": 320,
+          "y": 192,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "enemy"
+            },
+            {
+              "name": "entityType",
+              "type": "string",
+              "value": "enemy.mist_harbor.signal_wraith"
+            },
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "mh_signal_yard_center_nav"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "name": "mh_signal_yard_signal_wraith_02",
+          "x": 480,
+          "y": 288,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "enemy"
+            },
+            {
+              "name": "entityType",
+              "type": "string",
+              "value": "enemy.mist_harbor.signal_wraith"
+            },
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "mh_signal_interference_nav"
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "name": "mh_signal_yard_signal_wraith_03",
+          "x": 608,
+          "y": 160,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "enemy"
+            },
+            {
+              "name": "entityType",
+              "type": "string",
+              "value": "enemy.mist_harbor.signal_wraith"
+            },
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "mh_signal_yard_quay_nav"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 7
+    },
+    {
+      "name": "logic.interaction",
+      "objects": [
+        {
+          "name": "mh_signal_interference_marker",
+          "x": 480,
+          "y": 256,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "signal_interference_hint_marker"
+            }
+          ],
+          "id": 20
+        },
+        {
+          "name": "mh_cy_signal_01_static_marker",
+          "x": 480,
+          "y": 224,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "dialogue_content_marker"
+            }
+          ],
+          "id": 21
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 8
+    },
+    {
+      "name": "logic.hazard",
+      "objects": [
+        {
+          "name": "mh_signal_interference_region",
+          "x": 416,
+          "y": 160,
+          "width": 192,
+          "height": 160,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "signal_interference_zone"
+            }
+          ],
+          "id": 22
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 9
+    },
+    {
+      "name": "logic.checkpoint",
+      "objects": [
+        {
+          "name": "mh_signal_yard_checkpoint",
+          "x": 128,
+          "y": 256,
+          "properties": [
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "mh_signal_yard_spawn_nav"
+            }
+          ],
+          "id": 23
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 10
+    },
+    {
+      "name": "logic.transition",
+      "objects": [
+        {
+          "name": "mh_signal_yard_to_warehouse",
+          "x": 0,
+          "y": 208,
+          "width": 64,
+          "height": 96,
+          "properties": [
+            {
+              "name": "toSceneId",
+              "type": "string",
+              "value": "mh_tidal_warehouse"
+            },
+            {
+              "name": "spawnId",
+              "type": "string",
+              "value": "mh_warehouse_spawn"
+            }
+          ],
+          "id": 24
+        },
+        {
+          "name": "mh_signal_yard_to_quay",
+          "x": 704,
+          "y": 208,
+          "width": 64,
+          "height": 96,
+          "properties": [
+            {
+              "name": "toSceneId",
+              "type": "string",
+              "value": "mh_drowned_quay"
+            },
+            {
+              "name": "spawnId",
+              "type": "string",
+              "value": "mh_drowned_quay_spawn"
+            }
+          ],
+          "id": 25
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 11
+    },
+    {
+      "name": "logic.walkable",
+      "objects": [
+        {
+          "id": 26,
+          "name": "mh_signal_yard_walkable_area",
+          "x": 16.0,
+          "y": 16.0,
+          "width": 736.0,
+          "height": 480.0,
+          "rotation": 0,
+          "visible": true,
+          "properties": []
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 12
+    },
+    {
+      "name": "logic.exploration",
+      "objects": [
+        {
+          "id": 27,
+          "name": "mh_sy_west_yard",
+          "x": 16.0,
+          "y": 16.0,
+          "width": 400.0,
+          "height": 480.0,
+          "rotation": 0,
+          "visible": true,
+          "properties": []
+        },
+        {
+          "id": 28,
+          "name": "mh_sy_interference_field",
+          "x": 416,
+          "y": 16.0,
+          "width": 192,
+          "height": 480.0,
+          "rotation": 0,
+          "visible": true,
+          "properties": []
+        },
+        {
+          "id": 29,
+          "name": "mh_sy_quay_approach",
+          "x": 608,
+          "y": 16.0,
+          "width": 144.0,
+          "height": 480.0,
+          "rotation": 0,
+          "visible": true,
+          "properties": []
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 13
+    }
+  ],
+  "orientation": "orthogonal",
+  "properties": [
+    {
+      "name": "worldId",
+      "type": "string",
+      "value": "mist_harbor"
+    },
+    {
+      "name": "sceneId",
+      "type": "string",
+      "value": "mh_signal_yard"
+    },
+    {
+      "name": "pixelsPerMeter",
+      "type": "int",
+      "value": 32
+    },
+    {
+      "name": "cameraProfile",
+      "type": "string",
+      "value": "oblique_default"
+    }
+  ],
+  "renderorder": "right-down",
+  "tiledversion": "1.10.2",
+  "tileheight": 32,
+  "tilewidth": 32,
+  "type": "map",
+  "version": "1.10",
+  "width": 24,
+  "nextlayerid": 14,
+  "nextobjectid": 30
+}

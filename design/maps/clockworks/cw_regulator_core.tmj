@@ -1,0 +1,494 @@
+{
+  "compressionlevel": -1,
+  "height": 16,
+  "infinite": false,
+  "layers": [
+    {
+      "id": 1,
+      "name": "visual.floor",
+      "objects": [
+        {
+          "id": 1,
+          "name": "cw_regulator_core_steel_floor",
+          "x": 384,
+          "y": 256,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.clockworks.floor_steel.v1"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "name": "cw_regulator_core_factory_tiles",
+          "x": 384,
+          "y": 256,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.clockworks.factory_tiles.v1"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 2,
+      "name": "visual.props_back",
+      "objects": [
+        {
+          "id": 3,
+          "name": "cw_regulator_pressure_pipes",
+          "x": 320,
+          "y": 128,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.clockworks.pressure_pipes.v1"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "name": "cw_regulator_furnace_v2",
+          "x": 512,
+          "y": 192,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.clockworks.furnace.v2"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 3,
+      "name": "visual.props_dynamic",
+      "objects": [
+        {
+          "id": 5,
+          "name": "cw_regulator_factory_module",
+          "x": 640,
+          "y": 352,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.clockworks.factory_tiles.v1"
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "name": "cw_regulator_furnace_v2_side",
+          "x": 384,
+          "y": 384,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.clockworks.furnace.v2"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 4,
+      "name": "logic.collision",
+      "objects": [
+        {
+          "id": 8,
+          "name": "cw_regulator_core_wall_north",
+          "x": 0,
+          "y": 0,
+          "width": 768,
+          "height": 16,
+          "properties": []
+        },
+        {
+          "id": 9,
+          "name": "cw_regulator_core_wall_south",
+          "x": 0,
+          "y": 496,
+          "width": 768,
+          "height": 16,
+          "properties": []
+        },
+        {
+          "id": 10,
+          "name": "cw_regulator_core_wall_west_north",
+          "x": 0,
+          "y": 16,
+          "width": 16,
+          "height": 176,
+          "properties": []
+        },
+        {
+          "id": 11,
+          "name": "cw_regulator_core_wall_west_south",
+          "x": 0,
+          "y": 304,
+          "width": 16,
+          "height": 192,
+          "properties": []
+        },
+        {
+          "id": 12,
+          "name": "cw_regulator_core_wall_east_north",
+          "x": 752,
+          "y": 16,
+          "width": 16,
+          "height": 176,
+          "properties": []
+        },
+        {
+          "id": 13,
+          "name": "cw_regulator_core_wall_east_south",
+          "x": 752,
+          "y": 304,
+          "width": 16,
+          "height": 192,
+          "properties": []
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 5,
+      "name": "logic.navigation",
+      "objects": [
+        {
+          "id": 14,
+          "name": "cw_regulator_core_spawn_nav",
+          "x": 96,
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "cw_regulator_core_center_nav"
+            }
+          ]
+        },
+        {
+          "id": 15,
+          "name": "cw_regulator_core_center_nav",
+          "x": 384,
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "cw_regulator_core_spawn_nav"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 6,
+      "name": "logic.spawn",
+      "objects": [
+        {
+          "id": 16,
+          "name": "cw_regulator_core_spawn",
+          "x": 96,
+          "y": 256,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "player"
+            },
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "cw_regulator_core_spawn_nav"
+            }
+          ]
+        },
+        {
+          "id": 23,
+          "name": "cw_prime_regulator",
+          "x": 448,
+          "y": 256,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "enemy"
+            },
+            {
+              "name": "entityType",
+              "type": "string",
+              "value": "enemy.clockworks.prime_regulator"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 7,
+      "name": "logic.interaction",
+      "objects": [
+        {
+          "id": 17,
+          "name": "cw_regulator_core_console_staged",
+          "x": 384,
+          "y": 224,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "terminal"
+            },
+            {
+              "name": "event",
+              "type": "string",
+              "value": "clockworks_core"
+            },
+            {
+              "name": "rangeM",
+              "type": "float",
+              "value": 2.5
+            }
+          ]
+        },
+        {
+          "id": 18,
+          "name": "cw_regulator_boss_phases_staged",
+          "x": 512,
+          "y": 256,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "boss_phase_sequence_staged_marker"
+            }
+          ]
+        },
+        {
+          "id": 19,
+          "name": "cw_regulator_valve_furnace_link_staged",
+          "x": 576,
+          "y": 352,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "coolant_valve"
+            },
+            {
+              "name": "rangeM",
+              "type": "float",
+              "value": 2.5
+            },
+            {
+              "name": "cooldownMs",
+              "type": "int",
+              "value": 8000
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 8,
+      "name": "logic.checkpoint",
+      "objects": [
+        {
+          "id": 20,
+          "name": "cw_regulator_core_checkpoint",
+          "x": 128,
+          "y": 256,
+          "properties": [
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "cw_regulator_core_spawn_nav"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 9,
+      "name": "logic.transition",
+      "objects": [
+        {
+          "id": 21,
+          "name": "cw_regulator_core_return_to_arena",
+          "x": 16,
+          "y": 208,
+          "width": 64,
+          "height": 96,
+          "properties": [
+            {
+              "name": "toSceneId",
+              "type": "string",
+              "value": "cw_forged_guard_arena"
+            },
+            {
+              "name": "spawnId",
+              "type": "string",
+              "value": "cw_forged_guard_arena_spawn"
+            }
+          ]
+        },
+        {
+          "id": 22,
+          "name": "cw_regulator_core_to_shutdown_exit",
+          "x": 704,
+          "y": 208,
+          "width": 64,
+          "height": 96,
+          "properties": [
+            {
+              "name": "toSceneId",
+              "type": "string",
+              "value": "cw_shutdown_exit"
+            },
+            {
+              "name": "spawnId",
+              "type": "string",
+              "value": "cw_shutdown_exit_spawn"
+            },
+            {
+              "name": "requiresEvent",
+              "type": "string",
+              "value": "clockworks_core"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 10,
+      "name": "logic.hazard",
+      "objects": [
+        {
+          "id": 24,
+          "name": "cw_regulator_furnace_heat_zone",
+          "x": 496,
+          "y": 112,
+          "width": 160,
+          "height": 80,
+          "properties": [
+            { "name": "kind", "type": "string", "value": "heat_zone" },
+            { "name": "damage", "type": "int", "value": 12 },
+            { "name": "periodMs", "type": "int", "value": 1000 },
+            { "name": "warningMs", "type": "int", "value": 600 },
+            { "name": "phase", "type": "string", "value": "phase2" }
+          ]
+        },
+        {
+          "id": 25,
+          "name": "cw_regulator_reciprocating_press",
+          "x": 256,
+          "y": 368,
+          "width": 64,
+          "height": 48,
+          "properties": [
+            { "name": "kind", "type": "string", "value": "moving_machinery" },
+            { "name": "damage", "type": "int", "value": 16 },
+            { "name": "periodMs", "type": "int", "value": 750 },
+            { "name": "warningMs", "type": "int", "value": 900 },
+            { "name": "phase", "type": "string", "value": "phase3" },
+            { "name": "translationXM", "type": "float", "value": 6.0 },
+            { "name": "translationZM", "type": "float", "value": 0.0 },
+            { "name": "speedMps", "type": "float", "value": 2.0 },
+            { "name": "endpointHoldMs", "type": "int", "value": 600 }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "nextlayerid": 11,
+  "nextobjectid": 26,
+  "orientation": "orthogonal",
+  "properties": [
+    {
+      "name": "worldId",
+      "type": "string",
+      "value": "clockworks"
+    },
+    {
+      "name": "sceneId",
+      "type": "string",
+      "value": "cw_regulator_core"
+    },
+    {
+      "name": "pixelsPerMeter",
+      "type": "int",
+      "value": 32
+    },
+    {
+      "name": "cameraProfile",
+      "type": "string",
+      "value": "oblique_default"
+    }
+  ],
+  "renderorder": "right-down",
+  "tiledversion": "1.10.2",
+  "tileheight": 32,
+  "tilewidth": 32,
+  "type": "map",
+  "version": "1.10",
+  "width": 24
+}

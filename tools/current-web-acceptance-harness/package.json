@@ -1,0 +1,14 @@
+{
+  "name": "current-web-acceptance-harness",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "test": "node --test unit/*.test.mjs",
+    "verify:bundle": "node src/verify-bundle.mjs",
+    "test:browser": "node src/run.mjs functional",
+    "test:visual": "node src/run.mjs visual",
+    "capture:candidate": "node src/run.mjs candidate"
+  },
+  "devDependencies": { "@playwright/test": "1.63.0" }
+}

@@ -1,0 +1,413 @@
+{
+  "compressionlevel": -1,
+  "height": 16,
+  "infinite": false,
+  "layers": [
+    {
+      "id": 1,
+      "name": "visual.floor",
+      "objects": [
+        {
+          "id": 1,
+          "name": "cw_shutdown_exit_steel_floor",
+          "x": 384,
+          "y": 256,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.clockworks.floor_steel.v1"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "name": "cw_shutdown_exit_factory_tiles",
+          "x": 384,
+          "y": 256,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.clockworks.factory_tiles.v1"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 2,
+      "name": "visual.props_back",
+      "objects": [
+        {
+          "id": 3,
+          "name": "cw_shutdown_exit_factory_module",
+          "x": 384,
+          "y": 128,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.clockworks.factory_tiles.v1"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "name": "cw_shutdown_exit_pressure_pipes",
+          "x": 576,
+          "y": 128,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.clockworks.pressure_pipes.v1"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 3,
+      "name": "visual.props_dynamic",
+      "objects": [
+        {
+          "id": 5,
+          "name": "cw_shutdown_exit_factory_module_side",
+          "x": 576,
+          "y": 384,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.clockworks.factory_tiles.v1"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 4,
+      "name": "logic.collision",
+      "objects": [
+        {
+          "id": 8,
+          "name": "cw_shutdown_wall_north",
+          "x": 0,
+          "y": 0,
+          "width": 768,
+          "height": 16,
+          "properties": []
+        },
+        {
+          "id": 9,
+          "name": "cw_shutdown_wall_south",
+          "x": 0,
+          "y": 496,
+          "width": 768,
+          "height": 16,
+          "properties": []
+        },
+        {
+          "id": 10,
+          "name": "cw_shutdown_wall_west_north",
+          "x": 0,
+          "y": 16,
+          "width": 16,
+          "height": 176,
+          "properties": []
+        },
+        {
+          "id": 11,
+          "name": "cw_shutdown_wall_west_south",
+          "x": 0,
+          "y": 304,
+          "width": 16,
+          "height": 192,
+          "properties": []
+        },
+        {
+          "id": 12,
+          "name": "cw_shutdown_wall_east",
+          "x": 752,
+          "y": 16,
+          "width": 16,
+          "height": 480,
+          "properties": []
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 5,
+      "name": "logic.navigation",
+      "objects": [
+        {
+          "id": 14,
+          "name": "cw_shutdown_exit_spawn_nav",
+          "x": 96,
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "cw_shutdown_exit_center_nav"
+            }
+          ]
+        },
+        {
+          "id": 15,
+          "name": "cw_shutdown_exit_center_nav",
+          "x": 384,
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "cw_shutdown_exit_spawn_nav"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 6,
+      "name": "logic.spawn",
+      "objects": [
+        {
+          "id": 16,
+          "name": "cw_shutdown_exit_spawn",
+          "x": 96,
+          "y": 256,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "player"
+            },
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "cw_shutdown_exit_spawn_nav"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 7,
+      "name": "logic.interaction",
+      "objects": [
+        {
+          "id": 17,
+          "name": "cw_master_shutdown_staged",
+          "x": 256,
+          "y": 192,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "terminal"
+            },
+            {
+              "name": "event",
+              "type": "string",
+              "value": "clockworks_shutdown"
+            }
+          ]
+        },
+        {
+          "id": 18,
+          "name": "cw_air_step_grant_staged",
+          "x": 384,
+          "y": 192,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "air_step_grant_staged_marker"
+            }
+          ]
+        },
+        {
+          "id": 19,
+          "name": "cw_shutdown_exit_portal_staged",
+          "x": 640,
+          "y": 256,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "exit_portal_staged_marker"
+            }
+          ]
+        },
+        {
+          "id": 20,
+          "name": "cw_world_completion_staged",
+          "x": 512,
+          "y": 320,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "world_completion_staged_marker"
+            }
+          ]
+        },
+        {
+          "id": 21,
+          "name": "cw_optional_drone_wave_staged",
+          "x": 512,
+          "y": 384,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "optional_enemy_wave_staged_marker"
+            }
+          ]
+        },
+        {
+          "id": 22,
+          "name": "cw_cy_end_01_static_epilogue_marker",
+          "x": 384,
+          "y": 384,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "static_epilogue_dialogue_marker"
+            },
+            {
+              "name": "dialogueText",
+              "type": "string",
+              "value": "原来门一直不止三扇。"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 8,
+      "name": "logic.checkpoint",
+      "objects": [
+        {
+          "id": 23,
+          "name": "cw_shutdown_exit_checkpoint",
+          "x": 128,
+          "y": 256,
+          "properties": [
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "cw_shutdown_exit_spawn_nav"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 9,
+      "name": "logic.transition",
+      "objects": [
+        {
+          "id": 24,
+          "name": "cw_shutdown_exit_return_to_regulator_core",
+          "x": 16,
+          "y": 208,
+          "width": 64,
+          "height": 96,
+          "properties": [
+            {
+              "name": "toSceneId",
+              "type": "string",
+              "value": "cw_regulator_core"
+            },
+            {
+              "name": "spawnId",
+              "type": "string",
+              "value": "cw_regulator_core_spawn"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "nextlayerid": 10,
+  "nextobjectid": 25,
+  "orientation": "orthogonal",
+  "properties": [
+    {
+      "name": "worldId",
+      "type": "string",
+      "value": "clockworks"
+    },
+    {
+      "name": "sceneId",
+      "type": "string",
+      "value": "cw_shutdown_exit"
+    },
+    {
+      "name": "pixelsPerMeter",
+      "type": "int",
+      "value": 32
+    },
+    {
+      "name": "cameraProfile",
+      "type": "string",
+      "value": "oblique_default"
+    }
+  ],
+  "renderorder": "right-down",
+  "tiledversion": "1.10.2",
+  "tileheight": 32,
+  "tilewidth": 32,
+  "type": "map",
+  "version": "1.10",
+  "width": 24
+}

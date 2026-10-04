@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "worldId": "grey_hive",
+  "sceneId": "gh_test_power",
+  "boundsM": { "x": 0, "z": 0, "width": 12, "depth": 12 },
+  "presentation": { "cameraProfile": "fixture_only", "layers": [], "sprites": [] },
+  "collision": [{ "id": "gh_wall", "polygon": [[7, 2], [8, 2], [8, 9], [7, 9]] }],
+  "navigation": { "nodes": [{ "id": "gh_nav", "position": [1, 0, 1] }, { "id": "gh_nav_checkpoint", "position": [2, 0, 1] }], "links": [{ "from": "gh_nav", "to": "gh_nav_checkpoint" }] },
+  "spawns": [{ "id": "gh_spawn", "kind": "player", "entityType": null, "position": [1, 0, 1], "navNode": "gh_nav" }],
+  "interactions": [
+    { "id": "gh_power_console_test", "kind": "console", "event": "hive_power", "position": [1, 0, 1] },
+    { "id": "gh_lockdown_test", "kind": "terminal", "event": "hive_lockdown", "position": [1, 0, 2] },
+    { "id": "gh_extract_test", "kind": "console", "event": "hive_extraction", "position": [1, 0, 3] }
+  ],
+  "checkpoints": [{ "id": "gh_checkpoint_test", "position": [2, 0, 1], "navNode": "gh_nav_checkpoint" }],
+  "objectives": [{ "id": "gh_power_objective", "completingEvent": "hive_power", "position": [2, 0, 1] }],
+  "transitions": [{ "id": "gh_to_hub", "toSceneId": "rs_test_hub", "spawnId": "rs_spawn", "polygon": [[0, 0], [2, 0], [2, 2], [0, 2]] }],
+  "logic": { "traversal": [] }
+}

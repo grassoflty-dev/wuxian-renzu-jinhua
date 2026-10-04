@@ -1,0 +1,12 @@
+{
+  "package": "pixi.js",
+  "version": "8.21.0",
+  "license": "MIT",
+  "source": "https://registry.npmjs.org/pixi.js/-/pixi.js-8.21.0.tgz",
+  "integrity": "sha512-GJ/KqBtUuWDBPMQu2D0ZHsRCYOcWRjjKrpyC+3jPQI5JTqHMC5dH8l9sSyvoUT4qJidvRzs1fwFWRWceno2Ltw==",
+  "tarballSha256": "b99f4368607c9179f2917687d58ec9c3e7eb8384c90dc8cb2fd17d22829703c7",
+  "bundledFile": "server-rs/release-ui/vendor/pixi.min.js",
+  "bundledFileSha256": "c6d9d4c897b15576cce0055d0ba4382021181c99cdf08a446be9d61e16833db0",
+  "licenseFile": "server-rs/release-ui/vendor/PIXI-LICENSE.txt",
+  "vendoredAt": "2026-09-25T06:11:27.679Z"
+}

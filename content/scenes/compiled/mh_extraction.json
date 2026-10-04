@@ -1,0 +1,394 @@
+{
+  "boundsM": {
+    "depth": 16.0,
+    "width": 24.0,
+    "x": 0,
+    "z": 0
+  },
+  "cameraZones": [],
+  "checkpoints": [
+    {
+      "id": "mh_extraction_checkpoint",
+      "navNode": "mh_extraction_spawn_nav",
+      "position": [
+        4.0,
+        0.0,
+        8.0
+      ]
+    }
+  ],
+  "collision": [
+    {
+      "id": "extraction_wall_north",
+      "polygon": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          0.0,
+          0.5
+        ]
+      ]
+    },
+    {
+      "id": "extraction_wall_south",
+      "polygon": [
+        [
+          0.0,
+          15.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          24.0,
+          16.0
+        ],
+        [
+          0.0,
+          16.0
+        ]
+      ]
+    },
+    {
+      "id": "extraction_wall_west_north",
+      "polygon": [
+        [
+          0.0,
+          0.5
+        ],
+        [
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ]
+      ]
+    },
+    {
+      "id": "extraction_wall_west_south",
+      "polygon": [
+        [
+          0.0,
+          9.5
+        ],
+        [
+          0.5,
+          9.5
+        ],
+        [
+          0.5,
+          15.5
+        ],
+        [
+          0.0,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "extraction_wall_east",
+      "polygon": [
+        [
+          23.5,
+          0.5
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          23.5,
+          15.5
+        ]
+      ]
+    }
+  ],
+  "doors": [],
+  "explorationRegions": [
+    {
+      "id": "mh_ex_arrival",
+      "polygon": [
+        [
+          0.5,
+          0.5
+        ],
+        [
+          9.0,
+          0.5
+        ],
+        [
+          9.0,
+          15.5
+        ],
+        [
+          0.5,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "mh_ex_extraction_pad",
+      "polygon": [
+        [
+          9.0,
+          0.5
+        ],
+        [
+          19.0,
+          0.5
+        ],
+        [
+          19.0,
+          15.5
+        ],
+        [
+          9.0,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "mh_ex_exit_section",
+      "polygon": [
+        [
+          19.0,
+          0.5
+        ],
+        [
+          23.5,
+          0.5
+        ],
+        [
+          23.5,
+          15.5
+        ],
+        [
+          19.0,
+          15.5
+        ]
+      ]
+    }
+  ],
+  "hazards": [],
+  "interactions": [
+    {
+      "event": null,
+      "id": "mh_extraction_exit",
+      "kind": "world_exit",
+      "position": [
+        20.0,
+        0.0,
+        8.0
+      ]
+    },
+    {
+      "event": null,
+      "id": "mh_world_complete_staged_marker",
+      "kind": "world_completion_staged_marker",
+      "position": [
+        20.0,
+        0.0,
+        7.0
+      ]
+    },
+    {
+      "event": null,
+      "id": "mh_return_station_revisit_staged_marker",
+      "kind": "return_station_revisit_staged_marker",
+      "position": [
+        20.0,
+        0.0,
+        9.0
+      ]
+    }
+  ],
+  "logic": {
+    "traversal": []
+  },
+  "navigation": {
+    "links": [
+      {
+        "from": "mh_extraction_spawn_nav",
+        "to": "mh_extraction_center_nav"
+      },
+      {
+        "from": "mh_extraction_center_nav",
+        "to": "mh_extraction_exit_nav"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "mh_extraction_spawn_nav",
+        "position": [
+          3.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "mh_extraction_center_nav",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "mh_extraction_exit_nav",
+        "position": [
+          21.0,
+          0.0,
+          8.0
+        ]
+      }
+    ]
+  },
+  "objectives": [],
+  "occluders": [],
+  "presentation": {
+    "cameraProfile": "oblique_default",
+    "layers": [
+      {
+        "id": "visual.floor",
+        "zGroup": 0
+      },
+      {
+        "id": "visual.props_back",
+        "zGroup": 10
+      },
+      {
+        "id": "visual.vfx_markers",
+        "zGroup": 20
+      }
+    ],
+    "sprites": [
+      {
+        "assetId": "runtime2d.world.mistharbor.water_edge_stone.v1",
+        "id": "approved_extraction_stone_water_module",
+        "layer": "visual.floor",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.mistharbor.water_edge.v1",
+        "id": "extraction_outer_water_edge",
+        "layer": "visual.props_back",
+        "position": [
+          12.0,
+          0.0,
+          14.5
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.mistharbor.fog_bank.v1",
+        "id": "extraction_fog_bank",
+        "layer": "visual.props_back",
+        "position": [
+          18.0,
+          0.0,
+          3.0
+        ]
+      }
+    ]
+  },
+  "sceneId": "mh_extraction",
+  "schemaVersion": 1,
+  "spawns": [
+    {
+      "entityType": null,
+      "id": "mh_extraction_spawn",
+      "kind": "player",
+      "navNode": "mh_extraction_spawn_nav",
+      "position": [
+        3.0,
+        0.0,
+        8.0
+      ]
+    }
+  ],
+  "transitions": [
+    {
+      "id": "mh_extraction_to_warden_arena",
+      "polygon": [
+        [
+          0.0,
+          6.5
+        ],
+        [
+          2.0,
+          6.5
+        ],
+        [
+          2.0,
+          9.5
+        ],
+        [
+          0.0,
+          9.5
+        ]
+      ],
+      "spawnId": "mh_warden_arena_spawn",
+      "toSceneId": "mh_warden_arena"
+    }
+  ],
+  "triggers": [],
+  "vfxMarkers": [
+    {
+      "assetId": "runtime2d.world.mistharbor.fog_vfx.v1",
+      "id": "extraction_ambient_fog",
+      "position": [
+        10.0,
+        0.0,
+        4.5
+      ]
+    }
+  ],
+  "walkablePolygons": [
+    {
+      "id": "mh_extraction_walkable_area",
+      "polygon": [
+        [
+          0.5,
+          0.5
+        ],
+        [
+          23.5,
+          0.5
+        ],
+        [
+          23.5,
+          15.5
+        ],
+        [
+          0.5,
+          15.5
+        ]
+      ]
+    }
+  ],
+  "worldId": "mist_harbor"
+}

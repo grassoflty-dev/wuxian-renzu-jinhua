@@ -1,0 +1,177 @@
+{
+  "compressionlevel": -1,
+  "height": 16,
+  "infinite": false,
+  "layers": [
+    {
+      "id": 1,
+      "name": "visual.floor",
+      "objects": [
+        {"id": 1, "name": "shaft_approved_floor", "x": 384, "y": 256, "width": 768, "height": 512, "properties": [{"name": "assetId", "type": "string", "value": "runtime2d.grey_hive.floor_tiles.v1"}]}
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 2,
+      "name": "visual.props_back",
+      "objects": [
+        {"id": 2, "name": "shaft_back_wall", "x": 384, "y": 32, "properties": [{"name": "assetId", "type": "string", "value": "runtime2d.grey_hive.wall_tiles.v1"}]},
+        {"id": 3, "name": "shaft_cable_risers", "x": 320, "y": 96, "properties": [{"name": "assetId", "type": "string", "value": "runtime2d.grey_hive.pipes_cables.v1"}]},
+        {"id": 4, "name": "shaft_lift_machine_generic", "x": 192, "y": 160, "properties": [{"name": "assetId", "type": "string", "value": "runtime2d.grey_hive.clutter.v1"}]},
+        {"id": 5, "name": "shaft_lower_bridge_generic", "x": 384, "y": 160, "properties": [{"name": "assetId", "type": "string", "value": "runtime2d.grey_hive.clutter.v1"}]},
+        {"id": 6, "name": "shaft_upper_bridge_generic", "x": 576, "y": 112, "properties": [{"name": "assetId", "type": "string", "value": "runtime2d.grey_hive.clutter.v1"}]},
+        {"id": 7, "name": "shaft_catwalk_rails_generic", "x": 576, "y": 320, "properties": [{"name": "assetId", "type": "string", "value": "runtime2d.grey_hive.pipes_cables.v1"}]},
+        {"id": 8, "name": "shaft_hanging_cables", "x": 448, "y": 64, "properties": [{"name": "assetId", "type": "string", "value": "runtime2d.grey_hive.pipes_cables.v1"}]}
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 3,
+      "name": "visual.props_dynamic",
+      "objects": [
+        {"id": 9, "name": "shaft_worker_01_visual", "x": 160, "y": 352, "properties": [{"name": "assetId", "type": "string", "value": "runtime2d.enemy.infected_maintenance_worker.v1"}]},
+        {"id": 10, "name": "shaft_worker_02_visual", "x": 352, "y": 144, "properties": [{"name": "assetId", "type": "string", "value": "runtime2d.enemy.infected_maintenance_worker.v1"}]},
+        {"id": 11, "name": "shaft_worker_03_visual", "x": 544, "y": 368, "properties": [{"name": "assetId", "type": "string", "value": "runtime2d.enemy.infected_maintenance_worker.v1"}]},
+        {"id": 12, "name": "shaft_security_01_visual", "x": 256, "y": 96, "properties": [{"name": "assetId", "type": "string", "value": "runtime2d.enemy.infected_security.v1"}]},
+        {"id": 13, "name": "shaft_security_02_visual", "x": 640, "y": 160, "properties": [{"name": "assetId", "type": "string", "value": "runtime2d.enemy.infected_security.v1"}]}
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 4,
+      "name": "visual.foreground",
+      "objects": [
+        {"id": 14, "name": "shaft_foreground_rail", "x": 544, "y": 432, "properties": [{"name": "assetId", "type": "string", "value": "runtime2d.grey_hive.pipes_cables.v1"}]}
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 5,
+      "name": "visual.occluders",
+      "objects": [
+        {"id": 15, "name": "gh_shaft_occlusion_bridge_beam", "x": 352, "y": 208, "width": 224, "height": 32, "properties": [{"name": "fadeTo", "type": "float", "value": 0.2}]},
+        {"id": 16, "name": "gh_shaft_occlusion_lift_beam", "x": 192, "y": 128, "width": 96, "height": 24, "properties": [{"name": "fadeTo", "type": "float", "value": 0.3}]}
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 6,
+      "name": "logic.collision",
+      "objects": [
+        {"id": 17, "name": "shaft_wall_north", "x": 0, "y": 0, "width": 768, "height": 16},
+        {"id": 18, "name": "shaft_wall_south", "x": 0, "y": 496, "width": 768, "height": 16},
+        {"id": 19, "name": "shaft_wall_west_north", "x": 0, "y": 16, "width": 16, "height": 192},
+        {"id": 20, "name": "shaft_wall_west_south", "x": 0, "y": 304, "width": 16, "height": 192},
+        {"id": 21, "name": "shaft_wall_east_north", "x": 752, "y": 16, "width": 16, "height": 192},
+        {"id": 22, "name": "shaft_wall_east_south", "x": 752, "y": 304, "width": 16, "height": 192},
+        {"id": 23, "name": "shaft_support_column_a", "x": 256, "y": 160, "width": 32, "height": 64},
+        {"id": 24, "name": "shaft_support_column_b", "x": 480, "y": 288, "width": 32, "height": 64}
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 7,
+      "name": "logic.navigation",
+      "objects": [
+        {"id": 25, "name": "gh_shaft_entry_nav", "x": 64, "y": 256, "properties": [{"name": "neighbors", "type": "string", "value": "gh_shaft_log_nav"}]},
+        {"id": 26, "name": "gh_shaft_log_nav", "x": 112, "y": 256, "properties": [{"name": "neighbors", "type": "string", "value": "gh_shaft_mid_bridge_nav"}]},
+        {"id": 27, "name": "gh_shaft_mid_bridge_nav", "x": 384, "y": 256, "properties": [{"name": "neighbors", "type": "string", "value": "gh_shaft_exit_nav"}]},
+        {"id": 28, "name": "gh_shaft_exit_nav", "x": 688, "y": 256}
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 8,
+      "name": "logic.spawn",
+      "objects": [
+        {"id": 29, "name": "gh_shaft_spawn", "x": 64, "y": 256, "properties": [{"name": "kind", "type": "string", "value": "player"}, {"name": "navNode", "type": "string", "value": "gh_shaft_entry_nav"}]},
+        {"id": 30, "name": "gh_shaft_worker_01", "x": 160, "y": 352, "properties": [{"name": "kind", "type": "string", "value": "enemy"}, {"name": "entityType", "type": "string", "value": "grey_hive.infected_maintenance_worker"}, {"name": "navNode", "type": "string", "value": "gh_shaft_log_nav"}]},
+        {"id": 31, "name": "gh_shaft_worker_02", "x": 352, "y": 144, "properties": [{"name": "kind", "type": "string", "value": "enemy"}, {"name": "entityType", "type": "string", "value": "grey_hive.infected_maintenance_worker"}, {"name": "navNode", "type": "string", "value": "gh_shaft_mid_bridge_nav"}]},
+        {"id": 32, "name": "gh_shaft_worker_03", "x": 544, "y": 368, "properties": [{"name": "kind", "type": "string", "value": "enemy"}, {"name": "entityType", "type": "string", "value": "grey_hive.infected_maintenance_worker"}, {"name": "navNode", "type": "string", "value": "gh_shaft_exit_nav"}]},
+        {"id": 33, "name": "gh_shaft_security_01", "x": 256, "y": 96, "properties": [{"name": "kind", "type": "string", "value": "enemy"}, {"name": "entityType", "type": "string", "value": "grey_hive.infected_security"}, {"name": "navNode", "type": "string", "value": "gh_shaft_mid_bridge_nav"}]},
+        {"id": 34, "name": "gh_shaft_security_02", "x": 640, "y": 160, "properties": [{"name": "kind", "type": "string", "value": "enemy"}, {"name": "entityType", "type": "string", "value": "grey_hive.infected_security"}, {"name": "navNode", "type": "string", "value": "gh_shaft_exit_nav"}]}
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 9,
+      "name": "logic.interaction",
+      "objects": [
+        {"id": 35, "name": "gh_log_shaft_01", "x": 96, "y": 256, "properties": [{"name": "kind", "type": "string", "value": "facility_log"}]}
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 10,
+      "name": "logic.checkpoint",
+      "objects": [
+        {"id": 36, "name": "gh_shaft_checkpoint", "x": 688, "y": 256, "properties": [{"name": "navNode", "type": "string", "value": "gh_shaft_exit_nav"}]}
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 11,
+      "name": "logic.transition",
+      "objects": [
+        {"id": 37, "name": "gh_shaft_return_to_gate_a", "x": 0, "y": 224, "width": 48, "height": 64, "properties": [{"name": "toSceneId", "type": "string", "value": "gh_gate_a"}, {"name": "spawnId", "type": "string", "value": "gh_gate_a_spawn"}, {"name": "requiresEvent", "type": "string", "value": "hive_power"}]},
+        {"id": 38, "name": "gh_shaft_to_lockdown", "x": 720, "y": 224, "width": 48, "height": 64, "properties": [{"name": "toSceneId", "type": "string", "value": "gh_lockdown"}, {"name": "spawnId", "type": "string", "value": "gh_lockdown_spawn"}, {"name": "requiresEvent", "type": "string", "value": "hive_power"}]}
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "nextlayerid": 12,
+  "nextobjectid": 39,
+  "orientation": "orthogonal",
+  "properties": [{"name": "worldId", "type": "string", "value": "grey_hive"}, {"name": "sceneId", "type": "string", "value": "gh_central_shaft"}, {"name": "pixelsPerMeter", "type": "int", "value": 32}, {"name": "cameraProfile", "type": "string", "value": "oblique_default"}],
+  "renderorder": "right-down",
+  "tiledversion": "1.10.2",
+  "tileheight": 32,
+  "tilewidth": 32,
+  "type": "map",
+  "version": "1.10",
+  "width": 24
+}

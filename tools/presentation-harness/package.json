@@ -1,0 +1,16 @@
+{
+  "name": "pivot-presentation-harness-01",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:preflight": "playwright test tests/preflight.spec.mjs",
+    "test:scenarios": "playwright test tests/scenario-presentation.spec.mjs",
+    "import:scenario-runner": "node src/import-scenario-runner.mjs",
+    "verify:fixture": "node src/scenario-fixture.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "pngjs": "7.0.0"
+  }
+}

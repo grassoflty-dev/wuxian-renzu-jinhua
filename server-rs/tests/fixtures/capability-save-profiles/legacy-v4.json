@@ -1,0 +1,148 @@
+{
+  "capabilities": {
+    "currentRevision": {
+      "authorityRevision": 0,
+      "serverTick": 0,
+      "worldEpoch": 0
+    },
+    "exploredMap": {
+      "connections": [],
+      "objectives": [],
+      "playerPositionM": {
+        "xM": 0.0,
+        "yM": 0.0,
+        "zM": 0.0
+      },
+      "rooms": [],
+      "worldId": "grey_hive"
+    },
+    "firstEnhancementChoice": null,
+    "fractionalHeal": 0.0,
+    "grants": [],
+    "handledRequestIds": [],
+    "lastCombatAtMs": null,
+    "lastDamageAtMs": null,
+    "lastNowMs": null,
+    "lastTickRevision": null,
+    "rearViewAuthorization": {
+      "grantId": null,
+      "granted": false,
+      "grantedAtRevision": null
+    },
+    "regeneration": {
+      "delayAfterCombatMs": 3000,
+      "delayAfterDamageMs": 1500,
+      "hpPerSecond": 2.5,
+      "regenCapFraction": 0.75
+    },
+    "schemaVersion": 1,
+    "selected": [],
+    "worldId": "grey_hive"
+  },
+  "checkpointId": "gh_cp_airlock",
+  "combatHandledRequestIds": [],
+  "contentVersion": "grey-hive-first-flow/1",
+  "explored": {
+    "connections": [],
+    "objectives": [],
+    "playerPositionM": {
+      "xM": 0.0,
+      "yM": 0.0,
+      "zM": 0.0
+    },
+    "rooms": [],
+    "worldId": "grey_hive"
+  },
+  "lastClientTimeMs": 0,
+  "lastCombatAtMs": null,
+  "lastDamagedAtMs": null,
+  "lastInputSeq": 0,
+  "lastReceivedClientTimeMs": 0,
+  "lastReceivedSeq": 0,
+  "migrationProvenance": null,
+  "player": {
+    "currentEnergy": 100,
+    "currentHp": 100,
+    "dashCooldownRemainingMs": 0,
+    "dashRemainingMs": 0,
+    "dashSpeedMps": 10.0,
+    "gravityMps2": 16.0,
+    "grounded": true,
+    "jumpSpeedMps": 5.5,
+    "maxEnergy": 100,
+    "maxHp": 100,
+    "moveSpeedMps": 4.0,
+    "positionM": {
+      "xM": 0.0,
+      "yM": 0.0,
+      "zM": 0.0
+    },
+    "radiusM": 0.35,
+    "velocityMps": {
+      "xM": 0.0,
+      "yM": 0.0,
+      "zM": 0.0
+    }
+  },
+  "rearView": {
+    "grantId": null,
+    "granted": false,
+    "grantedAtRevision": null
+  },
+  "revision": {
+    "authorityRevision": 0,
+    "serverTick": 0,
+    "worldEpoch": 1
+  },
+  "route": {
+    "currentWorldId": "grey_hive",
+    "eventSeq": 1,
+    "processedRequestIds": [
+      "formal-runtime-bootstrap-grey-hive"
+    ],
+    "progress": [
+      {
+        "completed": false,
+        "completedEvents": [],
+        "cycleId": 1,
+        "firstCompletion": false,
+        "firstMainlineResult": null,
+        "hiveChoice": "unresolved",
+        "revisitCount": 0,
+        "sentinelFirstKillRecorded": false,
+        "visitId": 1,
+        "worldId": "grey_hive"
+      },
+      {
+        "completed": false,
+        "completedEvents": [],
+        "cycleId": 1,
+        "firstCompletion": false,
+        "firstMainlineResult": null,
+        "hiveChoice": "unresolved",
+        "revisitCount": 0,
+        "sentinelFirstKillRecorded": false,
+        "visitId": 0,
+        "worldId": "mist_harbor"
+      },
+      {
+        "completed": false,
+        "completedEvents": [],
+        "cycleId": 1,
+        "firstCompletion": false,
+        "firstMainlineResult": null,
+        "hiveChoice": "unresolved",
+        "revisitCount": 0,
+        "sentinelFirstKillRecorded": false,
+        "visitId": 0,
+        "worldId": "clockworks"
+      }
+    ],
+    "rewardLedger": [],
+    "schemaVersion": 1
+  },
+  "schemaVersion": 4,
+  "sentinels": [],
+  "serverTimeMs": 0,
+  "worldId": "grey_hive"
+}

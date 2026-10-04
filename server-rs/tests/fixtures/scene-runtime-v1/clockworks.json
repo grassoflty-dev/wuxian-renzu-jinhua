@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "worldId": "clockworks",
+  "sceneId": "cw_test_exit",
+  "boundsM": { "x": 0, "z": 0, "width": 12, "depth": 12 },
+  "navigation": { "nodes": [{ "id": "cw_nav", "position": [1, 0, 1] }], "links": [] },
+  "spawns": [{ "id": "cw_spawn", "kind": "player", "entityType": null, "position": [1, 0, 1], "navNode": "cw_nav" }],
+  "interactions": [
+    { "id": "cw_valves_test", "kind": "console", "event": "clockworks_valves", "position": [1, 0, 1] },
+    { "id": "cw_core_test", "kind": "console", "event": "clockworks_core", "position": [1, 0, 2] },
+    { "id": "cw_shutdown_test", "kind": "console", "event": "console", "position": [1, 0, 3] }
+  ],
+  "triggers": [{ "id": "cw_shutdown_trigger_test", "event": "clockworks_shutdown", "polygon": [[0, 0], [2, 0], [2, 2], [0, 2]] }],
+  "logic": { "traversal": [{ "id": "cw_air_step_test", "from": [1, 0, 1], "to": [3, 0, 1], "rangeM": 1.2, "cooldownMs": 350, "requiredCapabilities": ["mobility.air_step_i"] }] }
+}

@@ -1,0 +1,578 @@
+{
+  "compressionlevel": -1,
+  "height": 16,
+  "infinite": false,
+  "layers": [
+    {
+      "id": 1,
+      "name": "visual.floor",
+      "objects": [
+        {
+          "id": 1,
+          "name": "approved_warehouse_stone_water_module",
+          "x": 384,
+          "y": 256,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.mistharbor.water_edge_stone.v1"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 2,
+      "name": "visual.props_back",
+      "objects": [
+        {
+          "id": 2,
+          "name": "warehouse_inner_fog_bank",
+          "x": 576,
+          "y": 96,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.mistharbor.fog_bank.v1"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "name": "warehouse_outer_water_edge",
+          "x": 384,
+          "y": 464,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.mistharbor.water_edge.v1"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 3,
+      "name": "visual.props_dynamic",
+      "objects": [],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 4,
+      "name": "visual.foreground",
+      "objects": [
+        {
+          "id": 8,
+          "name": "warehouse_fog_bank_foreground",
+          "x": 192,
+          "y": 384,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.mistharbor.fog_bank.v1"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 5,
+      "name": "visual.vfx_markers",
+      "objects": [
+        {
+          "id": 9,
+          "name": "warehouse_ambient_fog_marker",
+          "x": 384,
+          "y": 128,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.mistharbor.fog_vfx.v1"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 6,
+      "name": "logic.collision",
+      "objects": [
+        {
+          "id": 10,
+          "name": "warehouse_wall_north",
+          "x": 0,
+          "y": 0,
+          "width": 768,
+          "height": 16,
+          "properties": []
+        },
+        {
+          "id": 11,
+          "name": "warehouse_wall_south",
+          "x": 0,
+          "y": 496,
+          "width": 768,
+          "height": 16,
+          "properties": []
+        },
+        {
+          "id": 12,
+          "name": "warehouse_wall_west_north",
+          "x": 0,
+          "y": 16,
+          "width": 16,
+          "height": 176,
+          "properties": []
+        },
+        {
+          "id": 13,
+          "name": "warehouse_wall_west_south",
+          "x": 0,
+          "y": 304,
+          "width": 16,
+          "height": 192,
+          "properties": []
+        },
+        {
+          "name": "warehouse_wall_east_north",
+          "x": 752,
+          "y": 16,
+          "width": 16,
+          "height": 176,
+          "properties": [],
+          "id": 14
+        },
+        {
+          "name": "warehouse_wall_east_south",
+          "x": 752,
+          "y": 304,
+          "width": 16,
+          "height": 192,
+          "properties": [],
+          "id": 15
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 7,
+      "name": "logic.navigation",
+      "objects": [
+        {
+          "id": 16,
+          "name": "mh_warehouse_spawn_nav",
+          "x": 96,
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "mh_warehouse_center_nav"
+            }
+          ]
+        },
+        {
+          "id": 17,
+          "name": "mh_warehouse_center_nav",
+          "x": 384,
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "mh_warehouse_beacon_nav,mh_warehouse_east_nav"
+            }
+          ]
+        },
+        {
+          "id": 18,
+          "name": "mh_warehouse_beacon_nav",
+          "x": 544,
+          "y": 320,
+          "properties": []
+        },
+        {
+          "id": 19,
+          "name": "mh_warehouse_east_nav",
+          "x": 672,
+          "y": 256,
+          "properties": []
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 8,
+      "name": "logic.spawn",
+      "objects": [
+        {
+          "id": 20,
+          "name": "mh_warehouse_spawn",
+          "x": 96,
+          "y": 256,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "player"
+            },
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "mh_warehouse_spawn_nav"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "name": "mh_tidal_warehouse_drowned_01",
+          "x": 320,
+          "y": 288,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "enemy"
+            },
+            {
+              "name": "entityType",
+              "type": "string",
+              "value": "enemy.mist_harbor.drowned"
+            },
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "mh_warehouse_center_nav"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "name": "mh_tidal_warehouse_drowned_02",
+          "x": 448,
+          "y": 352,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "enemy"
+            },
+            {
+              "name": "entityType",
+              "type": "string",
+              "value": "enemy.mist_harbor.drowned"
+            },
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "mh_warehouse_beacon_nav"
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "name": "mh_tidal_warehouse_drowned_03",
+          "x": 576,
+          "y": 288,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "enemy"
+            },
+            {
+              "name": "entityType",
+              "type": "string",
+              "value": "enemy.mist_harbor.drowned"
+            },
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "mh_warehouse_beacon_nav"
+            }
+          ]
+        },
+        {
+          "id": 7,
+          "name": "mh_tidal_warehouse_signal_wraith_01",
+          "x": 608,
+          "y": 160,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "enemy"
+            },
+            {
+              "name": "entityType",
+              "type": "string",
+              "value": "enemy.mist_harbor.signal_wraith"
+            },
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "mh_warehouse_east_nav"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 9,
+      "name": "logic.interaction",
+      "objects": [
+        {
+          "id": 21,
+          "name": "mh_west_beacon",
+          "x": 544,
+          "y": 320,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "beacon"
+            },
+            {
+              "name": "event",
+              "type": "string",
+              "value": "mist_beacon_west"
+            }
+          ]
+        },
+        {
+          "id": 22,
+          "name": "mh_west_beacon_log_marker",
+          "x": 544,
+          "y": 352,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "beacon_caretaker_log_marker"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 10,
+      "name": "logic.checkpoint",
+      "objects": [
+        {
+          "id": 23,
+          "name": "mh_warehouse_checkpoint",
+          "x": 128,
+          "y": 256,
+          "properties": [
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "mh_warehouse_spawn_nav"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 11,
+      "name": "logic.transition",
+      "objects": [
+        {
+          "id": 24,
+          "name": "mh_warehouse_to_fog_pier",
+          "x": 0,
+          "y": 208,
+          "width": 64,
+          "height": 96,
+          "properties": [
+            {
+              "name": "toSceneId",
+              "type": "string",
+              "value": "mh_fog_pier"
+            },
+            {
+              "name": "spawnId",
+              "type": "string",
+              "value": "mh_fog_pier_spawn"
+            }
+          ]
+        },
+        {
+          "name": "mh_warehouse_to_signal_yard",
+          "x": 704,
+          "y": 208,
+          "width": 64,
+          "height": 96,
+          "properties": [
+            {
+              "name": "toSceneId",
+              "type": "string",
+              "value": "mh_signal_yard"
+            },
+            {
+              "name": "spawnId",
+              "type": "string",
+              "value": "mh_signal_yard_spawn"
+            }
+          ],
+          "id": 25
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "name": "logic.walkable",
+      "objects": [
+        {
+          "id": 26,
+          "name": "mh_tidal_warehouse_walkable_area",
+          "x": 16.0,
+          "y": 16.0,
+          "width": 736.0,
+          "height": 480.0,
+          "rotation": 0,
+          "visible": true,
+          "properties": []
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 12
+    },
+    {
+      "name": "logic.exploration",
+      "objects": [
+        {
+          "id": 27,
+          "name": "mh_tw_west_loading",
+          "x": 16.0,
+          "y": 16.0,
+          "width": 256.0,
+          "height": 480.0,
+          "rotation": 0,
+          "visible": true,
+          "properties": []
+        },
+        {
+          "id": 28,
+          "name": "mh_tw_storage_floor",
+          "x": 272.0,
+          "y": 16.0,
+          "width": 256.0,
+          "height": 480.0,
+          "rotation": 0,
+          "visible": true,
+          "properties": []
+        },
+        {
+          "id": 29,
+          "name": "mh_tw_beacon_bay",
+          "x": 528.0,
+          "y": 16.0,
+          "width": 224.0,
+          "height": 480.0,
+          "rotation": 0,
+          "visible": true,
+          "properties": []
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 13
+    }
+  ],
+  "nextlayerid": 14,
+  "nextobjectid": 30,
+  "orientation": "orthogonal",
+  "properties": [
+    {
+      "name": "worldId",
+      "type": "string",
+      "value": "mist_harbor"
+    },
+    {
+      "name": "sceneId",
+      "type": "string",
+      "value": "mh_tidal_warehouse"
+    },
+    {
+      "name": "pixelsPerMeter",
+      "type": "int",
+      "value": 32
+    },
+    {
+      "name": "cameraProfile",
+      "type": "string",
+      "value": "oblique_default"
+    }
+  ],
+  "renderorder": "right-down",
+  "tiledversion": "1.10.2",
+  "tileheight": 32,
+  "tilewidth": 32,
+  "type": "map",
+  "version": "1.10",
+  "width": 24
+}

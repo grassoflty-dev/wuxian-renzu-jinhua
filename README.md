@@ -60,7 +60,16 @@ WASD移动，鼠标瞄准，鼠标左键或J离散普攻，Shift闪避，Q Pulse
 
 ## 源码、构建与验证
 
-完整工程在Release的`wuxian-renzu-jinhua-preview.3-corresponding-source.zip`附件中，含构建工具、测试、地图、资源、依赖源码与通知，不含旧Git历史。**当前main仅有发布说明，GitHub自动生成的Source code ZIP/TAR不是完整游戏源码；源码附件不表示Git工程树迁移完成。**
+**preview.3 已审查工程已迁入本仓库的 main Git 树，共726个项目文件。** 可直接克隆仓库，浏览、构建并逐次审查代码；保留本仓库原有发布说明提交，不导入旧私有仓库历史。根README保留游戏介绍、下载说明和本次迁移说明，其余725个文件的Git blob与冻结源树一致；8个PowerShell文件按既有`.gitattributes`在Git中存LF、检出为CRLF，检出后的项目字节与公开对应源码ZIP一致。
+
+```sh
+git clone https://github.com/grassoflty-dev/wuxian-renzu-jinhua.git
+cd wuxian-renzu-jinhua
+```
+
+构建步骤见[BUILDING.md](BUILDING.md)，已知边界见[KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md)。本次迁移没有重新编译EXE，也没有改变任何已发布附件的字节或身份。preview.3 的实际构建源提交仍为`9a329697de0e90143f4d3fcf9ef47e97ea6e0f25`，规范化源树为`f720737d6d5f11bccf2bb6d659170197e2ce393c`；本仓库的托管提交沿用独立的公共历史，会有不同SHA，不能把托管提交冒充为既有EXE的构建提交。自行构建时应记录实际`git rev-parse HEAD`，构建脚本也会写入该次身份。
+
+Release的`wuxian-renzu-jinhua-preview.3-corresponding-source.zip`继续提供冻结完整对应源码包，包含项目、283份依赖源包与863份通知文件。Git树保留项目的依赖锁文件、构建工具、资源与来源清单，未把依赖源码大包、编译缓存、EXE或旧私有历史纳入Git。main的GitHub自动源码归档包含当前项目树；preview.3原有标签未移动，因此该Release下自动生成的Source code ZIP/TAR仍对应当时的README-only标签，不能代替完整对应源码附件。
 
 preview.3构建源提交为`9a329697de0e90143f4d3fcf9ef47e97ea6e0f25`。最终typecheck/生产构建、图标7项、bundle身份12项和独立原生验证12项已通过；Web754通过/4跳过来自字节相同的中间图标提交；Rust629/651与两次约1171秒长路线继承自同字节游戏基础。具体执行身份与边界见各版本`VERIFICATION.json`和`BUILDING.md`，不将自动化等同实机验收。
 

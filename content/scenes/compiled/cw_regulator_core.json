@@ -1,0 +1,436 @@
+{
+  "boundsM": {
+    "depth": 16.0,
+    "width": 24.0,
+    "x": 0,
+    "z": 0
+  },
+  "cameraZones": [],
+  "checkpoints": [
+    {
+      "id": "cw_regulator_core_checkpoint",
+      "navNode": "cw_regulator_core_spawn_nav",
+      "position": [
+        4.0,
+        0.0,
+        8.0
+      ]
+    }
+  ],
+  "collision": [
+    {
+      "id": "cw_regulator_core_wall_north",
+      "polygon": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          0.0,
+          0.5
+        ]
+      ]
+    },
+    {
+      "id": "cw_regulator_core_wall_south",
+      "polygon": [
+        [
+          0.0,
+          15.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          24.0,
+          16.0
+        ],
+        [
+          0.0,
+          16.0
+        ]
+      ]
+    },
+    {
+      "id": "cw_regulator_core_wall_west_north",
+      "polygon": [
+        [
+          0.0,
+          0.5
+        ],
+        [
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ]
+      ]
+    },
+    {
+      "id": "cw_regulator_core_wall_west_south",
+      "polygon": [
+        [
+          0.0,
+          9.5
+        ],
+        [
+          0.5,
+          9.5
+        ],
+        [
+          0.5,
+          15.5
+        ],
+        [
+          0.0,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "cw_regulator_core_wall_east_north",
+      "polygon": [
+        [
+          23.5,
+          0.5
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          24.0,
+          6.0
+        ],
+        [
+          23.5,
+          6.0
+        ]
+      ]
+    },
+    {
+      "id": "cw_regulator_core_wall_east_south",
+      "polygon": [
+        [
+          23.5,
+          9.5
+        ],
+        [
+          24.0,
+          9.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          23.5,
+          15.5
+        ]
+      ]
+    }
+  ],
+  "doors": [],
+  "hazards": [
+    {
+      "damage": 12,
+      "id": "cw_regulator_furnace_heat_zone",
+      "kind": "heat_zone",
+      "periodMs": 1000,
+      "phase": "phase2",
+      "polygon": [
+        [
+          15.5,
+          3.5
+        ],
+        [
+          20.5,
+          3.5
+        ],
+        [
+          20.5,
+          6.0
+        ],
+        [
+          15.5,
+          6.0
+        ]
+      ],
+      "warningMs": 600
+    },
+    {
+      "damage": 16,
+      "endpointHoldMs": 600,
+      "id": "cw_regulator_reciprocating_press",
+      "kind": "moving_machinery",
+      "periodMs": 750,
+      "phase": "phase3",
+      "polygon": [
+        [
+          8.0,
+          11.5
+        ],
+        [
+          10.0,
+          11.5
+        ],
+        [
+          10.0,
+          13.0
+        ],
+        [
+          8.0,
+          13.0
+        ]
+      ],
+      "speedMps": 2.0,
+      "translationM": [
+        6.0,
+        0.0
+      ],
+      "warningMs": 900
+    }
+  ],
+  "interactions": [
+    {
+      "event": "clockworks_core",
+      "id": "cw_regulator_core_console_staged",
+      "kind": "terminal",
+      "position": [
+        12.0,
+        0.0,
+        7.0
+      ],
+      "rangeM": 2.5
+    },
+    {
+      "event": null,
+      "id": "cw_regulator_boss_phases_staged",
+      "kind": "boss_phase_sequence_staged_marker",
+      "position": [
+        16.0,
+        0.0,
+        8.0
+      ]
+    },
+    {
+      "cooldownMs": 8000,
+      "event": null,
+      "id": "cw_regulator_valve_furnace_link_staged",
+      "kind": "coolant_valve",
+      "position": [
+        18.0,
+        0.0,
+        11.0
+      ],
+      "rangeM": 2.5
+    }
+  ],
+  "logic": {
+    "traversal": []
+  },
+  "navigation": {
+    "links": [
+      {
+        "from": "cw_regulator_core_spawn_nav",
+        "to": "cw_regulator_core_center_nav"
+      },
+      {
+        "from": "cw_regulator_core_center_nav",
+        "to": "cw_regulator_core_spawn_nav"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "cw_regulator_core_spawn_nav",
+        "position": [
+          3.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "cw_regulator_core_center_nav",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      }
+    ]
+  },
+  "objectives": [],
+  "occluders": [],
+  "presentation": {
+    "cameraProfile": "oblique_default",
+    "layers": [
+      {
+        "id": "visual.floor",
+        "zGroup": 0
+      },
+      {
+        "id": "visual.props_back",
+        "zGroup": 10
+      },
+      {
+        "id": "visual.props_dynamic",
+        "zGroup": 20
+      }
+    ],
+    "sprites": [
+      {
+        "assetId": "runtime2d.world.clockworks.floor_steel.v1",
+        "id": "cw_regulator_core_steel_floor",
+        "layer": "visual.floor",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.clockworks.factory_tiles.v1",
+        "id": "cw_regulator_core_factory_tiles",
+        "layer": "visual.floor",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.clockworks.pressure_pipes.v1",
+        "id": "cw_regulator_pressure_pipes",
+        "layer": "visual.props_back",
+        "position": [
+          10.0,
+          0.0,
+          4.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.clockworks.furnace.v2",
+        "id": "cw_regulator_furnace_v2",
+        "layer": "visual.props_back",
+        "position": [
+          16.0,
+          0.0,
+          6.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.clockworks.factory_tiles.v1",
+        "id": "cw_regulator_factory_module",
+        "layer": "visual.props_dynamic",
+        "position": [
+          20.0,
+          0.0,
+          11.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.clockworks.furnace.v2",
+        "id": "cw_regulator_furnace_v2_side",
+        "layer": "visual.props_dynamic",
+        "position": [
+          12.0,
+          0.0,
+          12.0
+        ]
+      }
+    ]
+  },
+  "sceneId": "cw_regulator_core",
+  "schemaVersion": 1,
+  "spawns": [
+    {
+      "entityType": null,
+      "id": "cw_regulator_core_spawn",
+      "kind": "player",
+      "navNode": "cw_regulator_core_spawn_nav",
+      "position": [
+        3.0,
+        0.0,
+        8.0
+      ]
+    },
+    {
+      "entityType": "enemy.clockworks.prime_regulator",
+      "id": "cw_prime_regulator",
+      "kind": "enemy",
+      "navNode": null,
+      "position": [
+        14.0,
+        0.0,
+        8.0
+      ]
+    }
+  ],
+  "transitions": [
+    {
+      "id": "cw_regulator_core_return_to_arena",
+      "polygon": [
+        [
+          0.5,
+          6.5
+        ],
+        [
+          2.5,
+          6.5
+        ],
+        [
+          2.5,
+          9.5
+        ],
+        [
+          0.5,
+          9.5
+        ]
+      ],
+      "spawnId": "cw_forged_guard_arena_spawn",
+      "toSceneId": "cw_forged_guard_arena"
+    },
+    {
+      "id": "cw_regulator_core_to_shutdown_exit",
+      "polygon": [
+        [
+          22.0,
+          6.5
+        ],
+        [
+          24.0,
+          6.5
+        ],
+        [
+          24.0,
+          9.5
+        ],
+        [
+          22.0,
+          9.5
+        ]
+      ],
+      "requiresEvent": "clockworks_core",
+      "spawnId": "cw_shutdown_exit_spawn",
+      "toSceneId": "cw_shutdown_exit"
+    }
+  ],
+  "triggers": [],
+  "vfxMarkers": [],
+  "worldId": "clockworks"
+}

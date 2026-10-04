@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "capabilities": {
+    "information.local_map_i": {
+      "uiCategory": "information",
+      "effects": [
+        {
+          "map_knowledge_level": {
+            "tag": "topology",
+            "level": "explored_only",
+            "stack": "max"
+          }
+        },
+        {
+          "map_knowledge_level": {
+            "tag": "terrain",
+            "level": "explored_only",
+            "stack": "max"
+          }
+        },
+        {
+          "map_knowledge_level": {
+            "tag": "connections",
+            "level": "explored_only",
+            "stack": "max"
+          }
+        },
+        {
+          "map_knowledge_level": {
+            "tag": "objectives",
+            "level": "known",
+            "stack": "max"
+          }
+        }
+      ]
+    },
+    "perception.rear_view_i": {
+      "uiCategory": "perception",
+      "effects": [
+        {
+          "perception": {
+            "tag": "rear_view",
+            "stack": "any"
+          }
+        }
+      ]
+    },
+    "information.enemy_vitals_basic": {
+      "uiCategory": "information",
+      "effects": [
+        {
+          "grant_capability": {
+            "tag": "enemy_vitals_basic",
+            "stack": "any"
+          }
+        }
+      ]
+    },
+    "body.regeneration_i": {
+      "uiCategory": "body",
+      "effects": [
+        {
+          "grant_capability": {
+            "tag": "delayed_regeneration",
+            "stack": "any"
+          }
+        }
+      ]
+    },
+    "perception.acoustic_mapping_i": {
+      "uiCategory": "perception",
+      "effects": [
+        {
+          "grant_capability": {
+            "tag": "acoustic_mapping",
+            "stack": "any"
+          }
+        }
+      ]
+    },
+    "mobility.air_step_i": {
+      "uiCategory": "mobility",
+      "effects": [
+        {
+          "grant_capability": {
+            "tag": "authored_air_step",
+            "stack": "any"
+          }
+        }
+      ]
+    }
+  }
+}

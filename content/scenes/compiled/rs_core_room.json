@@ -1,0 +1,477 @@
+{
+  "boundsM": {
+    "depth": 16.0,
+    "width": 24.0,
+    "x": 0,
+    "z": 0
+  },
+  "cameraZones": [],
+  "checkpoints": [
+    {
+      "id": "rs_core_checkpoint",
+      "navNode": "rs_core_nav_west",
+      "position": [
+        4.0,
+        0.0,
+        8.0
+      ]
+    }
+  ],
+  "collision": [
+    {
+      "id": "north_bulkhead",
+      "polygon": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          0.0,
+          0.5
+        ]
+      ]
+    },
+    {
+      "id": "south_bulkhead",
+      "polygon": [
+        [
+          0.0,
+          15.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          24.0,
+          16.0
+        ],
+        [
+          0.0,
+          16.0
+        ]
+      ]
+    },
+    {
+      "id": "west_bulkhead_north",
+      "polygon": [
+        [
+          0.0,
+          0.5
+        ],
+        [
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          5.0
+        ],
+        [
+          0.0,
+          5.0
+        ]
+      ]
+    },
+    {
+      "id": "west_bulkhead_south",
+      "polygon": [
+        [
+          0.0,
+          10.0
+        ],
+        [
+          0.5,
+          10.0
+        ],
+        [
+          0.5,
+          15.5
+        ],
+        [
+          0.0,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "east_bulkhead_north",
+      "polygon": [
+        [
+          23.5,
+          0.5
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          24.0,
+          5.0
+        ],
+        [
+          23.5,
+          5.0
+        ]
+      ]
+    },
+    {
+      "id": "east_bulkhead_south",
+      "polygon": [
+        [
+          23.5,
+          10.0
+        ],
+        [
+          24.0,
+          10.0
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          23.5,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "service_island_north",
+      "polygon": [
+        [
+          9.5,
+          6.5
+        ],
+        [
+          14.5,
+          6.5
+        ],
+        [
+          14.5,
+          7.5
+        ],
+        [
+          9.5,
+          7.5
+        ]
+      ]
+    },
+    {
+      "id": "service_island_south",
+      "polygon": [
+        [
+          9.5,
+          8.5
+        ],
+        [
+          14.5,
+          8.5
+        ],
+        [
+          14.5,
+          9.5
+        ],
+        [
+          9.5,
+          9.5
+        ]
+      ]
+    }
+  ],
+  "doors": [],
+  "hazards": [],
+  "interactions": [
+    {
+      "event": null,
+      "id": "rs_world_gate_marker",
+      "kind": "world_gate_marker",
+      "position": [
+        20.0,
+        0.0,
+        8.0
+      ]
+    },
+    {
+      "event": null,
+      "id": "rs_mh_world_gate_marker",
+      "kind": "world_gate_marker",
+      "position": [
+        20.0,
+        0.0,
+        12.0
+      ]
+    },
+    {
+      "event": null,
+      "id": "rs_cw_world_gate_marker",
+      "kind": "world_gate_marker",
+      "position": [
+        20.0,
+        0.0,
+        4.0
+      ]
+    },
+    {
+      "event": null,
+      "id": "rs_gh_entry_marker",
+      "kind": "grey_hive_entry_marker",
+      "position": [
+        21.0,
+        0.0,
+        8.0
+      ]
+    },
+    {
+      "event": null,
+      "id": "rs_mission_terminal_marker",
+      "kind": "mission_terminal_marker",
+      "position": [
+        8.0,
+        0.0,
+        4.0
+      ]
+    },
+    {
+      "event": null,
+      "id": "rs_capability_terminal_marker",
+      "kind": "capability_terminal_marker",
+      "position": [
+        15.0,
+        0.0,
+        4.0
+      ]
+    },
+    {
+      "event": null,
+      "id": "rs_save_rest_terminal_marker",
+      "kind": "save_rest_terminal_marker",
+      "position": [
+        8.0,
+        0.0,
+        12.0
+      ]
+    },
+    {
+      "event": null,
+      "id": "rs_storage_inventory_marker",
+      "kind": "storage_inventory_marker",
+      "position": [
+        15.0,
+        0.0,
+        12.0
+      ]
+    }
+  ],
+  "logic": {
+    "traversal": []
+  },
+  "navigation": {
+    "links": [
+      {
+        "from": "rs_core_nav_west",
+        "to": "rs_core_nav_center"
+      },
+      {
+        "from": "rs_core_nav_center",
+        "to": "rs_core_nav_north"
+      },
+      {
+        "from": "rs_core_nav_center",
+        "to": "rs_core_nav_south"
+      },
+      {
+        "from": "rs_core_nav_center",
+        "to": "rs_core_nav_gate"
+      },
+      {
+        "from": "rs_core_nav_north",
+        "to": "rs_core_nav_gate"
+      },
+      {
+        "from": "rs_core_nav_south",
+        "to": "rs_core_nav_gate"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "rs_core_nav_west",
+        "position": [
+          4.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "rs_core_nav_center",
+        "position": [
+          10.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "rs_core_nav_north",
+        "position": [
+          10.0,
+          0.0,
+          3.5
+        ]
+      },
+      {
+        "id": "rs_core_nav_south",
+        "position": [
+          10.0,
+          0.0,
+          12.5
+        ]
+      },
+      {
+        "id": "rs_core_nav_gate",
+        "position": [
+          20.0,
+          0.0,
+          8.0
+        ]
+      }
+    ]
+  },
+  "objectives": [],
+  "occluders": [],
+  "presentation": {
+    "cameraProfile": "facility_oblique",
+    "layers": [
+      {
+        "id": "visual.floor",
+        "zGroup": 0
+      },
+      {
+        "id": "visual.floor_detail",
+        "zGroup": 10
+      },
+      {
+        "id": "visual.props_back",
+        "zGroup": 20
+      }
+    ],
+    "sprites": [
+      {
+        "assetId": "runtime2d.grey_hive.floor_tiles.v1",
+        "id": "approved_gh_floor_tiles",
+        "layer": "visual.floor",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.clutter.v1",
+        "id": "approved_floor_detail",
+        "layer": "visual.floor_detail",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.wall_tiles.v1",
+        "id": "approved_facility_walls",
+        "layer": "visual.props_back",
+        "position": [
+          1.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.pipes_cables.v1",
+        "id": "approved_facility_pipes",
+        "layer": "visual.props_back",
+        "position": [
+          10.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.returnstation.terminals.v1",
+        "id": "world_gate_terminal_art",
+        "layer": "visual.props_back",
+        "position": [
+          20.0,
+          0.0,
+          6.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.returnstation.terminal.v1",
+        "id": "mission_terminal_art",
+        "layer": "visual.props_back",
+        "position": [
+          8.0,
+          0.0,
+          4.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.returnstation.terminal.v1",
+        "id": "capability_terminal_art",
+        "layer": "visual.props_back",
+        "position": [
+          15.0,
+          0.0,
+          4.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.returnstation.terminals.v1",
+        "id": "save_rest_terminal_art",
+        "layer": "visual.props_back",
+        "position": [
+          8.0,
+          0.0,
+          11.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.returnstation.terminal.v1",
+        "id": "storage_terminal_art",
+        "layer": "visual.props_back",
+        "position": [
+          15.0,
+          0.0,
+          11.0
+        ]
+      }
+    ]
+  },
+  "sceneId": "rs_core_room",
+  "schemaVersion": 1,
+  "spawns": [
+    {
+      "entityType": null,
+      "id": "rs_core_spawn",
+      "kind": "player",
+      "navNode": "rs_core_nav_west",
+      "position": [
+        4.0,
+        0.0,
+        8.0
+      ]
+    }
+  ],
+  "transitions": [],
+  "triggers": [],
+  "vfxMarkers": [],
+  "worldId": "return_station"
+}

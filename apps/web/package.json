@@ -1,0 +1,19 @@
+{
+  "name": "wuxian-2d5-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "build": "npm run typecheck && vite build",
+    "test": "tsc -p tsconfig.json && node --test tests/*.mjs"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.11.1",
+    "pixi.js": "8.21.0"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vite": "^8.3.1"
+  }
+}

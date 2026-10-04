@@ -1,0 +1,338 @@
+{
+  "boundsM": {
+    "depth": 16.0,
+    "width": 24.0,
+    "x": 0,
+    "z": 0
+  },
+  "cameraZones": [],
+  "checkpoints": [
+    {
+      "id": "cw_shutdown_exit_checkpoint",
+      "navNode": "cw_shutdown_exit_spawn_nav",
+      "position": [
+        4.0,
+        0.0,
+        8.0
+      ]
+    }
+  ],
+  "collision": [
+    {
+      "id": "cw_shutdown_wall_north",
+      "polygon": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          0.0,
+          0.5
+        ]
+      ]
+    },
+    {
+      "id": "cw_shutdown_wall_south",
+      "polygon": [
+        [
+          0.0,
+          15.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          24.0,
+          16.0
+        ],
+        [
+          0.0,
+          16.0
+        ]
+      ]
+    },
+    {
+      "id": "cw_shutdown_wall_west_north",
+      "polygon": [
+        [
+          0.0,
+          0.5
+        ],
+        [
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ]
+      ]
+    },
+    {
+      "id": "cw_shutdown_wall_west_south",
+      "polygon": [
+        [
+          0.0,
+          9.5
+        ],
+        [
+          0.5,
+          9.5
+        ],
+        [
+          0.5,
+          15.5
+        ],
+        [
+          0.0,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "cw_shutdown_wall_east",
+      "polygon": [
+        [
+          23.5,
+          0.5
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          23.5,
+          15.5
+        ]
+      ]
+    }
+  ],
+  "doors": [],
+  "hazards": [],
+  "interactions": [
+    {
+      "event": "clockworks_shutdown",
+      "id": "cw_master_shutdown_staged",
+      "kind": "terminal",
+      "position": [
+        8.0,
+        0.0,
+        6.0
+      ]
+    },
+    {
+      "event": null,
+      "id": "cw_air_step_grant_staged",
+      "kind": "air_step_grant_staged_marker",
+      "position": [
+        12.0,
+        0.0,
+        6.0
+      ]
+    },
+    {
+      "event": null,
+      "id": "cw_shutdown_exit_portal_staged",
+      "kind": "exit_portal_staged_marker",
+      "position": [
+        20.0,
+        0.0,
+        8.0
+      ]
+    },
+    {
+      "event": null,
+      "id": "cw_world_completion_staged",
+      "kind": "world_completion_staged_marker",
+      "position": [
+        16.0,
+        0.0,
+        10.0
+      ]
+    },
+    {
+      "event": null,
+      "id": "cw_optional_drone_wave_staged",
+      "kind": "optional_enemy_wave_staged_marker",
+      "position": [
+        16.0,
+        0.0,
+        12.0
+      ]
+    },
+    {
+      "event": null,
+      "id": "cw_cy_end_01_static_epilogue_marker",
+      "kind": "static_epilogue_dialogue_marker",
+      "position": [
+        12.0,
+        0.0,
+        12.0
+      ]
+    }
+  ],
+  "logic": {
+    "traversal": []
+  },
+  "navigation": {
+    "links": [
+      {
+        "from": "cw_shutdown_exit_spawn_nav",
+        "to": "cw_shutdown_exit_center_nav"
+      },
+      {
+        "from": "cw_shutdown_exit_center_nav",
+        "to": "cw_shutdown_exit_spawn_nav"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "cw_shutdown_exit_spawn_nav",
+        "position": [
+          3.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "cw_shutdown_exit_center_nav",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      }
+    ]
+  },
+  "objectives": [],
+  "occluders": [],
+  "presentation": {
+    "cameraProfile": "oblique_default",
+    "layers": [
+      {
+        "id": "visual.floor",
+        "zGroup": 0
+      },
+      {
+        "id": "visual.props_back",
+        "zGroup": 10
+      },
+      {
+        "id": "visual.props_dynamic",
+        "zGroup": 20
+      }
+    ],
+    "sprites": [
+      {
+        "assetId": "runtime2d.world.clockworks.floor_steel.v1",
+        "id": "cw_shutdown_exit_steel_floor",
+        "layer": "visual.floor",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.clockworks.factory_tiles.v1",
+        "id": "cw_shutdown_exit_factory_tiles",
+        "layer": "visual.floor",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.clockworks.factory_tiles.v1",
+        "id": "cw_shutdown_exit_factory_module",
+        "layer": "visual.props_back",
+        "position": [
+          12.0,
+          0.0,
+          4.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.clockworks.pressure_pipes.v1",
+        "id": "cw_shutdown_exit_pressure_pipes",
+        "layer": "visual.props_back",
+        "position": [
+          18.0,
+          0.0,
+          4.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.clockworks.factory_tiles.v1",
+        "id": "cw_shutdown_exit_factory_module_side",
+        "layer": "visual.props_dynamic",
+        "position": [
+          18.0,
+          0.0,
+          12.0
+        ]
+      }
+    ]
+  },
+  "sceneId": "cw_shutdown_exit",
+  "schemaVersion": 1,
+  "spawns": [
+    {
+      "entityType": null,
+      "id": "cw_shutdown_exit_spawn",
+      "kind": "player",
+      "navNode": "cw_shutdown_exit_spawn_nav",
+      "position": [
+        3.0,
+        0.0,
+        8.0
+      ]
+    }
+  ],
+  "transitions": [
+    {
+      "id": "cw_shutdown_exit_return_to_regulator_core",
+      "polygon": [
+        [
+          0.5,
+          6.5
+        ],
+        [
+          2.5,
+          6.5
+        ],
+        [
+          2.5,
+          9.5
+        ],
+        [
+          0.5,
+          9.5
+        ]
+      ],
+      "spawnId": "cw_regulator_core_spawn",
+      "toSceneId": "cw_regulator_core"
+    }
+  ],
+  "triggers": [],
+  "vfxMarkers": [],
+  "worldId": "clockworks"
+}

@@ -1,0 +1,380 @@
+{
+  "boundsM": {
+    "depth": 16.0,
+    "width": 24.0,
+    "x": 0,
+    "z": 0
+  },
+  "cameraZones": [],
+  "checkpoints": [],
+  "collision": [
+    {
+      "id": "gh_bio_isolation_wall_north",
+      "polygon": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          0.0,
+          0.5
+        ]
+      ]
+    },
+    {
+      "id": "gh_bio_isolation_wall_south",
+      "polygon": [
+        [
+          0.0,
+          15.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          24.0,
+          16.0
+        ],
+        [
+          0.0,
+          16.0
+        ]
+      ]
+    },
+    {
+      "id": "gh_bio_isolation_wall_west_north",
+      "polygon": [
+        [
+          0.0,
+          0.5
+        ],
+        [
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          6.5
+        ],
+        [
+          0.0,
+          6.5
+        ]
+      ]
+    },
+    {
+      "id": "gh_bio_isolation_wall_west_south",
+      "polygon": [
+        [
+          0.0,
+          9.5
+        ],
+        [
+          0.5,
+          9.5
+        ],
+        [
+          0.5,
+          15.5
+        ],
+        [
+          0.0,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "gh_bio_isolation_wall_east_north",
+      "polygon": [
+        [
+          23.5,
+          0.5
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          24.0,
+          6.5
+        ],
+        [
+          23.5,
+          6.5
+        ]
+      ]
+    },
+    {
+      "id": "gh_bio_isolation_wall_east_south",
+      "polygon": [
+        [
+          23.5,
+          9.5
+        ],
+        [
+          24.0,
+          9.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          23.5,
+          15.5
+        ]
+      ]
+    }
+  ],
+  "doors": [],
+  "hazards": [],
+  "interactions": [
+    {
+      "event": null,
+      "id": "gh_bio_log_terminal",
+      "kind": "bio_log_terminal",
+      "position": [
+        20.0,
+        0.0,
+        8.0
+      ]
+    }
+  ],
+  "logic": {
+    "traversal": []
+  },
+  "navigation": {
+    "links": [
+      {
+        "from": "gh_bio_isolation_spawn_nav",
+        "to": "gh_bio_isolation_mid_nav"
+      },
+      {
+        "from": "gh_bio_isolation_mid_nav",
+        "to": "gh_bio_isolation_exit_nav"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "gh_bio_isolation_spawn_nav",
+        "position": [
+          2.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "gh_bio_isolation_mid_nav",
+        "position": [
+          8.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "gh_bio_isolation_exit_nav",
+        "position": [
+          20.0,
+          0.0,
+          8.0
+        ]
+      }
+    ]
+  },
+  "objectives": [],
+  "occluders": [],
+  "presentation": {
+    "cameraProfile": "oblique_default",
+    "layers": [
+      {
+        "id": "visual.floor",
+        "zGroup": 0
+      },
+      {
+        "id": "visual.props_back",
+        "zGroup": 10
+      },
+      {
+        "id": "visual.props_dynamic",
+        "zGroup": 20
+      }
+    ],
+    "sprites": [
+      {
+        "assetId": "runtime2d.grey_hive.floor_tiles.v1",
+        "id": "approved_floor",
+        "layer": "visual.floor",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.wall_tiles.v1",
+        "id": "bio_wall_reuse",
+        "layer": "visual.props_back",
+        "position": [
+          12.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.pipes_cables.v1",
+        "id": "bio_service_pipes",
+        "layer": "visual.props_back",
+        "position": [
+          8.0,
+          0.0,
+          3.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.clutter.v1",
+        "id": "bio_approved_clutter",
+        "layer": "visual.props_back",
+        "position": [
+          5.0,
+          0.0,
+          11.5
+        ]
+      },
+      {
+        "assetId": "runtime2d.prop.supply_crates.v1",
+        "id": "bio_supply_crates",
+        "layer": "visual.props_back",
+        "position": [
+          18.0,
+          0.0,
+          11.5
+        ]
+      },
+      {
+        "assetId": "runtime2d.prop.bio_pod.v1",
+        "id": "bio_pod_approved",
+        "layer": "visual.props_dynamic",
+        "position": [
+          8.0,
+          0.0,
+          7.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.prop.medical_station.v1",
+        "id": "medical_station_approved",
+        "layer": "visual.props_dynamic",
+        "position": [
+          16.0,
+          0.0,
+          5.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.prop.lockdown_terminal.v1",
+        "id": "bio_log_terminal_approved",
+        "layer": "visual.props_dynamic",
+        "position": [
+          20.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.enemy.infected_security.v1",
+        "id": "bio_security_01_visual",
+        "layer": "visual.props_dynamic",
+        "position": [
+          14.0,
+          0.0,
+          4.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.enemy.infected_security.v1",
+        "id": "bio_security_02_visual",
+        "layer": "visual.props_dynamic",
+        "position": [
+          17.0,
+          0.0,
+          12.0
+        ]
+      }
+    ]
+  },
+  "sceneId": "gh_bio_isolation",
+  "schemaVersion": 1,
+  "spawns": [
+    {
+      "entityType": null,
+      "id": "gh_bio_isolation_spawn",
+      "kind": "player",
+      "navNode": "gh_bio_isolation_spawn_nav",
+      "position": [
+        2.0,
+        0.0,
+        8.0
+      ]
+    },
+    {
+      "entityType": "grey_hive.infected_security",
+      "id": "gh_bio_security_01",
+      "kind": "enemy",
+      "navNode": "gh_bio_isolation_mid_nav",
+      "position": [
+        14.0,
+        0.0,
+        4.0
+      ]
+    },
+    {
+      "entityType": "grey_hive.infected_security",
+      "id": "gh_bio_security_02",
+      "kind": "enemy",
+      "navNode": "gh_bio_isolation_exit_nav",
+      "position": [
+        17.0,
+        0.0,
+        12.0
+      ]
+    }
+  ],
+  "transitions": [
+    {
+      "id": "gh_bio_to_gate_b",
+      "polygon": [
+        [
+          22.0,
+          7.0
+        ],
+        [
+          24.0,
+          7.0
+        ],
+        [
+          24.0,
+          9.0
+        ],
+        [
+          22.0,
+          9.0
+        ]
+      ],
+      "requiresEvent": "hive_lockdown",
+      "spawnId": "gh_gate_b_spawn",
+      "toSceneId": "gh_gate_b"
+    }
+  ],
+  "triggers": [],
+  "vfxMarkers": [],
+  "worldId": "grey_hive"
+}

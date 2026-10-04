@@ -1,0 +1,1 @@
+declare const __SCENE_DEFINITION_MANIFEST_SHA256__: string;

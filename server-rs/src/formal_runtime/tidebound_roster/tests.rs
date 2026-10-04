@@ -1,0 +1,66 @@
+//! Arranged historical-save/receipt fixtures, separate from genuine campaign proof.
+use super::*;
+use crate::formal_runtime::entry_test_support::acknowledge_ready;
+use crate::save_v6::SaveV6;
+use crate::world_v3::{ActorAiState,ActorAttackKind,ActorRuntimeEvent,OrdinaryTerrainVariant};
+fn fixture(scene:&str)->FormalRuntime{
+    let root=std::env::temp_dir().join(format!("tide-roster-{}-{}",std::process::id(),std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+    let r=FormalRuntime::new_with_save_dir(root).unwrap();r.pause().unwrap();r.stop_owner.store(true,Ordering::SeqCst);r.owner_handle.lock().unwrap().take().unwrap().join().unwrap();crate::production_scene_bootstrap::install(&r).unwrap();let registry=r.scene_registry.lock().unwrap().clone().unwrap();r.install_scene_registry(registry,scene).unwrap();
+    // Arrange a coherent historical MH save context, not earned campaign progress.
+    {let mut state=r.state.lock().unwrap();state.route.current_world_id="mist_harbor".into();state.route.progress.iter_mut().find(|p|p.world_id=="mist_harbor").unwrap().visit_id=1;}
+    r
+}
+fn capture(r:&FormalRuntime)->SaveV6{SaveV6::capture(&r.state.lock().unwrap(),r.scene_runtime.lock().unwrap().as_ref()).unwrap()}
+fn actors(r:&FormalRuntime)->Vec<ActorRuntime>{r.state.lock().unwrap().world.generic_actors.clone()}
+// Wraith's later controller admission cancels only historical melee AI while
+// preserving all actor identity/HP/position and Tidebound assertions below.
+fn current_wraith(a:&ActorRuntime)->ActorRuntime{
+    if a.entity_type!=signal_wraith_roster::WRAITH||a.controller_variant==1{return a.clone();}
+    let mut n=ActorRuntime::spawn_with_controller_variant(&a.entity_id,&a.entity_type,a.home_m,1).unwrap();
+    n.position_m=a.position_m;n.hp=a.hp;n.attack_serial=a.attack_serial;
+    if a.hp==0{n.state=ActorAiState::Dead;}n
+}
+fn drain(r:&FormalRuntime){let mut s=r.state.lock().unwrap();s.world_persistent_v1.mist_harbor.pump.start("mist_harbor",true,0).unwrap();s.world_persistent_v1.resolve_at(6000).unwrap();let p=s.world_persistent_v1.clone();s.kcc.map_terrain_tags(|id,tag|p.resolve_terrain_tag("mist_harbor",id,tag));}
+#[test]
+fn four_authored_tidebound_preserve_old_rosters_and_only_quay_has_frozen_water(){
+    let mut count=0;for scene in SCENES{let r=fixture(scene);let save=capture(&r);assert_eq!(save.world_persistent_v1.mist_harbor.tidebound_actor_roster_version,1);assert_eq!(save.save.generic_actors,authored(&canonical(scene).unwrap()).unwrap().iter().map(current_wraith).collect::<Vec<_>>());let state=r.state.lock().unwrap();
+        for a in state.world.generic_actors.iter().filter(|a|a.entity_type==TIDEBOUND){count+=1;assert!(state.kcc.can_occupy(a.home_m,0.4));assert_eq!(state.kcc.intersects_terrain_at(a.position_m,0.4,&[crate::effects::TerrainTag::WaterShallow]),scene=="mh_drowned_quay");assert!(a.view().members.is_none());assert!(!serde_json::to_string(&a.view()).unwrap().contains("Hp"));}
+    }assert_eq!(count,4);let other=fixture("mh_pump_station");assert_eq!(capture(&other).world_persistent_v1.mist_harbor.tidebound_actor_roster_version,0);
+}
+#[test]
+fn old_rows_empty_and_already_current_files_and_slots_upgrade_without_touching_pump_or_exploration(){
+    for scene in SCENES{for mode in ["old","empty","current"]{let r=fixture(scene);drain(&r);let mut old=capture(&r);old.world_persistent_v1.mist_harbor.tidebound_actor_roster_version=0;old.world_persistent_v1.mark_explored("mh_dq_flooded_channel").unwrap();if mode=="old"{old.save.generic_actors.truncate(old_count(scene));for a in &mut old.save.generic_actors{if a.entity_type==signal_wraith_roster::WRAITH{*a=ActorRuntime::spawn(&a.entity_id,&a.entity_type,a.home_m).unwrap();old.world_persistent_v1.mist_harbor.signal_wraith_controller_version=0;}a.hp-=7;a.state=ActorAiState::Chasing;a.position_m.x_m+=0.1;}}if mode=="empty"{old.save.generic_actors.clear();old.world_persistent_v1.mist_harbor.signal_wraith_controller_version=0;}
+        crate::save_v6::write_save(&r.save_root,&old).unwrap();crate::save_slots::create_slot_v6(&r.save_root,"old","Old",&old).unwrap();let path=crate::save_v6::save_path(&r.save_root);let slot=r.save_root.join("slots/old/slot-v6.json");let bytes=std::fs::read(&path).unwrap();let slot_bytes=std::fs::read(&slot).unwrap();let mut epoch=r.snapshot().unwrap().world_epoch;
+        for use_slot in [false,false,true]{let view=if use_slot{r.continue_slot("old").unwrap()}else{r.continue_saved().unwrap()};assert!(r.state.lock().unwrap().paused&&view.entry_token.is_some());assert!(view.world_epoch>epoch);epoch=view.world_epoch;let loaded=capture(&r);assert_eq!(&loaded.save.generic_actors[..old.save.generic_actors.len()],old.save.generic_actors.iter().map(current_wraith).collect::<Vec<_>>().as_slice());assert_eq!(loaded.save.progression,old.save.progression);let mut expected=old.world_persistent_v1.clone();expected.mist_harbor.tidebound_actor_roster_version=1;if scene!="mh_drowned_quay"{expected.mist_harbor.signal_wraith_controller_version=1;}assert_eq!(loaded.world_persistent_v1,expected);acknowledge_ready(&r,view);assert_eq!(std::fs::read(&path).unwrap(),bytes);assert_eq!(std::fs::read(&slot).unwrap(),slot_bytes);}
+    }}
+}
+#[test]
+fn malformed_current_rosters_identity_and_phase_reject_write_and_continue_atomically(){
+    for scene in SCENES{for fault in ["missing","empty","extra","duplicate","type","old-home","new-home","variant","version"]{let r=fixture(scene);r.save().unwrap();r.save_slot("current","Current",true).unwrap();let path=crate::save_v6::save_path(&r.save_root);let slot_path=r.save_root.join("slots/current/slot-v6.json");let bytes=std::fs::read(&path).unwrap();let slot_bytes=std::fs::read(&slot_path).unwrap();let mut bad=capture(&r);let i=old_count(scene);
+        match fault{"missing"=>{bad.save.generic_actors.pop();},"empty"=>bad.save.generic_actors.clear(),"extra"=>{let mut a=bad.save.generic_actors[i].clone();a.entity_id.push_str("_extra");bad.save.generic_actors.push(a);},"duplicate"=>bad.save.generic_actors[i]=bad.save.generic_actors[0].clone(),"type"=>{let a=&bad.save.generic_actors[i];bad.save.generic_actors[i]=ActorRuntime::spawn(&a.entity_id,"enemy.grey_hive.brute",a.home_m).unwrap();},"old-home"=>bad.save.generic_actors[0].home_m.x_m+=0.1,"new-home"=>bad.save.generic_actors[i].home_m.x_m+=0.1,"variant"=>bad.save.generic_actors[i].ordinary.as_mut().unwrap().terrain_variant=Some(OrdinaryTerrainVariant::Terrain),"version"=>bad.world_persistent_v1.mist_harbor.tidebound_actor_roster_version=2,_=>unreachable!()}
+        assert!(crate::save_v6::write_save(&r.save_root,&bad).is_err(),"{scene}:{fault}");assert!(crate::save_slots::overwrite_slot_v6(&r.save_root,"current","Bad",&bad).is_err());assert_eq!(std::fs::read(&path).unwrap(),bytes);assert_eq!(std::fs::read(&slot_path).unwrap(),slot_bytes);let raw=serde_json::to_vec(&bad).unwrap();std::fs::write(&path,&raw).unwrap();let mut slot:serde_json::Value=serde_json::from_slice(&slot_bytes).unwrap();slot["save"]=serde_json::to_value(&bad).unwrap();let slot_raw=serde_json::to_vec(&slot).unwrap();std::fs::write(&slot_path,&slot_raw).unwrap();let before=r.snapshot().unwrap();let before_actors=actors(&r);assert!(r.continue_saved().is_err());assert!(r.continue_slot("current").is_err());assert_eq!(r.snapshot().unwrap(),before);assert_eq!(actors(&r),before_actors);assert_eq!(std::fs::read(&path).unwrap(),raw);assert_eq!(std::fs::read(&slot_path).unwrap(),slot_raw);
+    }}
+}
+#[test]
+fn current_damaged_and_dead_tidebound_and_unrelated_mh_state_survive_continue(){
+    for scene in SCENES{for dead in [false,true]{let r=fixture(scene);let i=old_count(scene);r.state.lock().unwrap().world.generic_actors[i].take_damage_with_stagger(if dead{u32::MAX}else{9},25);let before=actors(&r);r.save().unwrap();let view=r.continue_saved().unwrap();assert_eq!(actors(&r),before);assert!(!r.presentation_events_since(view.world_epoch,0).unwrap().iter().any(|e|e.kind=="EnemyDeath"));acknowledge_ready(&r,view);}}
+    for scene in ["mh_fog_pier","mh_pump_station","mh_warden_arena"]{let r=fixture(scene);r.state.lock().unwrap().world_persistent_v1.mist_harbor.tidebound_actor_roster_version=1;r.save().unwrap();let old=capture(&r);acknowledge_ready(&r,r.continue_saved().unwrap());let new=capture(&r);assert_eq!(new.save.generic_actors,old.save.generic_actors);assert_eq!(new.world_persistent_v1,old.world_persistent_v1);}
+}
+fn phase(r:&FormalRuntime,kind:ActorAttackKind,active:bool)->ActorRuntime{let mut state=r.state.lock().unwrap();let i=old_count(&state.world.scene_id);let kcc=state.kcc.clone();let a=&mut state.world.generic_actors[i];let target=Vec3::new(a.position_m.x_m+if kind==ActorAttackKind::Swing{1.0}else{3.0},0.0,a.position_m.z_m).unwrap();for _ in 0..180{if a.state==if active{ActorAiState::Active}else{ActorAiState::Windup}{break;}a.tick(target,&kcc,1.0/60.0,false);}assert_eq!(a.current_attack,Some(kind));if !active{a.state_remaining_ms=1;}assert!(a.validate());a.clone()}
+#[test]
+fn saved_wet_and_normal_swing_charge_geometry_is_present_before_ready_even_after_drain(){
+    for wet in [false,true]{for (kind,active)in [(ActorAttackKind::Swing,false),(ActorAttackKind::Charge,false),(ActorAttackKind::Charge,true)]{let r=fixture("mh_drowned_quay");if !wet{drain(&r);}let expected=phase(&r,kind,active);if wet{drain(&r);}r.save().unwrap();let view=r.continue_saved().unwrap();assert!(r.state.lock().unwrap().paused&&view.entry_token.is_some());assert_eq!(actors(&r)[4],expected);assert_eq!(r.state.lock().unwrap().kcc.terrain_tag(crate::world_persistent_v1::DROWNED_QUAY_WATER_ID),Some(crate::effects::TerrainTag::WetFloor));
+        let rows=r.presentation_events_since(view.world_epoch,0).unwrap();let cue=rows.iter().find(|e|e.actor_id.as_deref()==Some(&expected.entity_id)&&e.attack_kind.is_some()).unwrap();assert_eq!(cue.kind,if active{"EnemyChargeMotion"}else{"EnemyAttackTelegraph"});assert_eq!(cue.direction_rad,std::f32::consts::FRAC_PI_2);assert!(cue.duration_ms.unwrap()>0);
+        if kind==ActorAttackKind::Swing{assert_eq!(cue.attack_kind.as_deref(),Some("tide_swing"));assert_eq!(cue.radius_m,if wet{2.2}else{1.4});assert_eq!(cue.range_m,Some(if wet{2.2}else{1.4}));assert_eq!(cue.half_angle_rad,Some(0.8));}else{assert_eq!(cue.attack_kind.as_deref(),Some("tide_charge"));assert_eq!(cue.radius_m,if wet{0.55}else{0.45});assert!((cue.range_m.unwrap()-if wet{3.85}else{2.365}).abs()<0.0001);assert_eq!(cue.half_angle_rad,None);}
+        if active{assert_eq!(expected.ordinary.as_ref().unwrap().active.as_ref().unwrap().elapsed_ms,0);assert_eq!(cue.position_m,expected.position_m);}acknowledge_ready(&r,view);assert_eq!(actors(&r)[4],expected);
+    }}
+}
+#[test]
+fn recovered_wet_impact_uses_receipt_geometry_and_missing_or_nonfinite_geometry_is_rejected(){
+    let r=fixture("mh_drowned_quay");phase(&r,ActorAttackKind::Swing,false);let scene=r.scene_runtime.lock().unwrap().clone().unwrap();let mut state=r.state.lock().unwrap();let kcc=state.kcc.clone();let a=&mut state.world.generic_actors[4];let target=Vec3::new(a.position_m.x_m+1.8,0.,a.position_m.z_m).unwrap();let events=a.tick(target,&kcc,1.0/60.0,false).events;assert_eq!(a.state,ActorAiState::Cooldown);assert_eq!(a.ordinary.as_ref().unwrap().terrain_variant,None);ordinary_enemy_presentation::present_events(&mut state,Some(&scene),&events);let cue=state.presentation_events.last().unwrap();assert_eq!(cue.kind,"EnemyAttackImpact");assert_eq!(cue.attack_kind.as_deref(),Some("tide_swing"));assert_eq!(cue.radius_m,2.2);assert_eq!(cue.range_m,Some(2.2));assert_eq!(cue.half_angle_rad,Some(0.8));assert_eq!(cue.direction_rad,std::f32::consts::FRAC_PI_2);
+    let captured=events.iter().find(|e|matches!(e,ActorRuntimeEvent::AttackImpact{..})).unwrap();for bad in ["missing","missing-angle","nan"]{let mut event=captured.clone();if let ActorRuntimeEvent::AttackImpact{geometry,..}=&mut event{if bad=="missing"{*geometry=None}else if bad=="missing-angle"{geometry.as_mut().unwrap().half_angle_rad=None}else{geometry.as_mut().unwrap().half_angle_rad=Some(f32::NAN);}}let before=state.next_presentation_event_id;ordinary_enemy_presentation::present_events(&mut state,Some(&scene),&[event]);assert_eq!(state.next_presentation_event_id,before);}
+}
+#[test]
+fn late_readiness_failure_does_not_leak_tidebound_upgrade_or_write_source(){
+    for scene in SCENES{let source=fixture(scene);let mut old=capture(&source);old.world_persistent_v1.mist_harbor.tidebound_actor_roster_version=0;old.save.generic_actors.truncate(old_count(scene));let r=fixture("mh_fog_pier");crate::save_v6::write_save(&r.save_root,&old).unwrap();let path=crate::save_v6::save_path(&r.save_root);let bytes=std::fs::read(&path).unwrap();r.state.lock().unwrap().entry_generation=build_ui::MAX_SAFE_REVISION;let before=r.snapshot().unwrap();let saved=capture(&r);assert_eq!(r.continue_saved().unwrap_err(),"E_SCENE_ENTRY_GENERATION_EXHAUSTED");assert_eq!(r.snapshot().unwrap(),before);assert_eq!(capture(&r),saved);assert_eq!(std::fs::read(&path).unwrap(),bytes);r.state.lock().unwrap().entry_generation=0;let view=r.continue_saved().unwrap();assert!(view.entry_token.is_some());assert_eq!(capture(&r).world_persistent_v1.mist_harbor.tidebound_actor_roster_version,1);acknowledge_ready(&r,view);assert_eq!(std::fs::read(&path).unwrap(),bytes);}
+}

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "worldId": "mist_harbor",
+  "sceneId": "mh_test_beacons",
+  "boundsM": { "x": 0, "z": 0, "width": 12, "depth": 12 },
+  "navigation": { "nodes": [{ "id": "mh_nav", "position": [1, 0, 1] }], "links": [] },
+  "spawns": [{ "id": "mh_spawn", "kind": "player", "entityType": null, "position": [1, 0, 1], "navNode": "mh_nav" }],
+  "interactions": [
+    { "id": "mh_west_test", "kind": "beacon", "event": "mist_beacon_west", "position": [1, 0, 1] },
+    { "id": "mh_east_test", "kind": "beacon", "event": "mist_beacon_east", "position": [1, 0, 2] },
+    { "id": "mh_signal_test", "kind": "console", "event": "mist_signal", "position": [1, 0, 3] }
+  ],
+  "transitions": [{ "id": "mh_to_hub", "toSceneId": "rs_test_hub", "spawnId": "rs_spawn", "polygon": [[0, 0], [2, 0], [2, 2], [0, 2]] }]
+}

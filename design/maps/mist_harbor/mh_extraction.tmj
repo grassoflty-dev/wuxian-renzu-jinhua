@@ -1,0 +1,424 @@
+{
+  "compressionlevel": -1,
+  "height": 16,
+  "infinite": false,
+  "layers": [
+    {
+      "name": "visual.floor",
+      "objects": [
+        {
+          "name": "approved_extraction_stone_water_module",
+          "x": 384,
+          "y": 256,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.mistharbor.water_edge_stone.v1"
+            }
+          ],
+          "id": 1
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 1
+    },
+    {
+      "name": "visual.props_back",
+      "objects": [
+        {
+          "name": "extraction_outer_water_edge",
+          "x": 384,
+          "y": 464,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.mistharbor.water_edge.v1"
+            }
+          ],
+          "id": 2
+        },
+        {
+          "name": "extraction_fog_bank",
+          "x": 576,
+          "y": 96,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.mistharbor.fog_bank.v1"
+            }
+          ],
+          "id": 3
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 2
+    },
+    {
+      "name": "visual.vfx_markers",
+      "objects": [
+        {
+          "name": "extraction_ambient_fog",
+          "x": 320,
+          "y": 144,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.mistharbor.fog_vfx.v1"
+            }
+          ],
+          "id": 4
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 3
+    },
+    {
+      "name": "logic.collision",
+      "objects": [
+        {
+          "name": "extraction_wall_north",
+          "x": 0,
+          "y": 0,
+          "width": 768,
+          "height": 16,
+          "properties": [],
+          "id": 5
+        },
+        {
+          "name": "extraction_wall_south",
+          "x": 0,
+          "y": 496,
+          "width": 768,
+          "height": 16,
+          "properties": [],
+          "id": 6
+        },
+        {
+          "name": "extraction_wall_west_north",
+          "x": 0,
+          "y": 16,
+          "width": 16,
+          "height": 176,
+          "properties": [],
+          "id": 7
+        },
+        {
+          "name": "extraction_wall_west_south",
+          "x": 0,
+          "y": 304,
+          "width": 16,
+          "height": 192,
+          "properties": [],
+          "id": 8
+        },
+        {
+          "name": "extraction_wall_east",
+          "x": 752,
+          "y": 16,
+          "width": 16,
+          "height": 480,
+          "properties": [],
+          "id": 9
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 4
+    },
+    {
+      "name": "logic.navigation",
+      "objects": [
+        {
+          "name": "mh_extraction_spawn_nav",
+          "x": 96,
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "mh_extraction_center_nav"
+            }
+          ],
+          "id": 10
+        },
+        {
+          "name": "mh_extraction_center_nav",
+          "x": 384,
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "mh_extraction_exit_nav"
+            }
+          ],
+          "id": 11
+        },
+        {
+          "name": "mh_extraction_exit_nav",
+          "x": 672,
+          "y": 256,
+          "properties": [],
+          "id": 12
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 5
+    },
+    {
+      "name": "logic.spawn",
+      "objects": [
+        {
+          "name": "mh_extraction_spawn",
+          "x": 96,
+          "y": 256,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "player"
+            },
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "mh_extraction_spawn_nav"
+            }
+          ],
+          "id": 13
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 6
+    },
+    {
+      "name": "logic.interaction",
+      "objects": [
+        {
+          "name": "mh_extraction_exit",
+          "x": 640,
+          "y": 256,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "world_exit"
+            }
+          ],
+          "id": 14
+        },
+        {
+          "name": "mh_world_complete_staged_marker",
+          "x": 640,
+          "y": 224,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "world_completion_staged_marker"
+            }
+          ],
+          "id": 15
+        },
+        {
+          "name": "mh_return_station_revisit_staged_marker",
+          "x": 640,
+          "y": 288,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "return_station_revisit_staged_marker"
+            }
+          ],
+          "id": 16
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 7
+    },
+    {
+      "name": "logic.checkpoint",
+      "objects": [
+        {
+          "name": "mh_extraction_checkpoint",
+          "x": 128,
+          "y": 256,
+          "properties": [
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "mh_extraction_spawn_nav"
+            }
+          ],
+          "id": 17
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 8
+    },
+    {
+      "name": "logic.transition",
+      "objects": [
+        {
+          "name": "mh_extraction_to_warden_arena",
+          "x": 0,
+          "y": 208,
+          "width": 64,
+          "height": 96,
+          "properties": [
+            {
+              "name": "toSceneId",
+              "type": "string",
+              "value": "mh_warden_arena"
+            },
+            {
+              "name": "spawnId",
+              "type": "string",
+              "value": "mh_warden_arena_spawn"
+            }
+          ],
+          "id": 18
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 9
+    },
+    {
+      "name": "logic.walkable",
+      "objects": [
+        {
+          "id": 19,
+          "name": "mh_extraction_walkable_area",
+          "x": 16.0,
+          "y": 16.0,
+          "width": 736.0,
+          "height": 480.0,
+          "rotation": 0,
+          "visible": true,
+          "properties": []
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 10
+    },
+    {
+      "name": "logic.exploration",
+      "objects": [
+        {
+          "id": 20,
+          "name": "mh_ex_arrival",
+          "x": 16.0,
+          "y": 16.0,
+          "width": 272.0,
+          "height": 480.0,
+          "rotation": 0,
+          "visible": true,
+          "properties": []
+        },
+        {
+          "id": 21,
+          "name": "mh_ex_extraction_pad",
+          "x": 288,
+          "y": 16.0,
+          "width": 320,
+          "height": 480.0,
+          "rotation": 0,
+          "visible": true,
+          "properties": []
+        },
+        {
+          "id": 22,
+          "name": "mh_ex_exit_section",
+          "x": 608,
+          "y": 16.0,
+          "width": 144.0,
+          "height": 480.0,
+          "rotation": 0,
+          "visible": true,
+          "properties": []
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "id": 11
+    }
+  ],
+  "orientation": "orthogonal",
+  "properties": [
+    {
+      "name": "worldId",
+      "type": "string",
+      "value": "mist_harbor"
+    },
+    {
+      "name": "sceneId",
+      "type": "string",
+      "value": "mh_extraction"
+    },
+    {
+      "name": "pixelsPerMeter",
+      "type": "int",
+      "value": 32
+    },
+    {
+      "name": "cameraProfile",
+      "type": "string",
+      "value": "oblique_default"
+    }
+  ],
+  "renderorder": "right-down",
+  "tiledversion": "1.10.2",
+  "tileheight": 32,
+  "tilewidth": 32,
+  "type": "map",
+  "version": "1.10",
+  "width": 24,
+  "nextlayerid": 12,
+  "nextobjectid": 23
+}

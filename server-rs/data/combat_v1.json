@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "staggerMsPerPoint": 10,
+  "invulnerabilityMs": 500,
+  "guardDamageReduction": 1.0,
+  "actions": {
+    "primaryAttack": { "energy": 0, "cooldownMs": 220, "windupMs": 90, "activeMs": 90, "recoveryMs": 150, "rangeM": 1.7, "shape": "cone", "minFacingDot": 0.5, "damage": 16, "stagger": 10 },
+    "dash": { "energy": 8, "cooldownMs": 900, "windupMs": 0, "activeMs": 180, "recoveryMs": 120, "rangeM": 2.8, "shape": "dash", "damage": 0, "stagger": 0 },
+    "pulse": { "energy": 12, "cooldownMs": 2200, "windupMs": 220, "activeMs": 120, "recoveryMs": 250, "rangeM": 2.6, "shape": "radial", "damage": 10, "stagger": 35 },
+    "guard": { "energy": 15, "cooldownMs": 1800, "windupMs": 80, "activeMs": 600, "recoveryMs": 200, "rangeM": 0.0, "shape": "self", "damage": 0, "stagger": 20 },
+    "pierce": { "energy": 18, "cooldownMs": 2600, "windupMs": 260, "activeMs": 160, "recoveryMs": 360, "rangeM": 4.8, "shape": "line", "lineHalfWidthM": 0.45, "damage": 32, "stagger": 25 }
+  }
+}

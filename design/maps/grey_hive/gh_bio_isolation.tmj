@@ -1,0 +1,441 @@
+{
+  "compressionlevel": -1,
+  "height": 16,
+  "infinite": false,
+  "layers": [
+    {
+      "id": 1,
+      "name": "visual.floor",
+      "objects": [
+        {
+          "id": 1,
+          "name": "approved_floor",
+          "x": 384,
+          "y": 256,
+          "width": 768,
+          "height": 512,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.grey_hive.floor_tiles.v1"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 2,
+      "name": "visual.props_back",
+      "objects": [
+        {
+          "id": 2,
+          "name": "bio_wall_reuse",
+          "x": 384,
+          "y": 32,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.grey_hive.wall_tiles.v1"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "name": "bio_service_pipes",
+          "x": 256,
+          "y": 96,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.grey_hive.pipes_cables.v1"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "name": "bio_approved_clutter",
+          "x": 160,
+          "y": 368,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.grey_hive.clutter.v1"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "name": "bio_supply_crates",
+          "x": 576,
+          "y": 368,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.prop.supply_crates.v1"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 3,
+      "name": "visual.props_dynamic",
+      "objects": [
+        {
+          "id": 6,
+          "name": "bio_pod_approved",
+          "x": 256,
+          "y": 224,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.prop.bio_pod.v1"
+            }
+          ]
+        },
+        {
+          "id": 7,
+          "name": "medical_station_approved",
+          "x": 512,
+          "y": 160,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.prop.medical_station.v1"
+            }
+          ]
+        },
+        {
+          "id": 8,
+          "name": "bio_log_terminal_approved",
+          "x": 640,
+          "y": 256,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.prop.lockdown_terminal.v1"
+            }
+          ]
+        },
+        {
+          "id": 9,
+          "name": "bio_security_01_visual",
+          "x": 448,
+          "y": 128,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.enemy.infected_security.v1"
+            }
+          ]
+        },
+        {
+          "id": 10,
+          "name": "bio_security_02_visual",
+          "x": 544,
+          "y": 384,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.enemy.infected_security.v1"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 4,
+      "name": "logic.collision",
+      "objects": [
+        {
+          "id": 11,
+          "name": "gh_bio_isolation_wall_north",
+          "x": 0,
+          "y": 0,
+          "width": 768,
+          "height": 16
+        },
+        {
+          "id": 12,
+          "name": "gh_bio_isolation_wall_south",
+          "x": 0,
+          "y": 496,
+          "width": 768,
+          "height": 16
+        },
+        {
+          "id": 13,
+          "name": "gh_bio_isolation_wall_west_north",
+          "x": 0,
+          "y": 16,
+          "width": 16,
+          "height": 192
+        },
+        {
+          "id": 14,
+          "name": "gh_bio_isolation_wall_west_south",
+          "x": 0,
+          "y": 304,
+          "width": 16,
+          "height": 192
+        },
+        {
+          "id": 15,
+          "name": "gh_bio_isolation_wall_east_north",
+          "x": 752,
+          "y": 16,
+          "width": 16,
+          "height": 192
+        },
+        {
+          "id": 16,
+          "name": "gh_bio_isolation_wall_east_south",
+          "x": 752,
+          "y": 304,
+          "width": 16,
+          "height": 192
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 5,
+      "name": "logic.navigation",
+      "objects": [
+        {
+          "id": 18,
+          "name": "gh_bio_isolation_spawn_nav",
+          "x": 64,
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "gh_bio_isolation_mid_nav"
+            }
+          ]
+        },
+        {
+          "id": 19,
+          "name": "gh_bio_isolation_mid_nav",
+          "x": 256,
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "gh_bio_isolation_exit_nav"
+            }
+          ]
+        },
+        {
+          "id": 20,
+          "name": "gh_bio_isolation_exit_nav",
+          "x": 640,
+          "y": 256
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 6,
+      "name": "logic.spawn",
+      "objects": [
+        {
+          "id": 21,
+          "name": "gh_bio_isolation_spawn",
+          "x": 64,
+          "y": 256,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "player"
+            },
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "gh_bio_isolation_spawn_nav"
+            }
+          ]
+        },
+        {
+          "id": 22,
+          "name": "gh_bio_security_01",
+          "x": 448,
+          "y": 128,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "enemy"
+            },
+            {
+              "name": "entityType",
+              "type": "string",
+              "value": "grey_hive.infected_security"
+            },
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "gh_bio_isolation_mid_nav"
+            }
+          ]
+        },
+        {
+          "id": 23,
+          "name": "gh_bio_security_02",
+          "x": 544,
+          "y": 384,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "enemy"
+            },
+            {
+              "name": "entityType",
+              "type": "string",
+              "value": "grey_hive.infected_security"
+            },
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "gh_bio_isolation_exit_nav"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 7,
+      "name": "logic.interaction",
+      "objects": [
+        {
+          "id": 24,
+          "name": "gh_bio_log_terminal",
+          "x": 640,
+          "y": 256,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "bio_log_terminal"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 8,
+      "name": "logic.transition",
+      "objects": [
+        {
+          "id": 25,
+          "name": "gh_bio_to_gate_b",
+          "x": 704,
+          "y": 224,
+          "width": 64,
+          "height": 64,
+          "properties": [
+            {
+              "name": "toSceneId",
+              "type": "string",
+              "value": "gh_gate_b"
+            },
+            {
+              "name": "spawnId",
+              "type": "string",
+              "value": "gh_gate_b_spawn"
+            },
+            {
+              "name": "requiresEvent",
+              "type": "string",
+              "value": "hive_lockdown"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "nextlayerid": 9,
+  "nextobjectid": 26,
+  "orientation": "orthogonal",
+  "properties": [
+    {
+      "name": "worldId",
+      "type": "string",
+      "value": "grey_hive"
+    },
+    {
+      "name": "sceneId",
+      "type": "string",
+      "value": "gh_bio_isolation"
+    },
+    {
+      "name": "pixelsPerMeter",
+      "type": "int",
+      "value": 32
+    },
+    {
+      "name": "cameraProfile",
+      "type": "string",
+      "value": "oblique_default"
+    }
+  ],
+  "renderorder": "right-down",
+  "tiledversion": "1.10.2",
+  "tileheight": 32,
+  "tilewidth": 32,
+  "type": "map",
+  "version": "1.10",
+  "width": 24
+}

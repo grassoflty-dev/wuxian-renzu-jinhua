@@ -1,0 +1,26 @@
+{
+  "fixtureVersion": "pivot-scenario-runner/1",
+  "scenarioId": "grey-hive-power-gate-a",
+  "worldId": "grey_hive",
+  "consoleActorId": "gh_power_console",
+  "gateDoorId": "gh_gate_a",
+  "steps": {
+    "closedGateApproach": 144,
+    "retreatToConsole": 66,
+    "approachConsoleX": 24,
+    "returnToPassageX": 24,
+    "openGatePassage": 144,
+    "resumeProbe": 1
+  },
+  "expected": {
+    "closedGateMaxZ": 7.75,
+    "passedGateMinZ": 10.0,
+    "consoleNearRangeM": 2.5,
+    "saveSlotA": "slot-a",
+    "saveSlotB": "slot-b",
+    "corruptSlot": "broken"
+  },
+  "unsupported": [
+    "Dash/QER/Energy formal gameplay is not implemented by this fixture and is not claimed as passed."
+  ]
+}

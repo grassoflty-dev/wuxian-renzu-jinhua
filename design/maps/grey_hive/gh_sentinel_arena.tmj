@@ -1,0 +1,500 @@
+{
+  "compressionlevel": -1,
+  "height": 16,
+  "infinite": false,
+  "layers": [
+    {
+      "id": 1,
+      "name": "visual.background",
+      "objects": [
+        {
+          "id": 1,
+          "name": "sentinel_arena_approved_background",
+          "x": 384,
+          "y": 256,
+          "width": 768,
+          "height": 512,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.grey_hive.sentinel_arena.v1.attempt"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 2,
+      "name": "visual.floor",
+      "objects": [
+        {
+          "id": 2,
+          "name": "sentinel_arena_floor",
+          "x": 384,
+          "y": 256,
+          "width": 768,
+          "height": 512,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.grey_hive.floor_tiles.v1"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 3,
+      "name": "visual.props_back",
+      "objects": [
+        {
+          "id": 3,
+          "name": "sentinel_arena_rear_wall",
+          "x": 384,
+          "y": 32,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.grey_hive.wall_tiles.v1"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "name": "sentinel_arena_cabling",
+          "x": 288,
+          "y": 96,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.grey_hive.pipes_cables.v1"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "name": "sentinel_arena_pylon_left",
+          "x": 256,
+          "y": 160,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.grey_hive.clutter.v1"
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "name": "sentinel_arena_pylon_right",
+          "x": 544,
+          "y": 160,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.grey_hive.clutter.v1"
+            }
+          ]
+        },
+        {
+          "id": 7,
+          "name": "sentinel_arena_shutter_left",
+          "x": 128,
+          "y": 368,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.grey_hive.pipes_cables.v1"
+            }
+          ]
+        },
+        {
+          "id": 8,
+          "name": "sentinel_arena_shutter_right",
+          "x": 640,
+          "y": 368,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.grey_hive.pipes_cables.v1"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 4,
+      "name": "visual.props_dynamic",
+      "objects": [
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 5,
+      "name": "visual.occluders",
+      "objects": [
+        {
+          "id": 11,
+          "name": "sentinel_arena_occluder_pylon_left",
+          "x": 224,
+          "y": 144,
+          "width": 96,
+          "height": 32,
+          "properties": [
+            {
+              "name": "fadeTo",
+              "type": "float",
+              "value": 0.25
+            }
+          ]
+        },
+        {
+          "id": 12,
+          "name": "sentinel_arena_occluder_pylon_right",
+          "x": 512,
+          "y": 144,
+          "width": 96,
+          "height": 32,
+          "properties": [
+            {
+              "name": "fadeTo",
+              "type": "float",
+              "value": 0.25
+            }
+          ]
+        },
+        {
+          "id": 13,
+          "name": "sentinel_arena_occluder_beam",
+          "x": 320,
+          "y": 80,
+          "width": 160,
+          "height": 24,
+          "properties": [
+            {
+              "name": "fadeTo",
+              "type": "float",
+              "value": 0.2
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 6,
+      "name": "logic.collision",
+      "objects": [
+        {
+          "id": 14,
+          "name": "sentinel_arena_wall_north",
+          "x": 0,
+          "y": 0,
+          "width": 768,
+          "height": 16
+        },
+        {
+          "id": 15,
+          "name": "sentinel_arena_wall_south",
+          "x": 0,
+          "y": 496,
+          "width": 768,
+          "height": 16
+        },
+        {
+          "id": 16,
+          "name": "sentinel_arena_wall_west_north",
+          "x": 0,
+          "y": 16,
+          "width": 16,
+          "height": 192
+        },
+        {
+          "id": 17,
+          "name": "sentinel_arena_wall_west_south",
+          "x": 0,
+          "y": 304,
+          "width": 16,
+          "height": 192
+        },
+        {
+          "id": 18,
+          "name": "sentinel_arena_wall_east_north",
+          "x": 752,
+          "y": 16,
+          "width": 16,
+          "height": 192
+        },
+        {
+          "id": 19,
+          "name": "sentinel_arena_wall_east_south",
+          "x": 752,
+          "y": 304,
+          "width": 16,
+          "height": 192
+        },
+        {
+          "id": 20,
+          "name": "sentinel_arena_pylon_collision_left",
+          "x": 224,
+          "y": 160,
+          "width": 32,
+          "height": 64
+        },
+        {
+          "id": 21,
+          "name": "sentinel_arena_pylon_collision_right",
+          "x": 512,
+          "y": 160,
+          "width": 32,
+          "height": 64
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 7,
+      "name": "logic.navigation",
+      "objects": [
+        {
+          "id": 22,
+          "name": "gh_sentinel_spawn_nav",
+          "x": 64,
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "gh_sentinel_arena_mid_nav"
+            }
+          ]
+        },
+        {
+          "id": 23,
+          "name": "gh_sentinel_arena_mid_nav",
+          "x": 256,
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "gh_sentinel_approach_nav"
+            }
+          ]
+        },
+        {
+          "id": 24,
+          "name": "gh_sentinel_approach_nav",
+          "x": 480,
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "gh_sentinel_exit_nav"
+            }
+          ]
+        },
+        {
+          "id": 25,
+          "name": "gh_sentinel_exit_nav",
+          "x": 704,
+          "y": 256
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 8,
+      "name": "logic.spawn",
+      "objects": [
+        {
+          "id": 26,
+          "name": "gh_sentinel_arena_spawn",
+          "x": 64,
+          "y": 256,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "player"
+            },
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "gh_sentinel_spawn_nav"
+            }
+          ]
+        },
+        {
+          "id": 30,
+          "name": "gh_sentinel_arena_sentinel_01",
+          "x": 480,
+          "y": 224,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "enemy"
+            },
+            {
+              "name": "entityType",
+              "type": "string",
+              "value": "enemy.grey_hive.sentinel"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 9,
+      "name": "logic.interaction",
+      "objects": [
+        {
+          "id": 27,
+          "name": "gh_sys_sentinel_01",
+          "x": 192,
+          "y": 112,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "facility_log"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 10,
+      "name": "logic.transition",
+      "objects": [
+        {
+          "id": 28,
+          "name": "gh_sentinel_arena_return_to_deep_decon",
+          "x": 0,
+          "y": 224,
+          "width": 64,
+          "height": 64,
+          "properties": [
+            {
+              "name": "toSceneId",
+              "type": "string",
+              "value": "gh_deep_decon"
+            },
+            {
+              "name": "spawnId",
+              "type": "string",
+              "value": "gh_deep_decon_spawn"
+            }
+          ]
+        },
+        {
+          "id": 29,
+          "name": "gh_sentinel_arena_to_beacon",
+          "x": 704,
+          "y": 224,
+          "width": 64,
+          "height": 64,
+          "properties": [
+            {
+              "name": "toSceneId",
+              "type": "string",
+              "value": "gh_beacon"
+            },
+            {
+              "name": "spawnId",
+              "type": "string",
+              "value": "gh_beacon_spawn"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "nextlayerid": 11,
+  "nextobjectid": 30,
+  "orientation": "orthogonal",
+  "properties": [
+    {
+      "name": "worldId",
+      "type": "string",
+      "value": "grey_hive"
+    },
+    {
+      "name": "sceneId",
+      "type": "string",
+      "value": "gh_sentinel_arena"
+    },
+    {
+      "name": "pixelsPerMeter",
+      "type": "int",
+      "value": 32
+    },
+    {
+      "name": "cameraProfile",
+      "type": "string",
+      "value": "oblique_default"
+    }
+  ],
+  "renderorder": "right-down",
+  "tiledversion": "1.10.2",
+  "tileheight": 32,
+  "tilewidth": 32,
+  "type": "map",
+  "version": "1.10",
+  "width": 24
+}

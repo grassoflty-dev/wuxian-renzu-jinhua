@@ -1,0 +1,533 @@
+{
+  "boundsM": {
+    "depth": 16.0,
+    "width": 24.0,
+    "x": 0,
+    "z": 0
+  },
+  "cameraZones": [],
+  "checkpoints": [
+    {
+      "heightRangeM": [
+        0.0,
+        0.1
+      ],
+      "id": "cw_gear_shaft_checkpoint",
+      "navNode": "cw_gear_shaft_spawn_nav",
+      "position": [
+        4.0,
+        0.0,
+        8.0
+      ]
+    },
+    {
+      "heightRangeM": [
+        1.9,
+        2.1
+      ],
+      "id": "cw_gear_upper_dock_checkpoint",
+      "navNode": "cw_gear_upper_dock_nav",
+      "position": [
+        16.0,
+        2.0,
+        8.0
+      ]
+    }
+  ],
+  "collision": [
+    {
+      "id": "cw_gear_shaft_wall_north",
+      "polygon": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          0.0,
+          0.5
+        ]
+      ]
+    },
+    {
+      "id": "cw_gear_shaft_wall_south",
+      "polygon": [
+        [
+          0.0,
+          15.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          24.0,
+          16.0
+        ],
+        [
+          0.0,
+          16.0
+        ]
+      ]
+    },
+    {
+      "id": "cw_gear_shaft_wall_west_north",
+      "polygon": [
+        [
+          0.0,
+          0.5
+        ],
+        [
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ]
+      ]
+    },
+    {
+      "id": "cw_gear_shaft_wall_west_south",
+      "polygon": [
+        [
+          0.0,
+          9.5
+        ],
+        [
+          0.5,
+          9.5
+        ],
+        [
+          0.5,
+          15.5
+        ],
+        [
+          0.0,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "cw_gear_shaft_wall_east_north",
+      "polygon": [
+        [
+          23.5,
+          0.5
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          24.0,
+          6.0
+        ],
+        [
+          23.5,
+          6.0
+        ]
+      ]
+    },
+    {
+      "id": "cw_gear_shaft_wall_east_south",
+      "polygon": [
+        [
+          23.5,
+          9.5
+        ],
+        [
+          24.0,
+          9.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          23.5,
+          15.5
+        ]
+      ]
+    }
+  ],
+  "doors": [],
+  "hazards": [],
+  "interactions": [],
+  "logic": {
+    "traversal": [
+      {
+        "cooldownMs": 350,
+        "from": [
+          17.8,
+          2.0,
+          8.0
+        ],
+        "fromHeightRangeM": [
+          1.9,
+          2.1
+        ],
+        "id": "cw_gear_upper_gap",
+        "rangeM": 1.2,
+        "requiredCapabilities": [],
+        "to": [
+          20.2,
+          2.0,
+          8.0
+        ]
+      },
+      {
+        "cooldownMs": 350,
+        "from": [
+          11.0,
+          0.0,
+          8.0
+        ],
+        "fromHeightRangeM": [
+          0.0,
+          0.1
+        ],
+        "id": "cw_gear_earned_air_step",
+        "rangeM": 1.2,
+        "requiredCapabilities": [
+          "mobility.air_step_i"
+        ],
+        "to": [
+          16.0,
+          2.0,
+          8.0
+        ]
+      }
+    ]
+  },
+  "movingSupports": [
+    {
+      "endpointHoldMs": 2000,
+      "id": "cw_gear_main_lift",
+      "lowerM": 0.0,
+      "polygon": [
+        [
+          10.0,
+          6.0
+        ],
+        [
+          15.0,
+          6.0
+        ],
+        [
+          15.0,
+          10.0
+        ],
+        [
+          10.0,
+          10.0
+        ]
+      ],
+      "travelMs": 4000,
+      "upperM": 2.0
+    }
+  ],
+  "navigation": {
+    "links": [
+      {
+        "from": "cw_gear_shaft_spawn_nav",
+        "to": "cw_gear_shaft_center_nav"
+      },
+      {
+        "from": "cw_gear_shaft_center_nav",
+        "to": "cw_gear_shaft_spawn_nav"
+      },
+      {
+        "from": "cw_gear_shaft_center_nav",
+        "to": "cw_gear_upper_dock_nav"
+      },
+      {
+        "from": "cw_gear_upper_dock_nav",
+        "to": "cw_gear_shaft_center_nav"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "cw_gear_shaft_spawn_nav",
+        "position": [
+          3.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "cw_gear_shaft_center_nav",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "cw_gear_upper_dock_nav",
+        "position": [
+          16.0,
+          2.0,
+          8.0
+        ]
+      }
+    ]
+  },
+  "objectives": [],
+  "occluders": [],
+  "presentation": {
+    "cameraProfile": "oblique_default",
+    "layers": [
+      {
+        "id": "visual.floor",
+        "zGroup": 0
+      },
+      {
+        "id": "visual.props_back",
+        "zGroup": 10
+      },
+      {
+        "id": "visual.props_dynamic",
+        "zGroup": 20
+      }
+    ],
+    "sprites": [
+      {
+        "assetId": "runtime2d.world.clockworks.floor_steel.v1",
+        "id": "cw_gear_shaft_steel_floor",
+        "layer": "visual.floor",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.clockworks.factory_tiles.v1",
+        "id": "cw_gear_shaft_factory_tiles",
+        "layer": "visual.floor",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.clockworks.pressure_pipes.v1",
+        "id": "cw_gear_pressure_pipe_run",
+        "layer": "visual.props_back",
+        "position": [
+          11.0,
+          0.0,
+          4.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.clockworks.factory_tiles.v1",
+        "id": "cw_gear_factory_module",
+        "layer": "visual.props_back",
+        "position": [
+          16.0,
+          0.0,
+          12.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.clockworks.factory_tiles.v1",
+        "id": "cw_gear_factory_module_side",
+        "layer": "visual.props_dynamic",
+        "position": [
+          20.0,
+          0.0,
+          7.0
+        ]
+      }
+    ]
+  },
+  "sceneId": "cw_gear_shaft",
+  "schemaVersion": 1,
+  "spawns": [
+    {
+      "entityType": null,
+      "id": "cw_gear_shaft_spawn",
+      "kind": "player",
+      "navNode": "cw_gear_shaft_spawn_nav",
+      "position": [
+        3.0,
+        0.0,
+        8.0
+      ]
+    },
+    {
+      "entityType": "enemy.clockworks.forged_guard",
+      "id": "cw_gear_shaft_forged_guard_01",
+      "kind": "enemy",
+      "navNode": null,
+      "position": [
+        6.5,
+        0.0,
+        8.0
+      ]
+    },
+    {
+      "entityType": "enemy.clockworks.forged_guard",
+      "id": "cw_gear_shaft_forged_guard_02",
+      "kind": "enemy",
+      "navNode": null,
+      "position": [
+        9.5,
+        0.0,
+        8.0
+      ]
+    },
+    {
+      "entityType": "enemy.clockworks.pressure_drone",
+      "id": "cw_gear_shaft_pressure_drone_01",
+      "kind": "enemy",
+      "navNode": null,
+      "position": [
+        11.0,
+        0.0,
+        4.0
+      ]
+    },
+    {
+      "entityType": "enemy.clockworks.pressure_drone",
+      "id": "cw_gear_shaft_pressure_drone_02",
+      "kind": "enemy",
+      "navNode": null,
+      "position": [
+        16.0,
+        0.0,
+        12.0
+      ]
+    },
+    {
+      "entityType": "enemy.clockworks.pressure_drone",
+      "id": "cw_gear_shaft_pressure_drone_03",
+      "kind": "enemy",
+      "navNode": null,
+      "position": [
+        20.0,
+        0.0,
+        5.0
+      ]
+    }
+  ],
+  "standingDecks": [
+    {
+      "heightM": 2.0,
+      "id": "cw_gear_upper_dock",
+      "polygon": [
+        [
+          14.0,
+          6.0
+        ],
+        [
+          18.5,
+          6.0
+        ],
+        [
+          18.5,
+          10.0
+        ],
+        [
+          14.0,
+          10.0
+        ]
+      ]
+    },
+    {
+      "heightM": 2.0,
+      "id": "cw_gear_furnace_landing",
+      "polygon": [
+        [
+          19.5,
+          6.0
+        ],
+        [
+          24.0,
+          6.0
+        ],
+        [
+          24.0,
+          10.0
+        ],
+        [
+          19.5,
+          10.0
+        ]
+      ]
+    }
+  ],
+  "transitions": [
+    {
+      "heightRangeM": [
+        0.0,
+        0.1
+      ],
+      "id": "cw_gear_return_to_boiler",
+      "polygon": [
+        [
+          0.5,
+          6.5
+        ],
+        [
+          2.5,
+          6.5
+        ],
+        [
+          2.5,
+          9.5
+        ],
+        [
+          0.5,
+          9.5
+        ]
+      ],
+      "spawnId": "cw_boiler_chamber_spawn",
+      "toSceneId": "cw_boiler_chamber"
+    },
+    {
+      "heightRangeM": [
+        1.9,
+        2.1
+      ],
+      "id": "cw_gear_to_furnace_heart",
+      "polygon": [
+        [
+          22.0,
+          6.5
+        ],
+        [
+          24.0,
+          6.5
+        ],
+        [
+          24.0,
+          9.5
+        ],
+        [
+          22.0,
+          9.5
+        ]
+      ],
+      "spawnId": "cw_furnace_heart_spawn",
+      "toSceneId": "cw_furnace_heart"
+    }
+  ],
+  "triggers": [],
+  "vfxMarkers": [],
+  "worldId": "clockworks"
+}

@@ -1,0 +1,3159 @@
+{
+  "schema": "pivot-presentation-scenario-fixture/1",
+  "scenarioId": "grey-hive-power-gate-a",
+  "worldId": "grey_hive",
+  "scenarios": {
+    "hub": {
+      "sourcePhase": "seed",
+      "sourceEvent": "initial",
+      "sourceLineIndex": 0,
+      "view": {
+        "protocol": "continuous-ipc",
+        "version": 1,
+        "schemaVersion": "freeze-v02-interfaces/1.2",
+        "worldId": "grey_hive",
+        "worldEpoch": 1,
+        "serverTick": 0,
+        "authorityRevision": 0,
+        "ackSeq": 0,
+        "serverTimeMs": 0,
+        "player": {
+          "entityId": "player",
+          "transform": {
+            "positionM": {
+              "xM": 0,
+              "yM": 0,
+              "zM": 0
+            },
+            "yawRad": 0
+          },
+          "velocityMps": {
+            "xM": 0,
+            "yM": 0,
+            "zM": 0
+          },
+          "currentHp": 100,
+          "maxHp": 100,
+          "currentEnergy": 100,
+          "maxEnergy": 100
+        },
+        "actors": [
+          {
+            "entityId": "gh_power_console",
+            "actorKind": "power_console",
+            "transform": {
+              "positionM": {
+                "xM": 2,
+                "yM": 0,
+                "zM": 3
+              },
+              "yawRad": 0
+            },
+            "active": true
+          }
+        ],
+        "doors": [
+          {
+            "doorId": "gh_gate_a",
+            "transform": {
+              "positionM": {
+                "xM": 0,
+                "yM": 0,
+                "zM": 8
+              },
+              "yawRad": 0
+            },
+            "open": false,
+            "locked": true
+          }
+        ],
+        "capabilities": {
+          "schemaVersion": 1,
+          "items": [
+            {
+              "capabilityId": "information.local_map_i",
+              "granted": false,
+              "selected": false,
+              "cooldownRemainingMs": 0
+            },
+            {
+              "capabilityId": "perception.rear_view_i",
+              "granted": false,
+              "selected": false,
+              "cooldownRemainingMs": 0
+            },
+            {
+              "capabilityId": "information.enemy_vitals_basic",
+              "granted": false,
+              "selected": false,
+              "cooldownRemainingMs": 0
+            },
+            {
+              "capabilityId": "body.regeneration_i",
+              "granted": false,
+              "selected": false,
+              "cooldownRemainingMs": 0
+            }
+          ],
+          "exploredMap": {
+            "worldId": "grey_hive",
+            "playerPositionM": {
+              "xM": 0,
+              "yM": 0,
+              "zM": 0
+            },
+            "rooms": [],
+            "connections": [],
+            "objectives": []
+          },
+          "enemyVitals": [],
+          "rearView": {
+            "granted": false,
+            "grantId": null,
+            "grantedAtRevision": null
+          }
+        },
+        "progression": {
+          "schemaVersion": 1,
+          "currentWorldId": "grey_hive",
+          "eventSeq": 1,
+          "worlds": [
+            {
+              "worldId": "grey_hive",
+              "completed": false,
+              "firstCompletion": false,
+              "visitId": 1,
+              "cycleId": 1,
+              "revisitCount": 0
+            },
+            {
+              "worldId": "mist_harbor",
+              "completed": false,
+              "firstCompletion": false,
+              "visitId": 0,
+              "cycleId": 1,
+              "revisitCount": 0
+            },
+            {
+              "worldId": "clockworks",
+              "completed": false,
+              "firstCompletion": false,
+              "visitId": 0,
+              "cycleId": 1,
+              "revisitCount": 0
+            }
+          ]
+        }
+      },
+      "worldSnapshot": {
+        "kind": "full",
+        "schemaVersion": "freeze-v02-interfaces/1.2",
+        "worldId": "grey_hive",
+        "worldEpoch": 1,
+        "serverTick": 0,
+        "authorityRevision": 0,
+        "ackSeq": 0,
+        "view": {
+          "protocol": "continuous-ipc",
+          "version": 1,
+          "schemaVersion": "freeze-v02-interfaces/1.2",
+          "worldId": "grey_hive",
+          "worldEpoch": 1,
+          "serverTick": 0,
+          "authorityRevision": 0,
+          "ackSeq": 0,
+          "serverTimeMs": 0,
+          "player": {
+            "entityId": "player",
+            "transform": {
+              "positionM": {
+                "xM": 0,
+                "yM": 0,
+                "zM": 0
+              },
+              "yawRad": 0
+            },
+            "velocityMps": {
+              "xM": 0,
+              "yM": 0,
+              "zM": 0
+            },
+            "currentHp": 100,
+            "maxHp": 100,
+            "currentEnergy": 100,
+            "maxEnergy": 100
+          },
+          "actors": [
+            {
+              "entityId": "gh_power_console",
+              "actorKind": "power_console",
+              "transform": {
+                "positionM": {
+                  "xM": 2,
+                  "yM": 0,
+                  "zM": 3
+                },
+                "yawRad": 0
+              },
+              "active": true
+            }
+          ],
+          "doors": [
+            {
+              "doorId": "gh_gate_a",
+              "transform": {
+                "positionM": {
+                  "xM": 0,
+                  "yM": 0,
+                  "zM": 8
+                },
+                "yawRad": 0
+              },
+              "open": false,
+              "locked": true
+            }
+          ],
+          "capabilities": {
+            "schemaVersion": 1,
+            "items": [
+              {
+                "capabilityId": "information.local_map_i",
+                "granted": false,
+                "selected": false,
+                "cooldownRemainingMs": 0
+              },
+              {
+                "capabilityId": "perception.rear_view_i",
+                "granted": false,
+                "selected": false,
+                "cooldownRemainingMs": 0
+              },
+              {
+                "capabilityId": "information.enemy_vitals_basic",
+                "granted": false,
+                "selected": false,
+                "cooldownRemainingMs": 0
+              },
+              {
+                "capabilityId": "body.regeneration_i",
+                "granted": false,
+                "selected": false,
+                "cooldownRemainingMs": 0
+              }
+            ],
+            "exploredMap": {
+              "worldId": "grey_hive",
+              "playerPositionM": {
+                "xM": 0,
+                "yM": 0,
+                "zM": 0
+              },
+              "rooms": [],
+              "connections": [],
+              "objectives": []
+            },
+            "enemyVitals": [],
+            "rearView": {
+              "granted": false,
+              "grantId": null,
+              "grantedAtRevision": null
+            }
+          },
+          "progression": {
+            "schemaVersion": 1,
+            "currentWorldId": "grey_hive",
+            "eventSeq": 1,
+            "worlds": [
+              {
+                "worldId": "grey_hive",
+                "completed": false,
+                "firstCompletion": false,
+                "visitId": 1,
+                "cycleId": 1,
+                "revisitCount": 0
+              },
+              {
+                "worldId": "mist_harbor",
+                "completed": false,
+                "firstCompletion": false,
+                "visitId": 0,
+                "cycleId": 1,
+                "revisitCount": 0
+              },
+              {
+                "worldId": "clockworks",
+                "completed": false,
+                "firstCompletion": false,
+                "visitId": 0,
+                "cycleId": 1,
+                "revisitCount": 0
+              }
+            ]
+          }
+        }
+      },
+      "commandReceipt": {
+        "commandId": "scenario-start",
+        "applied": true,
+        "alreadyApplied": false,
+        "errorCode": null,
+        "worldEpoch": 1,
+        "serverTick": 0,
+        "authorityRevision": 0,
+        "snapshot": {
+          "kind": "full",
+          "schemaVersion": "freeze-v02-interfaces/1.2",
+          "worldId": "grey_hive",
+          "worldEpoch": 1,
+          "serverTick": 0,
+          "authorityRevision": 0,
+          "ackSeq": 0,
+          "view": {
+            "protocol": "continuous-ipc",
+            "version": 1,
+            "schemaVersion": "freeze-v02-interfaces/1.2",
+            "worldId": "grey_hive",
+            "worldEpoch": 1,
+            "serverTick": 0,
+            "authorityRevision": 0,
+            "ackSeq": 0,
+            "serverTimeMs": 0,
+            "player": {
+              "entityId": "player",
+              "transform": {
+                "positionM": {
+                  "xM": 0,
+                  "yM": 0,
+                  "zM": 0
+                },
+                "yawRad": 0
+              },
+              "velocityMps": {
+                "xM": 0,
+                "yM": 0,
+                "zM": 0
+              },
+              "currentHp": 100,
+              "maxHp": 100,
+              "currentEnergy": 100,
+              "maxEnergy": 100
+            },
+            "actors": [
+              {
+                "entityId": "gh_power_console",
+                "actorKind": "power_console",
+                "transform": {
+                  "positionM": {
+                    "xM": 2,
+                    "yM": 0,
+                    "zM": 3
+                  },
+                  "yawRad": 0
+                },
+                "active": true
+              }
+            ],
+            "doors": [
+              {
+                "doorId": "gh_gate_a",
+                "transform": {
+                  "positionM": {
+                    "xM": 0,
+                    "yM": 0,
+                    "zM": 8
+                  },
+                  "yawRad": 0
+                },
+                "open": false,
+                "locked": true
+              }
+            ],
+            "capabilities": {
+              "schemaVersion": 1,
+              "items": [
+                {
+                  "capabilityId": "information.local_map_i",
+                  "granted": false,
+                  "selected": false,
+                  "cooldownRemainingMs": 0
+                },
+                {
+                  "capabilityId": "perception.rear_view_i",
+                  "granted": false,
+                  "selected": false,
+                  "cooldownRemainingMs": 0
+                },
+                {
+                  "capabilityId": "information.enemy_vitals_basic",
+                  "granted": false,
+                  "selected": false,
+                  "cooldownRemainingMs": 0
+                },
+                {
+                  "capabilityId": "body.regeneration_i",
+                  "granted": false,
+                  "selected": false,
+                  "cooldownRemainingMs": 0
+                }
+              ],
+              "exploredMap": {
+                "worldId": "grey_hive",
+                "playerPositionM": {
+                  "xM": 0,
+                  "yM": 0,
+                  "zM": 0
+                },
+                "rooms": [],
+                "connections": [],
+                "objectives": []
+              },
+              "enemyVitals": [],
+              "rearView": {
+                "granted": false,
+                "grantId": null,
+                "grantedAtRevision": null
+              }
+            },
+            "progression": {
+              "schemaVersion": 1,
+              "currentWorldId": "grey_hive",
+              "eventSeq": 1,
+              "worlds": [
+                {
+                  "worldId": "grey_hive",
+                  "completed": false,
+                  "firstCompletion": false,
+                  "visitId": 1,
+                  "cycleId": 1,
+                  "revisitCount": 0
+                },
+                {
+                  "worldId": "mist_harbor",
+                  "completed": false,
+                  "firstCompletion": false,
+                  "visitId": 0,
+                  "cycleId": 1,
+                  "revisitCount": 0
+                },
+                {
+                  "worldId": "clockworks",
+                  "completed": false,
+                  "firstCompletion": false,
+                  "visitId": 0,
+                  "cycleId": 1,
+                  "revisitCount": 0
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "powerBefore": {
+      "sourcePhase": "seed",
+      "sourceEvent": "initial",
+      "sourceLineIndex": 0,
+      "view": {
+        "protocol": "continuous-ipc",
+        "version": 1,
+        "schemaVersion": "freeze-v02-interfaces/1.2",
+        "worldId": "grey_hive",
+        "worldEpoch": 1,
+        "serverTick": 0,
+        "authorityRevision": 0,
+        "ackSeq": 0,
+        "serverTimeMs": 0,
+        "player": {
+          "entityId": "player",
+          "transform": {
+            "positionM": {
+              "xM": 0,
+              "yM": 0,
+              "zM": 0
+            },
+            "yawRad": 0
+          },
+          "velocityMps": {
+            "xM": 0,
+            "yM": 0,
+            "zM": 0
+          },
+          "currentHp": 100,
+          "maxHp": 100,
+          "currentEnergy": 100,
+          "maxEnergy": 100
+        },
+        "actors": [
+          {
+            "entityId": "gh_power_console",
+            "actorKind": "power_console",
+            "transform": {
+              "positionM": {
+                "xM": 2,
+                "yM": 0,
+                "zM": 3
+              },
+              "yawRad": 0
+            },
+            "active": true
+          }
+        ],
+        "doors": [
+          {
+            "doorId": "gh_gate_a",
+            "transform": {
+              "positionM": {
+                "xM": 0,
+                "yM": 0,
+                "zM": 8
+              },
+              "yawRad": 0
+            },
+            "open": false,
+            "locked": true
+          }
+        ],
+        "capabilities": {
+          "schemaVersion": 1,
+          "items": [
+            {
+              "capabilityId": "information.local_map_i",
+              "granted": false,
+              "selected": false,
+              "cooldownRemainingMs": 0
+            },
+            {
+              "capabilityId": "perception.rear_view_i",
+              "granted": false,
+              "selected": false,
+              "cooldownRemainingMs": 0
+            },
+            {
+              "capabilityId": "information.enemy_vitals_basic",
+              "granted": false,
+              "selected": false,
+              "cooldownRemainingMs": 0
+            },
+            {
+              "capabilityId": "body.regeneration_i",
+              "granted": false,
+              "selected": false,
+              "cooldownRemainingMs": 0
+            }
+          ],
+          "exploredMap": {
+            "worldId": "grey_hive",
+            "playerPositionM": {
+              "xM": 0,
+              "yM": 0,
+              "zM": 0
+            },
+            "rooms": [],
+            "connections": [],
+            "objectives": []
+          },
+          "enemyVitals": [],
+          "rearView": {
+            "granted": false,
+            "grantId": null,
+            "grantedAtRevision": null
+          }
+        },
+        "progression": {
+          "schemaVersion": 1,
+          "currentWorldId": "grey_hive",
+          "eventSeq": 1,
+          "worlds": [
+            {
+              "worldId": "grey_hive",
+              "completed": false,
+              "firstCompletion": false,
+              "visitId": 1,
+              "cycleId": 1,
+              "revisitCount": 0
+            },
+            {
+              "worldId": "mist_harbor",
+              "completed": false,
+              "firstCompletion": false,
+              "visitId": 0,
+              "cycleId": 1,
+              "revisitCount": 0
+            },
+            {
+              "worldId": "clockworks",
+              "completed": false,
+              "firstCompletion": false,
+              "visitId": 0,
+              "cycleId": 1,
+              "revisitCount": 0
+            }
+          ]
+        }
+      },
+      "worldSnapshot": {
+        "kind": "full",
+        "schemaVersion": "freeze-v02-interfaces/1.2",
+        "worldId": "grey_hive",
+        "worldEpoch": 1,
+        "serverTick": 0,
+        "authorityRevision": 0,
+        "ackSeq": 0,
+        "view": {
+          "protocol": "continuous-ipc",
+          "version": 1,
+          "schemaVersion": "freeze-v02-interfaces/1.2",
+          "worldId": "grey_hive",
+          "worldEpoch": 1,
+          "serverTick": 0,
+          "authorityRevision": 0,
+          "ackSeq": 0,
+          "serverTimeMs": 0,
+          "player": {
+            "entityId": "player",
+            "transform": {
+              "positionM": {
+                "xM": 0,
+                "yM": 0,
+                "zM": 0
+              },
+              "yawRad": 0
+            },
+            "velocityMps": {
+              "xM": 0,
+              "yM": 0,
+              "zM": 0
+            },
+            "currentHp": 100,
+            "maxHp": 100,
+            "currentEnergy": 100,
+            "maxEnergy": 100
+          },
+          "actors": [
+            {
+              "entityId": "gh_power_console",
+              "actorKind": "power_console",
+              "transform": {
+                "positionM": {
+                  "xM": 2,
+                  "yM": 0,
+                  "zM": 3
+                },
+                "yawRad": 0
+              },
+              "active": true
+            }
+          ],
+          "doors": [
+            {
+              "doorId": "gh_gate_a",
+              "transform": {
+                "positionM": {
+                  "xM": 0,
+                  "yM": 0,
+                  "zM": 8
+                },
+                "yawRad": 0
+              },
+              "open": false,
+              "locked": true
+            }
+          ],
+          "capabilities": {
+            "schemaVersion": 1,
+            "items": [
+              {
+                "capabilityId": "information.local_map_i",
+                "granted": false,
+                "selected": false,
+                "cooldownRemainingMs": 0
+              },
+              {
+                "capabilityId": "perception.rear_view_i",
+                "granted": false,
+                "selected": false,
+                "cooldownRemainingMs": 0
+              },
+              {
+                "capabilityId": "information.enemy_vitals_basic",
+                "granted": false,
+                "selected": false,
+                "cooldownRemainingMs": 0
+              },
+              {
+                "capabilityId": "body.regeneration_i",
+                "granted": false,
+                "selected": false,
+                "cooldownRemainingMs": 0
+              }
+            ],
+            "exploredMap": {
+              "worldId": "grey_hive",
+              "playerPositionM": {
+                "xM": 0,
+                "yM": 0,
+                "zM": 0
+              },
+              "rooms": [],
+              "connections": [],
+              "objectives": []
+            },
+            "enemyVitals": [],
+            "rearView": {
+              "granted": false,
+              "grantId": null,
+              "grantedAtRevision": null
+            }
+          },
+          "progression": {
+            "schemaVersion": 1,
+            "currentWorldId": "grey_hive",
+            "eventSeq": 1,
+            "worlds": [
+              {
+                "worldId": "grey_hive",
+                "completed": false,
+                "firstCompletion": false,
+                "visitId": 1,
+                "cycleId": 1,
+                "revisitCount": 0
+              },
+              {
+                "worldId": "mist_harbor",
+                "completed": false,
+                "firstCompletion": false,
+                "visitId": 0,
+                "cycleId": 1,
+                "revisitCount": 0
+              },
+              {
+                "worldId": "clockworks",
+                "completed": false,
+                "firstCompletion": false,
+                "visitId": 0,
+                "cycleId": 1,
+                "revisitCount": 0
+              }
+            ]
+          }
+        }
+      },
+      "commandReceipt": {
+        "commandId": "scenario-start",
+        "applied": true,
+        "alreadyApplied": false,
+        "errorCode": null,
+        "worldEpoch": 1,
+        "serverTick": 0,
+        "authorityRevision": 0,
+        "snapshot": {
+          "kind": "full",
+          "schemaVersion": "freeze-v02-interfaces/1.2",
+          "worldId": "grey_hive",
+          "worldEpoch": 1,
+          "serverTick": 0,
+          "authorityRevision": 0,
+          "ackSeq": 0,
+          "view": {
+            "protocol": "continuous-ipc",
+            "version": 1,
+            "schemaVersion": "freeze-v02-interfaces/1.2",
+            "worldId": "grey_hive",
+            "worldEpoch": 1,
+            "serverTick": 0,
+            "authorityRevision": 0,
+            "ackSeq": 0,
+            "serverTimeMs": 0,
+            "player": {
+              "entityId": "player",
+              "transform": {
+                "positionM": {
+                  "xM": 0,
+                  "yM": 0,
+                  "zM": 0
+                },
+                "yawRad": 0
+              },
+              "velocityMps": {
+                "xM": 0,
+                "yM": 0,
+                "zM": 0
+              },
+              "currentHp": 100,
+              "maxHp": 100,
+              "currentEnergy": 100,
+              "maxEnergy": 100
+            },
+            "actors": [
+              {
+                "entityId": "gh_power_console",
+                "actorKind": "power_console",
+                "transform": {
+                  "positionM": {
+                    "xM": 2,
+                    "yM": 0,
+                    "zM": 3
+                  },
+                  "yawRad": 0
+                },
+                "active": true
+              }
+            ],
+            "doors": [
+              {
+                "doorId": "gh_gate_a",
+                "transform": {
+                  "positionM": {
+                    "xM": 0,
+                    "yM": 0,
+                    "zM": 8
+                  },
+                  "yawRad": 0
+                },
+                "open": false,
+                "locked": true
+              }
+            ],
+            "capabilities": {
+              "schemaVersion": 1,
+              "items": [
+                {
+                  "capabilityId": "information.local_map_i",
+                  "granted": false,
+                  "selected": false,
+                  "cooldownRemainingMs": 0
+                },
+                {
+                  "capabilityId": "perception.rear_view_i",
+                  "granted": false,
+                  "selected": false,
+                  "cooldownRemainingMs": 0
+                },
+                {
+                  "capabilityId": "information.enemy_vitals_basic",
+                  "granted": false,
+                  "selected": false,
+                  "cooldownRemainingMs": 0
+                },
+                {
+                  "capabilityId": "body.regeneration_i",
+                  "granted": false,
+                  "selected": false,
+                  "cooldownRemainingMs": 0
+                }
+              ],
+              "exploredMap": {
+                "worldId": "grey_hive",
+                "playerPositionM": {
+                  "xM": 0,
+                  "yM": 0,
+                  "zM": 0
+                },
+                "rooms": [],
+                "connections": [],
+                "objectives": []
+              },
+              "enemyVitals": [],
+              "rearView": {
+                "granted": false,
+                "grantId": null,
+                "grantedAtRevision": null
+              }
+            },
+            "progression": {
+              "schemaVersion": 1,
+              "currentWorldId": "grey_hive",
+              "eventSeq": 1,
+              "worlds": [
+                {
+                  "worldId": "grey_hive",
+                  "completed": false,
+                  "firstCompletion": false,
+                  "visitId": 1,
+                  "cycleId": 1,
+                  "revisitCount": 0
+                },
+                {
+                  "worldId": "mist_harbor",
+                  "completed": false,
+                  "firstCompletion": false,
+                  "visitId": 0,
+                  "cycleId": 1,
+                  "revisitCount": 0
+                },
+                {
+                  "worldId": "clockworks",
+                  "completed": false,
+                  "firstCompletion": false,
+                  "visitId": 0,
+                  "cycleId": 1,
+                  "revisitCount": 0
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "gateBefore": {
+      "sourcePhase": "seed",
+      "sourceEvent": "closed-gate-blocked",
+      "sourceLineIndex": 2,
+      "view": {
+        "protocol": "continuous-ipc",
+        "version": 1,
+        "schemaVersion": "freeze-v02-interfaces/1.2",
+        "worldId": "grey_hive",
+        "worldEpoch": 1,
+        "serverTick": 48,
+        "authorityRevision": 48,
+        "ackSeq": 48,
+        "serverTimeMs": 2400,
+        "player": {
+          "entityId": "player",
+          "transform": {
+            "positionM": {
+              "xM": 0,
+              "yM": 0,
+              "zM": 7.399997
+            },
+            "yawRad": 0
+          },
+          "velocityMps": {
+            "xM": 0,
+            "yM": 0,
+            "zM": 0
+          },
+          "currentHp": 100,
+          "maxHp": 100,
+          "currentEnergy": 100,
+          "maxEnergy": 100
+        },
+        "actors": [
+          {
+            "entityId": "gh_power_console",
+            "actorKind": "power_console",
+            "transform": {
+              "positionM": {
+                "xM": 2,
+                "yM": 0,
+                "zM": 3
+              },
+              "yawRad": 0
+            },
+            "active": true
+          }
+        ],
+        "doors": [
+          {
+            "doorId": "gh_gate_a",
+            "transform": {
+              "positionM": {
+                "xM": 0,
+                "yM": 0,
+                "zM": 8
+              },
+              "yawRad": 0
+            },
+            "open": false,
+            "locked": true
+          }
+        ],
+        "capabilities": {
+          "schemaVersion": 1,
+          "items": [
+            {
+              "capabilityId": "information.local_map_i",
+              "granted": false,
+              "selected": false,
+              "cooldownRemainingMs": 0
+            },
+            {
+              "capabilityId": "perception.rear_view_i",
+              "granted": false,
+              "selected": false,
+              "cooldownRemainingMs": 0
+            },
+            {
+              "capabilityId": "information.enemy_vitals_basic",
+              "granted": false,
+              "selected": false,
+              "cooldownRemainingMs": 0
+            },
+            {
+              "capabilityId": "body.regeneration_i",
+              "granted": false,
+              "selected": false,
+              "cooldownRemainingMs": 0
+            }
+          ],
+          "exploredMap": {
+            "worldId": "grey_hive",
+            "playerPositionM": {
+              "xM": 0,
+              "yM": 0,
+              "zM": 7.399997
+            },
+            "rooms": [],
+            "connections": [],
+            "objectives": []
+          },
+          "enemyVitals": [],
+          "rearView": {
+            "granted": false,
+            "grantId": null,
+            "grantedAtRevision": null
+          }
+        },
+        "progression": {
+          "schemaVersion": 1,
+          "currentWorldId": "grey_hive",
+          "eventSeq": 1,
+          "worlds": [
+            {
+              "worldId": "grey_hive",
+              "completed": false,
+              "firstCompletion": false,
+              "visitId": 1,
+              "cycleId": 1,
+              "revisitCount": 0
+            },
+            {
+              "worldId": "mist_harbor",
+              "completed": false,
+              "firstCompletion": false,
+              "visitId": 0,
+              "cycleId": 1,
+              "revisitCount": 0
+            },
+            {
+              "worldId": "clockworks",
+              "completed": false,
+              "firstCompletion": false,
+              "visitId": 0,
+              "cycleId": 1,
+              "revisitCount": 0
+            }
+          ]
+        }
+      },
+      "worldSnapshot": {
+        "kind": "full",
+        "schemaVersion": "freeze-v02-interfaces/1.2",
+        "worldId": "grey_hive",
+        "worldEpoch": 1,
+        "serverTick": 48,
+        "authorityRevision": 48,
+        "ackSeq": 48,
+        "view": {
+          "protocol": "continuous-ipc",
+          "version": 1,
+          "schemaVersion": "freeze-v02-interfaces/1.2",
+          "worldId": "grey_hive",
+          "worldEpoch": 1,
+          "serverTick": 48,
+          "authorityRevision": 48,
+          "ackSeq": 48,
+          "serverTimeMs": 2400,
+          "player": {
+            "entityId": "player",
+            "transform": {
+              "positionM": {
+                "xM": 0,
+                "yM": 0,
+                "zM": 7.399997
+              },
+              "yawRad": 0
+            },
+            "velocityMps": {
+              "xM": 0,
+              "yM": 0,
+              "zM": 0
+            },
+            "currentHp": 100,
+            "maxHp": 100,
+            "currentEnergy": 100,
+            "maxEnergy": 100
+          },
+          "actors": [
+            {
+              "entityId": "gh_power_console",
+              "actorKind": "power_console",
+              "transform": {
+                "positionM": {
+                  "xM": 2,
+                  "yM": 0,
+                  "zM": 3
+                },
+                "yawRad": 0
+              },
+              "active": true
+            }
+          ],
+          "doors": [
+            {
+              "doorId": "gh_gate_a",
+              "transform": {
+                "positionM": {
+                  "xM": 0,
+                  "yM": 0,
+                  "zM": 8
+                },
+                "yawRad": 0
+              },
+              "open": false,
+              "locked": true
+            }
+          ],
+          "capabilities": {
+            "schemaVersion": 1,
+            "items": [
+              {
+                "capabilityId": "information.local_map_i",
+                "granted": false,
+                "selected": false,
+                "cooldownRemainingMs": 0
+              },
+              {
+                "capabilityId": "perception.rear_view_i",
+                "granted": false,
+                "selected": false,
+                "cooldownRemainingMs": 0
+              },
+              {
+                "capabilityId": "information.enemy_vitals_basic",
+                "granted": false,
+                "selected": false,
+                "cooldownRemainingMs": 0
+              },
+              {
+                "capabilityId": "body.regeneration_i",
+                "granted": false,
+                "selected": false,
+                "cooldownRemainingMs": 0
+              }
+            ],
+            "exploredMap": {
+              "worldId": "grey_hive",
+              "playerPositionM": {
+                "xM": 0,
+                "yM": 0,
+                "zM": 7.399997
+              },
+              "rooms": [],
+              "connections": [],
+              "objectives": []
+            },
+            "enemyVitals": [],
+            "rearView": {
+              "granted": false,
+              "grantId": null,
+              "grantedAtRevision": null
+            }
+          },
+          "progression": {
+            "schemaVersion": 1,
+            "currentWorldId": "grey_hive",
+            "eventSeq": 1,
+            "worlds": [
+              {
+                "worldId": "grey_hive",
+                "completed": false,
+                "firstCompletion": false,
+                "visitId": 1,
+                "cycleId": 1,
+                "revisitCount": 0
+              },
+              {
+                "worldId": "mist_harbor",
+                "completed": false,
+                "firstCompletion": false,
+                "visitId": 0,
+                "cycleId": 1,
+                "revisitCount": 0
+              },
+              {
+                "worldId": "clockworks",
+                "completed": false,
+                "firstCompletion": false,
+                "visitId": 0,
+                "cycleId": 1,
+                "revisitCount": 0
+              }
+            ]
+          }
+        }
+      }
+    },
+    "powerAfter": {
+      "sourcePhase": "seed",
+      "sourceEvent": "power-applied",
+      "sourceLineIndex": 3,
+      "view": {
+        "protocol": "continuous-ipc",
+        "version": 1,
+        "schemaVersion": "freeze-v02-interfaces/1.2",
+        "worldId": "grey_hive",
+        "worldEpoch": 1,
+        "serverTick": 78,
+        "authorityRevision": 79,
+        "ackSeq": 78,
+        "serverTimeMs": 3900,
+        "player": {
+          "entityId": "player",
+          "transform": {
+            "positionM": {
+              "xM": 1.6000001,
+              "yM": 0,
+              "zM": 3.0000002
+            },
+            "yawRad": 0
+          },
+          "velocityMps": {
+            "xM": 4,
+            "yM": 0,
+            "zM": 0
+          },
+          "currentHp": 100,
+          "maxHp": 100,
+          "currentEnergy": 100,
+          "maxEnergy": 100
+        },
+        "actors": [
+          {
+            "entityId": "gh_power_console",
+            "actorKind": "power_console",
+            "transform": {
+              "positionM": {
+                "xM": 2,
+                "yM": 0,
+                "zM": 3
+              },
+              "yawRad": 0
+            },
+            "active": true
+          }
+        ],
+        "doors": [
+          {
+            "doorId": "gh_gate_a",
+            "transform": {
+              "positionM": {
+                "xM": 0,
+                "yM": 0,
+                "zM": 8
+              },
+              "yawRad": 0
+            },
+            "open": true,
+            "locked": false
+          }
+        ],
+        "capabilities": {
+          "schemaVersion": 1,
+          "items": [
+            {
+              "capabilityId": "information.local_map_i",
+              "granted": false,
+              "selected": false,
+              "cooldownRemainingMs": 0
+            },
+            {
+              "capabilityId": "perception.rear_view_i",
+              "granted": false,
+              "selected": false,
+              "cooldownRemainingMs": 0
+            },
+            {
+              "capabilityId": "information.enemy_vitals_basic",
+              "granted": false,
+              "selected": false,
+              "cooldownRemainingMs": 0
+            },
+            {
+              "capabilityId": "body.regeneration_i",
+              "granted": false,
+              "selected": false,
+              "cooldownRemainingMs": 0
+            }
+          ],
+          "exploredMap": {
+            "worldId": "grey_hive",
+            "playerPositionM": {
+              "xM": 1.6000001,
+              "yM": 0,
+              "zM": 3.0000002
+            },
+            "rooms": [],
+            "connections": [],
+            "objectives": []
+          },
+          "enemyVitals": [],
+          "rearView": {
+            "granted": false,
+            "grantId": null,
+            "grantedAtRevision": null
+          }
+        },
+        "progression": {
+          "schemaVersion": 1,
+          "currentWorldId": "grey_hive",
+          "eventSeq": 2,
+          "worlds": [
+            {
+              "worldId": "grey_hive",
+              "completed": false,
+              "firstCompletion": false,
+              "visitId": 1,
+              "cycleId": 1,
+              "revisitCount": 0
+            },
+            {
+              "worldId": "mist_harbor",
+              "completed": false,
+              "firstCompletion": false,
+              "visitId": 0,
+              "cycleId": 1,
+              "revisitCount": 0
+            },
+            {
+              "worldId": "clockworks",
+              "completed": false,
+              "firstCompletion": false,
+              "visitId": 0,
+              "cycleId": 1,
+              "revisitCount": 0
+            }
+          ]
+        }
+      },
+      "worldSnapshot": {
+        "kind": "full",
+        "schemaVersion": "freeze-v02-interfaces/1.2",
+        "worldId": "grey_hive",
+        "worldEpoch": 1,
+        "serverTick": 78,
+        "authorityRevision": 79,
+        "ackSeq": 78,
+        "view": {
+          "protocol": "continuous-ipc",
+          "version": 1,
+          "schemaVersion": "freeze-v02-interfaces/1.2",
+          "worldId": "grey_hive",
+          "worldEpoch": 1,
+          "serverTick": 78,
+          "authorityRevision": 79,
+          "ackSeq": 78,
+          "serverTimeMs": 3900,
+          "player": {
+            "entityId": "player",
+            "transform": {
+              "positionM": {
+                "xM": 1.6000001,
+                "yM": 0,
+                "zM": 3.0000002
+              },
+              "yawRad": 0
+            },
+            "velocityMps": {
+              "xM": 4,
+              "yM": 0,
+              "zM": 0
+            },
+            "currentHp": 100,
+            "maxHp": 100,
+            "currentEnergy": 100,
+            "maxEnergy": 100
+          },
+          "actors": [
+            {
+              "entityId": "gh_power_console",
+              "actorKind": "power_console",
+              "transform": {
+                "positionM": {
+                  "xM": 2,
+                  "yM": 0,
+                  "zM": 3
+                },
+                "yawRad": 0
+              },
+              "active": true
+            }
+          ],
+          "doors": [
+            {
+              "doorId": "gh_gate_a",
+              "transform": {
+                "positionM": {
+                  "xM": 0,
+                  "yM": 0,
+                  "zM": 8
+                },
+                "yawRad": 0
+              },
+              "open": true,
+              "locked": false
+            }
+          ],
+          "capabilities": {
+            "schemaVersion": 1,
+            "items": [
+              {
+                "capabilityId": "information.local_map_i",
+                "granted": false,
+                "selected": false,
+                "cooldownRemainingMs": 0
+              },
+              {
+                "capabilityId": "perception.rear_view_i",
+                "granted": false,
+                "selected": false,
+                "cooldownRemainingMs": 0
+              },
+              {
+                "capabilityId": "information.enemy_vitals_basic",
+                "granted": false,
+                "selected": false,
+                "cooldownRemainingMs": 0
+              },
+              {
+                "capabilityId": "body.regeneration_i",
+                "granted": false,
+                "selected": false,
+                "cooldownRemainingMs": 0
+              }
+            ],
+            "exploredMap": {
+              "worldId": "grey_hive",
+              "playerPositionM": {
+                "xM": 1.6000001,
+                "yM": 0,
+                "zM": 3.0000002
+              },
+              "rooms": [],
+              "connections": [],
+              "objectives": []
+            },
+            "enemyVitals": [],
+            "rearView": {
+              "granted": false,
+              "grantId": null,
+              "grantedAtRevision": null
+            }
+          },
+          "progression": {
+            "schemaVersion": 1,
+            "currentWorldId": "grey_hive",
+            "eventSeq": 2,
+            "worlds": [
+              {
+                "worldId": "grey_hive",
+                "completed": false,
+                "firstCompletion": false,
+                "visitId": 1,
+                "cycleId": 1,
+                "revisitCount": 0
+              },
+              {
+                "worldId": "mist_harbor",
+                "completed": false,
+                "firstCompletion": false,
+                "visitId": 0,
+                "cycleId": 1,
+                "revisitCount": 0
+              },
+              {
+                "worldId": "clockworks",
+                "completed": false,
+                "firstCompletion": false,
+                "visitId": 0,
+                "cycleId": 1,
+                "revisitCount": 0
+              }
+            ]
+          }
+        }
+      },
+      "commandReceipt": {
+        "commandId": "power-event-first",
+        "applied": true,
+        "alreadyApplied": false,
+        "errorCode": null,
+        "worldEpoch": 1,
+        "serverTick": 78,
+        "authorityRevision": 79,
+        "snapshot": {
+          "kind": "full",
+          "schemaVersion": "freeze-v02-interfaces/1.2",
+          "worldId": "grey_hive",
+          "worldEpoch": 1,
+          "serverTick": 78,
+          "authorityRevision": 79,
+          "ackSeq": 78,
+          "view": {
+            "protocol": "continuous-ipc",
+            "version": 1,
+            "schemaVersion": "freeze-v02-interfaces/1.2",
+            "worldId": "grey_hive",
+            "worldEpoch": 1,
+            "serverTick": 78,
+            "authorityRevision": 79,
+            "ackSeq": 78,
+            "serverTimeMs": 3900,
+            "player": {
+              "entityId": "player",
+              "transform": {
+                "positionM": {
+                  "xM": 1.6000001,
+                  "yM": 0,
+                  "zM": 3.0000002
+                },
+                "yawRad": 0
+              },
+              "velocityMps": {
+                "xM": 4,
+                "yM": 0,
+                "zM": 0
+              },
+              "currentHp": 100,
+              "maxHp": 100,
+              "currentEnergy": 100,
+              "maxEnergy": 100
+            },
+            "actors": [
+              {
+                "entityId": "gh_power_console",
+                "actorKind": "power_console",
+                "transform": {
+                  "positionM": {
+                    "xM": 2,
+                    "yM": 0,
+                    "zM": 3
+                  },
+                  "yawRad": 0
+                },
+                "active": true
+              }
+            ],
+            "doors": [
+              {
+                "doorId": "gh_gate_a",
+                "transform": {
+                  "positionM": {
+                    "xM": 0,
+                    "yM": 0,
+                    "zM": 8
+                  },
+                  "yawRad": 0
+                },
+                "open": true,
+                "locked": false
+              }
+            ],
+            "capabilities": {
+              "schemaVersion": 1,
+              "items": [
+                {
+                  "capabilityId": "information.local_map_i",
+                  "granted": false,
+                  "selected": false,
+                  "cooldownRemainingMs": 0
+                },
+                {
+                  "capabilityId": "perception.rear_view_i",
+                  "granted": false,
+                  "selected": false,
+                  "cooldownRemainingMs": 0
+                },
+                {
+                  "capabilityId": "information.enemy_vitals_basic",
+                  "granted": false,
+                  "selected": false,
+                  "cooldownRemainingMs": 0
+                },
+                {
+                  "capabilityId": "body.regeneration_i",
+                  "granted": false,
+                  "selected": false,
+                  "cooldownRemainingMs": 0
+                }
+              ],
+              "exploredMap": {
+                "worldId": "grey_hive",
+                "playerPositionM": {
+                  "xM": 1.6000001,
+                  "yM": 0,
+                  "zM": 3.0000002
+                },
+                "rooms": [],
+                "connections": [],
+                "objectives": []
+              },
+              "enemyVitals": [],
+              "rearView": {
+                "granted": false,
+                "grantId": null,
+                "grantedAtRevision": null
+              }
+            },
+            "progression": {
+              "schemaVersion": 1,
+              "currentWorldId": "grey_hive",
+              "eventSeq": 2,
+              "worlds": [
+                {
+                  "worldId": "grey_hive",
+                  "completed": false,
+                  "firstCompletion": false,
+                  "visitId": 1,
+                  "cycleId": 1,
+                  "revisitCount": 0
+                },
+                {
+                  "worldId": "mist_harbor",
+                  "completed": false,
+                  "firstCompletion": false,
+                  "visitId": 0,
+                  "cycleId": 1,
+                  "revisitCount": 0
+                },
+                {
+                  "worldId": "clockworks",
+                  "completed": false,
+                  "firstCompletion": false,
+                  "visitId": 0,
+                  "cycleId": 1,
+                  "revisitCount": 0
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "gateAfter": {
+      "sourcePhase": "seed",
+      "sourceEvent": "open-gate-passed",
+      "sourceLineIndex": 6,
+      "view": {
+        "protocol": "continuous-ipc",
+        "version": 1,
+        "schemaVersion": "freeze-v02-interfaces/1.2",
+        "worldId": "grey_hive",
+        "worldEpoch": 1,
+        "serverTick": 134,
+        "authorityRevision": 135,
+        "ackSeq": 134,
+        "serverTimeMs": 6700,
+        "player": {
+          "entityId": "player",
+          "transform": {
+            "positionM": {
+              "xM": 2.9802322e-8,
+              "yM": 0,
+              "zM": 12.599993
+            },
+            "yawRad": 0
+          },
+          "velocityMps": {
+            "xM": 0,
+            "yM": 0,
+            "zM": 4
+          },
+          "currentHp": 100,
+          "maxHp": 100,
+          "currentEnergy": 100,
+          "maxEnergy": 100
+        },
+        "actors": [
+          {
+            "entityId": "gh_power_console",
+            "actorKind": "power_console",
+            "transform": {
+              "positionM": {
+                "xM": 2,
+                "yM": 0,
+                "zM": 3
+              },
+              "yawRad": 0
+            },
+            "active": true
+          }
+        ],
+        "doors": [
+          {
+            "doorId": "gh_gate_a",
+            "transform": {
+              "positionM": {
+                "xM": 0,
+                "yM": 0,
+                "zM": 8
+              },
+              "yawRad": 0
+            },
+            "open": true,
+            "locked": false
+          }
+        ],
+        "capabilities": {
+          "schemaVersion": 1,
+          "items": [
+            {
+              "capabilityId": "information.local_map_i",
+              "granted": false,
+              "selected": false,
+              "cooldownRemainingMs": 0
+            },
+            {
+              "capabilityId": "perception.rear_view_i",
+              "granted": false,
+              "selected": false,
+              "cooldownRemainingMs": 0
+            },
+            {
+              "capabilityId": "information.enemy_vitals_basic",
+              "granted": false,
+              "selected": false,
+              "cooldownRemainingMs": 0
+            },
+            {
+              "capabilityId": "body.regeneration_i",
+              "granted": false,
+              "selected": false,
+              "cooldownRemainingMs": 0
+            }
+          ],
+          "exploredMap": {
+            "worldId": "grey_hive",
+            "playerPositionM": {
+              "xM": 2.9802322e-8,
+              "yM": 0,
+              "zM": 12.599993
+            },
+            "rooms": [],
+            "connections": [],
+            "objectives": []
+          },
+          "enemyVitals": [],
+          "rearView": {
+            "granted": false,
+            "grantId": null,
+            "grantedAtRevision": null
+          }
+        },
+        "progression": {
+          "schemaVersion": 1,
+          "currentWorldId": "grey_hive",
+          "eventSeq": 2,
+          "worlds": [
+            {
+              "worldId": "grey_hive",
+              "completed": false,
+              "firstCompletion": false,
+              "visitId": 1,
+              "cycleId": 1,
+              "revisitCount": 0
+            },
+            {
+              "worldId": "mist_harbor",
+              "completed": false,
+              "firstCompletion": false,
+              "visitId": 0,
+              "cycleId": 1,
+              "revisitCount": 0
+            },
+            {
+              "worldId": "clockworks",
+              "completed": false,
+              "firstCompletion": false,
+              "visitId": 0,
+              "cycleId": 1,
+              "revisitCount": 0
+            }
+          ]
+        }
+      },
+      "worldSnapshot": {
+        "kind": "full",
+        "schemaVersion": "freeze-v02-interfaces/1.2",
+        "worldId": "grey_hive",
+        "worldEpoch": 1,
+        "serverTick": 134,
+        "authorityRevision": 135,
+        "ackSeq": 134,
+        "view": {
+          "protocol": "continuous-ipc",
+          "version": 1,
+          "schemaVersion": "freeze-v02-interfaces/1.2",
+          "worldId": "grey_hive",
+          "worldEpoch": 1,
+          "serverTick": 134,
+          "authorityRevision": 135,
+          "ackSeq": 134,
+          "serverTimeMs": 6700,
+          "player": {
+            "entityId": "player",
+            "transform": {
+              "positionM": {
+                "xM": 2.9802322e-8,
+                "yM": 0,
+                "zM": 12.599993
+              },
+              "yawRad": 0
+            },
+            "velocityMps": {
+              "xM": 0,
+              "yM": 0,
+              "zM": 4
+            },
+            "currentHp": 100,
+            "maxHp": 100,
+            "currentEnergy": 100,
+            "maxEnergy": 100
+          },
+          "actors": [
+            {
+              "entityId": "gh_power_console",
+              "actorKind": "power_console",
+              "transform": {
+                "positionM": {
+                  "xM": 2,
+                  "yM": 0,
+                  "zM": 3
+                },
+                "yawRad": 0
+              },
+              "active": true
+            }
+          ],
+          "doors": [
+            {
+              "doorId": "gh_gate_a",
+              "transform": {
+                "positionM": {
+                  "xM": 0,
+                  "yM": 0,
+                  "zM": 8
+                },
+                "yawRad": 0
+              },
+              "open": true,
+              "locked": false
+            }
+          ],
+          "capabilities": {
+            "schemaVersion": 1,
+            "items": [
+              {
+                "capabilityId": "information.local_map_i",
+                "granted": false,
+                "selected": false,
+                "cooldownRemainingMs": 0
+              },
+              {
+                "capabilityId": "perception.rear_view_i",
+                "granted": false,
+                "selected": false,
+                "cooldownRemainingMs": 0
+              },
+              {
+                "capabilityId": "information.enemy_vitals_basic",
+                "granted": false,
+                "selected": false,
+                "cooldownRemainingMs": 0
+              },
+              {
+                "capabilityId": "body.regeneration_i",
+                "granted": false,
+                "selected": false,
+                "cooldownRemainingMs": 0
+              }
+            ],
+            "exploredMap": {
+              "worldId": "grey_hive",
+              "playerPositionM": {
+                "xM": 2.9802322e-8,
+                "yM": 0,
+                "zM": 12.599993
+              },
+              "rooms": [],
+              "connections": [],
+              "objectives": []
+            },
+            "enemyVitals": [],
+            "rearView": {
+              "granted": false,
+              "grantId": null,
+              "grantedAtRevision": null
+            }
+          },
+          "progression": {
+            "schemaVersion": 1,
+            "currentWorldId": "grey_hive",
+            "eventSeq": 2,
+            "worlds": [
+              {
+                "worldId": "grey_hive",
+                "completed": false,
+                "firstCompletion": false,
+                "visitId": 1,
+                "cycleId": 1,
+                "revisitCount": 0
+              },
+              {
+                "worldId": "mist_harbor",
+                "completed": false,
+                "firstCompletion": false,
+                "visitId": 0,
+                "cycleId": 1,
+                "revisitCount": 0
+              },
+              {
+                "worldId": "clockworks",
+                "completed": false,
+                "firstCompletion": false,
+                "visitId": 0,
+                "cycleId": 1,
+                "revisitCount": 0
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "ipc": {
+    "formalSnapshot": {
+      "kind": "full",
+      "schemaVersion": "freeze-v02-interfaces/1.2",
+      "worldId": "grey_hive",
+      "worldEpoch": 1,
+      "serverTick": 0,
+      "authorityRevision": 0,
+      "ackSeq": 0,
+      "view": {
+        "protocol": "continuous-ipc",
+        "version": 1,
+        "schemaVersion": "freeze-v02-interfaces/1.2",
+        "worldId": "grey_hive",
+        "worldEpoch": 1,
+        "serverTick": 0,
+        "authorityRevision": 0,
+        "ackSeq": 0,
+        "serverTimeMs": 0,
+        "player": {
+          "entityId": "player",
+          "transform": {
+            "positionM": {
+              "xM": 0,
+              "yM": 0,
+              "zM": 0
+            },
+            "yawRad": 0
+          },
+          "velocityMps": {
+            "xM": 0,
+            "yM": 0,
+            "zM": 0
+          },
+          "currentHp": 100,
+          "maxHp": 100,
+          "currentEnergy": 100,
+          "maxEnergy": 100
+        },
+        "actors": [
+          {
+            "entityId": "gh_power_console",
+            "actorKind": "power_console",
+            "transform": {
+              "positionM": {
+                "xM": 2,
+                "yM": 0,
+                "zM": 3
+              },
+              "yawRad": 0
+            },
+            "active": true
+          }
+        ],
+        "doors": [
+          {
+            "doorId": "gh_gate_a",
+            "transform": {
+              "positionM": {
+                "xM": 0,
+                "yM": 0,
+                "zM": 8
+              },
+              "yawRad": 0
+            },
+            "open": false,
+            "locked": true
+          }
+        ],
+        "capabilities": {
+          "schemaVersion": 1,
+          "items": [
+            {
+              "capabilityId": "information.local_map_i",
+              "granted": false,
+              "selected": false,
+              "cooldownRemainingMs": 0
+            },
+            {
+              "capabilityId": "perception.rear_view_i",
+              "granted": false,
+              "selected": false,
+              "cooldownRemainingMs": 0
+            },
+            {
+              "capabilityId": "information.enemy_vitals_basic",
+              "granted": false,
+              "selected": false,
+              "cooldownRemainingMs": 0
+            },
+            {
+              "capabilityId": "body.regeneration_i",
+              "granted": false,
+              "selected": false,
+              "cooldownRemainingMs": 0
+            }
+          ],
+          "exploredMap": {
+            "worldId": "grey_hive",
+            "playerPositionM": {
+              "xM": 0,
+              "yM": 0,
+              "zM": 0
+            },
+            "rooms": [],
+            "connections": [],
+            "objectives": []
+          },
+          "enemyVitals": [],
+          "rearView": {
+            "granted": false,
+            "grantId": null,
+            "grantedAtRevision": null
+          }
+        },
+        "progression": {
+          "schemaVersion": 1,
+          "currentWorldId": "grey_hive",
+          "eventSeq": 1,
+          "worlds": [
+            {
+              "worldId": "grey_hive",
+              "completed": false,
+              "firstCompletion": false,
+              "visitId": 1,
+              "cycleId": 1,
+              "revisitCount": 0
+            },
+            {
+              "worldId": "mist_harbor",
+              "completed": false,
+              "firstCompletion": false,
+              "visitId": 0,
+              "cycleId": 1,
+              "revisitCount": 0
+            },
+            {
+              "worldId": "clockworks",
+              "completed": false,
+              "firstCompletion": false,
+              "visitId": 0,
+              "cycleId": 1,
+              "revisitCount": 0
+            }
+          ]
+        }
+      }
+    },
+    "formalListSaveSlots": [],
+    "formalNew": {
+      "commandId": "scenario-start",
+      "applied": true,
+      "alreadyApplied": false,
+      "errorCode": null,
+      "worldEpoch": 1,
+      "serverTick": 0,
+      "authorityRevision": 0,
+      "snapshot": {
+        "kind": "full",
+        "schemaVersion": "freeze-v02-interfaces/1.2",
+        "worldId": "grey_hive",
+        "worldEpoch": 1,
+        "serverTick": 0,
+        "authorityRevision": 0,
+        "ackSeq": 0,
+        "view": {
+          "protocol": "continuous-ipc",
+          "version": 1,
+          "schemaVersion": "freeze-v02-interfaces/1.2",
+          "worldId": "grey_hive",
+          "worldEpoch": 1,
+          "serverTick": 0,
+          "authorityRevision": 0,
+          "ackSeq": 0,
+          "serverTimeMs": 0,
+          "player": {
+            "entityId": "player",
+            "transform": {
+              "positionM": {
+                "xM": 0,
+                "yM": 0,
+                "zM": 0
+              },
+              "yawRad": 0
+            },
+            "velocityMps": {
+              "xM": 0,
+              "yM": 0,
+              "zM": 0
+            },
+            "currentHp": 100,
+            "maxHp": 100,
+            "currentEnergy": 100,
+            "maxEnergy": 100
+          },
+          "actors": [
+            {
+              "entityId": "gh_power_console",
+              "actorKind": "power_console",
+              "transform": {
+                "positionM": {
+                  "xM": 2,
+                  "yM": 0,
+                  "zM": 3
+                },
+                "yawRad": 0
+              },
+              "active": true
+            }
+          ],
+          "doors": [
+            {
+              "doorId": "gh_gate_a",
+              "transform": {
+                "positionM": {
+                  "xM": 0,
+                  "yM": 0,
+                  "zM": 8
+                },
+                "yawRad": 0
+              },
+              "open": false,
+              "locked": true
+            }
+          ],
+          "capabilities": {
+            "schemaVersion": 1,
+            "items": [
+              {
+                "capabilityId": "information.local_map_i",
+                "granted": false,
+                "selected": false,
+                "cooldownRemainingMs": 0
+              },
+              {
+                "capabilityId": "perception.rear_view_i",
+                "granted": false,
+                "selected": false,
+                "cooldownRemainingMs": 0
+              },
+              {
+                "capabilityId": "information.enemy_vitals_basic",
+                "granted": false,
+                "selected": false,
+                "cooldownRemainingMs": 0
+              },
+              {
+                "capabilityId": "body.regeneration_i",
+                "granted": false,
+                "selected": false,
+                "cooldownRemainingMs": 0
+              }
+            ],
+            "exploredMap": {
+              "worldId": "grey_hive",
+              "playerPositionM": {
+                "xM": 0,
+                "yM": 0,
+                "zM": 0
+              },
+              "rooms": [],
+              "connections": [],
+              "objectives": []
+            },
+            "enemyVitals": [],
+            "rearView": {
+              "granted": false,
+              "grantId": null,
+              "grantedAtRevision": null
+            }
+          },
+          "progression": {
+            "schemaVersion": 1,
+            "currentWorldId": "grey_hive",
+            "eventSeq": 1,
+            "worlds": [
+              {
+                "worldId": "grey_hive",
+                "completed": false,
+                "firstCompletion": false,
+                "visitId": 1,
+                "cycleId": 1,
+                "revisitCount": 0
+              },
+              {
+                "worldId": "mist_harbor",
+                "completed": false,
+                "firstCompletion": false,
+                "visitId": 0,
+                "cycleId": 1,
+                "revisitCount": 0
+              },
+              {
+                "worldId": "clockworks",
+                "completed": false,
+                "firstCompletion": false,
+                "visitId": 0,
+                "cycleId": 1,
+                "revisitCount": 0
+              }
+            ]
+          }
+        }
+      }
+    },
+    "formalInteractPower": {
+      "applied": true,
+      "alreadyApplied": false,
+      "errorCode": null,
+      "events": [
+        "hive_power"
+      ],
+      "receipt": {
+        "commandId": "power-event-first",
+        "applied": true,
+        "alreadyApplied": false,
+        "errorCode": null,
+        "worldEpoch": 1,
+        "serverTick": 78,
+        "authorityRevision": 79,
+        "snapshot": {
+          "kind": "full",
+          "schemaVersion": "freeze-v02-interfaces/1.2",
+          "worldId": "grey_hive",
+          "worldEpoch": 1,
+          "serverTick": 78,
+          "authorityRevision": 79,
+          "ackSeq": 78,
+          "view": {
+            "protocol": "continuous-ipc",
+            "version": 1,
+            "schemaVersion": "freeze-v02-interfaces/1.2",
+            "worldId": "grey_hive",
+            "worldEpoch": 1,
+            "serverTick": 78,
+            "authorityRevision": 79,
+            "ackSeq": 78,
+            "serverTimeMs": 3900,
+            "player": {
+              "entityId": "player",
+              "transform": {
+                "positionM": {
+                  "xM": 1.6000001,
+                  "yM": 0,
+                  "zM": 3.0000002
+                },
+                "yawRad": 0
+              },
+              "velocityMps": {
+                "xM": 4,
+                "yM": 0,
+                "zM": 0
+              },
+              "currentHp": 100,
+              "maxHp": 100,
+              "currentEnergy": 100,
+              "maxEnergy": 100
+            },
+            "actors": [
+              {
+                "entityId": "gh_power_console",
+                "actorKind": "power_console",
+                "transform": {
+                  "positionM": {
+                    "xM": 2,
+                    "yM": 0,
+                    "zM": 3
+                  },
+                  "yawRad": 0
+                },
+                "active": true
+              }
+            ],
+            "doors": [
+              {
+                "doorId": "gh_gate_a",
+                "transform": {
+                  "positionM": {
+                    "xM": 0,
+                    "yM": 0,
+                    "zM": 8
+                  },
+                  "yawRad": 0
+                },
+                "open": true,
+                "locked": false
+              }
+            ],
+            "capabilities": {
+              "schemaVersion": 1,
+              "items": [
+                {
+                  "capabilityId": "information.local_map_i",
+                  "granted": false,
+                  "selected": false,
+                  "cooldownRemainingMs": 0
+                },
+                {
+                  "capabilityId": "perception.rear_view_i",
+                  "granted": false,
+                  "selected": false,
+                  "cooldownRemainingMs": 0
+                },
+                {
+                  "capabilityId": "information.enemy_vitals_basic",
+                  "granted": false,
+                  "selected": false,
+                  "cooldownRemainingMs": 0
+                },
+                {
+                  "capabilityId": "body.regeneration_i",
+                  "granted": false,
+                  "selected": false,
+                  "cooldownRemainingMs": 0
+                }
+              ],
+              "exploredMap": {
+                "worldId": "grey_hive",
+                "playerPositionM": {
+                  "xM": 1.6000001,
+                  "yM": 0,
+                  "zM": 3.0000002
+                },
+                "rooms": [],
+                "connections": [],
+                "objectives": []
+              },
+              "enemyVitals": [],
+              "rearView": {
+                "granted": false,
+                "grantId": null,
+                "grantedAtRevision": null
+              }
+            },
+            "progression": {
+              "schemaVersion": 1,
+              "currentWorldId": "grey_hive",
+              "eventSeq": 2,
+              "worlds": [
+                {
+                  "worldId": "grey_hive",
+                  "completed": false,
+                  "firstCompletion": false,
+                  "visitId": 1,
+                  "cycleId": 1,
+                  "revisitCount": 0
+                },
+                {
+                  "worldId": "mist_harbor",
+                  "completed": false,
+                  "firstCompletion": false,
+                  "visitId": 0,
+                  "cycleId": 1,
+                  "revisitCount": 0
+                },
+                {
+                  "worldId": "clockworks",
+                  "completed": false,
+                  "firstCompletion": false,
+                  "visitId": 0,
+                  "cycleId": 1,
+                  "revisitCount": 0
+                }
+              ]
+            }
+          }
+        }
+      },
+      "view": {
+        "protocol": "continuous-ipc",
+        "version": 1,
+        "schemaVersion": "freeze-v02-interfaces/1.2",
+        "worldId": "grey_hive",
+        "worldEpoch": 1,
+        "serverTick": 78,
+        "authorityRevision": 79,
+        "ackSeq": 78,
+        "serverTimeMs": 3900,
+        "player": {
+          "entityId": "player",
+          "transform": {
+            "positionM": {
+              "xM": 1.6000001,
+              "yM": 0,
+              "zM": 3.0000002
+            },
+            "yawRad": 0
+          },
+          "velocityMps": {
+            "xM": 4,
+            "yM": 0,
+            "zM": 0
+          },
+          "currentHp": 100,
+          "maxHp": 100,
+          "currentEnergy": 100,
+          "maxEnergy": 100
+        },
+        "actors": [
+          {
+            "entityId": "gh_power_console",
+            "actorKind": "power_console",
+            "transform": {
+              "positionM": {
+                "xM": 2,
+                "yM": 0,
+                "zM": 3
+              },
+              "yawRad": 0
+            },
+            "active": true
+          }
+        ],
+        "doors": [
+          {
+            "doorId": "gh_gate_a",
+            "transform": {
+              "positionM": {
+                "xM": 0,
+                "yM": 0,
+                "zM": 8
+              },
+              "yawRad": 0
+            },
+            "open": true,
+            "locked": false
+          }
+        ],
+        "capabilities": {
+          "schemaVersion": 1,
+          "items": [
+            {
+              "capabilityId": "information.local_map_i",
+              "granted": false,
+              "selected": false,
+              "cooldownRemainingMs": 0
+            },
+            {
+              "capabilityId": "perception.rear_view_i",
+              "granted": false,
+              "selected": false,
+              "cooldownRemainingMs": 0
+            },
+            {
+              "capabilityId": "information.enemy_vitals_basic",
+              "granted": false,
+              "selected": false,
+              "cooldownRemainingMs": 0
+            },
+            {
+              "capabilityId": "body.regeneration_i",
+              "granted": false,
+              "selected": false,
+              "cooldownRemainingMs": 0
+            }
+          ],
+          "exploredMap": {
+            "worldId": "grey_hive",
+            "playerPositionM": {
+              "xM": 1.6000001,
+              "yM": 0,
+              "zM": 3.0000002
+            },
+            "rooms": [],
+            "connections": [],
+            "objectives": []
+          },
+          "enemyVitals": [],
+          "rearView": {
+            "granted": false,
+            "grantId": null,
+            "grantedAtRevision": null
+          }
+        },
+        "progression": {
+          "schemaVersion": 1,
+          "currentWorldId": "grey_hive",
+          "eventSeq": 2,
+          "worlds": [
+            {
+              "worldId": "grey_hive",
+              "completed": false,
+              "firstCompletion": false,
+              "visitId": 1,
+              "cycleId": 1,
+              "revisitCount": 0
+            },
+            {
+              "worldId": "mist_harbor",
+              "completed": false,
+              "firstCompletion": false,
+              "visitId": 0,
+              "cycleId": 1,
+              "revisitCount": 0
+            },
+            {
+              "worldId": "clockworks",
+              "completed": false,
+              "firstCompletion": false,
+              "visitId": 0,
+              "cycleId": 1,
+              "revisitCount": 0
+            }
+          ]
+        }
+      }
+    },
+    "formalSubmitInput": {
+      "powerBefore": {
+        "commandId": "scenario-input-initial",
+        "applied": true,
+        "alreadyApplied": false,
+        "errorCode": null,
+        "worldEpoch": 1,
+        "serverTick": 0,
+        "authorityRevision": 0,
+        "snapshot": {
+          "kind": "full",
+          "schemaVersion": "freeze-v02-interfaces/1.2",
+          "worldId": "grey_hive",
+          "worldEpoch": 1,
+          "serverTick": 0,
+          "authorityRevision": 0,
+          "ackSeq": 0,
+          "view": {
+            "protocol": "continuous-ipc",
+            "version": 1,
+            "schemaVersion": "freeze-v02-interfaces/1.2",
+            "worldId": "grey_hive",
+            "worldEpoch": 1,
+            "serverTick": 0,
+            "authorityRevision": 0,
+            "ackSeq": 0,
+            "serverTimeMs": 0,
+            "player": {
+              "entityId": "player",
+              "transform": {
+                "positionM": {
+                  "xM": 0,
+                  "yM": 0,
+                  "zM": 0
+                },
+                "yawRad": 0
+              },
+              "velocityMps": {
+                "xM": 0,
+                "yM": 0,
+                "zM": 0
+              },
+              "currentHp": 100,
+              "maxHp": 100,
+              "currentEnergy": 100,
+              "maxEnergy": 100
+            },
+            "actors": [
+              {
+                "entityId": "gh_power_console",
+                "actorKind": "power_console",
+                "transform": {
+                  "positionM": {
+                    "xM": 2,
+                    "yM": 0,
+                    "zM": 3
+                  },
+                  "yawRad": 0
+                },
+                "active": true
+              }
+            ],
+            "doors": [
+              {
+                "doorId": "gh_gate_a",
+                "transform": {
+                  "positionM": {
+                    "xM": 0,
+                    "yM": 0,
+                    "zM": 8
+                  },
+                  "yawRad": 0
+                },
+                "open": false,
+                "locked": true
+              }
+            ],
+            "capabilities": {
+              "schemaVersion": 1,
+              "items": [
+                {
+                  "capabilityId": "information.local_map_i",
+                  "granted": false,
+                  "selected": false,
+                  "cooldownRemainingMs": 0
+                },
+                {
+                  "capabilityId": "perception.rear_view_i",
+                  "granted": false,
+                  "selected": false,
+                  "cooldownRemainingMs": 0
+                },
+                {
+                  "capabilityId": "information.enemy_vitals_basic",
+                  "granted": false,
+                  "selected": false,
+                  "cooldownRemainingMs": 0
+                },
+                {
+                  "capabilityId": "body.regeneration_i",
+                  "granted": false,
+                  "selected": false,
+                  "cooldownRemainingMs": 0
+                }
+              ],
+              "exploredMap": {
+                "worldId": "grey_hive",
+                "playerPositionM": {
+                  "xM": 0,
+                  "yM": 0,
+                  "zM": 0
+                },
+                "rooms": [],
+                "connections": [],
+                "objectives": []
+              },
+              "enemyVitals": [],
+              "rearView": {
+                "granted": false,
+                "grantId": null,
+                "grantedAtRevision": null
+              }
+            },
+            "progression": {
+              "schemaVersion": 1,
+              "currentWorldId": "grey_hive",
+              "eventSeq": 1,
+              "worlds": [
+                {
+                  "worldId": "grey_hive",
+                  "completed": false,
+                  "firstCompletion": false,
+                  "visitId": 1,
+                  "cycleId": 1,
+                  "revisitCount": 0
+                },
+                {
+                  "worldId": "mist_harbor",
+                  "completed": false,
+                  "firstCompletion": false,
+                  "visitId": 0,
+                  "cycleId": 1,
+                  "revisitCount": 0
+                },
+                {
+                  "worldId": "clockworks",
+                  "completed": false,
+                  "firstCompletion": false,
+                  "visitId": 0,
+                  "cycleId": 1,
+                  "revisitCount": 0
+                }
+              ]
+            }
+          }
+        }
+      },
+      "powerAfter": {
+        "commandId": "scenario-input-power-applied",
+        "applied": true,
+        "alreadyApplied": false,
+        "errorCode": null,
+        "worldEpoch": 1,
+        "serverTick": 78,
+        "authorityRevision": 79,
+        "snapshot": {
+          "kind": "full",
+          "schemaVersion": "freeze-v02-interfaces/1.2",
+          "worldId": "grey_hive",
+          "worldEpoch": 1,
+          "serverTick": 78,
+          "authorityRevision": 79,
+          "ackSeq": 78,
+          "view": {
+            "protocol": "continuous-ipc",
+            "version": 1,
+            "schemaVersion": "freeze-v02-interfaces/1.2",
+            "worldId": "grey_hive",
+            "worldEpoch": 1,
+            "serverTick": 78,
+            "authorityRevision": 79,
+            "ackSeq": 78,
+            "serverTimeMs": 3900,
+            "player": {
+              "entityId": "player",
+              "transform": {
+                "positionM": {
+                  "xM": 1.6000001,
+                  "yM": 0,
+                  "zM": 3.0000002
+                },
+                "yawRad": 0
+              },
+              "velocityMps": {
+                "xM": 4,
+                "yM": 0,
+                "zM": 0
+              },
+              "currentHp": 100,
+              "maxHp": 100,
+              "currentEnergy": 100,
+              "maxEnergy": 100
+            },
+            "actors": [
+              {
+                "entityId": "gh_power_console",
+                "actorKind": "power_console",
+                "transform": {
+                  "positionM": {
+                    "xM": 2,
+                    "yM": 0,
+                    "zM": 3
+                  },
+                  "yawRad": 0
+                },
+                "active": true
+              }
+            ],
+            "doors": [
+              {
+                "doorId": "gh_gate_a",
+                "transform": {
+                  "positionM": {
+                    "xM": 0,
+                    "yM": 0,
+                    "zM": 8
+                  },
+                  "yawRad": 0
+                },
+                "open": true,
+                "locked": false
+              }
+            ],
+            "capabilities": {
+              "schemaVersion": 1,
+              "items": [
+                {
+                  "capabilityId": "information.local_map_i",
+                  "granted": false,
+                  "selected": false,
+                  "cooldownRemainingMs": 0
+                },
+                {
+                  "capabilityId": "perception.rear_view_i",
+                  "granted": false,
+                  "selected": false,
+                  "cooldownRemainingMs": 0
+                },
+                {
+                  "capabilityId": "information.enemy_vitals_basic",
+                  "granted": false,
+                  "selected": false,
+                  "cooldownRemainingMs": 0
+                },
+                {
+                  "capabilityId": "body.regeneration_i",
+                  "granted": false,
+                  "selected": false,
+                  "cooldownRemainingMs": 0
+                }
+              ],
+              "exploredMap": {
+                "worldId": "grey_hive",
+                "playerPositionM": {
+                  "xM": 1.6000001,
+                  "yM": 0,
+                  "zM": 3.0000002
+                },
+                "rooms": [],
+                "connections": [],
+                "objectives": []
+              },
+              "enemyVitals": [],
+              "rearView": {
+                "granted": false,
+                "grantId": null,
+                "grantedAtRevision": null
+              }
+            },
+            "progression": {
+              "schemaVersion": 1,
+              "currentWorldId": "grey_hive",
+              "eventSeq": 2,
+              "worlds": [
+                {
+                  "worldId": "grey_hive",
+                  "completed": false,
+                  "firstCompletion": false,
+                  "visitId": 1,
+                  "cycleId": 1,
+                  "revisitCount": 0
+                },
+                {
+                  "worldId": "mist_harbor",
+                  "completed": false,
+                  "firstCompletion": false,
+                  "visitId": 0,
+                  "cycleId": 1,
+                  "revisitCount": 0
+                },
+                {
+                  "worldId": "clockworks",
+                  "completed": false,
+                  "firstCompletion": false,
+                  "visitId": 0,
+                  "cycleId": 1,
+                  "revisitCount": 0
+                }
+              ]
+            }
+          }
+        }
+      },
+      "gateBefore": {
+        "commandId": "scenario-input-closed-gate-blocked",
+        "applied": true,
+        "alreadyApplied": false,
+        "errorCode": null,
+        "worldEpoch": 1,
+        "serverTick": 48,
+        "authorityRevision": 48,
+        "snapshot": {
+          "kind": "full",
+          "schemaVersion": "freeze-v02-interfaces/1.2",
+          "worldId": "grey_hive",
+          "worldEpoch": 1,
+          "serverTick": 48,
+          "authorityRevision": 48,
+          "ackSeq": 48,
+          "view": {
+            "protocol": "continuous-ipc",
+            "version": 1,
+            "schemaVersion": "freeze-v02-interfaces/1.2",
+            "worldId": "grey_hive",
+            "worldEpoch": 1,
+            "serverTick": 48,
+            "authorityRevision": 48,
+            "ackSeq": 48,
+            "serverTimeMs": 2400,
+            "player": {
+              "entityId": "player",
+              "transform": {
+                "positionM": {
+                  "xM": 0,
+                  "yM": 0,
+                  "zM": 7.399997
+                },
+                "yawRad": 0
+              },
+              "velocityMps": {
+                "xM": 0,
+                "yM": 0,
+                "zM": 0
+              },
+              "currentHp": 100,
+              "maxHp": 100,
+              "currentEnergy": 100,
+              "maxEnergy": 100
+            },
+            "actors": [
+              {
+                "entityId": "gh_power_console",
+                "actorKind": "power_console",
+                "transform": {
+                  "positionM": {
+                    "xM": 2,
+                    "yM": 0,
+                    "zM": 3
+                  },
+                  "yawRad": 0
+                },
+                "active": true
+              }
+            ],
+            "doors": [
+              {
+                "doorId": "gh_gate_a",
+                "transform": {
+                  "positionM": {
+                    "xM": 0,
+                    "yM": 0,
+                    "zM": 8
+                  },
+                  "yawRad": 0
+                },
+                "open": false,
+                "locked": true
+              }
+            ],
+            "capabilities": {
+              "schemaVersion": 1,
+              "items": [
+                {
+                  "capabilityId": "information.local_map_i",
+                  "granted": false,
+                  "selected": false,
+                  "cooldownRemainingMs": 0
+                },
+                {
+                  "capabilityId": "perception.rear_view_i",
+                  "granted": false,
+                  "selected": false,
+                  "cooldownRemainingMs": 0
+                },
+                {
+                  "capabilityId": "information.enemy_vitals_basic",
+                  "granted": false,
+                  "selected": false,
+                  "cooldownRemainingMs": 0
+                },
+                {
+                  "capabilityId": "body.regeneration_i",
+                  "granted": false,
+                  "selected": false,
+                  "cooldownRemainingMs": 0
+                }
+              ],
+              "exploredMap": {
+                "worldId": "grey_hive",
+                "playerPositionM": {
+                  "xM": 0,
+                  "yM": 0,
+                  "zM": 7.399997
+                },
+                "rooms": [],
+                "connections": [],
+                "objectives": []
+              },
+              "enemyVitals": [],
+              "rearView": {
+                "granted": false,
+                "grantId": null,
+                "grantedAtRevision": null
+              }
+            },
+            "progression": {
+              "schemaVersion": 1,
+              "currentWorldId": "grey_hive",
+              "eventSeq": 1,
+              "worlds": [
+                {
+                  "worldId": "grey_hive",
+                  "completed": false,
+                  "firstCompletion": false,
+                  "visitId": 1,
+                  "cycleId": 1,
+                  "revisitCount": 0
+                },
+                {
+                  "worldId": "mist_harbor",
+                  "completed": false,
+                  "firstCompletion": false,
+                  "visitId": 0,
+                  "cycleId": 1,
+                  "revisitCount": 0
+                },
+                {
+                  "worldId": "clockworks",
+                  "completed": false,
+                  "firstCompletion": false,
+                  "visitId": 0,
+                  "cycleId": 1,
+                  "revisitCount": 0
+                }
+              ]
+            }
+          }
+        }
+      },
+      "gateAfter": {
+        "commandId": "scenario-input-open-gate-passed",
+        "applied": true,
+        "alreadyApplied": false,
+        "errorCode": null,
+        "worldEpoch": 1,
+        "serverTick": 134,
+        "authorityRevision": 135,
+        "snapshot": {
+          "kind": "full",
+          "schemaVersion": "freeze-v02-interfaces/1.2",
+          "worldId": "grey_hive",
+          "worldEpoch": 1,
+          "serverTick": 134,
+          "authorityRevision": 135,
+          "ackSeq": 134,
+          "view": {
+            "protocol": "continuous-ipc",
+            "version": 1,
+            "schemaVersion": "freeze-v02-interfaces/1.2",
+            "worldId": "grey_hive",
+            "worldEpoch": 1,
+            "serverTick": 134,
+            "authorityRevision": 135,
+            "ackSeq": 134,
+            "serverTimeMs": 6700,
+            "player": {
+              "entityId": "player",
+              "transform": {
+                "positionM": {
+                  "xM": 2.9802322e-8,
+                  "yM": 0,
+                  "zM": 12.599993
+                },
+                "yawRad": 0
+              },
+              "velocityMps": {
+                "xM": 0,
+                "yM": 0,
+                "zM": 4
+              },
+              "currentHp": 100,
+              "maxHp": 100,
+              "currentEnergy": 100,
+              "maxEnergy": 100
+            },
+            "actors": [
+              {
+                "entityId": "gh_power_console",
+                "actorKind": "power_console",
+                "transform": {
+                  "positionM": {
+                    "xM": 2,
+                    "yM": 0,
+                    "zM": 3
+                  },
+                  "yawRad": 0
+                },
+                "active": true
+              }
+            ],
+            "doors": [
+              {
+                "doorId": "gh_gate_a",
+                "transform": {
+                  "positionM": {
+                    "xM": 0,
+                    "yM": 0,
+                    "zM": 8
+                  },
+                  "yawRad": 0
+                },
+                "open": true,
+                "locked": false
+              }
+            ],
+            "capabilities": {
+              "schemaVersion": 1,
+              "items": [
+                {
+                  "capabilityId": "information.local_map_i",
+                  "granted": false,
+                  "selected": false,
+                  "cooldownRemainingMs": 0
+                },
+                {
+                  "capabilityId": "perception.rear_view_i",
+                  "granted": false,
+                  "selected": false,
+                  "cooldownRemainingMs": 0
+                },
+                {
+                  "capabilityId": "information.enemy_vitals_basic",
+                  "granted": false,
+                  "selected": false,
+                  "cooldownRemainingMs": 0
+                },
+                {
+                  "capabilityId": "body.regeneration_i",
+                  "granted": false,
+                  "selected": false,
+                  "cooldownRemainingMs": 0
+                }
+              ],
+              "exploredMap": {
+                "worldId": "grey_hive",
+                "playerPositionM": {
+                  "xM": 2.9802322e-8,
+                  "yM": 0,
+                  "zM": 12.599993
+                },
+                "rooms": [],
+                "connections": [],
+                "objectives": []
+              },
+              "enemyVitals": [],
+              "rearView": {
+                "granted": false,
+                "grantId": null,
+                "grantedAtRevision": null
+              }
+            },
+            "progression": {
+              "schemaVersion": 1,
+              "currentWorldId": "grey_hive",
+              "eventSeq": 2,
+              "worlds": [
+                {
+                  "worldId": "grey_hive",
+                  "completed": false,
+                  "firstCompletion": false,
+                  "visitId": 1,
+                  "cycleId": 1,
+                  "revisitCount": 0
+                },
+                {
+                  "worldId": "mist_harbor",
+                  "completed": false,
+                  "firstCompletion": false,
+                  "visitId": 0,
+                  "cycleId": 1,
+                  "revisitCount": 0
+                },
+                {
+                  "worldId": "clockworks",
+                  "completed": false,
+                  "firstCompletion": false,
+                  "visitId": 0,
+                  "cycleId": 1,
+                  "revisitCount": 0
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,29 @@
+[package]
+name = "wuxian-horror-ch1"
+version = "1.0.0"
+edition = "2021"
+description = "无限人族进化：三世界 Windows 测试版"
+
+[features]
+# Trusted Rust replay tooling only; no Tauri command or saved-data switch.
+default = []
+deterministic-replay = []
+# Opt-in synchronous legacy test fixtures; never enabled in production defaults.
+legacy-test-rng = ["dep:rand_chacha"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rand = "0.8"
+rand_chacha = { version = "=0.3.1", optional = true }
+sha2 = "0.10"
+
+[profile.release]
+opt-level = 2

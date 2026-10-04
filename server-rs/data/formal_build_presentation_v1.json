@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "items": {
+    "rear_view_charm": {
+      "label": "后视饰物",
+      "description": "装备时提供后视授权。",
+      "releaseEligible": false
+    },
+    "rear_view_lens": {
+      "label": "后视镜片",
+      "description": "装备时提供后视授权。",
+      "releaseEligible": false
+    },
+    "map_fog_bypass_array": {
+      "label": "地图地形阵列",
+      "description": "装备时授权当前场景的完整地形、拓扑与连接信息；不会改变探索记录。",
+      "releaseEligible": false
+    },
+    "map_topology_chip": {
+      "label": "地图拓扑芯片",
+      "description": "装备时授权当前场景完整拓扑；不额外授权敌人或宝藏信息。",
+      "releaseEligible": false
+    },
+    "terrain_penalty_ignore_boots": {
+      "label": "地形适应靴",
+      "description": "装备时忽略所支持地形的移动惩罚；不会穿越墙体或世界边界。",
+      "releaseEligible": false
+    },
+    "water_penalty_ignore_module": {
+      "label": "浅水适应模块",
+      "description": "装备时忽略浅水地形的移动惩罚。",
+      "releaseEligible": false
+    },
+    "heat_resistance_lining": {
+      "label": "隔热内衬",
+      "description": "装备时降低热伤害，按剩余伤害与其他抗性组合。",
+      "releaseEligible": false
+    },
+    "heat_resistance_charm": {
+      "label": "隔热饰物",
+      "description": "装备时降低热伤害，按剩余伤害与其他抗性组合。",
+      "releaseEligible": false
+    },
+    "water_movement_module": {
+      "label": "浅水移动模块",
+      "description": "装备时改善浅水地形移动速度。",
+      "releaseEligible": false
+    },
+    "water_movement_charm": {
+      "label": "浅水移动饰物",
+      "description": "装备时改善浅水地形移动速度。",
+      "releaseEligible": false
+    }
+  }
+}

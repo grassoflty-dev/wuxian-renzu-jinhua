@@ -1,0 +1,606 @@
+{
+  "b0Authority": {
+    "path": "governance/assets/AI_ASSET_RELEASE_MANIFEST.json",
+    "sha256": "c644b5953e9265d45796dfb8a6dad1c0fd8abfbffb3eb4ace84987d8238cee2d"
+  },
+  "canvas": {
+    "maxSide": 1024,
+    "preserveAspectRatio": true,
+    "size": [
+      336,
+      560
+    ],
+    "transparentPaddingPx": 8,
+    "uniformAcrossFrames": true
+  },
+  "decisionAuthority": {
+    "path": "chatgptimage/deep-research-report.md",
+    "sha256": "fcd027320a01a0fe083b09321deebc85b33598b4efc8642a6e5d624f5aaf51a1"
+  },
+  "extraction": {
+    "crop": "cell alpha bounding box after verified alpha=1 border-residue removal",
+    "frameClass": "idle directional pose only; no animation frames inferred",
+    "hiddenRgbPolicy": "zero RGB where output alpha is zero",
+    "sourceAlphaPolicy": "set alpha 0..1 to 0; preserve alpha 2..255 exactly"
+  },
+  "frames": [
+    {
+      "alphaPixelCount": 60523,
+      "anchor": {
+        "method": "x midpoint of nontransparent support pixels in final 20 crop rows; y bottommost source silhouette pixel with 8px safe canvas padding",
+        "pixel": [
+          168,
+          551
+        ],
+        "x": 0.5,
+        "y": 0.98392857
+      },
+      "cleanup": "zero alpha 0..1 as verified grid/background residue; preserve source alpha 2..255 exactly; zero RGB where output alpha is zero",
+      "contentPlacement": [
+        78,
+        34
+      ],
+      "direction": "south",
+      "footSupportSourceRect": [
+        142,
+        506,
+        179,
+        20
+      ],
+      "outputSize": [
+        336,
+        560
+      ],
+      "outputs": {
+        "png": {
+          "path": "assets/derived/cenyao-runtime-master-v1/png/cenyao_idle_south.png",
+          "sha256": "b6cff22dabb303f0a9c95ba24a41fb3c2f5159ff191adefacf0c6dad38ffe875"
+        },
+        "webp": {
+          "path": "assets/derived/cenyao-runtime-master-v1/webp/cenyao_idle_south.webp",
+          "sha256": "627292d979d0a8a3334dec47630ad9ac531f023a87140f52edcc9ce523ffe433"
+        }
+      },
+      "partialAlphaPixelCount": 60280,
+      "removedAlphaOnePixelCount": 4777,
+      "sourceAlphaBounds": [
+        142,
+        8,
+        212,
+        518
+      ],
+      "sourceAlphaPreserved": "alpha 2..255 exact; alpha 0..1 removed as border residue",
+      "sourceCell": {
+        "column": 0,
+        "rect": [
+          0,
+          0,
+          362,
+          543
+        ],
+        "row": 0
+      },
+      "sourceCropRect": [
+        142,
+        8,
+        212,
+        518
+      ]
+    },
+    {
+      "alphaPixelCount": 59451,
+      "anchor": {
+        "method": "x midpoint of nontransparent support pixels in final 20 crop rows; y bottommost source silhouette pixel with 8px safe canvas padding",
+        "pixel": [
+          168,
+          551
+        ],
+        "x": 0.5,
+        "y": 0.98392857
+      },
+      "cleanup": "zero alpha 0..1 as verified grid/background residue; preserve source alpha 2..255 exactly; zero RGB where output alpha is zero",
+      "contentPlacement": [
+        33,
+        12
+      ],
+      "direction": "south_west",
+      "footSupportSourceRect": [
+        568,
+        521,
+        52,
+        20
+      ],
+      "outputSize": [
+        336,
+        560
+      ],
+      "outputs": {
+        "png": {
+          "path": "assets/derived/cenyao-runtime-master-v1/png/cenyao_idle_south_west.png",
+          "sha256": "3d3e34d0a5d388de522fd6a94fd2769efbf8137aea1ae7c0b69881c5416520be"
+        },
+        "webp": {
+          "path": "assets/derived/cenyao-runtime-master-v1/webp/cenyao_idle_south_west.webp",
+          "sha256": "c5f2eddc15e71e0ca388ba55b17b15d53fe4df262dbc3cad7055cbf939591ea3"
+        }
+      },
+      "partialAlphaPixelCount": 59243,
+      "removedAlphaOnePixelCount": 4716,
+      "sourceAlphaBounds": [
+        459,
+        1,
+        186,
+        540
+      ],
+      "sourceAlphaPreserved": "alpha 2..255 exact; alpha 0..1 removed as border residue",
+      "sourceCell": {
+        "column": 1,
+        "rect": [
+          362,
+          0,
+          362,
+          543
+        ],
+        "row": 0
+      },
+      "sourceCropRect": [
+        459,
+        1,
+        186,
+        540
+      ]
+    },
+    {
+      "alphaPixelCount": 46710,
+      "anchor": {
+        "method": "x midpoint of nontransparent support pixels in final 20 crop rows; y bottommost source silhouette pixel with 8px safe canvas padding",
+        "pixel": [
+          168,
+          551
+        ],
+        "x": 0.5,
+        "y": 0.98392857
+      },
+      "cleanup": "zero alpha 0..1 as verified grid/background residue; preserve source alpha 2..255 exactly; zero RGB where output alpha is zero",
+      "contentPlacement": [
+        98,
+        24
+      ],
+      "direction": "west",
+      "footSupportSourceRect": [
+        862,
+        517,
+        84,
+        20
+      ],
+      "outputSize": [
+        336,
+        560
+      ],
+      "outputs": {
+        "png": {
+          "path": "assets/derived/cenyao-runtime-master-v1/png/cenyao_idle_west.png",
+          "sha256": "fc8e0b132c48f594a49a20bd39955d731f02077502e33131499608cc3bd7a70c"
+        },
+        "webp": {
+          "path": "assets/derived/cenyao-runtime-master-v1/webp/cenyao_idle_west.webp",
+          "sha256": "a33a153ba557b47f8460732895a8b2d819a39f733607a9332d4eb2d4d553e1f1"
+        }
+      },
+      "partialAlphaPixelCount": 46605,
+      "removedAlphaOnePixelCount": 3915,
+      "sourceAlphaBounds": [
+        834,
+        9,
+        163,
+        528
+      ],
+      "sourceAlphaPreserved": "alpha 2..255 exact; alpha 0..1 removed as border residue",
+      "sourceCell": {
+        "column": 2,
+        "rect": [
+          724,
+          0,
+          362,
+          543
+        ],
+        "row": 0
+      },
+      "sourceCropRect": [
+        834,
+        9,
+        163,
+        528
+      ]
+    },
+    {
+      "alphaPixelCount": 56671,
+      "anchor": {
+        "method": "x midpoint of nontransparent support pixels in final 20 crop rows; y bottommost source silhouette pixel with 8px safe canvas padding",
+        "pixel": [
+          168,
+          551
+        ],
+        "x": 0.5,
+        "y": 0.98392857
+      },
+      "cleanup": "zero alpha 0..1 as verified grid/background residue; preserve source alpha 2..255 exactly; zero RGB where output alpha is zero",
+      "contentPlacement": [
+        14,
+        24
+      ],
+      "direction": "north_east",
+      "footSupportSourceRect": [
+        1242,
+        516,
+        65,
+        20
+      ],
+      "outputSize": [
+        336,
+        560
+      ],
+      "outputs": {
+        "png": {
+          "path": "assets/derived/cenyao-runtime-master-v1/png/cenyao_idle_north_east.png",
+          "sha256": "19b8e318bf5216d6075f64ac986ef7c3c3299241816b472843aac24bbf4a7676"
+        },
+        "webp": {
+          "path": "assets/derived/cenyao-runtime-master-v1/webp/cenyao_idle_north_east.webp",
+          "sha256": "464b2b653711a44cabcfa400004c78ff32bf5fd39c810a14cea334e14c3c6f38"
+        }
+      },
+      "partialAlphaPixelCount": 56485,
+      "removedAlphaOnePixelCount": 3971,
+      "sourceAlphaBounds": [
+        1121,
+        8,
+        193,
+        528
+      ],
+      "sourceAlphaPreserved": "alpha 2..255 exact; alpha 0..1 removed as border residue",
+      "sourceCell": {
+        "column": 3,
+        "rect": [
+          1086,
+          0,
+          362,
+          543
+        ],
+        "row": 0
+      },
+      "sourceCropRect": [
+        1121,
+        8,
+        193,
+        528
+      ]
+    },
+    {
+      "alphaPixelCount": 60193,
+      "anchor": {
+        "method": "x midpoint of nontransparent support pixels in final 20 crop rows; y bottommost source silhouette pixel with 8px safe canvas padding",
+        "pixel": [
+          168,
+          551
+        ],
+        "x": 0.5,
+        "y": 0.98392857
+      },
+      "cleanup": "zero alpha 0..1 as verified grid/background residue; preserve source alpha 2..255 exactly; zero RGB where output alpha is zero",
+      "contentPlacement": [
+        69,
+        46
+      ],
+      "direction": "north",
+      "footSupportSourceRect": [
+        157,
+        1037,
+        178,
+        20
+      ],
+      "outputSize": [
+        336,
+        560
+      ],
+      "outputs": {
+        "png": {
+          "path": "assets/derived/cenyao-runtime-master-v1/png/cenyao_idle_north.png",
+          "sha256": "6608ed34685f28f3380849d7fe5e5319078e8feb1fbd66cbcd4cb3782a1a8221"
+        },
+        "webp": {
+          "path": "assets/derived/cenyao-runtime-master-v1/webp/cenyao_idle_north.webp",
+          "sha256": "ca89a1ee487252dcf1eeb0ad9e9d25abec10ae61882374a17839ecff2b5de770"
+        }
+      },
+      "partialAlphaPixelCount": 59959,
+      "removedAlphaOnePixelCount": 4135,
+      "sourceAlphaBounds": [
+        147,
+        551,
+        197,
+        506
+      ],
+      "sourceAlphaPreserved": "alpha 2..255 exact; alpha 0..1 removed as border residue",
+      "sourceCell": {
+        "column": 0,
+        "rect": [
+          0,
+          543,
+          362,
+          543
+        ],
+        "row": 1
+      },
+      "sourceCropRect": [
+        147,
+        551,
+        197,
+        506
+      ]
+    },
+    {
+      "alphaPixelCount": 55750,
+      "anchor": {
+        "method": "x midpoint of nontransparent support pixels in final 20 crop rows; y bottommost source silhouette pixel with 8px safe canvas padding",
+        "pixel": [
+          168,
+          551
+        ],
+        "x": 0.5,
+        "y": 0.98392857
+      },
+      "cleanup": "zero alpha 0..1 as verified grid/background residue; preserve source alpha 2..255 exactly; zero RGB where output alpha is zero",
+      "contentPlacement": [
+        128,
+        37
+      ],
+      "direction": "north_west",
+      "footSupportSourceRect": [
+        465,
+        1044,
+        70,
+        20
+      ],
+      "outputSize": [
+        336,
+        560
+      ],
+      "outputs": {
+        "png": {
+          "path": "assets/derived/cenyao-runtime-master-v1/png/cenyao_idle_north_west.png",
+          "sha256": "8dc527b975b1da5ed7b36a54cf4ad260cdcd9d7d3ccba24660308cf971c3164e"
+        },
+        "webp": {
+          "path": "assets/derived/cenyao-runtime-master-v1/webp/cenyao_idle_north_west.webp",
+          "sha256": "fec4be62fc81d025a18a1248803355c590bb9fe31234f3b757eb2328c11a0cf5"
+        }
+      },
+      "partialAlphaPixelCount": 55579,
+      "removedAlphaOnePixelCount": 4379,
+      "sourceAlphaBounds": [
+        460,
+        549,
+        182,
+        515
+      ],
+      "sourceAlphaPreserved": "alpha 2..255 exact; alpha 0..1 removed as border residue",
+      "sourceCell": {
+        "column": 1,
+        "rect": [
+          362,
+          543,
+          362,
+          543
+        ],
+        "row": 1
+      },
+      "sourceCropRect": [
+        460,
+        549,
+        182,
+        515
+      ]
+    },
+    {
+      "alphaPixelCount": 41275,
+      "anchor": {
+        "method": "x midpoint of nontransparent support pixels in final 20 crop rows; y bottommost source silhouette pixel with 8px safe canvas padding",
+        "pixel": [
+          168,
+          551
+        ],
+        "x": 0.5,
+        "y": 0.98392857
+      },
+      "cleanup": "zero alpha 0..1 as verified grid/background residue; preserve source alpha 2..255 exactly; zero RGB where output alpha is zero",
+      "contentPlacement": [
+        79,
+        43
+      ],
+      "direction": "east",
+      "footSupportSourceRect": [
+        850,
+        1036,
+        84,
+        20
+      ],
+      "outputSize": [
+        336,
+        560
+      ],
+      "outputs": {
+        "png": {
+          "path": "assets/derived/cenyao-runtime-master-v1/png/cenyao_idle_east.png",
+          "sha256": "fd38db1daec829c0a7c2adffcdfd5c605f54b3611bb515599cd8deeea1f47402"
+        },
+        "webp": {
+          "path": "assets/derived/cenyao-runtime-master-v1/webp/cenyao_idle_east.webp",
+          "sha256": "daad53355ccfd7262f2c102381e665e07918c2e4352523d43a020bbed272605a"
+        }
+      },
+      "partialAlphaPixelCount": 41115,
+      "removedAlphaOnePixelCount": 3499,
+      "sourceAlphaBounds": [
+        803,
+        547,
+        143,
+        509
+      ],
+      "sourceAlphaPreserved": "alpha 2..255 exact; alpha 0..1 removed as border residue",
+      "sourceCell": {
+        "column": 2,
+        "rect": [
+          724,
+          543,
+          362,
+          543
+        ],
+        "row": 1
+      },
+      "sourceCropRect": [
+        803,
+        547,
+        143,
+        509
+      ]
+    },
+    {
+      "alphaPixelCount": 59832,
+      "anchor": {
+        "method": "x midpoint of nontransparent support pixels in final 20 crop rows; y bottommost source silhouette pixel with 8px safe canvas padding",
+        "pixel": [
+          168,
+          551
+        ],
+        "x": 0.5,
+        "y": 0.98392857
+      },
+      "cleanup": "zero alpha 0..1 as verified grid/background residue; preserve source alpha 2..255 exactly; zero RGB where output alpha is zero",
+      "contentPlacement": [
+        14,
+        29
+      ],
+      "direction": "south_east",
+      "footSupportSourceRect": [
+        1242,
+        1050,
+        45,
+        20
+      ],
+      "outputSize": [
+        336,
+        560
+      ],
+      "outputs": {
+        "png": {
+          "path": "assets/derived/cenyao-runtime-master-v1/png/cenyao_idle_south_east.png",
+          "sha256": "bfe0107fe1efdcd73b90d57b01283a22658960b5847bb5e88b401dae9857be56"
+        },
+        "webp": {
+          "path": "assets/derived/cenyao-runtime-master-v1/webp/cenyao_idle_south_east.webp",
+          "sha256": "7126d9cf50ef316f990e1d8b0eab4f7538425fa92cee4a3fcee03cb0c0e01448"
+        }
+      },
+      "partialAlphaPixelCount": 59619,
+      "removedAlphaOnePixelCount": 4277,
+      "sourceAlphaBounds": [
+        1110,
+        547,
+        194,
+        523
+      ],
+      "sourceAlphaPreserved": "alpha 2..255 exact; alpha 0..1 removed as border residue",
+      "sourceCell": {
+        "column": 3,
+        "rect": [
+          1086,
+          543,
+          362,
+          543
+        ],
+        "row": 1
+      },
+      "sourceCropRect": [
+        1110,
+        547,
+        194,
+        523
+      ]
+    }
+  ],
+  "layout": {
+    "cellSize": [
+      362,
+      543
+    ],
+    "columns": 4,
+    "mapping": [
+      {
+        "column": 0,
+        "direction": "south",
+        "row": 0
+      },
+      {
+        "column": 1,
+        "direction": "south_west",
+        "row": 0
+      },
+      {
+        "column": 2,
+        "direction": "west",
+        "row": 0
+      },
+      {
+        "column": 3,
+        "direction": "north_east",
+        "row": 0
+      },
+      {
+        "column": 0,
+        "direction": "north",
+        "row": 1
+      },
+      {
+        "column": 1,
+        "direction": "north_west",
+        "row": 1
+      },
+      {
+        "column": 2,
+        "direction": "east",
+        "row": 1
+      },
+      {
+        "column": 3,
+        "direction": "south_east",
+        "row": 1
+      }
+    ],
+    "rows": 2
+  },
+  "partsReference": {
+    "approved": true,
+    "path": "assets/source/approved/batch01/02_runtime2d.actor.cenyao.parts.v1.png",
+    "sha256": "5ec63d9e17743ab12ffc57144258fb1c46430643e3c00ec4338c89771bf28644",
+    "usage": "reference-only; not sampled, composited, or used to synthesize frames; future rig boundaries may be assessed separately"
+  },
+  "schemaId": "cenyao-runtime-master-v1/1",
+  "source": {
+    "approved": true,
+    "assetId": "runtime2d.actor.cenyao.base.v1",
+    "path": "assets/source/approved/batch01/01_runtime2d.actor.cenyao.base.v1.png",
+    "sha256": "1915e77897a4facea0bfee4c529daf5cd4961998fe4887efc4a340f253424801",
+    "size": [
+      1448,
+      1086
+    ]
+  },
+  "tool": {
+    "name": "cenyao-runtime-master-v1.0.0",
+    "pillow": "12.3.0",
+    "python": "3.13+",
+    "resampling": "none; crop and integer translation only",
+    "webp": "lossless; method=6; exact=true"
+  }
+}

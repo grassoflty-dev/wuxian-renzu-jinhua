@@ -1,0 +1,181 @@
+{
+  "schema": "native-icon-provenance/1",
+  "status": "source-and-derivative-identity-verified; project-publication-authorized",
+  "generation": {
+    "generationService": "ChatGPT",
+    "designConversationTitle": "游戏方案策划",
+    "requestAtUtc": "2026-10-03T17:52:00Z",
+    "requestTimePrecision": "minute",
+    "downloadMethod": "original generated PNG downloaded using the designated conversation UI",
+    "description": "Text-free cyan/gold three-ring portal emblem and central light core",
+    "privateGenerationRecordHeldByMaintainer": true,
+    "embeddedProvenance": {
+      "container": "PNG caBX / C2PA",
+      "bytes": 23654,
+      "sha256": "8968b7aa93d950f8ffaa02756815e2892e71a616dce0083254f3fc3923ad1746",
+      "unverifiedMetadataClaims": {
+        "software": "ChatGPT/gpt-image",
+        "createdAtUtc": "2026-10-03T17:54:05Z"
+      },
+      "signatureValidation": "not performed",
+      "originalRetainedByteForByte": true,
+      "derivativePolicy": "ICO PNG frames are resized encodings, do not copy a source signature onto changed pixel bytes; lineage is bound by original and output hashes"
+    }
+  },
+  "authorization": {
+    "id": "project-directed-chatgpt-native-icon-20261003",
+    "status": "authorized-for-project-publication",
+    "basis": "Project owner directed image artwork to be generated in the designated planning Chat and explicitly allowed publication of their requested ChatGPT images; this exact generated original was obtained there",
+    "scope": "This project native icon original and format/size-only ICO derivatives",
+    "limit": "No CC0 dedication, exclusive-rights assertion, trademark clearance, or blanket third-party rights warranty; no old icon, font or reference image was reused",
+    "licenseSpdx": null,
+    "downstreamLicenseGrant": null
+  },
+  "conversion": {
+    "sourcePath": "server-rs/icons/source/chatgpt-portal-emblem-20261003.png",
+    "sourceSha256": "ba7bb68b31b53ebe390b29eedf3bc4cda2ef9f42129b1cb35f3afb70db06cd21",
+    "sourceBytes": 1541889,
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "sourceMode": "RGBA",
+    "outputPath": "server-rs/icons/icon.ico",
+    "bytes": 143776,
+    "sha256": "24b1ca62669340f115362191bce2efda61e698da5ee371674606c2ad0d2cd3b4",
+    "frames": [
+      {
+        "size": [
+          256,
+          256
+        ],
+        "encoding": "PNG",
+        "bytes": 92360,
+        "sha256": "8b35fac8a2cccf0ecd9ab0d7a84b5e2200200863bd7b491c1c8d1332f878caa3",
+        "rgbaSha256": "1be7cb85d54e5f157a68fc6ec4f0c16ec69edb1c43e1872e80e30cb881d9ab35",
+        "alphaExtrema": [
+          0,
+          255
+        ],
+        "offset": 118
+      },
+      {
+        "size": [
+          128,
+          128
+        ],
+        "encoding": "PNG",
+        "bytes": 30245,
+        "sha256": "8d59662efdfefaccb6ef43cecebc95f131b377fa8450e6bf47ba515acafb0ce3",
+        "rgbaSha256": "bb743ecc7d9b741e5d184ef1793d00ed49598efa391088f9e5d2f869577506b1",
+        "alphaExtrema": [
+          0,
+          255
+        ],
+        "offset": 92478
+      },
+      {
+        "size": [
+          64,
+          64
+        ],
+        "encoding": "PNG",
+        "bytes": 9584,
+        "sha256": "22d3cd39c921a2ae38f422e25de0b311607cd275efefa19a4fa7fcbd766ad266",
+        "rgbaSha256": "10c4e990fe7f81ad96c0aa3243c78e1cefa88ce3d0c1a6507df50fc295760b2c",
+        "alphaExtrema": [
+          0,
+          255
+        ],
+        "offset": 122723
+      },
+      {
+        "size": [
+          48,
+          48
+        ],
+        "encoding": "PNG",
+        "bytes": 5831,
+        "sha256": "151104a3633284c2aca0532e72240bc95b3cfcfd1aa386f0613ed7f3a74571b7",
+        "rgbaSha256": "073ce6598874dd48ea5c3981e8bb94b6c47a2af4c9a3106f7fa215221c0dd1d0",
+        "alphaExtrema": [
+          0,
+          255
+        ],
+        "offset": 132307
+      },
+      {
+        "size": [
+          32,
+          32
+        ],
+        "encoding": "PNG",
+        "bytes": 2911,
+        "sha256": "e5856ad24239b0efbb85e9f2fedc5f7efc582b0666e631629bb0fa4ab6bd25b8",
+        "rgbaSha256": "eff79638373ce53957afc2eac9b83ee22998cb7da3d1cfb1f319c3338be031c1",
+        "alphaExtrema": [
+          0,
+          255
+        ],
+        "offset": 138138
+      },
+      {
+        "size": [
+          24,
+          24
+        ],
+        "encoding": "PNG",
+        "bytes": 1758,
+        "sha256": "e16e28feadb99b0363c596267edff7ed2520886da1c6048bc7ca7ce8496b2a51",
+        "rgbaSha256": "8d9118204895e90c5c2b72607c94530d75a6989ac4d912ab519ae7d27e946c8f",
+        "alphaExtrema": [
+          0,
+          255
+        ],
+        "offset": 141049
+      },
+      {
+        "size": [
+          16,
+          16
+        ],
+        "encoding": "PNG",
+        "bytes": 969,
+        "sha256": "b8cd4ef18ada6acc9374e3a6d4e819b75c4d6e03b143d7af911018d06ce5f2bb",
+        "rgbaSha256": "09b4e1926a608af11ecf526130d571e2b526ee4cc185b2f35e7b93e0c40cc727",
+        "alphaExtrema": [
+          0,
+          255
+        ],
+        "offset": 142807
+      }
+    ],
+    "transformation": "Pillow RGBA LANCZOS square resize only; no crop, recolor, added text, font or other art; deterministic PNG frames packed in ICO",
+    "pillowVersion": "12.3.0",
+    "defaultWindowIconSize": [
+      256,
+      256
+    ],
+    "icoFrameOrder": "largest-first; Tauri codegen 2.6.3 consumes first entry"
+  },
+  "replacedLegacyIcon": {
+    "sha256": "d1e6edbf5e203498a79892a42365e0e57157ed479522b33a0433d746e014fa77",
+    "reason": "The earlier glyph icon lacked a source-rights record; retained only in the older frozen candidate, not used as input"
+  },
+  "sourceIdentityBinding": "Containing source tree and final EXE identity are bound by the external source/release manifest, avoiding a self-referential source hash",
+  "review": {
+    "dateUtc": "2026-10-03",
+    "sourceViewed": true,
+    "smallSizesViewedOnLightAndDark": [
+      16,
+      24,
+      32,
+      48,
+      64,
+      128,
+      256
+    ],
+    "scope": "Visual format/size review only, not similarity, trademark or legal certification",
+    "observation": "Cyan ring and gold central-core silhouette remain distinguishable at small sizes; fine highlights naturally simplify at 16px. Transparency and no-text composition preserved. No Windows desktop visual acceptance claimed."
+  }
+}

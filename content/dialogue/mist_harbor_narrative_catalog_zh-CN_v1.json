@@ -1,0 +1,279 @@
+{
+  "schemaVersion": 1,
+  "catalogId": "mist_harbor_narrative_zh_cn_v1",
+  "locale": "zh-CN",
+  "designSource": "docs/source/deep-research-report.md",
+  "designSourceSha256": "fcd027320a01a0fe083b09321deebc85b33598b4efc8642a6e5d624f5aaf51a1",
+  "sourceLineRange": "626-660",
+  "scenes": [
+    "mh_fog_pier",
+    "mh_tidal_warehouse",
+    "mh_signal_yard",
+    "mh_drowned_quay",
+    "mh_breakwater",
+    "mh_pump_station",
+    "mh_resonance_tower",
+    "mh_warden_arena",
+    "mh_extraction"
+  ],
+  "progressionEvents": [
+    {
+      "id": "mist_beacon_west",
+      "sceneId": "mh_tidal_warehouse",
+      "triggerId": "mh_west_beacon",
+      "status": "authored_compiled_only",
+      "nativePlayableClaimed": false
+    },
+    {
+      "id": "mist_beacon_east",
+      "sceneId": "mh_breakwater",
+      "triggerId": "mh_east_beacon",
+      "status": "authored_compiled_only",
+      "nativePlayableClaimed": false
+    },
+    {
+      "id": "mist_signal",
+      "sceneId": "mh_resonance_tower",
+      "triggerId": "mh_signal_console_staged",
+      "status": "authored_compiled_only",
+      "nativePlayableClaimed": false
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "perception.acoustic_mapping_i",
+      "sceneId": "mh_resonance_tower",
+      "markerId": "mh_acoustic_mapping_staged_marker",
+      "status": "pending_native_implementation",
+      "nativeGrantClaimed": false
+    }
+  ],
+  "entries": [
+    {
+      "id": "mh_sys_entry",
+      "sceneId": "mh_fog_pier",
+      "triggerId": "mh_sys_entry_marker",
+      "triggerKind": "entry_context_marker",
+      "triggerStatus": "staged_marker",
+      "triggerCondition": "Fog Pier 入口系统信息；标记静态，未连接 HUD/字幕。",
+      "body": "视觉链路衰减。远端目标无法确认。",
+      "bodyStatus": "confirmed",
+      "sourceLine": 650,
+      "evidence": "设计表明确给出 mh_sys_entry 原句。"
+    },
+    {
+      "id": "mh_foghorn_direction_prompt",
+      "sceneId": "mh_fog_pier",
+      "triggerId": "mh_foghorn_source_marker",
+      "triggerKind": "foghorn_direction_marker",
+      "triggerStatus": "staged_marker",
+      "triggerCondition": "引导玩家寻找雾号声源；没有给出中文提示正文。",
+      "body": null,
+      "bodyStatus": "pending",
+      "sourceLine": 650,
+      "evidence": "设计提及引导声源方向，但未提供提示原文。"
+    },
+    {
+      "id": "mh_west_beacon_log",
+      "sceneId": "mh_tidal_warehouse",
+      "triggerId": "mh_west_beacon_log_marker",
+      "triggerKind": "beacon_caretaker_log_marker",
+      "triggerStatus": "staged_marker",
+      "triggerCondition": "调查 West Beacon 维护日志；日志 marker 静态。",
+      "body": "西侧导航灯在断网后仍被人工维护。",
+      "bodyStatus": "confirmed",
+      "sourceLine": 651,
+      "evidence": "设计表明确给出 West Beacon 日志原句。",
+      "relatedEventIds": [
+        "mist_beacon_west"
+      ]
+    },
+    {
+      "id": "mh_west_beacon_activation_prompt",
+      "sceneId": "mh_tidal_warehouse",
+      "triggerId": "mh_west_beacon",
+      "triggerKind": "beacon",
+      "triggerStatus": "compiled_event",
+      "triggerCondition": "激活 West Beacon 对应 mist_beacon_west；事件仅在编译交互中作者化。",
+      "body": null,
+      "bodyStatus": "pending",
+      "sourceLine": 651,
+      "evidence": "设计指定激活 mist_beacon_west；没有给出中文交互提示正文。",
+      "relatedEventIds": [
+        "mist_beacon_west"
+      ]
+    },
+    {
+      "id": "mh_signal_interference_prompt",
+      "sceneId": "mh_signal_yard",
+      "triggerId": "mh_signal_interference_marker",
+      "triggerKind": "signal_interference_hint_marker",
+      "triggerStatus": "staged_marker",
+      "triggerCondition": "信号干扰使目标从精确点退化为区域；效果提示正文未提供。",
+      "body": null,
+      "bodyStatus": "pending",
+      "sourceLine": 652,
+      "evidence": "设计描述 objective 精度变化，但未提供 HUD/提示文案。"
+    },
+    {
+      "id": "mh_cy_signal_01",
+      "sceneId": "mh_signal_yard",
+      "triggerId": "mh_cy_signal_01_static_marker",
+      "triggerKind": "dialogue_content_marker",
+      "triggerStatus": "staged_marker",
+      "triggerCondition": "静态角色台词标记；未连接运行时对白。",
+      "body": "不是没信号，是有人在用噪声盖住它。",
+      "bodyStatus": "confirmed",
+      "sourceLine": 652,
+      "evidence": "设计表明确给出 mh_cy_signal_01 原句。"
+    },
+    {
+      "id": "mh_water_depth_prompt",
+      "sceneId": "mh_drowned_quay",
+      "triggerId": "mh_water_depth_slowdown_marker",
+      "triggerKind": "water_depth_slowdown_marker",
+      "triggerStatus": "staged_marker",
+      "triggerCondition": "首次进入浅/深水区提示；速度影响当前仅为静态标记。",
+      "body": null,
+      "bodyStatus": "pending",
+      "sourceLine": 653,
+      "evidence": "设计说明 water depth 首次影响速度，没有提供中文提示正文。"
+    },
+    {
+      "id": "mh_east_beacon_activation_prompt",
+      "sceneId": "mh_breakwater",
+      "triggerId": "mh_east_beacon",
+      "triggerKind": "beacon",
+      "triggerStatus": "compiled_event",
+      "triggerCondition": "激活 East Beacon 对应 mist_beacon_east；事件仅在编译交互中作者化。",
+      "body": null,
+      "bodyStatus": "pending",
+      "sourceLine": 654,
+      "evidence": "设计指定激活 mist_beacon_east；没有给出中文交互提示正文。",
+      "relatedEventIds": [
+        "mist_beacon_east"
+      ]
+    },
+    {
+      "id": "mh_sys_beacon_sync",
+      "sceneId": "mh_breakwater",
+      "triggerId": "mh_sys_beacon_sync",
+      "triggerKind": "system_message",
+      "triggerStatus": "pending_scene_hook",
+      "triggerCondition": "West 与 East Beacon 均建立后显示双基准系统信息；当前无组合触发 hook。",
+      "body": "双基准建立，中心干扰源可定位。",
+      "bodyStatus": "confirmed",
+      "sourceLine": 654,
+      "evidence": "设计表明确给出 mh_sys_beacon_sync 原句；编译场景没有该组合触发 marker。",
+      "relatedEventIds": [
+        "mist_beacon_west",
+        "mist_beacon_east"
+      ]
+    },
+    {
+      "id": "mh_pump_activation_prompt",
+      "sceneId": "mh_pump_station",
+      "triggerId": "mh_pump_activation_static_marker",
+      "triggerKind": "pump_activation_static_marker",
+      "triggerStatus": "staged_marker",
+      "triggerCondition": "操作 pump activation；泵与交互效果尚未实现。",
+      "body": null,
+      "bodyStatus": "pending",
+      "sourceLine": 655,
+      "evidence": "设计描述开泵降低后续水位，没有提供操作提示正文。"
+    },
+    {
+      "id": "mh_water_level_shortcut_prompt",
+      "sceneId": "mh_pump_station",
+      "triggerId": "mh_water_level_lowering_static_marker",
+      "triggerKind": "water_level_change_static_marker",
+      "triggerStatus": "staged_marker",
+      "triggerCondition": "降低后续水位并开放可选 shortcut；逻辑与提示均未实现。",
+      "body": null,
+      "bodyStatus": "pending",
+      "sourceLine": 655,
+      "evidence": "设计提及水位降低与 optional shortcut，没有给出提示正文。"
+    },
+    {
+      "id": "mh_signal_console_prompt",
+      "sceneId": "mh_resonance_tower",
+      "triggerId": "mh_signal_console_staged",
+      "triggerKind": "terminal",
+      "triggerStatus": "compiled_event",
+      "triggerCondition": "完成 mh_signal 对应 mist_signal；仅代表编译交互中已有事件。",
+      "body": null,
+      "bodyStatus": "pending",
+      "sourceLine": 656,
+      "evidence": "设计指定完成 mist_signal；没有给出 console 提示正文。",
+      "relatedEventIds": [
+        "mist_signal"
+      ]
+    },
+    {
+      "id": "mh_acoustic_mapping_unlock_prompt",
+      "sceneId": "mh_resonance_tower",
+      "triggerId": "mh_acoustic_mapping_staged_marker",
+      "triggerKind": "capability_staged_marker",
+      "triggerStatus": "staged_marker",
+      "triggerCondition": "mist_signal 后拟授予 perception.acoustic_mapping_i；能力授予未实装。",
+      "body": null,
+      "bodyStatus": "pending",
+      "sourceLine": 656,
+      "evidence": "设计提议 Acoustic Mapping，但当前能力 marker 不执行授予。",
+      "relatedEventIds": [
+        "mist_signal"
+      ]
+    },
+    {
+      "id": "mh_cy_map_01",
+      "sceneId": "mh_resonance_tower",
+      "triggerId": "mh_cy_map_01_staged_marker",
+      "triggerKind": "dialogue_content_marker",
+      "triggerStatus": "staged_marker",
+      "triggerCondition": "静态台词 marker；Acoustic Mapping UI/能力流程未接入。",
+      "body": "这次我不是在看路——是在听。",
+      "bodyStatus": "confirmed",
+      "sourceLine": 656,
+      "evidence": "设计表明确给出 mh_cy_map_01 原句。",
+      "relatedEventIds": [
+        "mist_signal"
+      ]
+    },
+    {
+      "id": "mh_warden_boss_call",
+      "sceneId": "mh_warden_arena",
+      "triggerId": "mh_resonance_warden_staged_marker",
+      "triggerKind": "future_boss_static_marker",
+      "triggerStatus": "staged_marker",
+      "triggerCondition": "Resonance Warden 首次 Boss call；Boss AI、Boss bar 与对白正文未实现。",
+      "body": null,
+      "bodyStatus": "pending",
+      "sourceLine": 657,
+      "evidence": "设计描述 Boss bar 和可被 Acoustic Mapping 定位的 call，没有给出 Boss call 台词。"
+    },
+    {
+      "id": "mh_extraction_completion_prompt",
+      "sceneId": "mh_extraction",
+      "triggerId": "mh_world_complete_staged_marker",
+      "triggerKind": "world_completion_staged_marker",
+      "triggerStatus": "staged_marker",
+      "triggerCondition": "完成 harbor uplink 后标记 World complete；出口和完成流程未实现。",
+      "body": null,
+      "bodyStatus": "pending",
+      "sourceLine": 658,
+      "evidence": "设计列出 World complete，没有给出提示正文或可执行完成条件。"
+    },
+    {
+      "id": "mh_return_station_revisit_prompt",
+      "sceneId": "mh_extraction",
+      "triggerId": "mh_return_station_revisit_staged_marker",
+      "triggerKind": "return_station_revisit_staged_marker",
+      "triggerStatus": "staged_marker",
+      "triggerCondition": "Return Station 解锁 MH 复访；解锁与返回流程未实现。",
+      "body": null,
+      "bodyStatus": "pending",
+      "sourceLine": 658,
+      "evidence": "设计提及解锁 MH 复访，没有提供对应提示正文。"
+    }
+  ]
+}

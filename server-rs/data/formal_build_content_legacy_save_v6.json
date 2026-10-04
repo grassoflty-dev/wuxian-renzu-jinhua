@@ -1,0 +1,201 @@
+{
+  "schemaVersion": 1,
+  "items": {
+    "rear_view_charm": {
+      "slot": "charm",
+      "uiCategory": "perception",
+      "effects": [
+        {
+          "perception": {
+            "tag": "rear_view",
+            "stack": "any"
+          }
+        }
+      ]
+    },
+    "rear_view_lens": {
+      "slot": "lens",
+      "uiCategory": "perception",
+      "effects": [
+        {
+          "perception": {
+            "tag": "rear_view",
+            "stack": "any"
+          }
+        }
+      ]
+    },
+    "map_fog_bypass_array": {
+      "slot": "map_array",
+      "uiCategory": "information",
+      "effects": [
+        {
+          "map_knowledge_level": {
+            "tag": "topology",
+            "level": "full",
+            "stack": "max"
+          }
+        },
+        {
+          "map_knowledge_level": {
+            "tag": "terrain",
+            "level": "full",
+            "stack": "max"
+          }
+        },
+        {
+          "map_knowledge_level": {
+            "tag": "connections",
+            "level": "full",
+            "stack": "max"
+          }
+        }
+      ]
+    },
+    "map_topology_chip": {
+      "slot": "map_chip",
+      "uiCategory": "information",
+      "effects": [
+        {
+          "map_knowledge_level": {
+            "tag": "topology",
+            "level": "full",
+            "stack": "max"
+          }
+        }
+      ]
+    },
+    "terrain_penalty_ignore_boots": {
+      "slot": "boots",
+      "uiCategory": "mobility",
+      "effects": [
+        {
+          "terrain_penalty_ignore": {
+            "tag": "water",
+            "stack": "any"
+          }
+        },
+        {
+          "terrain_penalty_ignore": {
+            "tag": "terrain.water_shallow",
+            "stack": "any"
+          }
+        },
+        {
+          "terrain_penalty_ignore": {
+            "tag": "terrain.water_deep",
+            "stack": "any"
+          }
+        },
+        {
+          "terrain_penalty_ignore": {
+            "tag": "mud",
+            "stack": "any"
+          }
+        },
+        {
+          "terrain_penalty_ignore": {
+            "tag": "conveyor",
+            "stack": "any"
+          }
+        }
+      ]
+    },
+    "water_penalty_ignore_module": {
+      "slot": "water_module",
+      "uiCategory": "mobility",
+      "effects": [
+        {
+          "terrain_penalty_ignore": {
+            "tag": "terrain.water_shallow",
+            "stack": "any"
+          }
+        }
+      ]
+    },
+    "heat_resistance_lining": {
+      "slot": "lining",
+      "uiCategory": "body",
+      "effects": [
+        {
+          "hazard_resistance": {
+            "tag": "heat",
+            "reduction_bps": 5000,
+            "stack": "multiply_remaining"
+          }
+        }
+      ]
+    },
+    "heat_resistance_charm": {
+      "slot": "charm",
+      "uiCategory": "body",
+      "effects": [
+        {
+          "hazard_resistance": {
+            "tag": "heat",
+            "reduction_bps": 2500,
+            "stack": "multiply_remaining"
+          }
+        }
+      ]
+    },
+    "water_movement_module": {
+      "slot": "water_module",
+      "uiCategory": "mobility",
+      "effects": [
+        {
+          "terrain_movement_modifier": {
+            "tag": "terrain.water_shallow",
+            "multiplier_bps": 8000,
+            "stack": "max"
+          }
+        }
+      ]
+    },
+    "water_movement_charm": {
+      "slot": "charm",
+      "uiCategory": "mobility",
+      "effects": [
+        {
+          "terrain_movement_modifier": {
+            "tag": "terrain.water_shallow",
+            "multiplier_bps": 9000,
+            "stack": "max"
+          }
+        }
+      ]
+    }
+  },
+  "bloodlines": {
+    "internal_thermal_adaptation": {
+      "uiCategory": "body",
+      "initialTier": 1,
+      "tiers": {
+        "1": [
+          {
+            "hazard_resistance": {
+              "tag": "heat",
+              "reduction_bps": 5000,
+              "stack": "multiply_remaining"
+            }
+          }
+        ]
+      }
+    },
+    "internal_thermal_adaptation_light": {
+      "uiCategory": "body",
+      "initialTier": 1,
+      "tiers": {
+        "1": [
+          {
+            "hazard_resistance": {
+              "tag": "heat",
+              "reduction_bps": 2500,
+              "stack": "multiply_remaining"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

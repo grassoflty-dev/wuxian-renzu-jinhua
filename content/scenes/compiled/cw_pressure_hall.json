@@ -1,0 +1,448 @@
+{
+  "boundsM": {
+    "depth": 16.0,
+    "width": 24.0,
+    "x": 0,
+    "z": 0
+  },
+  "cameraZones": [],
+  "checkpoints": [
+    {
+      "id": "cw_pressure_hall_checkpoint",
+      "navNode": "cw_pressure_hall_spawn_nav",
+      "position": [
+        4.0,
+        0.0,
+        8.0
+      ]
+    }
+  ],
+  "collision": [
+    {
+      "id": "cw_pressure_hall_wall_north",
+      "polygon": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          0.0,
+          0.5
+        ]
+      ]
+    },
+    {
+      "id": "cw_pressure_hall_wall_south",
+      "polygon": [
+        [
+          0.0,
+          15.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          24.0,
+          16.0
+        ],
+        [
+          0.0,
+          16.0
+        ]
+      ]
+    },
+    {
+      "id": "cw_pressure_hall_wall_west_north",
+      "polygon": [
+        [
+          0.0,
+          0.5
+        ],
+        [
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ]
+      ]
+    },
+    {
+      "id": "cw_pressure_hall_wall_west_south",
+      "polygon": [
+        [
+          0.0,
+          9.5
+        ],
+        [
+          0.5,
+          9.5
+        ],
+        [
+          0.5,
+          15.5
+        ],
+        [
+          0.0,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "cw_pressure_hall_wall_east_north",
+      "polygon": [
+        [
+          23.5,
+          0.5
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          24.0,
+          6.0
+        ],
+        [
+          23.5,
+          6.0
+        ]
+      ]
+    },
+    {
+      "id": "cw_pressure_hall_wall_east_south",
+      "polygon": [
+        [
+          23.5,
+          9.5
+        ],
+        [
+          24.0,
+          9.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          23.5,
+          15.5
+        ]
+      ]
+    }
+  ],
+  "doors": [],
+  "hazards": [],
+  "interactionAggregates": [
+    {
+      "event": "clockworks_valves",
+      "markerId": "cw_clockworks_valves_staged",
+      "memberIds": [
+        "cw_pressure_valve_01_staged",
+        "cw_pressure_valve_02_staged",
+        "cw_pressure_valve_03_staged"
+      ]
+    }
+  ],
+  "interactions": [
+    {
+      "event": null,
+      "id": "cw_pressure_valve_01_staged",
+      "kind": "valve_control",
+      "position": [
+        8.0,
+        0.0,
+        8.0
+      ]
+    },
+    {
+      "event": null,
+      "id": "cw_pressure_valve_02_staged",
+      "kind": "valve_control",
+      "position": [
+        12.0,
+        0.0,
+        8.0
+      ]
+    },
+    {
+      "event": null,
+      "id": "cw_pressure_valve_03_staged",
+      "kind": "valve_control",
+      "position": [
+        16.0,
+        0.0,
+        8.0
+      ]
+    },
+    {
+      "event": null,
+      "id": "cw_clockworks_valves_staged",
+      "kind": "three_valve_sequence_staged_marker",
+      "position": [
+        12.0,
+        0.0,
+        10.0
+      ]
+    },
+    {
+      "event": null,
+      "id": "cw_pressure_ui_staged",
+      "kind": "pressure_ui_staged_marker",
+      "position": [
+        12.0,
+        0.0,
+        5.0
+      ]
+    }
+  ],
+  "logic": {
+    "traversal": []
+  },
+  "navigation": {
+    "links": [
+      {
+        "from": "cw_pressure_hall_spawn_nav",
+        "to": "cw_pressure_hall_center_nav"
+      },
+      {
+        "from": "cw_pressure_hall_center_nav",
+        "to": "cw_pressure_hall_spawn_nav"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "cw_pressure_hall_spawn_nav",
+        "position": [
+          3.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "cw_pressure_hall_center_nav",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      }
+    ]
+  },
+  "objectives": [],
+  "occluders": [],
+  "presentation": {
+    "cameraProfile": "oblique_default",
+    "layers": [
+      {
+        "id": "visual.floor",
+        "zGroup": 0
+      },
+      {
+        "id": "visual.props_back",
+        "zGroup": 10
+      },
+      {
+        "id": "visual.props_dynamic",
+        "zGroup": 20
+      }
+    ],
+    "sprites": [
+      {
+        "assetId": "runtime2d.world.clockworks.floor_steel.v1",
+        "id": "cw_pressure_hall_steel_floor",
+        "layer": "visual.floor",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.clockworks.factory_tiles.v1",
+        "id": "cw_pressure_hall_factory_tiles",
+        "layer": "visual.floor",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.clockworks.pressure_pipes.v1",
+        "id": "cw_pressure_pipe_run_north",
+        "layer": "visual.props_back",
+        "position": [
+          11.0,
+          0.0,
+          4.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.clockworks.pressure_pipes.v1",
+        "id": "cw_pressure_pipe_run_south",
+        "layer": "visual.props_back",
+        "position": [
+          13.0,
+          0.0,
+          12.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.clockworks.pressure_pipe_valve.v1",
+        "id": "cw_pressure_valve_visual_01",
+        "layer": "visual.props_dynamic",
+        "position": [
+          8.0,
+          0.0,
+          7.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.clockworks.pressure_pipe_valve.v1",
+        "id": "cw_pressure_valve_visual_02",
+        "layer": "visual.props_dynamic",
+        "position": [
+          12.0,
+          0.0,
+          7.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.clockworks.pressure_pipe_valve.v1",
+        "id": "cw_pressure_valve_visual_03",
+        "layer": "visual.props_dynamic",
+        "position": [
+          16.0,
+          0.0,
+          7.0
+        ]
+      }
+    ]
+  },
+  "sceneId": "cw_pressure_hall",
+  "schemaVersion": 1,
+  "spawns": [
+    {
+      "entityType": null,
+      "id": "cw_pressure_hall_spawn",
+      "kind": "player",
+      "navNode": "cw_pressure_hall_spawn_nav",
+      "position": [
+        3.0,
+        0.0,
+        8.0
+      ]
+    },
+    {
+      "entityType": "enemy.clockworks.forged_guard",
+      "id": "cw_pressure_hall_forged_guard_01",
+      "kind": "enemy",
+      "navNode": null,
+      "position": [
+        6.5,
+        0.0,
+        8.0
+      ]
+    },
+    {
+      "entityType": "enemy.clockworks.forged_guard",
+      "id": "cw_pressure_hall_forged_guard_02",
+      "kind": "enemy",
+      "navNode": null,
+      "position": [
+        9.5,
+        0.0,
+        8.0
+      ]
+    },
+    {
+      "entityType": "enemy.clockworks.pressure_drone",
+      "id": "cw_pressure_hall_pressure_drone_01",
+      "kind": "enemy",
+      "navNode": null,
+      "position": [
+        14.0,
+        0.0,
+        5.0
+      ]
+    },
+    {
+      "entityType": "enemy.clockworks.pressure_drone",
+      "id": "cw_pressure_hall_pressure_drone_02",
+      "kind": "enemy",
+      "navNode": null,
+      "position": [
+        18.0,
+        0.0,
+        11.0
+      ]
+    }
+  ],
+  "transitions": [
+    {
+      "id": "cw_return_to_entry_foundry",
+      "polygon": [
+        [
+          0.5,
+          6.5
+        ],
+        [
+          2.5,
+          6.5
+        ],
+        [
+          2.5,
+          9.5
+        ],
+        [
+          0.5,
+          9.5
+        ]
+      ],
+      "spawnId": "cw_entry_spawn",
+      "toSceneId": "cw_entry_foundry"
+    },
+    {
+      "id": "cw_to_conveyor_bridge",
+      "polygon": [
+        [
+          22.0,
+          6.5
+        ],
+        [
+          24.0,
+          6.5
+        ],
+        [
+          24.0,
+          9.5
+        ],
+        [
+          22.0,
+          9.5
+        ]
+      ],
+      "requiresEvent": "clockworks_valves",
+      "spawnId": "cw_conveyor_bridge_spawn",
+      "toSceneId": "cw_conveyor_bridge"
+    }
+  ],
+  "triggers": [],
+  "vfxMarkers": [],
+  "worldId": "clockworks"
+}

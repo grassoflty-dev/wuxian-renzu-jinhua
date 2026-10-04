@@ -1,0 +1,428 @@
+{
+  "compressionlevel": -1,
+  "height": 16,
+  "infinite": false,
+  "layers": [
+    {
+      "id": 1,
+      "name": "visual.floor",
+      "objects": [
+        {
+          "id": 1,
+          "name": "cw_forged_guard_arena_steel_floor",
+          "x": 384,
+          "y": 256,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.clockworks.floor_steel.v1"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "name": "cw_forged_guard_arena_factory_tiles",
+          "x": 384,
+          "y": 256,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.clockworks.factory_tiles.v1"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 2,
+      "name": "visual.props_back",
+      "objects": [
+        {
+          "id": 3,
+          "name": "cw_arena_forge_pipes",
+          "x": 352,
+          "y": 128,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.clockworks.pressure_pipes.v1"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "name": "cw_arena_furnace",
+          "x": 576,
+          "y": 160,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.clockworks.furnace.v2"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 3,
+      "name": "visual.props_dynamic",
+      "objects": [
+        {
+          "id": 5,
+          "name": "cw_arena_factory_module",
+          "x": 256,
+          "y": 384,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.clockworks.factory_tiles.v1"
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "name": "cw_arena_factory_module_side",
+          "x": 640,
+          "y": 384,
+          "properties": [
+            {
+              "name": "assetId",
+              "type": "string",
+              "value": "runtime2d.world.clockworks.factory_tiles.v1"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 4,
+      "name": "logic.collision",
+      "objects": [
+        {
+          "id": 8,
+          "name": "cw_forged_guard_arena_wall_north",
+          "x": 0,
+          "y": 0,
+          "width": 768,
+          "height": 16,
+          "properties": []
+        },
+        {
+          "id": 9,
+          "name": "cw_forged_guard_arena_wall_south",
+          "x": 0,
+          "y": 496,
+          "width": 768,
+          "height": 16,
+          "properties": []
+        },
+        {
+          "id": 10,
+          "name": "cw_forged_guard_arena_wall_west_north",
+          "x": 0,
+          "y": 16,
+          "width": 16,
+          "height": 176,
+          "properties": []
+        },
+        {
+          "id": 11,
+          "name": "cw_forged_guard_arena_wall_west_south",
+          "x": 0,
+          "y": 304,
+          "width": 16,
+          "height": 192,
+          "properties": []
+        },
+        {
+          "id": 12,
+          "name": "cw_forged_guard_arena_wall_east_north",
+          "x": 752,
+          "y": 16,
+          "width": 16,
+          "height": 176,
+          "properties": []
+        },
+        {
+          "id": 13,
+          "name": "cw_forged_guard_arena_wall_east_south",
+          "x": 752,
+          "y": 304,
+          "width": 16,
+          "height": 192,
+          "properties": []
+        },
+        {
+          "id": 24,
+          "name": "cw_arena_shutter_west_blocker",
+          "x": 16,
+          "y": 192,
+          "width": 16,
+          "height": 112,
+          "properties": [
+            {
+              "name": "requiresActorFirstKill",
+              "type": "string",
+              "value": "cw_forged_guard_elite"
+            }
+          ]
+        },
+        {
+          "id": 25,
+          "name": "cw_arena_shutter_east_blocker",
+          "x": 736,
+          "y": 192,
+          "width": 16,
+          "height": 112,
+          "properties": [
+            {
+              "name": "requiresActorFirstKill",
+              "type": "string",
+              "value": "cw_forged_guard_elite"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 5,
+      "name": "logic.navigation",
+      "objects": [
+        {
+          "id": 14,
+          "name": "cw_forged_guard_arena_spawn_nav",
+          "x": 96,
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "cw_forged_guard_arena_center_nav"
+            }
+          ]
+        },
+        {
+          "id": 15,
+          "name": "cw_forged_guard_arena_center_nav",
+          "x": 384,
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "cw_forged_guard_arena_spawn_nav"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 6,
+      "name": "logic.spawn",
+      "objects": [
+        {
+          "id": 16,
+          "name": "cw_forged_guard_arena_spawn",
+          "x": 96,
+          "y": 256,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "player"
+            },
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "cw_forged_guard_arena_spawn_nav"
+            }
+          ]
+        },
+        {
+          "id": 23,
+          "name": "cw_forged_guard_elite",
+          "x": 384,
+          "y": 224,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "enemy"
+            },
+            {
+              "name": "entityType",
+              "type": "string",
+              "value": "enemy.clockworks.forged_guard_elite"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 7,
+      "name": "logic.interaction",
+      "objects": [
+        {
+          "id": 18,
+          "name": "cw_arena_shutter_staged",
+          "x": 256,
+          "y": 352,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "arena_shutter_staged_marker"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 8,
+      "name": "logic.checkpoint",
+      "objects": [
+        {
+          "id": 20,
+          "name": "cw_forged_guard_arena_checkpoint",
+          "x": 128,
+          "y": 256,
+          "properties": [
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "cw_forged_guard_arena_spawn_nav"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 9,
+      "name": "logic.transition",
+      "objects": [
+        {
+          "id": 21,
+          "name": "cw_arena_return_to_furnace_heart",
+          "x": 16,
+          "y": 208,
+          "width": 64,
+          "height": 96,
+          "properties": [
+            {
+              "name": "toSceneId",
+              "type": "string",
+              "value": "cw_furnace_heart"
+            },
+            {
+              "name": "spawnId",
+              "type": "string",
+              "value": "cw_furnace_heart_spawn"
+            }
+          ]
+        },
+        {
+          "id": 22,
+          "name": "cw_arena_to_regulator_core",
+          "x": 704,
+          "y": 208,
+          "width": 64,
+          "height": 96,
+          "properties": [
+            {
+              "name": "toSceneId",
+              "type": "string",
+              "value": "cw_regulator_core"
+            },
+            {
+              "name": "spawnId",
+              "type": "string",
+              "value": "cw_regulator_core_spawn"
+            }
+          ]
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "nextlayerid": 10,
+  "nextobjectid": 26,
+  "orientation": "orthogonal",
+  "properties": [
+    {
+      "name": "worldId",
+      "type": "string",
+      "value": "clockworks"
+    },
+    {
+      "name": "sceneId",
+      "type": "string",
+      "value": "cw_forged_guard_arena"
+    },
+    {
+      "name": "pixelsPerMeter",
+      "type": "int",
+      "value": 32
+    },
+    {
+      "name": "cameraProfile",
+      "type": "string",
+      "value": "oblique_default"
+    }
+  ],
+  "renderorder": "right-down",
+  "tiledversion": "1.10.2",
+  "tileheight": 32,
+  "tilewidth": 32,
+  "type": "map",
+  "version": "1.10",
+  "width": 24
+}

@@ -1,0 +1,61 @@
+{
+  "sourceCommit": "ac89e851d6911ce4b9a5967e3c17d7c3c3e7cac1",
+  "sourcePath": "artifacts/acceptance/pivot-scenario-runner-01/runs/run-31024-1790319951058508300-0/scenario.jsonl",
+  "fixtureSha256": "e5f8aefb8b237545669d81d6dc6acaa804812ca31d04e8e11a87d46f16ba6b3d",
+  "sources": [
+    {
+      "path": "tools/scenario-runner/fixtures/grey-hive-power-gate-a-v1.json",
+      "sha256": "bc830cb31d61e7eb04bc1580e08721db47f3dcb6e56ae49a32469405e27e1edd"
+    },
+    {
+      "path": "artifacts/acceptance/pivot-scenario-runner-01/runs/run-31024-1790319951058508300-0/scenario.jsonl",
+      "sha256": "ebcc833d0f476cf47a58a38c3519ebe0bb5dbc173692c96005512440a33258df"
+    }
+  ],
+  "selectedRows": {
+    "hub": {
+      "lineIndexZeroBased": 0,
+      "phase": "seed",
+      "event": "initial",
+      "worldSnapshotCopied": true,
+      "worldViewCopied": true
+    },
+    "powerBefore": {
+      "lineIndexZeroBased": 0,
+      "phase": "seed",
+      "event": "initial",
+      "worldSnapshotCopied": true,
+      "worldViewCopied": true
+    },
+    "gateBefore": {
+      "lineIndexZeroBased": 2,
+      "phase": "seed",
+      "event": "closed-gate-blocked",
+      "worldSnapshotCopied": true,
+      "worldViewCopied": true
+    },
+    "powerAfter": {
+      "lineIndexZeroBased": 3,
+      "phase": "seed",
+      "event": "power-applied",
+      "worldSnapshotCopied": true,
+      "worldViewCopied": true
+    },
+    "gateAfter": {
+      "lineIndexZeroBased": 6,
+      "phase": "seed",
+      "event": "open-gate-passed",
+      "worldSnapshotCopied": true,
+      "worldViewCopied": true
+    }
+  },
+  "selectionRules": [
+    "hub and powerBefore use the seed/initial WorldView and WorldSnapshot (closed Gate A, console actor present).",
+    "gateBefore uses seed/closed-gate-blocked (closed Gate A at the approach limit).",
+    "powerAfter uses seed/power-applied and its actual applied CommandReceipt.",
+    "gateAfter uses seed/open-gate-passed (open Gate A after passage).",
+    "gateBefore/gateAfter input CommandReceipts are deterministic CommandReceipt.from_view-shaped envelopes made from the exact recorded WorldViews because those JSONL rows do not include commandReceipt objects.",
+    "The initial slot-list response is an empty array because the Scenario Runner JSONL does not record formal_list_save_slots; slot UI is not part of these screenshots.",
+    "The F interaction is replayed as the committed power-applied response; the omitted movement steps between selected snapshots mean this browser harness is visual protocol replay, not live interaction-distance acceptance."
+  ]
+}

@@ -1,0 +1,519 @@
+{
+  "boundsM": {
+    "depth": 16.0,
+    "width": 24.0,
+    "x": 0,
+    "z": 0
+  },
+  "cameraZones": [],
+  "checkpoints": [
+    {
+      "id": "mh_resonance_tower_checkpoint",
+      "navNode": "mh_resonance_tower_spawn_nav",
+      "position": [
+        4.0,
+        0.0,
+        8.0
+      ]
+    }
+  ],
+  "collision": [
+    {
+      "id": "tower_wall_north",
+      "polygon": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          0.0,
+          0.5
+        ]
+      ]
+    },
+    {
+      "id": "tower_wall_south",
+      "polygon": [
+        [
+          0.0,
+          15.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          24.0,
+          16.0
+        ],
+        [
+          0.0,
+          16.0
+        ]
+      ]
+    },
+    {
+      "id": "tower_wall_west_north",
+      "polygon": [
+        [
+          0.0,
+          0.5
+        ],
+        [
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ]
+      ]
+    },
+    {
+      "id": "tower_wall_west_south",
+      "polygon": [
+        [
+          0.0,
+          9.5
+        ],
+        [
+          0.5,
+          9.5
+        ],
+        [
+          0.5,
+          15.5
+        ],
+        [
+          0.0,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "tower_wall_east_north",
+      "polygon": [
+        [
+          23.5,
+          0.5
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          24.0,
+          6.0
+        ],
+        [
+          23.5,
+          6.0
+        ]
+      ]
+    },
+    {
+      "id": "tower_wall_east_south",
+      "polygon": [
+        [
+          23.5,
+          9.5
+        ],
+        [
+          24.0,
+          9.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          23.5,
+          15.5
+        ]
+      ]
+    }
+  ],
+  "doors": [],
+  "explorationRegions": [
+    {
+      "id": "mh_rt_entry",
+      "polygon": [
+        [
+          0.5,
+          0.5
+        ],
+        [
+          9.5,
+          0.5
+        ],
+        [
+          9.5,
+          15.5
+        ],
+        [
+          0.5,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "mh_rt_resonance_floor",
+      "polygon": [
+        [
+          9.5,
+          0.5
+        ],
+        [
+          16.0,
+          0.5
+        ],
+        [
+          16.0,
+          15.5
+        ],
+        [
+          9.5,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "mh_rt_signal_section",
+      "polygon": [
+        [
+          16.0,
+          0.5
+        ],
+        [
+          23.5,
+          0.5
+        ],
+        [
+          23.5,
+          15.5
+        ],
+        [
+          16.0,
+          15.5
+        ]
+      ]
+    }
+  ],
+  "hazards": [],
+  "interactions": [
+    {
+      "event": "mist_signal",
+      "id": "mh_signal_console_staged",
+      "kind": "terminal",
+      "position": [
+        16.0,
+        0.0,
+        8.0
+      ]
+    },
+    {
+      "event": null,
+      "id": "mh_cy_map_01_staged_marker",
+      "kind": "dialogue_content_marker",
+      "position": [
+        16.0,
+        0.0,
+        7.0
+      ]
+    },
+    {
+      "event": null,
+      "id": "mh_acoustic_mapping_staged_marker",
+      "kind": "capability_staged_marker",
+      "position": [
+        16.0,
+        0.0,
+        9.0
+      ]
+    }
+  ],
+  "logic": {
+    "traversal": []
+  },
+  "navigation": {
+    "links": [
+      {
+        "from": "mh_resonance_tower_spawn_nav",
+        "to": "mh_resonance_tower_center_nav"
+      },
+      {
+        "from": "mh_resonance_tower_center_nav",
+        "to": "mh_signal_console_nav"
+      },
+      {
+        "from": "mh_signal_console_nav",
+        "to": "mh_resonance_tower_arena_nav"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "mh_resonance_tower_spawn_nav",
+        "position": [
+          3.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "mh_resonance_tower_center_nav",
+        "position": [
+          10.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "mh_signal_console_nav",
+        "position": [
+          16.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "mh_resonance_tower_arena_nav",
+        "position": [
+          21.0,
+          0.0,
+          8.0
+        ]
+      }
+    ]
+  },
+  "objectives": [],
+  "occluders": [],
+  "presentation": {
+    "cameraProfile": "oblique_default",
+    "layers": [
+      {
+        "id": "visual.floor",
+        "zGroup": 0
+      },
+      {
+        "id": "visual.props_back",
+        "zGroup": 10
+      },
+      {
+        "id": "visual.props_dynamic",
+        "zGroup": 20
+      },
+      {
+        "id": "visual.vfx_markers",
+        "zGroup": 30
+      }
+    ],
+    "sprites": [
+      {
+        "assetId": "runtime2d.world.mistharbor.water_edge_stone.v1",
+        "id": "approved_tower_stone_water_module",
+        "layer": "visual.floor",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.mistharbor.fog_bank.v1",
+        "id": "tower_fog_bank_north",
+        "layer": "visual.props_back",
+        "position": [
+          9.0,
+          0.0,
+          3.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.mistharbor.water_edge.v1",
+        "id": "tower_outer_water_edge",
+        "layer": "visual.props_back",
+        "position": [
+          12.0,
+          0.0,
+          14.5
+        ]
+      }
+    ]
+  },
+  "sceneId": "mh_resonance_tower",
+  "schemaVersion": 1,
+  "spawns": [
+    {
+      "entityType": null,
+      "id": "mh_resonance_tower_spawn",
+      "kind": "player",
+      "navNode": "mh_resonance_tower_spawn_nav",
+      "position": [
+        3.0,
+        0.0,
+        8.0
+      ]
+    },
+    {
+      "entityType": "enemy.mist_harbor.signal_wraith",
+      "id": "mh_resonance_tower_signal_wraith_01",
+      "kind": "enemy",
+      "navNode": "mh_resonance_tower_center_nav",
+      "position": [
+        9.0,
+        0.0,
+        6.0
+      ]
+    },
+    {
+      "entityType": "enemy.mist_harbor.signal_wraith",
+      "id": "mh_resonance_tower_signal_wraith_02",
+      "kind": "enemy",
+      "navNode": "mh_resonance_tower_center_nav",
+      "position": [
+        12.0,
+        0.0,
+        5.0
+      ]
+    },
+    {
+      "entityType": "enemy.mist_harbor.signal_wraith",
+      "id": "mh_resonance_tower_signal_wraith_03",
+      "kind": "enemy",
+      "navNode": "mh_signal_console_nav",
+      "position": [
+        15.0,
+        0.0,
+        9.0
+      ]
+    },
+    {
+      "entityType": "enemy.mist_harbor.signal_wraith",
+      "id": "mh_resonance_tower_signal_wraith_04",
+      "kind": "enemy",
+      "navNode": "mh_resonance_tower_arena_nav",
+      "position": [
+        19.0,
+        0.0,
+        6.0
+      ]
+    },
+    {
+      "entityType": "enemy.mist_harbor.tidebound",
+      "id": "mh_resonance_tower_tidebound_01",
+      "kind": "enemy",
+      "navNode": "mh_resonance_tower_center_nav",
+      "position": [
+        12.0,
+        0.0,
+        10.5
+      ]
+    }
+  ],
+  "transitions": [
+    {
+      "id": "mh_tower_to_pump_station",
+      "polygon": [
+        [
+          0.0,
+          6.5
+        ],
+        [
+          2.0,
+          6.5
+        ],
+        [
+          2.0,
+          9.5
+        ],
+        [
+          0.0,
+          9.5
+        ]
+      ],
+      "spawnId": "mh_pump_station_spawn",
+      "toSceneId": "mh_pump_station"
+    },
+    {
+      "id": "mh_tower_to_warden_arena",
+      "polygon": [
+        [
+          22.0,
+          6.5
+        ],
+        [
+          24.0,
+          6.5
+        ],
+        [
+          24.0,
+          9.5
+        ],
+        [
+          22.0,
+          9.5
+        ]
+      ],
+      "requiresEvent": "mist_signal",
+      "spawnId": "mh_warden_arena_spawn",
+      "toSceneId": "mh_warden_arena"
+    }
+  ],
+  "triggers": [],
+  "vfxMarkers": [
+    {
+      "assetId": "runtime2d.world.mistharbor.fog_vfx.v1",
+      "id": "tower_ambient_fog_01",
+      "position": [
+        7.0,
+        0.0,
+        4.0
+      ]
+    },
+    {
+      "assetId": "runtime2d.world.mistharbor.fog_vfx.v1",
+      "id": "tower_ambient_fog_02",
+      "position": [
+        19.0,
+        0.0,
+        11.0
+      ]
+    }
+  ],
+  "walkablePolygons": [
+    {
+      "id": "mh_resonance_tower_walkable_area",
+      "polygon": [
+        [
+          0.5,
+          0.5
+        ],
+        [
+          23.5,
+          0.5
+        ],
+        [
+          23.5,
+          15.5
+        ],
+        [
+          0.5,
+          15.5
+        ]
+      ]
+    }
+  ],
+  "worldId": "mist_harbor"
+}
