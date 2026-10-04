@@ -1,4 +1,4 @@
-# 无限人族进化 · Windows 测试预览版
+# 无限人族进化
 
 ## 游戏介绍
 
@@ -35,28 +35,37 @@
 
 更多血统、装备、技能和高级能力是长期扩展方向。当前预览版仍有占位表现，完整美术动画、部分剧情与档案、完整能力树界面和无障碍设置尚待完善，不能将设计文档中的全部目标视为本版已交付功能。
 
-## 预览版下载
+## 下载与运行
 
-当前 Windows 预览测试版为 v0.1.0-preview.2，已根据首轮试玩反馈完成一轮修复，并通过变动审查、自动化检查与 Windows 交叉编译。本候选尚未完成 Windows 实机启动、GPU 画面、声音、DPI 和性能验收，仍需用户试玩确认。
+请从[Releases](https://github.com/grassoflty-dev/wuxian-renzu-jinhua/releases)选择Windows x64预览版。preview.3的游戏文件名为`wuxian-renzu-jinhua-preview.3-windows-x64.exe`，先阅读同页`READ_ME_FIRST.txt`和`KNOWN_LIMITATIONS.md`，并按`SHA256SUMS.txt`核对下载。
 
-[下载 preview.2 预览测试版及对应源码](https://github.com/grassoflty-dev/wuxian-renzu-jinhua/releases/tag/v0.1.0-preview.2)
+- 需要Windows x64与Microsoft Edge WebView2 Runtime；最低窗口1280×720
+- EXE未签名，没有安装器；请核对来源和哈希
+- 升级前备份旧存档。应用数据目录标识为`com.wuxian.humanevolution`，无需写入EXE所在文件夹
+- 当前确切EXE尚未在Windows实机运行；启动、显卡/声音、DPI、性能、实际保存/继续和完整人工试玩均未验收
 
-展开 Assets，下载 `wuxian-renzu-jinhua-preview.2-windows-x64.exe`（262,469,632 字节，约262MB），先阅读 `READ_ME_FIRST.txt` 与 `KNOWN_LIMITATIONS.md`。12项发布附件已核对 GitHub 端 SHA256 与审查清单一致。
+## preview.3 的实际调整
 
-[首个预览测试版 preview.1](https://github.com/grassoflty-dev/wuxian-renzu-jinhua/releases/tag/v0.1.0-preview.1)及其附件继续保留，供查看首发记录与比较；首轮 Windows 试玩画面与操作反馈来自该版本。
+- Beacon收取/挂载与持久化、Sentinel冲锋及对应回归
+- 方向输入与战斗边沿时序、鼠标离散普攻修复
+- 精确信号怨灵受击反馈和音效回归接线
+- 没有可用命名槽时，可从有效默认自动存档继续；损坏或不可恢复的优先存档不会被误判为可继续
+- 公开源码边界复核、新对应EXE和指定ChatGPT原图派生的七尺寸应用图标，默认窗口使用256px首帧
 
-## 当前修复与待验证项
+shadow接收/遮挡规则仍待设计数据。现有接触阴影、脚点排序、程序化腿部动作和静态裁片不等于完整正式表现。
 
-preview.2 修复了灰巢连续地面与部分图集裁片、人物和设备的脚点遮挡排序、默认显示的开发面板，以及 Q/E/R 权威动作阶段和真实命中、受伤、格挡反馈。玩家增加临时程序化腿部动作与方向表现，敌人改用单体裁片并去除重复静态预览。
+## 基本操作
 
-程序化腿摆与单体裁片仍不是完整逐帧动画，完整美术和部分功能仍待完善。这些改动尚未经过 Windows/GPU 画面验收，不能把自动化逻辑测试通过当作最终画面验收通过。本版不包含后续 Beacon 持久化和 Sentinel 冲锋改动。
+WASD移动，鼠标瞄准，鼠标左键或J离散普攻，Shift闪避，Q Pulse，按住/松开E Guard，R Pierce，F交互，空格情境移动，Esc暂停。
 
-## 当前验证
+## 源码、构建与验证
 
-preview.2 干净源码提交：`0ef917f530f84d2451d718168ab83b7b4938e762`。649 项 Web 检查通过，4 项平台跳过，0 失败；12 项原生打包检查、生产 Web 构建与 Windows x64 交叉编译通过，独立组合定向检查 106 项通过。上游版本已有三世界自动化完整流程记录；本候选未重跑完整三世界旅程，也未完成 Windows 实机或 GPU 视觉验收。详细范围见发布附件 `VERIFICATION.json`。
+完整工程在Release的`wuxian-renzu-jinhua-preview.3-corresponding-source.zip`附件中，含构建工具、测试、地图、资源、依赖源码与通知，不含旧Git历史。**当前main仅有发布说明，GitHub自动生成的Source code ZIP/TAR不是完整游戏源码；源码附件不表示Git工程树迁移完成。**
 
-## 下载与许可
+preview.3构建源提交为`9a329697de0e90143f4d3fcf9ef47e97ea6e0f25`。最终typecheck/生产构建、图标7项、bundle身份12项和独立原生验证12项已通过；Web754通过/4跳过来自字节相同的中间图标提交；Rust629/651与两次约1171秒长路线继承自同字节游戏基础。具体执行身份与边界见各版本`VERIFICATION.json`和`BUILDING.md`，不将自动化等同实机验收。
 
-需要 Windows x64 和 Microsoft Edge WebView2 Runtime。首次测试前请备份存档。发布附件同步提供对应源码包、GNU GPL version 3 许可、第三方通知、已知缺漏及 SHA256 校验。
+## 许可与来源
 
-完整对应源码在 Release 的 `wuxian-renzu-jinhua-preview.2-corresponding-source.zip` 中；GitHub 自动生成的 Source code ZIP 当前仅包含发布说明，不是游戏完整源码。源码附件不等于 Git 工程树迁移已完成；旧仓库历史不迁入。部分素材仍为占位，功能与画面持续完善。
+项目保留GNU GPL version3文本；第三方组件保留各自许可和通知。图片原件、派生关系及来源准入记录随源码提供；指定生成图的项目公开授权不构成CC0、独占权、商标清查或版权绝对保证。C2PA原始块保留，未声称验签。
+
+发布附件的冻结哈希以同页清单为准；包内候选标记是封装时的历史记录，实际发布时间以GitHub Release托管记录为准。preview.2仍保留供比较。
