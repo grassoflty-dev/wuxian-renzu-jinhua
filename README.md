@@ -37,35 +37,20 @@
 
 ## 下载与运行
 
-请从[Releases](https://github.com/grassoflty-dev/wuxian-renzu-jinhua/releases)选择Windows x64预览版。preview.3的游戏文件名为`wuxian-renzu-jinhua-preview.3-windows-x64.exe`，先阅读同页`READ_ME_FIRST.txt`和`KNOWN_LIMITATIONS.md`，并按`SHA256SUMS.txt`核对下载。
+从[preview.4发布页](https://github.com/grassoflty-dev/wuxian-renzu-jinhua/releases/tag/v0.1.0-preview.4)下载[`wuxian-renzu-jinhua-preview.4-windows-x64.exe`](https://github.com/grassoflty-dev/wuxian-renzu-jinhua/releases/download/v0.1.0-preview.4/wuxian-renzu-jinhua-preview.4-windows-x64.exe)，先阅读`READ_ME_FIRST.txt`和`KNOWN_LIMITATIONS.md`，按`SHA256SUMS.txt`核对完整文件。
 
-- 需要Windows x64与Microsoft Edge WebView2 Runtime；最低窗口1280×720
-- EXE未签名，没有安装器；请核对来源和哈希
-- 升级前备份旧存档。应用数据目录标识为`com.wuxian.humanevolution`，无需写入EXE所在文件夹
-- 当前确切EXE尚未在Windows实机运行；启动、显卡/声音、DPI、性能、实际保存/继续和完整人工试玩均未验收
+- Windows x64与Microsoft Edge WebView2 Runtime；最低窗口1280×720
+- EXE未签名、无安装器，升级前备份应用数据目录`com.wuxian.humanevolution`下的存档
+- 这个确切EXE尚未在Windows实机执行；启动、视觉/声音/DPI/性能及真实保存/继续仍待验收
 
-## preview.3 的实际调整
+## preview.4 的实际调整
 
-- Beacon收取/挂载与持久化、Sentinel冲锋及对应回归
-- 方向输入与战斗边沿时序、鼠标离散普攻修复
-- 精确信号怨灵受击反馈和音效回归接线
-- 没有可用命名槽时，可从有效默认自动存档继续；损坏或不可恢复的优先存档不会被误判为可继续
-- 公开源码边界复核、新对应EXE和指定ChatGPT原图派生的七尺寸应用图标，默认窗口使用256px首帧
-
-shadow接收/遮挡规则仍待设计数据。现有接触阴影、脚点排序、程序化腿部动作和静态裁片不等于完整正式表现。
-
-## 下一版源码候选（未发布）
-
-本地候选基于公开工程提交`64d6b5a4a6a15a9e7ce073c963c1b8d9b74eaf43`，仅移植下列增量。它尚未生成或发布新的EXE；上面的preview.3下载与验证说明只属于已发布的冻结版本，不能视为这些候选改动的验收。
-
-- 雾港重访提示使用权威次数，区分次数用尽、当前入口不可用与需要返回归航站查询
-- 灰巢首通强化改由归航站进化终端领取，保留原选择顺序；取消、过期请求和保存失败不会提前授予奖励
-- 灰巢中央竖井设施日志提供Scanner，保留原日志事件；旧档修复只使用已验证的当前场景证据
-- 修正变高生命栏下的世界信息卡、归航站工具箱遮挡排序和入口教程终端提示
-- V5命名槽覆盖、休息失败重试，以及休息/首次强化/Scanner写入当前活动槽的事务一致性修复
-- 保留槽位标识冲突防护；仅在明确继续时，从唯一有效事务备份安全恢复，列表探测保持只读，备份与临时文件保留
-
-候选还需完整Web、Rust、原生资源闭包与独立构建验证；Windows启动、保存/继续、视觉、声音和性能验收仍待实机完成。源码中的历史验证记录不得当作此候选已通过的结果。素材、图标、许可与依赖锁文件保持公开基线字节。
+- 雾港重访提示改用权威次数，区分次数用尽、入口暂不可用和需回归航站查询
+- 灰巢首通强化改在归航站进化终端领取，保留原选择顺序；取消、过期请求或保存失败不提前发奖励
+- 灰巢中央竖井设施日志提供Scanner，保留日志事件；旧档修复仅使用已验证的当前场景证据
+- 修正变高生命栏下的信息卡位置、归航站工具箱遮挡排序与入口教程终端提示
+- 修复V5命名槽覆盖、休息失败重试，以及休息、首次强化和Scanner写入当前活动槽的事务一致性
+- 保留槽位标识冲突防护；仅在明确继续时从唯一有效事务备份安全恢复，列表探测保持只读，备份与临时文件保留
 
 ## 基本操作
 
@@ -73,21 +58,27 @@ WASD移动，鼠标瞄准，鼠标左键或J离散普攻，Shift闪避，Q Pulse
 
 ## 源码、构建与验证
 
-**preview.3 已审查工程已迁入本仓库的 main Git 树，共726个项目文件。** 可直接克隆仓库，浏览、构建并逐次审查代码；保留本仓库原有发布说明提交，不导入旧私有仓库历史。根README保留游戏介绍、下载说明和本次迁移说明，其余725个文件的Git blob与冻结源树一致；8个PowerShell文件按既有`.gitattributes`在Git中存LF、检出为CRLF，检出后的项目字节与公开对应源码ZIP一致。
+本仓库提供实际工程Git树；preview.4代码更新保留公共历史，不引入旧私有仓库历史。可直接克隆、浏览、构建和逐次审查代码。项目共742个tracked文件；依赖锁、构建工具、素材与来源清单保留，依赖源码大包、EXE、缓存与测试日志不纳入Git。Actions保持关闭。
 
 ```sh
 git clone https://github.com/grassoflty-dev/wuxian-renzu-jinhua.git
 cd wuxian-renzu-jinhua
 ```
 
-构建步骤见[BUILDING.md](BUILDING.md)，已知边界见[KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md)。本次迁移没有重新编译EXE，也没有改变任何已发布附件的字节或身份。preview.3 的实际构建源提交仍为`9a329697de0e90143f4d3fcf9ef47e97ea6e0f25`，规范化源树为`f720737d6d5f11bccf2bb6d659170197e2ce393c`；本仓库的托管提交沿用独立的公共历史，会有不同SHA，不能把托管提交冒充为既有EXE的构建提交。自行构建时应记录实际`git rev-parse HEAD`，构建脚本也会写入该次身份。
+[BUILDING.md](BUILDING.md)说明工程构建，[KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md)列出工程边界。preview.4外层附件给出本次更完整构建/测试记录；冻结源码中的旧验证文字不可冒充本轮结果。Release另附[`wuxian-renzu-jinhua-preview.4-corresponding-source.zip`](https://github.com/grassoflty-dev/wuxian-renzu-jinhua/releases/download/v0.1.0-preview.4/wuxian-renzu-jinhua-preview.4-corresponding-source.zip)，含742个冻结工程文件、283份依赖源包、863份通知及独立源码清单。
 
-Release的`wuxian-renzu-jinhua-preview.3-corresponding-source.zip`继续提供冻结完整对应源码包，包含项目、283份依赖源包与863份通知文件。Git树保留项目的依赖锁文件、构建工具、资源与来源清单，未把依赖源码大包、编译缓存、EXE或旧私有历史纳入Git。main的GitHub自动源码归档包含当前项目树；preview.3原有标签未移动，因此该Release下自动生成的Source code ZIP/TAR仍对应当时的README-only标签，不能代替完整对应源码附件。
+本版EXE真正构建源提交为`6ad2c92e630dd5a85fe1bd2ce54f0c5cbcc535d7`，规范化树为`dce9a79742d01216471dc891e1b11d0ef915631b`。本次公共代码托管提交为[ac6816aa99185bcfed044d3e20ba615fd18950e0](https://github.com/grassoflty-dev/wuxian-renzu-jinhua/commit/ac6816aa99185bcfed044d3e20ba615fd18950e0)，Git树与上述构建源码树完全一致；托管提交沿用公共仓库历史，SHA与原构建提交不同。公共README随后单独更新而产生新提交；该说明文档提交不是冻结EXE的构建提交。源码ZIP保留构建时README未发布候选文字，外层发布说明记录后续验证及托管状态。自行构建须记录真实HEAD与生成身份。
 
-preview.3构建源提交为`9a329697de0e90143f4d3fcf9ef47e97ea6e0f25`。最终typecheck/生产构建、图标7项、bundle身份12项和独立原生验证12项已通过；Web754通过/4跳过来自字节相同的中间图标提交；Rust629/651与两次约1171秒长路线继承自同字节游戏基础。具体执行身份与边界见各版本`VERIFICATION.json`和`BUILDING.md`，不将自动化等同实机验收。
+- Web：783通过、0失败、4项真实浏览器依赖测试跳过；typecheck与最终生产构建通过
+- Rust：默认686项非bundle游戏测试通过，replay+legacy-test-rng 708项通过；两套重叠，不能相加。两条原完整路线分别用时1170.940秒、1170.973秒
+- 原headless测试各有6项环境失败，保留失败事实；同12项bundle夹具在真实源码/生产资源环境全部通过，逐项闭合。共有720个唯一Rust测试身份具备适用环境通过证据
+- 地图编译器47项、图标7项、真实资源bundle 12项通过；30场景可逐字节重建；真实源native lib/all-targets检查通过
+- Windows x64离线交叉编译99.079秒；冻结PE的163项Web载荷、30个原生场景、7帧ICO与默认256px RGBA绑定通过；无缓存独立核验及20项验证器正负自测通过
+
+详细统计、headless原失败与真实bundle闭合、供应链限定、未验收项见Release的`VERIFICATION.json`。Windows实机、WebView2、真实浏览器、视觉/声音、断电与并发存档尚未验收；不声称所有设计文档或工具测试已完成。
 
 ## 许可与来源
 
-项目保留GNU GPL version3文本；第三方组件保留各自许可和通知。图片原件、派生关系及来源准入记录随源码提供；指定生成图的项目公开授权不构成CC0、独占权、商标清查或版权绝对保证。C2PA原始块保留，未声称验签。
+项目保留GNU GPL version3文本；第三方依赖及素材记录保留各自许可、通知和来源。283份依赖源包与863份通知文件继承preview.3原字节，锁文件、美术素材和图标不变。指定生成图已按本项目公开用途授权；不构成CC0、独占权、未知第三方授权、商标清查或版权绝对保证。原始C2PA块保留，但未声称验签。
 
-发布附件的冻结哈希以同页清单为准；包内候选标记是封装时的历史记录，实际发布时间以GitHub Release托管记录为准。preview.2仍保留供比较。
+发布附件hash以同页清单为准，实际托管时间以GitHub Release记录为准。preview.2与preview.3保留供比较。
