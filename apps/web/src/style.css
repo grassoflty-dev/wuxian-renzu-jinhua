@@ -78,3 +78,32 @@ html[data-motion="reduced"] .death-overlay{animation:none}
 .hud-return{position:absolute;top:16px;right:100px;pointer-events:auto;min-width:96px;height:36px;border:1px solid rgba(167,199,207,.5);border-radius:3px;background:rgba(8,17,22,.9);color:#e7eef1}
 
 .evolution-overlay{pointer-events:auto;position:absolute;inset:0;z-index:80;display:grid;place-items:center;background:rgba(3,9,15,.85);padding:20px}.evolution-overlay[hidden]{display:none}.evolution-overlay>div{display:grid;gap:18px;max-width:620px;padding:28px;border:1px solid #a4cfca;background:#0d1b24;color:#e5f1ef;text-align:center}.evolution-overlay button{min-height:44px;padding:10px 18px}.evolution-overlay #enhancement-feedback{min-height:24px;overflow-wrap:anywhere}
+
+/* White Zhi V1 is a narrow development-only HTML dialogue, with no portrait asset. */
+.baizhi-overlay[hidden] { display: none; }
+.baizhi-overlay {
+  position: absolute; inset: 0; z-index: 45; display: grid; place-items: center;
+  padding: clamp(16px, 3vh, 36px); background: rgba(5, 12, 15, .82); pointer-events: auto;
+}
+.baizhi-dialogue-frame {
+  display: grid; grid-template-columns: minmax(130px, 24%) minmax(0, 1fr); gap: 28px;
+  box-sizing: border-box; width: min(760px, 100%); max-height: 100%; overflow-y: auto;
+  padding: clamp(20px, 3vh, 36px); border: 1px solid #91bdb3; border-radius: 12px;
+  background: #101f23; color: #f1f5ef; box-shadow: 0 18px 60px #0008;
+}
+.baizhi-portrait {
+  align-self: start; display: grid; place-items: center; min-height: 190px; padding: 12px;
+  border: 1px dashed #90aaa4; border-radius: 8px; color: #c0cfca; text-align: center; font-size: 14px;
+}
+.baizhi-dialogue-content { min-width: 0; }
+.baizhi-dialogue-content h2 { margin: 0 0 18px; font-size: clamp(22px, 2.4vw, 30px); }
+.baizhi-dialogue-content p { line-height: 1.65; overflow-wrap: anywhere; }
+#baizhi-status { min-height: 1.65em; color: #f3d296; }
+.baizhi-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.baizhi-actions button { min-height: 44px; padding: 10px 18px; color: #f1f5ef; background: #243c3f; border: 1px solid #91bdb3; border-radius: 6px; }
+.baizhi-actions button:focus-visible { outline: 3px solid #f2d89b; outline-offset: 3px; }
+.baizhi-actions button:disabled { opacity: .5; cursor: wait; }
+@media (max-width: 650px) {
+  .baizhi-dialogue-frame { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .baizhi-portrait { min-height: 46px; }
+}

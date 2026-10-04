@@ -172,6 +172,7 @@ mod tests {
             "enemy.mist_harbor.resonance_warden",
             "grey_hive.infected_maintenance_worker",
             "grey_hive.infected_security",
+            "npc.baizhi",
         ]);
         let embedded_entities: BTreeSet<_> =
             generated::EMBEDDED_ENTITY_TYPES.iter().copied().collect();

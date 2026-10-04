@@ -16,7 +16,7 @@ const EXPECTED_SCENES: [(&str, &str); 11] = [
     ),
     (
         "gh_bio_isolation.json",
-        "4ed45ceaa1d96cd03cafb4f9f3027b3bd4e294dcb104d2de5b266364d9791137",
+        "a3d629f04dc955cf0f8e644b54a4a64d054411a7d59a9fb15da5c9d9ea953aff",
     ),
     (
         "gh_central_shaft.json",
@@ -167,7 +167,7 @@ const EXPECTED_INPUTS: [(&str, &str); 4] = [
     ),
     (
         "content/enemies/entity-types.json",
-        "de1ff6836b1a9ab216161c468688c4924f929f2036ccf1cb9c4d9948fada7e1a",
+        "7d3e90d0a68cf41fd13fab54d3a7563a61a3ce914febfdba48af718ccd596a5c",
     ),
     (
         "server-rs/data/world_progression_v1.json",
@@ -374,6 +374,7 @@ fn run() -> Result<(), String> {
         "enemy.mist_harbor.signal_wraith".to_owned(),
         "enemy.mist_harbor.tidebound".to_owned(),
         "enemy.mist_harbor.resonance_warden".to_owned(),
+        "npc.baizhi".to_owned(),
     ]);
     if entity_types != expected_entities {
         return Err(

@@ -267,6 +267,23 @@ fn formal_choose_first_enhancement(
 }
 
 #[tauri::command]
+fn formal_baizhi_begin(request: wuxian_horror_ch1::formal_runtime::baizhi::BaizhiBeginRequest,
+    runtime: tauri::State<'_, FormalRuntime>) -> Result<wuxian_horror_ch1::formal_runtime::baizhi::BaizhiCommandReceipt, String> {
+    runtime.baizhi_begin(request)
+}
+#[tauri::command]
+fn formal_baizhi_commit(ticket: wuxian_horror_ch1::formal_runtime::baizhi::BaizhiDialogueTicket,
+    request_id: String, choice: wuxian_horror_ch1::world_progression::HiveChoice,
+    runtime: tauri::State<'_, FormalRuntime>) -> Result<wuxian_horror_ch1::formal_runtime::baizhi::BaizhiCommandReceipt, String> {
+    runtime.baizhi_commit(&ticket, &request_id, choice)
+}
+#[tauri::command]
+fn formal_baizhi_close(ticket: wuxian_horror_ch1::formal_runtime::baizhi::BaizhiDialogueTicket,
+    runtime: tauri::State<'_, FormalRuntime>) -> Result<wuxian_horror_ch1::formal_runtime::baizhi::BaizhiCommandReceipt, String> {
+    runtime.baizhi_close(&ticket)
+}
+
+#[tauri::command]
 fn formal_has_save(runtime: tauri::State<'_, FormalRuntime>, default_only: Option<bool>) -> bool {
     if default_only.unwrap_or(false) { runtime.has_default_save() } else { runtime.has_save() }
 }
@@ -461,6 +478,9 @@ fn main() {
             formal_capability_command,
             formal_build_command,
             formal_choose_first_enhancement,
+            formal_baizhi_begin,
+            formal_baizhi_commit,
+            formal_baizhi_close,
             formal_has_save,
             formal_save,
             formal_continue,

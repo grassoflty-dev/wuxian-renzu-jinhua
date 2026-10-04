@@ -1,5 +1,6 @@
+import { resolveBaizhiPresentation } from "../renderer/BaizhiPresentation.js";
 import { assertBuildAction, type BuildAction } from "../protocol/BuildProjection.js";
-import type { ActionCommand, InputState, PresentationEvent, SoundCueEvent, SceneEntryToken, SessionContext, WorldSnapshotV3 } from "../protocol/types.js";
+import type { BaizhiChoice, BaizhiDialogueTicket, ActionCommand, InputState, PresentationEvent, SoundCueEvent, SceneEntryToken, SessionContext, WorldSnapshotV3 } from "../protocol/types.js";
 import { assertSessionContext, assertSceneEntryToken, assertSnapshotV3 } from "../protocol/types.js";
 
 export type Invoke = <T>(command: string, args?: Record<string, unknown>) => Promise<T>;
@@ -32,6 +33,38 @@ export interface SlotCommandReceipt {
   serverTick: number;
   authorityRevision: number;
   snapshot: WorldSnapshotV3;
+}
+
+export interface BaizhiCommandReceipt { receipt: SlotCommandReceipt; ticket: BaizhiDialogueTicket | null; resumed: boolean }
+
+function assertBaizhiTicket(value: unknown): BaizhiDialogueTicket {
+  if (!value || typeof value !== "object") throw new Error("E_BAIZHI_TICKET_INVALID");
+  const ticket = value as BaizhiDialogueTicket;
+  assertSessionContext(ticket);
+  if (typeof ticket.ownerId !== "string" || !ticket.ownerId || !Number.isSafeInteger(ticket.generation) || ticket.generation < 1 ||
+      !Number.isSafeInteger(ticket.pauseCommandSequence) || ticket.pauseCommandSequence < 1 || ticket.worldEpoch < 1 ||
+      ticket.worldId !== "grey_hive" || ticket.sceneId !== "gh_bio_isolation" ||
+      ticket.entityId !== "gh_bz_whitezhi_v1" || ticket.interactionId !== "gh_bz_first_contact") throw new Error("E_BAIZHI_TICKET_INVALID");
+  return { ownerId: ticket.ownerId, generation: ticket.generation, worldId: ticket.worldId, sceneId: ticket.sceneId,
+    worldEpoch: ticket.worldEpoch, entityId: ticket.entityId, interactionId: ticket.interactionId,
+    pauseCommandSequence: ticket.pauseCommandSequence };
+}
+function sameBaizhiTicket(a: BaizhiDialogueTicket, b: BaizhiDialogueTicket): boolean {
+  return a.ownerId === b.ownerId && a.generation === b.generation && a.worldId === b.worldId && a.sceneId === b.sceneId &&
+    a.worldEpoch === b.worldEpoch && a.entityId === b.entityId && a.interactionId === b.interactionId &&
+    a.pauseCommandSequence === b.pauseCommandSequence;
+}
+function assertBaizhiReceipt(value: unknown, commandId: string, ticket: BaizhiDialogueTicket, closing = false): BaizhiCommandReceipt {
+  if (!value || typeof value !== "object") throw new Error("E_BAIZHI_RECEIPT_INVALID");
+  const result = value as BaizhiCommandReceipt;
+  const receipt = assertSlotReceipt(result.receipt, commandId), snapshot = receipt.snapshot;
+  if (receipt.commandId !== commandId || receipt.applied !== true || receipt.alreadyApplied !== false || receipt.errorCode !== null ||
+      snapshot.worldId !== ticket.worldId || snapshot.sceneId !== ticket.sceneId || snapshot.worldEpoch !== ticket.worldEpoch ||
+      snapshot.entryToken || snapshot.player.currentHp <= 0 || (!closing && !resolveBaizhiPresentation(snapshot)) || typeof result.resumed !== "boolean" ||
+      (closing ? result.ticket !== null : result.resumed || !sameBaizhiTicket(assertBaizhiTicket(result.ticket), ticket))) {
+    throw new Error("E_BAIZHI_RECEIPT_INVALID");
+  }
+  return { receipt, ticket: closing ? null : assertBaizhiTicket(result.ticket), resumed: result.resumed };
 }
 
 export type FirstEnhancementReceipt = SlotCommandReceipt;
@@ -125,6 +158,59 @@ export class TauriClient {
       }
     }
     return { ...receipt, snapshot } as SlotCommandReceipt;
+  }
+
+  async beginBaizhi(context: SessionContext, ownerId: string, generation: number): Promise<BaizhiCommandReceipt> {
+    const checked = assertSessionContext(context);
+    // Context may be structurally supplied by a snapshot. Rust denies unknown
+    // fields, so never spread that snapshot into either request context or ticket.
+    const expected: SessionContext = { worldId: checked.worldId, sceneId: checked.sceneId, worldEpoch: checked.worldEpoch };
+    this.assertLifecycleCertain(expected);
+    const commandSequence = ++this.lifecycleCommandSequence;
+    const ticket = assertBaizhiTicket({ ...expected, ownerId, generation, entityId: "gh_bz_whitezhi_v1",
+      interactionId: "gh_bz_first_contact", pauseCommandSequence: commandSequence });
+    let value: unknown;
+    try {
+      value = await this.invoke<unknown>("formal_baizhi_begin", { request: {
+        context: expected, entityId: ticket.entityId, interactionId: ticket.interactionId, ownerId, generation, commandSequence,
+      } });
+    } catch (error) {
+      const code = typeof error === "string" ? error : error instanceof Error ? error.message : "";
+      // These exact native preflight failures occur before any hold or mutation.
+      // Stale/dead/loading/occupied/transport failures are deliberately not classified as running.
+      if (["E_BAIZHI_OUT_OF_RANGE", "E_BAIZHI_CONFIGURATION", "E_BAIZHI_REQUEST_INVALID"].includes(code)) {
+        throw new Error(`E_BAIZHI_BEGIN_NOT_STARTED:${code}`);
+      }
+      throw error;
+    }
+    const result = assertBaizhiReceipt(value, `baizhi-begin:${ownerId}:${generation}`, ticket);
+    if (commandSequence === this.lifecycleCommandSequence) this.confirmedPause = { context: expected, sequence: commandSequence };
+    return result;
+  }
+
+  async commitBaizhi(ticket: BaizhiDialogueTicket, requestId: string, choice: Exclude<BaizhiChoice, "unresolved">): Promise<BaizhiCommandReceipt> {
+    const expected = assertBaizhiTicket(ticket);
+    if (!requestId || !["taken", "left"].includes(choice)) throw new Error("E_BAIZHI_COMMIT_ARGUMENT");
+    const result = assertBaizhiReceipt(await this.invoke<unknown>("formal_baizhi_commit", { ticket: expected, requestId, choice }), requestId, expected);
+    if (result.receipt.snapshot.baizhi?.choice !== choice) throw new Error("E_BAIZHI_COMMIT_POSTCONDITION");
+    return result;
+  }
+
+  async closeBaizhi(ticket: BaizhiDialogueTicket): Promise<BaizhiCommandReceipt> {
+    const expected = assertBaizhiTicket(ticket);
+    let value: unknown;
+    try { value = await this.invoke<unknown>("formal_baizhi_close", { ticket: expected }); }
+    catch (error) {
+      const code = typeof error === "string" ? error : error instanceof Error ? error.message : "";
+      // Only audited native Result Err codes prove the release did not happen.
+      if (["E_RUNTIME_LOCK_POISONED", "E_BAIZHI_STALE_CONTEXT", "E_SCENE_RUNTIME_LOCK_POISONED", "E_BAIZHI_TICKET_INVALID",
+        "E_BAIZHI_PAUSE_UNCONFIRMED", "E_RUNTIME_DEAD", "E_SCENE_ENTRY_NOT_READY", "E_BAIZHI_OWNER_UNAVAILABLE"].includes(code) ||
+          code.startsWith("E_WORLD_REVISION:")) throw new Error(`E_BAIZHI_CLOSE_REJECTED:${code}`);
+      throw error;
+    }
+    const result = assertBaizhiReceipt(value, `baizhi-close:${expected.ownerId}:${expected.generation}`, expected, true);
+    if (result.resumed && this.confirmedPause?.sequence === expected.pauseCommandSequence) this.confirmedPause = null;
+    return result;
   }
 
   async nativeBuildIdentity(): Promise<unknown> {

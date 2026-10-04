@@ -1,3 +1,5 @@
+import { BAIZHI_INTERACTION_ID, baizhiInteractionPrompt } from "../game/BaizhiDialogue.js";
+import { CLOCKWORKS_FURNACE_DIALOGUE_ID, CLOCKWORKS_FURNACE_DIALOGUE_PROMPT, isClockworksFurnaceDialogueAvailable, isClockworksFurnaceDialogueTarget } from "../game/ClockworksFurnaceDialogue.js";
 import { scannerTerminalLabel } from "../game/ScannerReward.js";
 import { sentinelStatus } from "../protocol/SentinelEncounter.js";
 import { greyHiveBeaconStatus } from "../game/GreyHiveBeacon.js";
@@ -108,7 +110,10 @@ export function deriveHudState(snapshot: WorldSnapshotV3): HudState {
   const pumpStatus = deriveMistHarborPumpStatus(snapshot);
   const playerPosition = snapshot.player.transform.positionM;
   const nearestInteraction = snapshot.interactables
-    .filter(item => snapshot.player.currentHp > 0 && item.active && AUTHORITATIVE_INTERACTION_KINDS.has(item.kind) &&
+    .filter(item => snapshot.player.currentHp > 0 && item.active &&
+      (item.kind === "static_dialogue_marker" || item.entityId === CLOCKWORKS_FURNACE_DIALOGUE_ID
+        ? isClockworksFurnaceDialogueAvailable(snapshot, item)
+        : AUTHORITATIVE_INTERACTION_KINDS.has(item.kind)) &&
       (item.kind !== "pump_control" || (snapshot.worldId === "mist_harbor" &&
         snapshot.sceneId === "mh_pump_station" && item.entityId === "mh_pump_control_primary" &&
         (snapshot.mistHarborPump === undefined || pumpStatus?.state === "ready"))) &&
@@ -119,13 +124,15 @@ export function deriveHudState(snapshot: WorldSnapshotV3): HudState {
     .map(door => ({ door, distance: distance3d(playerPosition, door.transform.positionM) }))
     .filter(entry => entry.distance <= INTERACTION_RANGE_M)
     .sort((left, right) => left.distance - right.distance || left.door.doorId.localeCompare(right.door.doorId))[0]?.door;
-  const interactionText = nearestInteraction
-    ? nearestInteraction.kind === "pump_control" ? "[F] 启动排水泵"
+  const baizhiPrompt = baizhiInteractionPrompt(snapshot);
+  const interactionText = baizhiPrompt ?? (nearestInteraction
+    ? isClockworksFurnaceDialogueTarget(snapshot, nearestInteraction) ? CLOCKWORKS_FURNACE_DIALOGUE_PROMPT
+      : nearestInteraction.kind === "pump_control" ? "[F] 启动排水泵"
       : snapshot.worldId === "grey_hive" && snapshot.sceneId === "gh_entry_maintenance" &&
         nearestInteraction.kind === "terminal" && nearestInteraction.entityId === "gh_entry_tutorial_terminal"
         ? "[F] 查看教程终端"
       : `F 交互 · ${(scannerTerminalLabel(snapshot, nearestInteraction) ?? interactionLabel(nearestInteraction.kind, nearestInteraction.entityId))}`
-    : "";
+    : "");
   const nearbyDoorText = nearestDoor
     ? nearestDoor.locked ? "门锁闭" : nearestDoor.open ? "门已开启" : "门关闭"
     : "";
@@ -139,7 +146,7 @@ export function deriveHudState(snapshot: WorldSnapshotV3): HudState {
     sceneId: snapshot.sceneId || "未知场景",
     objectives: objectiveViews(snapshot.objectives),
     actionState: snapshot.player.currentHp === 0 ? "已倒下" : snapshot.player.actionState || "状态未报告",
-    interactionId: nearestInteraction?.entityId ?? null,
+    interactionId: baizhiPrompt ? BAIZHI_INTERACTION_ID : nearestInteraction?.entityId ?? null,
     interactionText,
     nearbyDoorText,
     pumpStatus,

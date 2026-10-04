@@ -92,6 +92,8 @@ function harness(options = {}) {
     waitForHubBuild: () => options.waitForHubBuild?.() ?? Promise.resolve(),
     applyWorldTheme() {}, worldDisplayName: value => value, confirmedReturnStationNewJourney: () => null,
     evolution: { visible: false, ready: false, busy: false, message: "", reset() {}, reconcile() {} },
+    // Death/Continue exercise main cleanup with no active optional Bio dialogue.
+    baizhi: { visible: false, reset() { this.visible = false; }, reconcile() {} }, updateBaizhiControls() {},
     enhancementStatusHud: { reset() {}, apply() {} },
     runtimeAssetLoader: { async load() { calls.push(["assets"]); return {}; } }, sceneDefinitionLoader: {},
     MistHarborSignalLineState: class { accept() { return null; } }, interactFromSnapshot() { throw new Error("unexpected interaction"); },

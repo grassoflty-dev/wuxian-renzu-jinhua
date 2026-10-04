@@ -10,6 +10,7 @@ type GateReceipt = {
 };
 
 const AFTER_GREY_HIVE_LINE = "灰巢信标已解析。检测到第二组低可信坐标：雾港余烬。";
+const AFTER_MIST_HARBOR_LINE = "声学映射已固化。第三坐标的机械周期与信号高度同步。";
 const NEW_JOURNEY_LINE = "归航链路稳定。请选择首次回收坐标：灰巢设施。";
 const REQUIRED_EVENTS = ["hive_power", "hive_lockdown", "hive_extraction"];
 
@@ -72,4 +73,45 @@ export function confirmedReturnStationAfterGreyHive(
   if (!prior || !current || prior.size !== current.size ||
       [...prior].some(event => !current.has(event))) return null;
   return AFTER_GREY_HIVE_LINE;
+}
+
+function firstMistHarborVisit(snapshot: ReturnSnapshot): Record<string, unknown> | null {
+  const route = snapshot.progression;
+  if (route?.currentWorldId !== "mist_harbor" || !Array.isArray(route.worlds)) return null;
+  const matching = route.worlds.filter(row =>
+    !!row && typeof row === "object" && (row as Record<string, unknown>).worldId === "mist_harbor");
+  if (matching.length !== 1) return null;
+  const progress = matching[0] as Record<string, unknown>;
+  const events = progress.completedEvents;
+  const required = ["mist_beacon_west", "mist_beacon_east", "mist_signal"];
+  if (progress.visitId !== 1 || progress.revisitCount !== 0 || progress.cycleId !== 1 ||
+      !Array.isArray(events) || events.length !== required.length ||
+      !required.every(event => events.includes(event))) return null;
+  return progress;
+}
+
+/** MH completes inside this gate transaction, never from loading an already-completed save.
+ * The caller owns the existing session, accepted-snapshot and destination-ready fences. */
+export function confirmedReturnStationAfterMistHarbor(
+  before: ReturnSnapshot,
+  targetId: string,
+  kind: string,
+  receipt: GateReceipt,
+): string | null {
+  const after = receipt.snapshot;
+  if (before.worldId !== "mist_harbor" || before.sceneId !== "mh_extraction" ||
+      targetId !== "mh_extraction_return_to_rs" || kind !== "world_gate" ||
+      receipt.applied !== true || receipt.alreadyApplied === true || receipt.errorCode !== null ||
+      after.worldId !== "return_station" || after.sceneId !== "rs_core_room" ||
+      ![before.worldEpoch, after.worldEpoch, before.authorityRevision, after.authorityRevision,
+        before.progression?.eventSeq, after.progression?.eventSeq]
+        .every(value => Number.isSafeInteger(value) && value >= 0) ||
+      after.worldEpoch !== before.worldEpoch + 1 ||
+      after.authorityRevision <= before.authorityRevision ||
+      after.progression.eventSeq !== before.progression.eventSeq + 1) return null;
+  const prior = firstMistHarborVisit(before);
+  const current = firstMistHarborVisit(after);
+  if (prior?.completed !== false || prior.firstCompletion !== false ||
+      current?.completed !== true || current.firstCompletion !== true) return null;
+  return AFTER_MIST_HARBOR_LINE;
 }

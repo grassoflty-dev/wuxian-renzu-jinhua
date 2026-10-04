@@ -1,4 +1,4 @@
-import type { TauriClient } from "../bridge/tauri-client.js";
+import type { BaizhiCommandReceipt, TauriClient } from "../bridge/tauri-client.js";
 import type { ActionCommand, InputState, PresentationEvent, SoundCueEvent, SceneEntryToken, SessionContext, Vec3, WorldSnapshotEnvelope } from "../protocol/types.js";
 import { InputController } from "./InputController.js";
 import { isPlayerDead, SnapshotClient } from "./SnapshotClient.js";
@@ -109,6 +109,7 @@ export class SessionLoop {
   private resumeReceiptRequired = false;
   private pauseStatus: PauseStatus = "running";
   private pauseMessage = "";
+  private dialoguePauseOwner: string | null = null;
   private manualPauseRequested = false;
   private lifecyclePauseRequested = false;
   private lifecycleTask: Promise<void> | null = null;
@@ -260,7 +261,7 @@ export class SessionLoop {
 
   private refreshPauseIntent(): void {
     if (this.documentTarget?.hidden === true || this.documentTarget?.hasFocus?.() === false) this.lifecyclePauseRequested = true;
-    this.desiredPaused = this.dead || this.manualPauseRequested || this.lifecyclePauseRequested;
+    this.desiredPaused = this.dead || this.manualPauseRequested || this.lifecyclePauseRequested || this.dialoguePauseOwner !== null;
   }
 
   private entryIsCurrent(sequence: number): boolean {
@@ -279,6 +280,7 @@ export class SessionLoop {
     if (!token) throw new Error("E_SCENE_ENTRY_TOKEN_REQUIRED");
     if (this.entryLoading && this.entryToken?.generation === token.generation) return this.entryTask ?? Promise.resolve();
     const sequence = ++this.entrySequence;
+    this.dialoguePauseOwner = null;
     this.entryToken = token;
     // An old lifecycle IPC may never settle. The new entry owns a new lane.
     this.lifecycleTask = null;
@@ -469,8 +471,117 @@ export class SessionLoop {
     }
   }
 
+  /** Dedicated atomic-dialogue lane: local input stops now; only begin's native receipt confirms pause. */
+  ownsDialoguePause(ownerId: string): boolean {
+    return this.dialoguePauseOwner === ownerId && this.active && !this.stopping && !this.dead && !this.entryLoading;
+  }
+
+  async beginDialoguePause(ownerId: string, operation: () => Promise<BaizhiCommandReceipt>): Promise<BaizhiCommandReceipt> {
+    if (!ownerId || !this.active || this.stopping || this.dead || this.entryLoading || this.pauseStatus !== "running" ||
+        this.desiredPaused || this.dialoguePauseOwner) throw new Error("E_BAIZHI_PAUSE_OCCUPIED");
+    const source = this.snapshots.view()!, entry = this.entrySequence;
+    this.dialoguePauseOwner = ownerId;
+    this.refreshPauseIntent();
+    this.paused = true;
+    this.stopSchedulers();
+    this.onClearTransientPresentation?.();
+    this.clearControls();
+    this.publishPauseState("pausing");
+    try {
+      // F itself participates in externalCommands. Waiting for that set would deadlock its own begin.
+      await this.waitForCommandIdle();
+      if (!this.ownsDialoguePause(ownerId) || entry !== this.entrySequence || !this.snapshotIsCurrent(source)) throw new Error("E_BAIZHI_SESSION_CHANGED");
+      const result = await operation();
+      if (!this.ownsDialoguePause(ownerId) || entry !== this.entrySequence || !this.snapshotIsCurrent(source)) return result;
+      this.authorityPauseState = "paused";
+      await this.acceptSnapshot(result.receipt.snapshot);
+      if (this.ownsDialoguePause(ownerId)) this.publishPauseState("paused");
+      return result;
+    } catch (error) {
+      if (this.ownsDialoguePause(ownerId)) {
+        this.dialoguePauseOwner = null;
+        if (String(error).includes("E_BAIZHI_BEGIN_NOT_STARTED:")) {
+          // Definite native preflight rejection changed no authority state.
+          this.authorityPauseState = "running";
+          this.refreshPauseIntent();
+          if (this.desiredPaused) await this.ensurePauseLifecycle(true);
+          else { this.paused = false; this.startSchedulers(); this.publishPauseState("running"); }
+        } else {
+          // Occupied/stale/dead/loading or malformed replies cannot authorize input.
+          this.authorityPauseState = "unknown";
+          await this.pause("manual");
+        }
+      }
+      throw error;
+    }
+  }
+
+  async closeDialoguePause(ownerId: string, operation: () => Promise<BaizhiCommandReceipt>): Promise<BaizhiCommandReceipt> {
+    if (!this.ownsDialoguePause(ownerId) || this.pauseStatus !== "paused") throw new Error("E_BAIZHI_SESSION_CHANGED");
+    let result: BaizhiCommandReceipt | undefined;
+    let closeDispatched = false;
+    try {
+      result = await this.runWhilePaused(async () => {
+        if (!this.ownsDialoguePause(ownerId)) throw new Error("E_BAIZHI_SESSION_CHANGED");
+        if (this.rendererEntryVerified) {
+          // The modal stopped RAFs. A resize or invalidated surface still needs a
+          // visible held frame before native close resumes simulation. Do not use
+          // preparePausedPresentation: its new formal_pause would revoke this ticket.
+          const source = this.snapshots.view()!;
+          await this.pollEvents(source, true, () => this.ownsDialoguePause(ownerId));
+          if (!this.ownsDialoguePause(ownerId)) throw new Error("E_BAIZHI_SESSION_CHANGED");
+          if (this.snapshots.deferredEventCount() !== 0) throw new Error("E_HELD_PRESENTATION_EVENTS_AHEAD");
+          await this.renderInFlight?.catch(() => undefined);
+          if (!this.ownsDialoguePause(ownerId)) throw new Error("E_BAIZHI_SESSION_CHANGED");
+          await this.renderSnapshot(1);
+          if (!this.ownsDialoguePause(ownerId)) throw new Error("E_BAIZHI_SESSION_CHANGED");
+          this.assertEntryFrame(source);
+        }
+        closeDispatched = true;
+        return operation();
+      });
+      if (!this.ownsDialoguePause(ownerId)) return result;
+      if (result.resumed && this.rendererEntryVerified) this.assertEntryFrame(result.receipt.snapshot);
+      await this.acceptSnapshot(result.receipt.snapshot);
+      if (!this.ownsDialoguePause(ownerId)) return result;
+      if (result.resumed && this.rendererEntryVerified) this.assertEntryFrame(result.receipt.snapshot);
+      this.dialoguePauseOwner = null;
+      if (!result.resumed) this.manualPauseRequested = true;
+      this.authorityPauseState = result.resumed ? "running" : "paused";
+      this.resumeReceiptRequired = false;
+      this.refreshPauseIntent();
+      if (this.desiredPaused) {
+        this.paused = true;
+        this.stopSchedulers();
+        // A lifecycle condition may have appeared during close's native resume.
+        if (result.resumed) await this.ensurePauseLifecycle(true);
+        else this.publishPauseState("paused");
+      } else {
+        this.paused = false;
+        this.startSchedulers();
+        this.publishPauseState("running");
+      }
+      return result;
+    } catch (error) {
+      // Native Result Err retains the ticket and pause, so the same close can retry.
+      // Malformed success or failed presentation after native resume is uncertain:
+      // supersede it with a safety pause instead of letting the hidden world run.
+      if (this.ownsDialoguePause(ownerId) && closeDispatched && !String(error).includes("E_BAIZHI_CLOSE_REJECTED:")) {
+        this.authorityPauseState = "unknown";
+        await this.pause("manual");
+      }
+      throw error;
+    }
+  }
+
   pause(source: "manual" | "lifecycle" = "manual"): Promise<void> {
     if (!this.active || this.stopping || this.dead) return Promise.resolve();
+    if (this.dialoguePauseOwner !== null) {
+      // A later manual/lifecycle pause supersedes the dialogue. Force a higher-sequence
+      // native pause even when Rust was already held, so the old ticket cannot resume it.
+      this.dialoguePauseOwner = null;
+      this.authorityPauseState = "unknown";
+    }
     if (source === "manual") this.manualPauseRequested = true;
     else this.lifecyclePauseRequested = true;
     this.desiredPaused = true;
@@ -485,6 +596,7 @@ export class SessionLoop {
   }
 
   resume(source: "manual" | "lifecycle" = "manual"): Promise<void> {
+    if (this.dialoguePauseOwner !== null) return Promise.resolve();
     if (!this.active || this.stopping || this.dead) return Promise.resolve();
     if (source === "manual") {
       this.manualPauseRequested = false;

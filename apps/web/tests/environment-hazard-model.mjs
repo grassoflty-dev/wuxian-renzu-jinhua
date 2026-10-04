@@ -59,7 +59,7 @@ test("renderer releases stale environment graphics and labels without touching s
 });
 test("scene cleanup owns environment overlays; pause clears only transients and cannot restart hazard clocks",async()=>{
   const source=await readFile(new URL("../src/renderer/WorldRenderer.ts",import.meta.url),"utf8");
-  assert.match(source,/clearSceneResources\(\): Promise<void> \{\s*this.clearEnvironmentHazards\(\)/);
+  assert.match(source,/clearSceneResources\(\): Promise<void> \{\s*this\.clearBaizhiPlaceholder\(\);\s*this\.clearEnvironmentHazards\(\);/);
   const start=source.indexOf("  clearTransientPresentation():");
   const transient=source.slice(start,source.indexOf("\n  }",start)+4);
   assert.doesNotMatch(transient,/clearEnvironmentHazards/);

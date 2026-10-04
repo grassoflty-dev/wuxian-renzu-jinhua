@@ -172,6 +172,25 @@ export function assertSceneEntryToken(value: unknown): SceneEntryToken {
   return value as SceneEntryToken;
 }
 
+/** Read-only, optional Bio projection. Invalid optional data is isolated by BaizhiPresentation. */
+export type BaizhiChoice = "unresolved" | "taken" | "left";
+export interface BaizhiProjection { schemaVersion: 1; choice: BaizhiChoice; available: boolean; canInteract: boolean }
+export interface BaizhiNpcProjection {
+  entityId: "gh_bz_whitezhi_v1";
+  entityType: "npc.baizhi";
+  position: [number, number, number];
+  yawRad: number;
+  interactable: boolean;
+}
+/** Transient authority ticket, never part of Save or an inferred snapshot field. */
+export interface BaizhiDialogueTicket extends SessionContext {
+  ownerId: string;
+  generation: number;
+  entityId: "gh_bz_whitezhi_v1";
+  interactionId: "gh_bz_first_contact";
+  pauseCommandSequence: number;
+}
+
 /** Canonical flattened authoritative snapshot for the v3 wire contract. */
 export interface WorldSnapshotV3 {
   kind: "full";
@@ -182,6 +201,8 @@ export interface WorldSnapshotV3 {
   checkpointId: string | null;
   entryToken?: SceneEntryToken;
   supportScene?: SupportSceneProjection;
+  baizhi?: BaizhiProjection;
+  npcs?: BaizhiNpcProjection[];
   greyHiveBeacon?: GreyHiveBeaconProjection;
   sentinelEncounter?: SentinelEncounter;
   worldEpoch: number;

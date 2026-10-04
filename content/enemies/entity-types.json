@@ -14,6 +14,7 @@
     "enemy.mist_harbor.signal_wraith",
     "enemy.mist_harbor.tidebound",
     "grey_hive.infected_maintenance_worker",
-    "grey_hive.infected_security"
+    "grey_hive.infected_security",
+    "npc.baizhi"
   ]
 }

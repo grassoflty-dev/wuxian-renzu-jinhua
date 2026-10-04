@@ -337,6 +337,29 @@
               "value": "gh_bio_isolation_exit_nav"
             }
           ]
+        },
+        {
+          "id": 26,
+          "name": "gh_bz_whitezhi_v1",
+          "x": 256,
+          "y": 336,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "npc"
+            },
+            {
+              "name": "entityType",
+              "type": "string",
+              "value": "npc.baizhi"
+            },
+            {
+              "name": "navNode",
+              "type": "string",
+              "value": "gh_bio_isolation_mid_nav"
+            }
+          ]
         }
       ],
       "opacity": 1,
@@ -359,6 +382,24 @@
               "name": "kind",
               "type": "string",
               "value": "bio_log_terminal"
+            }
+          ]
+        },
+        {
+          "id": 27,
+          "name": "gh_bz_first_contact",
+          "x": 256,
+          "y": 336,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "npc_dialogue"
+            },
+            {
+              "name": "rangeM",
+              "type": "float",
+              "value": 2.5
             }
           ]
         }
@@ -407,7 +448,7 @@
     }
   ],
   "nextlayerid": 9,
-  "nextobjectid": 26,
+  "nextobjectid": 28,
   "orientation": "orthogonal",
   "properties": [
     {

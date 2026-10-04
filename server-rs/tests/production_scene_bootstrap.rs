@@ -59,6 +59,7 @@ fn catalogs() -> (BTreeSet<String>, BTreeSet<String>) {
 fn compiled_route_scene(scene_id: &str) -> serde_json::Value {
     let raw = match scene_id {
         "gh_lockdown" => include_str!("../../content/scenes/compiled/gh_lockdown.json"),
+        "gh_bio_isolation" => include_str!("../../content/scenes/compiled/gh_bio_isolation.json"),
         "gh_deep_decon" => include_str!("../../content/scenes/compiled/gh_deep_decon.json"),
         "rs_core_room" => include_str!("../../content/scenes/compiled/rs_core_room.json"),
         "mh_breakwater" => include_str!("../../content/scenes/compiled/mh_breakwater.json"),
@@ -1787,6 +1788,7 @@ fn slice_registry_rejects_missing_scenes_old_fixtures_and_unauthored_exits() {
         "enemy.mist_harbor.tidebound".to_owned(),
         "grey_hive.infected_maintenance_worker".to_owned(),
         "grey_hive.infected_security".to_owned(),
+        "npc.baizhi".to_owned(),
     ]);
     assert_eq!(entities, expected_entities);
 
@@ -2403,4 +2405,76 @@ fn production_scene_routes_save_and_continue_across_processes() {
         );
     }
     let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn genuine_new_to_bio_baizhi_named_slot_dialogue_retry_continue_and_gate_b() {
+    use wuxian_horror_ch1::formal_runtime::{SessionContext, baizhi::BaizhiBeginRequest};
+    use wuxian_horror_ch1::world_progression::HiveChoice;
+    let save_dir = save_root();
+    let runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&runtime).unwrap();
+    // Actual New -> station gate -> power -> shaft -> lockdown, using the same
+    // real input/KCC/interaction route as the complete production campaign.
+    let mut view = run_route_journey(&runtime, "baizhi-live-route");
+    view = walk_x(&runtime, view, 4.0);
+    let lockdown = runtime.activate_scene_interaction("gh_lockdown_terminal", "bz-live-lockdown", view.world_epoch).unwrap();
+    assert!(lockdown.applied, "{:?}", lockdown.error_code);
+    view = swarm_campaign::clear_scene(&runtime, lockdown.view, &save_dir);
+    view = walk_to_compiled_target(&runtime, view, "gh_lockdown", "transitions", "gh_lockdown_to_bio_isolation");
+    view = apply_transition(&runtime, "gh_lockdown_to_bio_isolation", "bz-live-to-bio", view.world_epoch);
+    assert_eq!(view.scene_id, "gh_bio_isolation");
+    view = walk_to_compiled_target(&runtime, view, "gh_bio_isolation", "interactions", "gh_bz_first_contact");
+    assert!(view.baizhi.as_ref().unwrap().can_interact);
+    assert!(view.actors.iter().filter(|actor| actor.entity_type == "grey_hive.infected_security").all(|actor| actor.active),
+        "the two Bio security enemies were not killed to unlock optional dialogue");
+    runtime.save_slot("baizhi-manual", "白芷事务实跑", true).unwrap();
+    runtime.save().unwrap();
+    let default_before = fs::read(save_v6::save_path(&save_dir)).unwrap();
+    let target = save_dir.join("slots/baizhi-manual/slot-v6.json");
+    let named_before = fs::read(&target).unwrap();
+    let begin = runtime.baizhi_begin(BaizhiBeginRequest { context: SessionContext { world_id:view.world_id.clone(),
+        scene_id:view.scene_id.clone(),world_epoch:view.world_epoch },entity_id:"gh_bz_whitezhi_v1".into(),
+        interaction_id:"gh_bz_first_contact".into(),owner_id:"baizhi-live-ui".into(),generation:1,command_sequence:1 }).unwrap();
+    let ticket = begin.ticket.unwrap();
+    let held = runtime.snapshot().unwrap();
+    assert!(!held.baizhi.as_ref().unwrap().can_interact && held.npcs.as_ref().unwrap().len() == 1);
+    std::thread::sleep(std::time::Duration::from_millis(80));
+    assert_eq!(runtime.snapshot().unwrap().server_tick, held.server_tick);
+    #[cfg(unix)] {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(target.parent().unwrap(),fs::Permissions::from_mode(0o555)).unwrap();
+        let failure=runtime.baizhi_commit(&ticket,"bz-live-choice",HiveChoice::Taken);
+        fs::set_permissions(target.parent().unwrap(),fs::Permissions::from_mode(0o755)).unwrap();
+        assert!(failure.is_err());assert_eq!(runtime.snapshot().unwrap(),held);
+        assert_eq!(fs::read(&target).unwrap(),named_before);
+        assert_eq!(fs::read(save_v6::save_path(&save_dir)).unwrap(),default_before);
+    }
+    let committed=runtime.baizhi_commit(&ticket,"bz-live-choice",HiveChoice::Taken).unwrap();
+    assert!(!committed.resumed && committed.ticket.as_ref()==Some(&ticket));
+    assert_eq!(committed.receipt.snapshot.baizhi.as_ref().unwrap().choice,HiveChoice::Taken);
+    assert_eq!(committed.receipt.snapshot.progression.event_seq,held.progression.event_seq);
+    let (_, saved)=wuxian_horror_ch1::save_slots::read_slot_v6(&save_dir,"baizhi-manual").unwrap();
+    assert_eq!(saved.save.progression.progress.iter().find(|r|r.world_id=="grey_hive").unwrap().hive_choice,HiveChoice::Taken);
+    assert_ne!(fs::read(&target).unwrap(),named_before);
+    assert_eq!(fs::read(save_v6::save_path(&save_dir)).unwrap(),default_before);
+    assert!(runtime.baizhi_close(&ticket).unwrap().resumed);
+    std::thread::sleep(std::time::Duration::from_millis(60));
+    assert!(runtime.snapshot().unwrap().server_tick>held.server_tick);
+    // Named Continue restores the committed terminal result and gets a fresh
+    // epoch. Reopening is read-only and cannot write it a second time.
+    view=acknowledge_ready(&runtime,runtime.continue_slot("baizhi-manual").unwrap());
+    assert_eq!(view.baizhi.as_ref().unwrap().choice,HiveChoice::Taken);
+    let bytes=fs::read(&target).unwrap();
+    let reopened=runtime.baizhi_begin(BaizhiBeginRequest { context:SessionContext{world_id:view.world_id.clone(),scene_id:view.scene_id.clone(),world_epoch:view.world_epoch},
+        entity_id:"gh_bz_whitezhi_v1".into(),interaction_id:"gh_bz_first_contact".into(),owner_id:"baizhi-live-readonly".into(),generation:2,command_sequence:2 }).unwrap();
+    let readonly=reopened.ticket.unwrap();
+    assert_eq!(runtime.baizhi_commit(&readonly,"bz-live-terminal-repeat",HiveChoice::Taken).unwrap_err(),"E_BAIZHI_TERMINAL_CHOICE");
+    assert_eq!(fs::read(&target).unwrap(),bytes);
+    runtime.baizhi_close(&readonly).unwrap();
+    view=walk_to_compiled_target(&runtime,runtime.snapshot().unwrap(),"gh_bio_isolation","transitions","gh_bio_to_gate_b");
+    view=apply_transition(&runtime,"gh_bio_to_gate_b","bz-live-gate-b",view.world_epoch);
+    assert_eq!(view.scene_id,"gh_gate_b");assert!(view.baizhi.is_none()&&view.npcs.is_none());
+    assert!(view.doors.iter().any(|door|door.door_id=="gh_gate_b"&&door.open));
+    drop(runtime);fs::remove_dir_all(save_dir).unwrap();
 }

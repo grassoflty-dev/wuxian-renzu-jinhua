@@ -419,6 +419,10 @@ pub struct WorldView {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub grey_hive_beacon: Option<GreyHiveBeaconProjection>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub baizhi: Option<crate::formal_runtime::baizhi::BaizhiProjection>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub npcs: Option<Vec<crate::formal_runtime::baizhi::BaizhiNpcProjection>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub entry_token: Option<SceneEntryToken>,
     #[serde(default,skip_serializing_if="Option::is_none")]
     pub support_scene: Option<crate::moving_support::SupportSceneView>,
@@ -493,6 +497,10 @@ pub struct WorldSnapshot {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub grey_hive_beacon: Option<GreyHiveBeaconProjection>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub baizhi: Option<crate::formal_runtime::baizhi::BaizhiProjection>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub npcs: Option<Vec<crate::formal_runtime::baizhi::BaizhiNpcProjection>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub entry_token: Option<SceneEntryToken>,
     #[serde(default,skip_serializing_if="Option::is_none")]
     pub support_scene: Option<crate::moving_support::SupportSceneView>,
@@ -566,6 +574,8 @@ impl WorldSnapshot {
             sentinel_encounter: view.sentinel_encounter,
             mist_harbor_pump: view.mist_harbor_pump,
             grey_hive_beacon: view.grey_hive_beacon,
+            baizhi: view.baizhi,
+            npcs: view.npcs,
             entry_token: view.entry_token,
             support_scene: view.support_scene,
         }
@@ -833,6 +843,8 @@ impl WorldStateV3 {
             sentinel_encounter: None,
             mist_harbor_pump: None,
             grey_hive_beacon: None,
+            baizhi: None,
+            npcs: None,
             entry_token: None,
             support_scene: None,
         }

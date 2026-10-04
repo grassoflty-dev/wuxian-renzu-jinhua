@@ -117,7 +117,14 @@ class GreyHiveBioGateBContentTests(unittest.TestCase):
 
             for scene_id in ("gh_bio_isolation", "gh_gate_b", "gh_deep_decon", "gh_sentinel_arena", "gh_beacon", "gh_exit"):
                 scene = by_id[scene_id]
-                self.assertFalse(any("baizhi" in (spawn["id"] + str(spawn["entityType"])).lower() for spawn in scene["spawns"]))
+                npcs = [spawn for spawn in scene["spawns"] if spawn["kind"] == "npc"]
+                self.assertEqual(npcs, [{"id": "gh_bz_whitezhi_v1", "kind": "npc", "entityType": "npc.baizhi",
+                                       "position": [8.0, 0.0, 10.5], "navNode": "gh_bio_isolation_mid_nav"}]
+                                 if scene_id == "gh_bio_isolation" else [])
+                dialogues = [item for item in scene["interactions"] if item["kind"] == "npc_dialogue"]
+                self.assertEqual(dialogues, [{"id": "gh_bz_first_contact", "kind": "npc_dialogue", "event": None,
+                                             "position": [8.0, 0.0, 10.5], "rangeM": 2.5}]
+                                 if scene_id == "gh_bio_isolation" else [])
                 brutes = [spawn for spawn in scene["spawns"] if "brute" in (spawn["id"] + str(spawn["entityType"])).lower()]
                 if scene_id == "gh_gate_b":
                     self.assertEqual([(spawn["id"], spawn["entityType"], spawn["position"]) for spawn in brutes],

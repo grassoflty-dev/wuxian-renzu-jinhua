@@ -43,6 +43,46 @@ function progress(snapshot: WorldSnapshotV3, worldId: string): Record<string, un
     !!row && typeof row === "object" && (row as Record<string, unknown>).worldId === worldId) as Record<string, unknown> | undefined;
 }
 
+function record(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+/** Validate only Archive's evidence; unrelated route rows cannot hide a valid world. */
+function archiveEvents(worlds: unknown[], worldId: string, allowed: readonly string[]): ReadonlySet<string> | null {
+  const matching = worlds.filter(row => record(row) && row.worldId === worldId);
+  if (matching.length !== 1) return null;
+  const events = (matching[0] as Record<string, unknown>).completedEvents;
+  if (!Array.isArray(events)) return null;
+  const confirmed = new Set<string>();
+  for (const event of events) {
+    if (typeof event !== "string" || !allowed.includes(event) || confirmed.has(event)) return null;
+    confirmed.add(event);
+  }
+  return confirmed;
+}
+
+/** Current confirmed events, not reading history or a promise that progress was saved. */
+function archivePanel(snapshot: WorldSnapshotV3 | null): CorePanelView {
+  const unavailable = { title: "档案", subtitle: "档案数据尚未同步。", rows: [] };
+  // Full v3 and RouteProjection v1 are the existing wire contract, including restored old saves.
+  if (!record(snapshot) || snapshot.kind !== "full" || snapshot.protocolVersion !== 3 ||
+      !record(snapshot.progression) || snapshot.progression.schemaVersion !== 1 ||
+      !Array.isArray(snapshot.progression.worlds)) return unavailable;
+  const greyHive = archiveEvents(snapshot.progression.worlds, "grey_hive",
+    ["hive_power", "hive_lockdown", "hive_extraction"]);
+  const mistHarbor = archiveEvents(snapshot.progression.worlds, "mist_harbor",
+    ["mist_beacon_west", "mist_beacon_east", "mist_signal"]);
+  if (!greyHive && !mistHarbor) return unavailable;
+  const rows: CorePanelRow[] = [];
+  // Frozen order and original catalog bodies: gh_cy_power_01, gh_sys_lockdown, mh_sys_beacon_sync.
+  if (greyHive?.has("hive_power")) rows.push({ label: "灰巢：主电恢复记录", value: "主电还活着，只是被人为切断。" });
+  if (greyHive?.has("hive_lockdown")) rows.push({ label: "灰巢：隔离协议记录", value: "隔离协议已被局部覆盖。" });
+  if (mistHarbor?.has("mist_beacon_west") && mistHarbor.has("mist_beacon_east")) {
+    rows.push({ label: "雾港：双基准同步记录", value: "双基准建立，中心干扰源可定位。" });
+  }
+  return { title: "档案", subtitle: "已确认事件资料", rows };
+}
+
 /** Read-only HTML panel content. Missing authority remains explicitly unknown. */
 export function deriveCorePanel(id: CorePanelId, snapshot: WorldSnapshotV3 | null): CorePanelView {
   const title = CORE_PANEL_LABELS[id];
@@ -64,12 +104,7 @@ export function deriveCorePanel(id: CorePanelId, snapshot: WorldSnapshotV3 | nul
       { label: "主界面", value: "从有效存档列表选择继续" },
     ],
   };
-  if (id === "archive") return {
-    title, subtitle: "档案投影尚未接入", rows: [
-      { label: "档案", value: "尚未收到权威档案投影，暂不可用" },
-      { label: "状态", value: "不会根据未提供的数据生成条目" },
-    ],
-  };
+  if (id === "archive") return archivePanel(snapshot);
   if (!snapshot) return { title, subtitle: "旅程尚未连接", rows: [{ label: "状态", value: "等待 Rust 权威快照" }] };
 
   if (id === "character") return {

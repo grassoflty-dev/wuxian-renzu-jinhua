@@ -52,13 +52,26 @@
 - 修复V5命名槽覆盖、休息失败重试，以及休息、首次强化和Scanner写入当前活动槽的事务一致性
 - 保留槽位标识冲突防护；仅在明确继续时从唯一有效事务备份安全恢复，列表探测保持只读，备份与临时文件保留
 
+## preview.5 本地源码候选（未发布）
+
+此候选基于公开main提交`68a09bbc82a6c8a07013f0cb9583e1ab65cc627c`，尚未构建或发布新EXE。上面的preview.4下载及下方历史验证数值仍只属于已发布的冻结版本。
+
+- 雾港首次完成后返回归航站时，依据实际接受的就绪切换显示对应反馈
+- Archive v1从已确认的世界事件展示三条固定档案，不增加保存字段或领取奖励
+- 钟骨工厂炉心既有对白接入权威F交互，保持原世界推进条件
+- 灰巢Bio场景新增可选白芷对话：权威暂停、临时票据、三态选择、当前槽原子保存及终局只读复谈
+
+白芷当前使用程序绘制的开发占位与“肖像待补·开发占位”文字，正式角色美术和动画尚未准入或验收。支线结果不提供跟随、队伍、战斗、奖励或额外Gate B门槛；三个结果均保留她在原场景。未知实体和未批准素材仍受原准入门禁约束，没有引入外部新美术或新依赖。
+
+候选仍需完整Web/Rust、真实原生资源与独立构建验证。Windows运行、实际画面/声音/DPI/性能、完整人工试玩和存档中断/并发验证仍未验收。私有开发测试与历史preview.4结果不能当作此干净候选的新测试结果。
+
 ## 基本操作
 
 WASD移动，鼠标瞄准，鼠标左键或J离散普攻，Shift闪避，Q Pulse，按住/松开E Guard，R Pierce，F交互，空格情境移动，Esc暂停。
 
 ## 源码、构建与验证
 
-本仓库提供实际工程Git树；preview.4代码更新保留公共历史，不引入旧私有仓库历史。可直接克隆、浏览、构建和逐次审查代码。项目共742个tracked文件；依赖锁、构建工具、素材与来源清单保留，依赖源码大包、EXE、缓存与测试日志不纳入Git。Actions保持关闭。
+本仓库提供实际工程Git树；preview.4代码更新保留公共历史，不引入旧私有仓库历史。可直接克隆、浏览、构建和逐次审查代码。已发布preview.4共742个tracked文件；依赖锁、构建工具、素材与来源清单保留，依赖源码大包、EXE、缓存与测试日志不纳入Git。Actions保持关闭。
 
 ```sh
 git clone https://github.com/grassoflty-dev/wuxian-renzu-jinhua.git
@@ -67,7 +80,7 @@ cd wuxian-renzu-jinhua
 
 [BUILDING.md](BUILDING.md)说明工程构建，[KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md)列出工程边界。preview.4外层附件给出本次更完整构建/测试记录；冻结源码中的旧验证文字不可冒充本轮结果。Release另附[`wuxian-renzu-jinhua-preview.4-corresponding-source.zip`](https://github.com/grassoflty-dev/wuxian-renzu-jinhua/releases/download/v0.1.0-preview.4/wuxian-renzu-jinhua-preview.4-corresponding-source.zip)，含742个冻结工程文件、283份依赖源包、863份通知及独立源码清单。
 
-本版EXE真正构建源提交为`6ad2c92e630dd5a85fe1bd2ce54f0c5cbcc535d7`，规范化树为`dce9a79742d01216471dc891e1b11d0ef915631b`。本次公共代码托管提交为[ac6816aa99185bcfed044d3e20ba615fd18950e0](https://github.com/grassoflty-dev/wuxian-renzu-jinhua/commit/ac6816aa99185bcfed044d3e20ba615fd18950e0)，Git树与上述构建源码树完全一致；托管提交沿用公共仓库历史，SHA与原构建提交不同。公共README随后单独更新而产生新提交；该说明文档提交不是冻结EXE的构建提交。源码ZIP保留构建时README未发布候选文字，外层发布说明记录后续验证及托管状态。自行构建须记录真实HEAD与生成身份。
+preview.4 EXE真正构建源提交为`6ad2c92e630dd5a85fe1bd2ce54f0c5cbcc535d7`，规范化树为`dce9a79742d01216471dc891e1b11d0ef915631b`。本次公共代码托管提交为[ac6816aa99185bcfed044d3e20ba615fd18950e0](https://github.com/grassoflty-dev/wuxian-renzu-jinhua/commit/ac6816aa99185bcfed044d3e20ba615fd18950e0)，Git树与上述构建源码树完全一致；托管提交沿用公共仓库历史，SHA与原构建提交不同。公共README随后单独更新而产生新提交；该说明文档提交不是冻结EXE的构建提交。源码ZIP保留构建时README未发布候选文字，外层发布说明记录后续验证及托管状态。自行构建须记录真实HEAD与生成身份。
 
 - Web：783通过、0失败、4项真实浏览器依赖测试跳过；typecheck与最终生产构建通过
 - Rust：默认686项非bundle游戏测试通过，replay+legacy-test-rng 708项通过；两套重叠，不能相加。两条原完整路线分别用时1170.940秒、1170.973秒

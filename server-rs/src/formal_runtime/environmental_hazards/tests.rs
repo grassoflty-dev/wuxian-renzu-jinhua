@@ -794,3 +794,166 @@ fn environment_transport_rejects_stale_rebound_legacy_and_payload_replay_with_at
         );
     }
 }
+
+const FURNACE_DIALOGUE_ID: &str = "cw_cy_heat_01_static_dialogue_marker";
+
+fn furnace_dialogue_active(runtime: &FormalRuntime) -> bool {
+    let view = runtime.snapshot().unwrap();
+    let marker = view.interactables.iter().find(|item| item.entity_id == FURNACE_DIALOGUE_ID).unwrap();
+    assert_eq!(marker.kind, "static_dialogue_marker");
+    marker.active
+}
+
+fn furnace_dialogue_interact(runtime: &FormalRuntime, request: &str) -> crate::formal_runtime::FormalInteractionResponse {
+    crate::scene_route_commands::interaction(runtime, FURNACE_DIALOGUE_ID, request,
+        Some(runtime.snapshot().unwrap().world_epoch)).unwrap()
+}
+
+#[test]
+fn furnace_static_dialogue_range_replay_and_combat_preserve_other_state() {
+    use crate::continuous_combat::{ActiveCombatAction, CombatActionKind};
+    for (outside, boundary) in [([14.501, 0.0, 10.0], [14.5, 0.0, 10.0]),
+        ([12.0, 2.501, 10.0], [12.0, 2.5, 10.0])] {
+        let (runtime, _) = authored("cw_furnace_heart");
+        {
+            let mut state = runtime.state.lock().unwrap();
+            state.world.player.position_m = vec3_from_array(outside);
+            state.world.combat_state.active_action = Some(ActiveCombatAction {
+                kind: CombatActionKind::PrimaryAttack, request_id: 71, elapsed_ms: 1,
+                impact_resolved: false, end_requested: false,
+            });
+            state.last_combat_at_ms = Some(0);
+        }
+        let outside_snapshot = runtime.snapshot().unwrap();
+        let rejected = furnace_dialogue_interact(&runtime, "furnace-range");
+        assert_eq!(rejected.error_code.as_deref(), Some("E_SCENE_RUNTIME_OutOfRange"));
+        assert!(!rejected.applied);
+        assert_eq!(serde_json::to_value(runtime.snapshot().unwrap()).unwrap(), serde_json::to_value(outside_snapshot).unwrap());
+        assert!(furnace_dialogue_active(&runtime));
+        runtime.state.lock().unwrap().world.player.position_m = vec3_from_array(boundary);
+        let before = runtime.state.lock().unwrap().clone();
+        let success = furnace_dialogue_interact(&runtime, "furnace-range");
+        assert!(success.applied);
+        assert!(!success.already_applied);
+        assert_eq!(success.error_code, None);
+        assert_eq!(success.receipt.command_id, "furnace-range");
+        assert_eq!(success.receipt.world_epoch, success.receipt.snapshot.world_epoch);
+        assert_eq!(success.receipt.authority_revision, before.world.revision.authority_revision + 1);
+        assert_eq!(success.receipt.snapshot.authority_revision, success.receipt.authority_revision);
+        assert!(!furnace_dialogue_active(&runtime));
+        let after = runtime.state.lock().unwrap().clone();
+        assert!(!after.paused);
+        assert_eq!(after.route, before.route);
+        assert_eq!(serde_json::to_value(&after.capabilities).unwrap(), serde_json::to_value(&before.capabilities).unwrap());
+        assert_eq!(after.world_persistent_v1, before.world_persistent_v1);
+        assert_eq!(format!("{:?}", after.world.combat_state), format!("{:?}", before.world.combat_state));
+        assert_eq!(after.last_combat_at_ms, before.last_combat_at_ms);
+        assert_eq!(success.view.player.current_hp, 100);
+        for (request, code) in [("furnace-range", "E_SCENE_RUNTIME_DuplicateRequest"),
+            ("furnace-again", "E_SCENE_RUNTIME_AlreadyApplied")] {
+            let before_repeat = runtime.snapshot().unwrap();
+            let repeat = furnace_dialogue_interact(&runtime, request);
+            assert!(!repeat.applied);
+            assert!(!repeat.already_applied, "ordinary repeat keeps the existing rejection format");
+            assert_eq!(repeat.error_code.as_deref(), Some(code));
+            assert_eq!(serde_json::to_value(runtime.snapshot().unwrap()).unwrap(), serde_json::to_value(before_repeat).unwrap());
+        }
+    }
+}
+
+#[test]
+fn furnace_static_dialogue_lifecycle_rejections_are_atomic() {
+    for invalid in ["stale", "paused", "dead", "target"] {
+        let (runtime, _) = authored("cw_furnace_heart");
+        let epoch = runtime.snapshot().unwrap().world_epoch;
+        {
+            let mut state = runtime.state.lock().unwrap();
+            state.world.player.position_m = vec3_from_array([12.0, 0.0, 10.0]);
+            if invalid == "paused" { state.paused = true; }
+            if invalid == "dead" { state.world.player_hp = 0; }
+        }
+        let before = runtime.snapshot().unwrap();
+        let result = crate::scene_route_commands::interaction(&runtime,
+            if invalid == "target" { "cw_unknown_static_dialogue_marker" } else { FURNACE_DIALOGUE_ID },
+            "furnace-atomic", Some(if invalid == "stale" { epoch + 1 } else { epoch }));
+        if invalid == "dead" {
+            assert_eq!(result.unwrap_err(), "E_RUNTIME_DEAD");
+        } else {
+            let rejected = result.unwrap();
+            assert!(!rejected.applied);
+            assert_eq!(rejected.receipt.command_id, "furnace-atomic");
+            let code = rejected.error_code.unwrap();
+            assert!(code.starts_with(match invalid { "stale" => "E_SCENE_RUNTIME_StaleEpoch",
+                "paused" => "E_RUNTIME_PAUSED", _ => "E_SCENE_RUNTIME_UnknownInteraction" }), "{code}");
+        }
+        assert_eq!(serde_json::to_value(runtime.snapshot().unwrap()).unwrap(), serde_json::to_value(before).unwrap());
+        assert!(furnace_dialogue_active(&runtime));
+        { let mut state = runtime.state.lock().unwrap(); state.paused = false; state.world.player_hp = 100; }
+        assert!(furnace_dialogue_interact(&runtime, "furnace-atomic").applied);
+    }
+    let (wrong_scene, _) = authored("cw_boiler_chamber");
+    let before = wrong_scene.snapshot().unwrap();
+    let response = furnace_dialogue_interact(&wrong_scene, "wrong-scene");
+    assert!(!response.applied);
+    assert!(response.error_code.unwrap().starts_with("E_SCENE_RUNTIME_UnknownInteraction"));
+    assert_eq!(serde_json::to_value(wrong_scene.snapshot().unwrap()).unwrap(), serde_json::to_value(before).unwrap());
+}
+
+#[test]
+fn furnace_static_dialogue_save_continue_preserves_only_saved_activation() {
+    let (runtime, root) = authored("cw_furnace_heart");
+    runtime.state.lock().unwrap().world.player.position_m = vec3_from_array([12.0, 0.0, 10.0]);
+    runtime.pause().unwrap(); runtime.save().unwrap(); runtime.resume().unwrap();
+    let path = root.join(crate::save_v6::SAVE_V6_FILE_NAME);
+    let prior_bytes = std::fs::read(&path).unwrap();
+    assert!(furnace_dialogue_interact(&runtime, "unsaved-read").applied);
+    assert_eq!(std::fs::read(&path).unwrap(), prior_bytes, "ordinary interaction does not auto-save");
+    drop(runtime);
+    let restored = stopped_authored(root.clone(), "rs_core_room");
+    let view = restored.continue_saved().map(|view| crate::formal_runtime::entry_test_support::acknowledge_ready(&restored, view)).unwrap();
+    assert_eq!(view.scene_id, "cw_furnace_heart");
+    assert!(furnace_dialogue_active(&restored));
+    assert!(furnace_dialogue_interact(&restored, "saved-read").applied);
+    restored.pause().unwrap(); restored.save().unwrap();
+    let saved = crate::save_v6::read_save(&root).unwrap();
+    assert_eq!(saved.save.scene_states.len(), 1);
+    assert!(saved.save.scene_states[0].activated_ids.iter().any(|id| id == FURNACE_DIALOGUE_ID));
+    drop(restored);
+    let continued = stopped_authored(root.clone(), "rs_core_room");
+    let pending = continued.continue_saved().unwrap();
+    let loading = furnace_dialogue_interact(&continued, "loading-read");
+    assert_eq!(loading.error_code.as_deref(), Some("E_RUNTIME_PAUSED"));
+    crate::formal_runtime::entry_test_support::acknowledge_ready(&continued, pending);
+    assert!(!furnace_dialogue_active(&continued));
+    let repeat = furnace_dialogue_interact(&continued, "continue-read");
+    assert_eq!(repeat.error_code.as_deref(), Some("E_SCENE_RUNTIME_AlreadyApplied"));
+    assert!(!repeat.applied);
+    drop(continued);
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn furnace_static_dialogue_reentry_reactivates_without_world_read_flag() {
+    let (runtime, _) = authored("cw_furnace_heart");
+    runtime.state.lock().unwrap().world.player.position_m = vec3_from_array([12.0, 0.0, 10.0]);
+    let initial_epoch = runtime.snapshot().unwrap().world_epoch;
+    let persistent = runtime.state.lock().unwrap().world_persistent_v1.clone();
+    assert!(furnace_dialogue_interact(&runtime, "first-read").applied);
+    assert_eq!(runtime.state.lock().unwrap().world_persistent_v1, persistent);
+    assert!(!furnace_dialogue_active(&runtime));
+    for (id, position) in [("cw_furnace_heart_return_to_gear_shaft", [1.5, 0.0, 8.0]),
+        ("cw_gear_to_furnace_heart", [23.0, 2.0, 8.0])] {
+        runtime.state.lock().unwrap().world.player.position_m = vec3_from_array(position);
+        let epoch = runtime.snapshot().unwrap().world_epoch;
+        let pending = runtime.transition_scene(id, id, epoch).unwrap();
+        crate::formal_runtime::entry_test_support::acknowledge_ready(&runtime, pending);
+    }
+    assert!(runtime.snapshot().unwrap().world_epoch > initial_epoch);
+    assert!(furnace_dialogue_active(&runtime));
+    // The real Gear transition installs its support version; only the dialogue must be side-effect free.
+    let after_transition = runtime.state.lock().unwrap().world_persistent_v1.clone();
+    assert_eq!(after_transition.clockworks.gear_shaft_support_version, 1);
+    runtime.state.lock().unwrap().world.player.position_m = vec3_from_array([12.0, 0.0, 10.0]);
+    assert!(furnace_dialogue_interact(&runtime, "return-read").applied);
+    assert_eq!(runtime.state.lock().unwrap().world_persistent_v1, after_transition);
+}

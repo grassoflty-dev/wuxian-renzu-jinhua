@@ -413,6 +413,7 @@ impl SaveV3 {
             entry_pause_requested: false,
             last_lifecycle_sequence: 0,
             enhancement_terminal: None,
+            baizhi: Default::default(),
             last_owner_error: None,
         })
     }

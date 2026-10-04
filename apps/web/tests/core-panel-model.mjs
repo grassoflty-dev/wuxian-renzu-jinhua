@@ -57,8 +57,8 @@ test("inventory does not invent items and accessibility settings are always avai
   assert.match(deriveCorePanel("character", null).subtitle, /尚未连接/);
 });
 
-test("archive is an explicit unavailable projection and save remains a separate real entry", () => {
-  assert.match(deriveCorePanel("archive", null).rows[0].value, /尚未收到权威档案投影/);
+test("archive waits for authoritative event evidence and save remains a separate real entry", () => {
+  assert.deepEqual(deriveCorePanel("archive", null), { title: "档案", subtitle: "档案数据尚未同步。", rows: [] });
   assert.match(deriveCorePanel("save", null).rows[0].value, /暂停后/);
 });
 

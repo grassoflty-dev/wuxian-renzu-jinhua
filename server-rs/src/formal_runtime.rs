@@ -40,6 +40,7 @@ use std::time::{Duration, Instant};
 #[path = "../tests/support/entry_readiness.rs"]
 pub(crate) mod entry_test_support;
 
+pub mod baizhi;
 pub mod build_ui;
 pub mod build_v6;
 mod capability_sources;
@@ -405,6 +406,7 @@ pub(crate) struct RuntimeState {
     pub(crate) entry_pause_requested: bool,
     pub(crate) last_lifecycle_sequence: u64,
     pub(crate) enhancement_terminal: Option<EnhancementTerminalContext>,
+    pub(crate) baizhi: baizhi::DialogueState,
     pub(crate) last_owner_error: Option<String>,
 }
 
@@ -1145,6 +1147,7 @@ impl FormalRuntime {
             entry_pause_requested: false,
             last_lifecycle_sequence: 0,
             enhancement_terminal: None,
+            baizhi: Default::default(),
             last_owner_error: None,
         })
     }
@@ -2422,6 +2425,7 @@ impl FormalRuntime {
         request_id: &str,
         world_epoch: u64,
     ) -> Result<FormalInteractionResponse, String> {
+        if interaction_id == baizhi::INTERACTION_ID { return Err("E_BAIZHI_DEDICATED_COMMAND_REQUIRED".into()); }
         self.activate_scene_interaction_mode(interaction_id, request_id, world_epoch, false)
     }
 
@@ -3188,6 +3192,7 @@ impl FormalRuntime {
             .ok_or("E_SCENE_ENTRY_GENERATION_EXHAUSTED")?;
         state.world.bump_authority_revision().map_err(|error| format!("E_WORLD_REVISION: {error:?}"))?;
         state.enhancement_terminal = None;
+        state.baizhi = Default::default();
         state.entry_generation = generation;
         state.entry_pause_requested = false;
         state.pending_entry = Some(crate::world_v3::SceneEntryToken {
@@ -3274,6 +3279,7 @@ impl FormalRuntime {
         if !paused && state.pending_entry.is_some() {
             return Err("E_SCENE_ENTRY_NOT_READY".into());
         }
+        if !paused && state.baizhi.owns_pause() { return Err("E_BAIZHI_CLOSE_REQUIRED".into()); }
         let held_guard = state.world.combat_state.active_action.as_ref()
             .is_some_and(|action| action.kind == crate::continuous_combat::CombatActionKind::Guard);
         let retained_input = state.latest_sample.move_x != 0.0 || state.latest_sample.move_z != 0.0
@@ -3281,6 +3287,7 @@ impl FormalRuntime {
             || !state.pending_combat.is_empty() || held_guard;
         let mut candidate = state.clone();
         if let Some(sequence) = sequence { candidate.last_lifecycle_sequence = sequence; }
+        if paused { candidate.baizhi.revoke(); }
         if !paused { candidate.enhancement_terminal = None; }
         else if context.is_some() && sequence.is_some() && !state.paused {
             if let Some(ticket) = candidate.enhancement_terminal.as_mut() {
@@ -4247,6 +4254,7 @@ fn project_scene_view(state: &RuntimeState, scene: Option<&SceneRuntime>) -> Wor
         return view;
     };
     let definition = scene.current_scene();
+    baizhi::project(state, scene, &mut view);
     view.grey_hive_beacon = grey_hive_beacon::project(state, scene);
     view.sentinel_encounter = project_sentinel_encounter(state, scene);
     if state.kcc.has_support_surfaces() {
@@ -4326,6 +4334,7 @@ fn project_scene_view(state: &RuntimeState, scene: Option<&SceneRuntime>) -> Wor
         .interactions
         .iter()
         .filter_map(|item| {
+            if item.kind == "npc_dialogue" || item.id == baizhi::INTERACTION_ID { return None; }
             if matches!(
                 item.kind.as_str(),
                 "future_extraction_marker"

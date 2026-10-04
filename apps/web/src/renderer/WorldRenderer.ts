@@ -47,6 +47,8 @@ import { pointerOffsetFromPresentedFrame, type PresentedPlayerAimFrame, type Poi
 import { boundActorPreviewIds } from "./ActorPresentationBindings.js";
 import { PlayerLocomotionModel } from "./PlayerLocomotionModel.js";
 import { PlayerLocomotionMesh } from "./PlayerLocomotionMesh.js";
+import { projectBaizhiPlaceholder, type BaizhiPlaceholderFrame } from "./BaizhiPresentation.js";
+import { BaizhiPlaceholder } from "./BaizhiPlaceholder.js";
 
 // Pixi Assets is a process-wide cache, so pending and resident leases must also
 // span renderer instances during replacement, not merely one scene generation.
@@ -129,6 +131,7 @@ export class WorldRenderer {
   private playerLocomotionMesh: PlayerLocomotionMesh | null = null;
   private playerLocomotionSpriteKey: string | null = null;
   private playerContactShadow: Graphics | null = null;
+  private baizhiPlaceholder: BaizhiPlaceholder | null = null;
   private readonly sceneGlows = new Map<string, Graphics>();
   private readonly actionVfx = new Map<string, Graphics>();
   private sentinelEncounterGraphic: Graphics | null = null;
@@ -203,6 +206,7 @@ export class WorldRenderer {
     this.surface?.lost();
     this.clearTransientPresentation();
     this.clearClockworksEnemyBodies();
+    this.clearBaizhiPlaceholder();
   };
   // Recovery requires an explicit journey retry and replacement renderer. A restored
   // WebGL context alone cannot revive the authoritative first-frame proof.
@@ -212,6 +216,7 @@ export class WorldRenderer {
 
   /** Injects a compiler-produced SceneDefinition after the Rust scene registry has accepted it. */
   setSceneDefinition(definition: VerifiedSceneDefinition): void {
+    this.clearBaizhiPlaceholder();
     this.clearMovingSurface();
     this.clearVerticalSupports();
     this.committedFrame = null;
@@ -255,6 +260,7 @@ export class WorldRenderer {
 
   /** Revokes both completed proof and work already queued before cancellation. */
   invalidate(): void {
+    this.clearBaizhiPlaceholder();
     this.clearMovingSurface();
     this.clearVerticalSupports();
     this.cancelled = true;
@@ -571,6 +577,8 @@ export class WorldRenderer {
       if(prop){item.asset=prop.asset;delete item.frameSelection;item.displayScale=prop.heightM*pixelsPerMeter/prop.asset.atlasFrame[3];if(prop.cutout)item.cutout=prop.cutout;else delete item.cutout;}
     }
     const publicBodies: {key:string;footY:number;layer:RenderLayerId}[]=[];
+    const baizhiFrame = projectBaizhiPlaceholder(snapshot, camera);
+    if (baizhiFrame) publicBodies.push(baizhiFrame);
     for(const actor of actors){
       if(!actor.active)continue;
       const signal=validatedSignalPerception(actor);
@@ -617,6 +625,7 @@ export class WorldRenderer {
       }
     }
     this.renderClockworksEnemyBodies(actors, camera, actorPositions);
+    this.renderBaizhiPlaceholder(baizhiFrame);
     this.renderPlayerLocomotion(snapshot, view, facingDirection, reduceFogMotion);
     this.renderSceneGlows(scenePresentation ? projectSceneGlows(view.worldId, view.sceneId, projectedScene.sprites) : [], skin.vfxTint, presentationScale);
     this.renderMovingSurface(projectMovingSurfaces(scenePresentation, snapshot, reduceFogMotion), camera);
@@ -680,6 +689,20 @@ export class WorldRenderer {
     const presentedPlayer = projectWorldPoint(playerPosition ?? view.playerPosition, camera);
     this.committedFrame = { sceneKey, revision: renderRevision, surface, supportGeometryKey: supportFrame.geometryKey, sentinelGeometryKey: sentinelFrameKey,
       playerAim: { width: camera.width, height: camera.height, footX: presentedPlayer.x, footY: presentedPlayer.y } };
+  }
+
+  private renderBaizhiPlaceholder(frame: BaizhiPlaceholderFrame | null): void {
+    const layer = this.layerContainers.get("L3_ACTORS");
+    const depthRank = frame ? this.worldObjectDepths.get(frame.key) : undefined;
+    if (!frame || !layer || depthRank === undefined) { this.clearBaizhiPlaceholder(); return; }
+    if (!this.baizhiPlaceholder) this.baizhiPlaceholder = new BaizhiPlaceholder();
+    if (this.baizhiPlaceholder.parent !== layer) layer.addChild(this.baizhiPlaceholder);
+    this.baizhiPlaceholder.applyFrame(frame, depthRank);
+  }
+
+  private clearBaizhiPlaceholder(): void {
+    this.baizhiPlaceholder?.destroy();
+    this.baizhiPlaceholder = null;
   }
 
   private renderPlayerLocomotion(snapshot: WorldSnapshotEnvelope, view: RenderSnapshot,
@@ -1880,6 +1903,7 @@ export class WorldRenderer {
   }
 
   private async clearSceneResources(): Promise<void> {
+    this.clearBaizhiPlaceholder();
     this.clearEnvironmentHazards();
     this.clearSentinelEncounter();
     this.clearFacilityFloor();

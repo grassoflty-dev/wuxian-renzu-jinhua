@@ -1,3 +1,4 @@
+import { confirmedClockworksFurnaceDialogue } from "../dist/game/ClockworksFurnaceDialogue.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import vm from "node:vm";
@@ -42,9 +43,10 @@ function harness({ online = false, acceptanceDeferred = false, failure = null } 
     async acceptAuthoritativeSnapshot(value) { loop.current = value; if (acceptanceDeferred) await acceptance.promise; } };
   const context = vm.createContext({ Error, sessionLoop: loop, interactionBusy: false, client,
     hud: { apply: deriveHudState, setFeedback: value => feedback.push(value) },
-    dispatchInteractable, scannerRewardFeedback, isCurrentSceneInteractionResult, isCurrentSceneInteractionFeedback, interactionErrorText,
+    confirmedClockworksFurnaceDialogue, dispatchInteractable, scannerRewardFeedback, isCurrentSceneInteractionResult, isCurrentSceneInteractionFeedback, interactionErrorText,
     confirmedGreyHiveNarrative, confirmedMistHarborBeaconSync: () => null, confirmedMistHarborAcousticMappingLine: () => null,
     confirmedClockworksEpilogue: () => null, confirmedReturnStationAfterGreyHive: () => null, confirmedReturnStationAfterClockworks: () => null,
+    confirmedReturnStationAfterMistHarbor: () => null,
   });
   vm.runInContext(handler, context);
   return { context, loop, before, after, result, calls, acceptance, feedback, run: () => context.interactFromSnapshot(before) };

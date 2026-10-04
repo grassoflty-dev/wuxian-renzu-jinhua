@@ -147,6 +147,17 @@
         0.0,
         8.0
       ]
+    },
+    {
+      "event": null,
+      "id": "gh_bz_first_contact",
+      "kind": "npc_dialogue",
+      "position": [
+        8.0,
+        0.0,
+        10.5
+      ],
+      "rangeM": 2.5
     }
   ],
   "logic": {
@@ -345,6 +356,17 @@
         17.0,
         0.0,
         12.0
+      ]
+    },
+    {
+      "entityType": "npc.baizhi",
+      "id": "gh_bz_whitezhi_v1",
+      "kind": "npc",
+      "navNode": "gh_bio_isolation_mid_nav",
+      "position": [
+        8.0,
+        0.0,
+        10.5
       ]
     }
   ],

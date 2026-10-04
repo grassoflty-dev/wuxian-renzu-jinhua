@@ -1,3 +1,6 @@
+import { BaizhiDialogue } from "./game/BaizhiDialogue.js";
+import { BaizhiDialoguePanel } from "./ui/components/BaizhiDialoguePanel.js";
+import { confirmedClockworksFurnaceDialogue } from "./game/ClockworksFurnaceDialogue.js";
 import { scannerRewardFeedback } from "./game/ScannerReward.js";
 import { FirstEvolution } from "./game/FirstEvolution.js";
 import { developerPresentationEnabled } from "./ui/DeveloperPresentation.js";
@@ -16,7 +19,7 @@ import { missionTerminalSummary } from "./game/MissionTerminal.js";
 import { confirmedClockworksEpilogue, confirmedReturnStationAfterClockworks } from "./game/ClockworksCampaign.js";
 import { confirmedGreyHiveNarrative } from "./game/GreyHiveNarrative.js";
 import { confirmedMistHarborAcousticMappingLine, confirmedMistHarborBeaconSync, MistHarborSignalLineState } from "./game/MistHarborNarrative.js";
-import { confirmedReturnStationAfterGreyHive, confirmedReturnStationNewJourney } from "./game/ReturnStationNarrative.js";
+import { confirmedReturnStationAfterGreyHive, confirmedReturnStationAfterMistHarbor, confirmedReturnStationNewJourney } from "./game/ReturnStationNarrative.js";
 import { dispatchInteractable, interactionErrorText, isCurrentSceneInteractionResult, isCurrentSceneInteractionFeedback } from "./game/SceneInteraction.js";
 import { WorldRenderer } from "./renderer/WorldRenderer.js";
 import { combatRejectionText } from "./renderer/CombatFeedbackModel.js";
@@ -90,6 +93,7 @@ root.innerHTML = `
           <p class="hud-environment-status" id="hud-environment-status" aria-label="环境危险状态" hidden></p>
           <p class="hud-feedback" id="hud-feedback" role="status" aria-live="polite"></p>
           <button class="hud-pause" id="hud-pause" type="button" aria-pressed="false">暂停</button><button class="hud-return" id="back-to-hub" type="button">返回主界面</button>
+          <section class="baizhi-overlay" id="baizhi-dialogue" hidden role="dialog" aria-modal="true" aria-labelledby="baizhi-title"></section>
           <section class="evolution-overlay" id="first-enhancement" hidden role="dialog" aria-modal="true" aria-label="进化终端"><div><p class="eyebrow">EVOLUTION · 归航站进化终端</p><strong>灰巢首通强化 · 任选一项</strong><div class="enhancement-choices"><button type="button" data-enhancement-id="information.local_map_i">局部地图</button><button type="button" data-enhancement-id="perception.rear_view_i">后方视野</button><button type="button" data-enhancement-id="body.regeneration_i">再生能力</button></div><p id="enhancement-feedback" role="status" aria-live="polite"></p><div class="enhancement-choices"><button id="enhancement-later" type="button">稍后领取</button><button id="enhancement-close" type="button" aria-label="关闭进化终端">关闭</button></div></div></section><div class="pause-overlay" id="pause-overlay" hidden><div><p class="eyebrow">PAUSE · 权威状态</p><strong id="pause-title">旅程已暂停</strong><p id="pause-detail"></p><label for="pause-slot">保存到所选存档</label><select id="pause-slot" disabled><option value="">正在读取存档…</option></select><label for="new-slot-name">新存档名称</label><input id="new-slot-name" maxlength="48" value="现场记录" disabled /><div class="save-actions"><button id="save-new-slot" type="button" disabled>另存为新存档</button><button id="overwrite-slot" type="button" disabled>覆盖所选存档</button></div><p id="save-feedback" role="status" aria-live="polite"></p><button id="hud-resume" type="button">继续</button><section class="enhancement-status" id="enhancement-status" aria-label="首通强化状态" aria-live="polite" hidden></section></div></div>
           <div class="death-overlay" id="death-overlay" role="dialog" aria-modal="true" aria-labelledby="death-title" hidden>
             <div><p class="eyebrow">JOURNEY ENDED · 旅程终止</p><h2 id="death-title" tabindex="-1">你已倒下</h2><p>生命值已归零，本次现场已终止。死亡状态不会保存，也无法直接恢复。</p>
@@ -278,6 +282,23 @@ let slotReadId = 0;
 let deathRecoveryTarget: "slot" | "latest" | "new" | null = null;
 let saveBusy = false;
 const evolution = new FirstEvolution(client, () => updateEnhancementControls());
+const baizhi = new BaizhiDialogue(client, () => updateBaizhiControls());
+const baizhiPanel = new BaizhiDialoguePanel(root.querySelector<HTMLElement>("#baizhi-dialogue")!, baizhi);
+let baizhiControlsHeld = false;
+function updateBaizhiControls(): void {
+  baizhiPanel.render();
+  if (!baizhi.visible && !baizhiControlsHeld) return;
+  const held = baizhi.visible;
+  for (const id of ["hud-pause", "hud-resume", "back-to-hub", "core-ui-open"]) {
+    root!.querySelector<HTMLButtonElement>(`#${id}`)!.disabled = held || busy || sessionLoop?.isDead === true;
+  }
+  if (held) root!.querySelector<HTMLElement>("#pause-overlay")!.hidden = true;
+  else if (sessionLoop) hud.setPauseStatus(sessionLoop.pausePresentationState);
+  baizhiControlsHeld = held;
+}
+window.addEventListener("keydown", event => {
+  if (baizhi.visible) baizhiPanel.onKeyDown(event);
+}, true);
 window.addEventListener("keydown", event => {
   if (!evolution.visible) return;
   if (event.key === "Escape") {
@@ -439,6 +460,7 @@ async function showDeathRecovery(loop: SessionLoop): Promise<void> {
   coreOpenButton.disabled = true;
   hud.setPauseStatus("dead");
   evolution.reset();
+  baizhi.reset();
   enhancementSection.hidden = true;
   deathSavePicker.hidden = true;
   deathRetryButton.hidden = true;
@@ -481,6 +503,7 @@ function snapshotIdentity(snapshot: WorldSnapshotV3): string {
 
 function showError(error: unknown): void {
   evolution.reset();
+  baizhi.reset();
   resetDeathControls();
   const message = error instanceof Error ? error.message : String(error);
   if (!document.hidden) audioCuePlayer.resume();
@@ -516,6 +539,7 @@ function assertJourneyRequest(signal: AbortSignal, requestId: number): void {
 
 async function enterJourney(snapshot: WorldSnapshotV3, signal: AbortSignal, requestId: number, entryNarrative: string | null = null): Promise<void> {
   evolution.reset();
+  baizhi.reset();
   resetDeathControls();
   continuePicker.hidden = true;
   audioCuePlayer.setEpoch(snapshot.worldEpoch);
@@ -611,6 +635,8 @@ async function enterJourney(snapshot: WorldSnapshotV3, signal: AbortSignal, requ
       }
       evolution.reconcile();
       updateEnhancementControls();
+      baizhi.reconcile();
+      updateBaizhiControls();
       sceneSession?.acceptSnapshot(latest);
     },
     onInteract: latest => interactFromSnapshot(latest),
@@ -631,6 +657,8 @@ async function enterJourney(snapshot: WorldSnapshotV3, signal: AbortSignal, requ
       updateSaveControls();
       evolution.reconcile();
       updateEnhancementControls();
+      baizhi.reconcile();
+      updateBaizhiControls();
       if (status === "error" && message) saveFeedback.textContent = `暂停状态未确认：${message}`;
     },
     onError: error => {
@@ -640,7 +668,10 @@ async function enterJourney(snapshot: WorldSnapshotV3, signal: AbortSignal, requ
     },
     onCleanup: () => {
       if (sessionLoop !== ownedLoop) return;
+      coreUi.close();
+      coreUi.apply(null);
       evolution.reset();
+      baizhi.reset();
       resetDeathControls();
       audioCuePlayer.suspend();
       renderer = null;
@@ -668,6 +699,13 @@ async function interactFromSnapshot(snapshot: import("./protocol/types.js").Worl
   let feedbackSequence = sourceSequence;
   let feedbackSnapshot = snapshot;
   const state = hud.apply(snapshot);
+  if (state.interactionId === "gh_bz_first_contact") {
+    if (coreUi.isOpen || evolution.visible || baizhi.visible || activeLoop.pausePresentationState !== "running") return;
+    interactionBusy = true;
+    try { await baizhi.open({ loop: activeLoop, isCurrent: () => sessionLoop === activeLoop }, snapshot); }
+    finally { if (sessionLoop === activeLoop) interactionBusy = false; }
+    return;
+  }
   const interactable = state.interactionId
     ? snapshot.interactables.find(item => item.entityId === state.interactionId)
     : undefined;
@@ -697,9 +735,11 @@ async function interactFromSnapshot(snapshot: import("./protocol/types.js").Worl
       interactable.entityId, interactable.kind, result.applied === true) ??
       confirmedMistHarborBeaconSync(snapshot, interactable.entityId, interactable.kind, result) ??
       confirmedMistHarborAcousticMappingLine(snapshot, interactable.entityId, interactable.kind, result) ??
-      confirmedClockworksEpilogue(snapshot, interactable.entityId, interactable.kind, result);
+      confirmedClockworksEpilogue(snapshot, interactable.entityId, interactable.kind, result) ??
+      confirmedClockworksFurnaceDialogue(snapshot, interactable.entityId, interactable.kind, result);
     const returnNarrative = confirmedReturnStationAfterGreyHive(snapshot,
       interactable.entityId, interactable.kind, result) ??
+      confirmedReturnStationAfterMistHarbor(snapshot, interactable.entityId, interactable.kind, result) ??
       confirmedReturnStationAfterClockworks(snapshot, interactable.entityId, interactable.kind, result);
     if (!applied) hud.setFeedback(interactionErrorText(result.errorCode || "E_INTERACTION_NOT_APPLIED"));
     else if (scannerRewardFeedback(snapshot, interactable, result)) {
@@ -752,6 +792,8 @@ async function begin(kind: "new", recoveryLoop?: SessionLoop): Promise<void> {
   continueButton.disabled = true;
   feedback.textContent = "正在建立世界链路…";
   updateDeathControls();
+  coreUi.close();
+  coreUi.apply(null);
   try {
     if (recoveryLoop) await recoveryLoop.stop("replace");
     assertJourneyRequest(controller.signal, requestId);
@@ -802,7 +844,7 @@ exitButton.addEventListener("click", () => {
   });
 });
 coreOpenButton.addEventListener("click", () => {
-  if (busy || buildCloseBarrier.closing || coreUi.isOpen || sessionLoop?.isDead || coreUi.currentSnapshot?.player.currentHp === 0) return;
+  if (baizhi.visible || busy || buildCloseBarrier.closing || coreUi.isOpen || sessionLoop?.isDead || coreUi.currentSnapshot?.player.currentHp === 0) return;
   const loop = sessionLoop;
   if (!loop) {
     coreUi.open(coreOpenButton);
@@ -850,6 +892,8 @@ async function continueJourney(slot: SaveSlotSummary | undefined, recoveryLoop?:
   feedback.textContent = latestSave ? "正在从最近存档恢复…" : `正在从「${slot!.displayName}」恢复…`;
   deathFeedback.textContent = feedback.textContent;
   updateDeathControls();
+  coreUi.close();
+  coreUi.apply(null);
   await (async () => {
     try {
       if (recoveryLoop) await recoveryLoop.stop("replace");
@@ -936,8 +980,10 @@ async function saveWhilePaused(create: boolean): Promise<void> {
 saveNewSlotButton.addEventListener("click", () => void saveWhilePaused(true));
 overwriteSlotButton.addEventListener("click", () => void saveWhilePaused(false));
 function returnToMain(): void {
+  if (baizhi.visible) return;
   if (busy || buildCloseBarrier.closing) return;
   evolution.reset();
+  baizhi.reset();
   const wasDead = sessionLoop?.isDead === true;
   journeyRequestId++;
   const requestId = journeyRequestId;
@@ -982,6 +1028,7 @@ root.querySelector<HTMLButtonElement>("#back-to-hub")!.addEventListener("click",
 deathHubButton.addEventListener("click", returnToMain);
 
 function togglePause(): void {
+  if (baizhi.visible) return;
   if (!sessionLoop || sessionLoop.isDead) return;
   if (sessionLoop.pausePresentationState === "error") void sessionLoop.retryPauseState();
   else if (sessionLoop.isPaused) void sessionLoop.resume();
@@ -989,13 +1036,14 @@ function togglePause(): void {
 }
 root.querySelector<HTMLButtonElement>("#hud-pause")!.addEventListener("click", togglePause);
 root.querySelector<HTMLButtonElement>("#hud-resume")!.addEventListener("click", () => {
-  if (sessionLoop?.isDead) return;
+  if (baizhi.visible || sessionLoop?.isDead) return;
   if (sessionLoop?.pausePresentationState === "error") void sessionLoop.retryPauseState();
   else if (sessionLoop) void sessionLoop.resume();
 });
 
 window.addEventListener("pagehide", () => {
   evolution.reset();
+  baizhi.reset();
   journeyRequestId++;
   activeJourneyLoad?.abort();
   resetDeathControls();

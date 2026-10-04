@@ -1,0 +1,51 @@
+[
+  {
+    "command": "formal_baizhi_begin",
+    "args": {
+      "request": {
+        "context": {
+          "worldId": "grey_hive",
+          "sceneId": "gh_bio_isolation",
+          "worldEpoch": 8
+        },
+        "entityId": "gh_bz_whitezhi_v1",
+        "interactionId": "gh_bz_first_contact",
+        "ownerId": "baizhi-wire-fixture",
+        "generation": 7,
+        "commandSequence": 1
+      }
+    }
+  },
+  {
+    "command": "formal_baizhi_commit",
+    "args": {
+      "ticket": {
+        "ownerId": "baizhi-wire-fixture",
+        "generation": 7,
+        "worldId": "grey_hive",
+        "sceneId": "gh_bio_isolation",
+        "worldEpoch": 8,
+        "entityId": "gh_bz_whitezhi_v1",
+        "interactionId": "gh_bz_first_contact",
+        "pauseCommandSequence": 1
+      },
+      "requestId": "baizhi-wire-choice-1",
+      "choice": "taken"
+    }
+  },
+  {
+    "command": "formal_baizhi_close",
+    "args": {
+      "ticket": {
+        "ownerId": "baizhi-wire-fixture",
+        "generation": 7,
+        "worldId": "grey_hive",
+        "sceneId": "gh_bio_isolation",
+        "worldEpoch": 8,
+        "entityId": "gh_bz_whitezhi_v1",
+        "interactionId": "gh_bz_first_contact",
+        "pauseCommandSequence": 1
+      }
+    }
+  }
+]

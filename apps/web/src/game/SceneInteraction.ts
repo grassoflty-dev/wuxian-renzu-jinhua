@@ -1,3 +1,4 @@
+import { CLOCKWORKS_FURNACE_DIALOGUE_ID, isClockworksFurnaceDialogueTarget } from "./ClockworksFurnaceDialogue.js";
 import type { InteractableView, WorldSnapshotV3 } from "../protocol/types.js";
 import type { TauriClient } from "../bridge/tauri-client.js";
 
@@ -54,6 +55,12 @@ export function dispatchInteractable(
   source?: InteractionSource,
 ): Promise<DispatchedInteraction> {
   if (!interactable.active) return Promise.reject(new Error("E_INTERACTION_INACTIVE"));
+  if (interactable.kind === "static_dialogue_marker" || interactable.entityId === CLOCKWORKS_FURNACE_DIALOGUE_ID) {
+    if (interactable.active !== true || !isClockworksFurnaceDialogueTarget(source, interactable)) {
+      return Promise.reject(new Error("E_INTERACTION_SOURCE_MISMATCH"));
+    }
+    return client.interact(interactable.entityId, worldEpoch);
+  }
   switch (interactable.kind) {
     case "scene_transition": return client.sceneTransition(interactable.entityId, worldEpoch);
     case "scene_checkpoint": return client.sceneCheckpoint(interactable.entityId, worldEpoch);

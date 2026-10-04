@@ -15,7 +15,7 @@ const RELEASE_SCENE_INTERACTION_KINDS = {
   gh_gate_a: ["door_panel"],
   gh_central_shaft: ["facility_log"],
   gh_lockdown: ["lockdown_terminal"],
-  gh_bio_isolation: ["bio_log_terminal"],
+  gh_bio_isolation: ["bio_log_terminal", "npc_dialogue"],
   gh_gate_b: ["gate_b_panel"],
   gh_exit: ["extraction_console"],
   gh_deep_decon: ["environment_control"],
@@ -279,6 +279,18 @@ test("compiled scene catalog keeps static markers closed and routes confirmed sc
   };
   for (const [sceneId, kinds] of Object.entries(RELEASE_SCENE_INTERACTION_KINDS)) {
     for (const kind of kinds) {
+      if (kind === "npc_dialogue") {
+        assert.equal(sceneId, "gh_bio_isolation", "the dialogue route stays confined to Bio");
+        const targets = currentScenes[sceneId].interactions.filter(target => target.kind === kind);
+        assert.equal(targets.length, 1);
+        assert.equal(targets[0].id, "gh_bz_first_contact");
+        assert.equal(RELEASE_ORDINARY_KINDS.has(kind), false, "Baizhi must use its atomic begin, never ordinary F");
+        const before = calls.length;
+        await assert.rejects(dispatchInteractable(client, item(kind, { entityId: targets[0].id }), 4,
+          { worldId: "grey_hive", sceneId }), /E_INTERACTION_KIND_UNKNOWN:npc_dialogue/);
+        assert.equal(calls.length, before, "ordinary dispatcher sends no Baizhi command");
+        continue;
+      }
       if (STATIC_MARKER_KINDS.has(kind)) {
         await assert.rejects(dispatchInteractable(client, item(kind, { entityId: `${sceneId}:${kind}` }), 4),
           new RegExp(`E_INTERACTION_KIND_UNKNOWN:${kind}`));
@@ -335,6 +347,14 @@ test("compiled scene catalog keeps static markers closed and routes confirmed sc
         const before = calls.length;
         await dispatchInteractable(client, item(kind, { entityId: "cw_pressure_valve_01_staged" }), 4);
         assert.deepEqual(calls.slice(before), [["formal_interact", "cw_pressure_valve_01_staged"]]);
+        continue;
+      }
+      if (sceneId === "cw_furnace_heart" && kind === "static_dialogue_marker") {
+        const before = calls.length;
+        const marker = item(kind, { entityId: "cw_cy_heat_01_static_dialogue_marker" });
+        await dispatchInteractable(client, marker, 4, { worldId: "clockworks", sceneId });
+        assert.deepEqual(calls.slice(before), [["formal_interact", marker.entityId]]);
+        await assert.rejects(dispatchInteractable(client, item(kind), 4, { worldId: "clockworks", sceneId }), /SOURCE_MISMATCH/);
         continue;
       }
       if (sceneId === "cw_regulator_core" && kind === "coolant_valve") {

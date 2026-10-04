@@ -104,18 +104,18 @@
     {
       "id": "gh_bz_first_01",
       "sceneId": "gh_bio_isolation",
-      "triggerId": "gh_bz_first_01",
-      "triggerStatus": "pending_scene_hook",
+      "triggerId": "gh_bz_first_contact",
+      "triggerStatus": "bound",
       "kind": "npc_line",
       "title": null,
       "body": "别开那扇门。先听我说。",
       "bodyStatus": "confirmed",
       "sourceLine": 617,
-      "evidence": "设计表给出白芷首句与分支 ID；当前编译场景没有白芷运行时触发点。",
+      "evidence": "原句来自随源码保留的三世界方案；本版绑定白芷交互并新增选择标签，Gate B 规则不变。",
       "choices": [
-        {"id": "taken", "label": null, "labelStatus": "pending", "gateBKeyEffect": "none"},
-        {"id": "left", "label": null, "labelStatus": "pending", "gateBKeyEffect": "none"},
-        {"id": "unresolved", "label": null, "labelStatus": "pending", "gateBKeyEffect": "none"}
+        {"id": "taken", "label": "帮助她撤离", "labelStatus": "confirmed", "gateBKeyEffect": "none"},
+        {"id": "left", "label": "放弃帮助", "labelStatus": "confirmed", "gateBKeyEffect": "none"},
+        {"id": "unresolved", "label": "暂不决定", "labelStatus": "confirmed", "gateBKeyEffect": "none"}
       ]
     },
     {
