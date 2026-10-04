@@ -11,7 +11,7 @@ use std::{
 use wuxian_horror_ch1::{
     capability_v1::{CAP_LOCAL_MAP, CAP_REAR_VIEW, CAP_REGENERATION},
     effects::{CapabilityPermission, EffectSource, MapKnowledgeProjection},
-    formal_runtime::{CapabilityCommandRequest, FormalRuntime},
+    formal_runtime::{CapabilityCommandRequest, EnhancementTerminalContext, SessionContext, FormalRuntime},
     player_rules::{EffectivePlayerRules, KnowledgeChannel, KnowledgeLevel},
     save_v6,
     world_v3::{RearViewAuthorization, WorldView},
@@ -35,14 +35,35 @@ fn root(label: &str) -> PathBuf {
 }
 
 fn load_gh(runtime: &FormalRuntime) {
-    runtime
-        .load_scene_registry(
-            [RS, GH, MH, CW],
-            "gh_test_power",
-            &BTreeSet::new(),
-            &BTreeSet::new(),
-        )
-        .unwrap();
+    let mut rs: serde_json::Value = serde_json::from_str(RS).unwrap();
+    rs["sceneId"] = "rs_core_room".into();
+    rs["boundsM"]["width"] = 24.into();
+    rs["navigation"]["nodes"][0]["position"] = serde_json::json!([15,0,4]);
+    rs["spawns"][0]["position"] = serde_json::json!([15,0,4]);
+    rs["checkpoints"][0]["position"] = serde_json::json!([15,0,4]);
+    rs["interactions"] = serde_json::json!([{"id":"rs_capability_terminal_marker","kind":"capability_terminal_marker","position":[15,0,4]}]);
+    let replace = |text: &str| text.replace("rs_test_hub", "rs_core_room").replace("gh_test_power", "gh_exit")
+        .replace("gh_extract_test", "gh_exit_extraction_console");
+    let mut gh: serde_json::Value = serde_json::from_str(&replace(GH)).unwrap();
+    gh["interactions"][2]["kind"] = "extraction_console".into();
+    runtime.load_scene_registry([replace(&rs.to_string()), gh.to_string(), replace(MH), replace(CW)],
+        "gh_exit", &BTreeSet::new(), &BTreeSet::new()).unwrap();
+}
+
+fn context(runtime: &FormalRuntime) -> EnhancementTerminalContext {
+    EnhancementTerminalContext { id: "rs_capability_terminal_marker".into(), request_id: "first-enhancement-terminal".into(),
+        world_epoch: runtime.snapshot().unwrap().world_epoch, pause_command_sequence: 1 }
+}
+fn return_station(runtime: &FormalRuntime) {
+    let view = runtime.snapshot().unwrap();
+    let returned = runtime.use_world_gate("gh_extraction_return_to_rs", "first-enhancement-return", view.world_epoch).unwrap();
+    acknowledge_ready(runtime, returned);
+}
+fn open_terminal(runtime: &FormalRuntime) -> EnhancementTerminalContext {
+    let context = context(runtime);
+    runtime.capability_terminal_status(&context.id, &context.request_id, context.world_epoch).unwrap();
+    runtime.pause_context_ordered(&SessionContext { world_id: "return_station".into(), scene_id: "rs_core_room".into(), world_epoch: context.world_epoch }, context.pause_command_sequence).unwrap();
+    context
 }
 
 fn interact(runtime: &FormalRuntime, id: &str, request_id: &str) {
@@ -56,7 +77,7 @@ fn interact(runtime: &FormalRuntime, id: &str, request_id: &str) {
 fn complete_grey_hive(runtime: &FormalRuntime) {
     interact(runtime, "gh_power_console_test", "first-enhancement-power");
     interact(runtime, "gh_lockdown_test", "first-enhancement-lockdown");
-    interact(runtime, "gh_extract_test", "first-enhancement-extraction");
+    interact(runtime, "gh_exit_extraction_console", "first-enhancement-extraction");
     let view = runtime.snapshot().unwrap();
     let grey_hive = view
         .progression
@@ -207,8 +228,8 @@ fn all_first_enhancement_choices_are_rejected_before_grey_hive_first_clear() {
 
     for capability_id in CHOICES {
         assert_eq!(
-            runtime.choose_first_enhancement(capability_id).unwrap_err(),
-            "E_CAPABILITY_REQUIRES_GH_FIRST_CLEAR"
+            runtime.choose_first_enhancement(capability_id, &context(&runtime)).unwrap_err(),
+            "E_ENHANCEMENT_WrongRewardLocation"
         );
         let after = runtime.snapshot().unwrap();
         assert_eq!(after.capabilities.items, before.capabilities.items);
@@ -233,12 +254,11 @@ fn grey_hive_first_clear_allows_one_explicit_choice_of_each_supported_option() {
             "first clear does not auto-grant an enhancement"
         );
 
-        assert_eq!(
-            runtime.choose_first_enhancement(capability_id).unwrap_err(),
-            "E_ENHANCEMENT_REQUIRES_FORMAL_PAUSE"
-        );
-        runtime.pause().unwrap();
-        let selected = runtime.choose_first_enhancement(capability_id).unwrap();
+        assert_eq!(runtime.choose_first_enhancement(capability_id, &context(&runtime)).unwrap_err(), "E_ENHANCEMENT_WrongRewardLocation");
+        return_station(&runtime);
+        assert_eq!(runtime.choose_first_enhancement(capability_id, &context(&runtime)).unwrap_err(), "E_ENHANCEMENT_REQUIRES_FORMAL_PAUSE");
+        open_terminal(&runtime);
+        let selected = runtime.choose_first_enhancement(capability_id, &context(&runtime)).unwrap();
         assert!(selected
             .capabilities
             .items
@@ -256,7 +276,7 @@ fn grey_hive_first_clear_allows_one_explicit_choice_of_each_supported_option() {
             .unwrap();
         assert_eq!(
             runtime
-                .choose_first_enhancement(another_choice)
+                .choose_first_enhancement(another_choice, &context(&runtime))
                 .unwrap_err(),
             "E_CAPABILITY_REJECTED: FirstEnhancementAlreadyChosen"
         );
@@ -288,8 +308,9 @@ fn save_v6_new_runtime_continue_preserves_each_first_clear_choice_source_rules_a
             let runtime = FormalRuntime::new_with_save_dir(path.clone()).unwrap();
             load_gh(&runtime);
             complete_grey_hive(&runtime);
-            runtime.pause().unwrap();
-            let chosen = runtime.choose_first_enhancement(capability_id).unwrap();
+            return_station(&runtime);
+            open_terminal(&runtime);
+            let chosen = runtime.choose_first_enhancement(capability_id, &context(&runtime)).unwrap();
             assert_choice_projection(&runtime, &chosen, capability_id);
             expected_build = runtime.build_snapshot().unwrap();
             expected_projection = chosen.capabilities.clone();
@@ -367,14 +388,14 @@ fn save_v6_new_runtime_continue_preserves_each_first_clear_choice_source_rules_a
             let another_choice = CHOICES.into_iter().find(|id| *id != capability_id).unwrap();
             assert_eq!(
                 restarted
-                    .choose_first_enhancement(another_choice)
+                    .choose_first_enhancement(another_choice, &context(&restarted))
                     .unwrap_err(),
-                "E_ENHANCEMENT_REQUIRES_FORMAL_PAUSE"
+                "E_CAPABILITY_REJECTED: FirstEnhancementAlreadyChosen"
             );
             restarted.pause().unwrap();
             assert_eq!(
                 restarted
-                    .choose_first_enhancement(another_choice)
+                    .choose_first_enhancement(another_choice, &context(&restarted))
                     .unwrap_err(),
                 "E_CAPABILITY_REJECTED: FirstEnhancementAlreadyChosen"
             );
@@ -394,13 +415,14 @@ fn first_clear_choice_requires_pause_without_reopening_other_paused_commands() {
     let runtime = FormalRuntime::new_with_save_dir(path.clone()).unwrap();
     load_gh(&runtime);
     complete_grey_hive(&runtime);
+    return_station(&runtime);
 
     assert_eq!(
-        runtime.choose_first_enhancement(CAP_LOCAL_MAP).unwrap_err(),
+        runtime.choose_first_enhancement(CAP_LOCAL_MAP, &context(&runtime)).unwrap_err(),
         "E_ENHANCEMENT_REQUIRES_FORMAL_PAUSE"
     );
-    runtime.pause().unwrap();
-    runtime.choose_first_enhancement(CAP_LOCAL_MAP).unwrap();
+    open_terminal(&runtime);
+    runtime.choose_first_enhancement(CAP_LOCAL_MAP, &context(&runtime)).unwrap();
 
     let view = runtime.snapshot().unwrap();
     assert!(view

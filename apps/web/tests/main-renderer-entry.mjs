@@ -128,16 +128,18 @@ test("pause controls queue authoritative transitions and leave renderer session 
   assert.match(source, /if \(sessionLoop\) void sessionLoop\.stop\("unload"\)/);
 });
 
-test("first-clear choices require a confirmed paused Grey Hive snapshot and discard departed-session receipts", () => {
-  assert.match(source, /id="first-enhancement"[\s\S]*?information\.local_map_i[\s\S]*?perception\.rear_view_i[\s\S]*?body\.regeneration_i/);
-  assert.match(source, /pausePresentationState === "paused" && snapshot\?\.worldId === "grey_hive"/);
-  assert.match(source, /firstCompletion === true/);
-  assert.match(source, /loop\.runWhilePaused\(\(\) => client\.chooseFirstEnhancement\(capabilityId\)\)/);
-  assert.match(clientSource, /"formal_choose_first_enhancement", \{ capabilityId \}/);
-  assert.match(source, /sessionLoop !== loop \|\| !loop\.acceptsExternalResults/);
-  assert.match(source, /await loop\.acceptAuthoritativeSnapshot\(receipt\.snapshot\)/);
-  assert.match(source, /enhancementFeedback\.textContent = message/);
-  assert.match(source, /if \(loop\.pausePresentationState !== "paused"\) hud\.setFeedback\(message\)/);
+test("first-clear choices live in a dedicated terminal modal with contextual pause and stale receipt guards", async () => {
+  const evolution = await readFile(new URL("../src/game/FirstEvolution.ts", import.meta.url), "utf8");
+  assert.match(source, /id="first-enhancement"[^>]*role="dialog"/);
+  assert.match(source, /evolution.open/);
+  assert.match(evolution, /worldId !== "return_station"/);
+  assert.match(evolution, /sceneId !== "rs_core_room"/);
+  assert.match(evolution, /firstEnhancementChoice === null/);
+  assert.match(evolution, /await owner.loop.pause/);
+  assert.match(evolution, /owner.loop.runWhilePaused/);
+  assert.match(evolution, /pauseCommandSequence/);
+  assert.match(evolution, /E_ENHANCEMENT_RECEIPT_STALE_SESSION/);
+  assert.match(clientSource, /"formal_choose_first_enhancement", \{ capabilityId, context:/);
 });
 
 test("selected enhancement HUD follows initial, Continue, and accepted snapshots, then clears on identity or session exit", () => {
@@ -147,8 +149,8 @@ test("selected enhancement HUD follows initial, Continue, and accepted snapshots
   assert.match(source, /await enterJourney\(receipt\.snapshot, controller\.signal, requestId\)/);
   assert.match(source, /enhancementStatusHud\.reset\(\);\s*audioCuePlayer\.suspend\(\);\s*await sessionLoop\?\.stop\("hub"\);\s*if \(requestId !== journeyRequestId\) return;\s*const snapshot = await client\.returnToHub\(\);\s*if \(requestId !== journeyRequestId\) return;\s*audioCuePlayer\.setEpoch\(snapshot\.worldEpoch\);\s*audioCuePlayer\.setScene\(snapshot\.worldId, snapshot\.sceneId\);\s*audioCuePlayer\.resume\(\);\s*hud\.reset\(\);\s*enhancementStatusHud\.reset\(\)/);
   assert.match(source, /window\.addEventListener\("pagehide"[\s\S]*?enhancementStatusHud\.reset\(\)/);
-  assert.match(enhancementHudSource, /item\.granted && item\.selected/);
-  assert.match(enhancementHudSource, /world\.completed === true && world\.firstCompletion === true/);
+  assert.match(enhancementHudSource, /firstEnhancementChoice/);
+  assert.match(enhancementHudSource, /world\.completed === true/);
 });
 
 

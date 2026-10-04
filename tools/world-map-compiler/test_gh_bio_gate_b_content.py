@@ -172,7 +172,7 @@ class GreyHiveBioGateBContentTests(unittest.TestCase):
             hub = by_id["rs_core_room"]
             self.assertEqual(len(scenes), 30)
             source_hashes = {
-                "rs_core_room": "aa04911df77ef3622a3f1317173b8fa148070ee1ef159a03b2d810f7af4bd355",
+                "rs_core_room": "f7756e15745ce29c601fc4791b34df5a7a16149504cdd81ede303e9325728b2a",
                 "mh_extraction": "17f8a93fd1caecd7873113bb5ae0a156936d39cff4c7bb131e3895112e016008",
             }
             for scene_id, expected_hash in source_hashes.items():

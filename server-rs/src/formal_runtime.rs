@@ -43,6 +43,7 @@ pub(crate) mod entry_test_support;
 pub mod build_ui;
 pub mod build_v6;
 mod capability_sources;
+mod scanner_reward;
 #[cfg(test)]
 mod world_gate_dedup_tests;
 #[cfg(test)]
@@ -63,6 +64,16 @@ mod ordinary_enemy_presentation;
 mod combat_presentation;
 pub(crate) mod environmental_hazards;
 mod live_rules;
+#[cfg(test)]
+mod first_evolution_tests;
+#[cfg(test)]
+mod scanner_reward_tests;
+#[cfg(test)]
+mod save_slot_overwrite_tests;
+#[cfg(test)]
+mod rest_transaction_tests;
+#[cfg(test)]
+mod reward_save_target_tests;
 pub(crate) mod warden_encounter;
 #[cfg(feature = "deterministic-replay")]
 mod replay;
@@ -393,6 +404,7 @@ pub(crate) struct RuntimeState {
     pub(crate) pending_entry: Option<crate::world_v3::SceneEntryToken>,
     pub(crate) entry_pause_requested: bool,
     pub(crate) last_lifecycle_sequence: u64,
+    pub(crate) enhancement_terminal: Option<EnhancementTerminalContext>,
     pub(crate) last_owner_error: Option<String>,
 }
 
@@ -404,6 +416,16 @@ pub struct SessionContext {
     pub world_id: String,
     pub scene_id: String,
     pub world_epoch: u64,
+}
+
+/// Transient terminal-to-pause authorization; never serialized in a save.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct EnhancementTerminalContext {
+    pub id: String,
+    pub request_id: String,
+    pub world_epoch: u64,
+    pub pause_command_sequence: u64,
 }
 
 /// Managed by Tauri as the sole formal runtime owner.
@@ -460,15 +482,7 @@ impl FormalRuntime {
         if self.reject_dead_save(None).is_err() || self.reject_staged_clockworks_save(None).is_err() {
             return false;
         }
-        let save = if crate::save_v6::path_present(&crate::save_v6::save_path(&self.save_root)) {
-            crate::save_v6::read_save(&self.save_root)
-        } else if crate::save_v6::path_present(&crate::save_v5::save_path(&self.save_root)) {
-            crate::save_v5::read_save(&self.save_root).and_then(crate::save_v6::SaveV6::from_v5)
-        } else {
-            crate::save_v5::read_v4(&self.save_root)
-                .and_then(|legacy| crate::save_v5::from_v4(&legacy))
-                .and_then(crate::save_v6::SaveV6::from_v5)
-        };
+        let save = self.read_default_candidate();
         save.and_then(|save| {
             let state = self.state.lock().map_err(|_| "E_RUNTIME_LOCK_POISONED")?;
             self.prepare_default_save(&save, &state).map(|_| ())
@@ -477,10 +491,19 @@ impl FormalRuntime {
 
     pub fn list_save_slots(&self) -> Vec<crate::save_slots::SlotSummary> {
         crate::save_slots::list_slots(&self.save_root).into_iter().map(|mut slot| {
+            if slot.recoverable && slot.valid {
+                let candidate = if slot.slot_id == "legacy-save-v3" { self.read_default_candidate() }
+                    else { crate::save_slots::read_slot_v6_candidate(&self.save_root, &slot.slot_id).map(|(_, save)| save) };
+                let validation = candidate.and_then(|save| {
+                    let state = self.state.lock().map_err(|_| "E_RUNTIME_LOCK_POISONED")?;
+                    self.prepare_default_save(&save, &state).map(|_| ())
+                });
+                if let Err(error) = validation { slot.valid = false; slot.error_code = Some(error); }
+            }
             if slot.current_hp == Some(0) {
                 slot.valid = false;
                 slot.error_code = Some("E_SAVE_PLAYER_DEAD".into());
-            } else if slot.slot_id == "legacy-save-v3" && slot.valid && !self.has_default_save() {
+            } else if crate::save_slots::is_reserved_slot_id(&slot.slot_id) && slot.valid && !self.has_default_save() {
                 // This virtual slot continues the winning default source, not
                 // the legacy file directly. Do not bypass a blocked newer file.
                 slot.valid = false;
@@ -619,7 +642,28 @@ impl FormalRuntime {
         Ok(project_scene_view(&state, scene.as_ref()))
     }
 
+    /// Durable destination for rest, first Evolution and Scanner F only.
+    /// An invalid named target must fail rather than silently saving elsewhere.
+    fn persist_current_progress(&self, save: &crate::save_v6::SaveV6) -> Result<(), String> {
+        let slot = self.active_slot.lock().map_err(|_| "E_SLOT_LOCK_POISONED")?;
+        if let Some(slot_id) = slot.as_deref() {
+            let (name, _) = crate::save_slots::read_slot_v6_candidate(&self.save_root, slot_id)?;
+            crate::save_slots::require_writable_current_source(&self.save_root, slot_id)?;
+            crate::save_slots::overwrite_slot_v6(&self.save_root, slot_id, &name, save)
+        } else {
+            crate::save_v6::write_save(&self.save_root, save)
+        }
+    }
+
     fn reject_dead_save(&self, slot_id: Option<&str>) -> Result<(), String> {
+        let canonical = match slot_id {
+            None | Some("legacy-save-v3") => crate::save_v6::save_path(&self.save_root),
+            Some(id) => { crate::save_slots::validate_slot_id(id)?; self.save_root.join("slots").join(id).join("slot-v6.json") }
+        };
+        if !crate::save_v6::path_present(&canonical) && crate::save_v6::recovery::backup(&canonical, "E_SAVE")?.is_some() {
+            // Full backup validation, death and scene checks happen on the actual candidate.
+            return Ok(());
+        }
         let paths = match slot_id {
             None | Some("legacy-save-v3") => vec![
                 crate::save_v6::save_path(&self.save_root),
@@ -653,6 +697,14 @@ impl FormalRuntime {
     }
 
     fn reject_staged_clockworks_save(&self, slot_id: Option<&str>) -> Result<(), String> {
+        let canonical = match slot_id {
+            None | Some("legacy-save-v3") => crate::save_v6::save_path(&self.save_root),
+            Some(id) => { crate::save_slots::validate_slot_id(id)?; self.save_root.join("slots").join(id).join("slot-v6.json") }
+        };
+        if !crate::save_v6::path_present(&canonical) && crate::save_v6::recovery::backup(&canonical, "E_SAVE")?.is_some() {
+            // Full backup validation, death and scene checks happen on the actual candidate.
+            return Ok(());
+        }
         let restricted_production = self
             .scene_registry
             .lock()
@@ -752,134 +804,32 @@ impl FormalRuntime {
     }
 
     pub fn continue_slot(&self, slot_id: &str) -> Result<WorldView, String> {
+        if crate::save_slots::is_reserved_slot_id(slot_id) {
+            crate::save_slots::require_unambiguous_legacy_alias(&self.save_root)?;
+        }
         self.reject_dead_save(Some(slot_id))?;
         self.reject_staged_clockworks_save(Some(slot_id))?;
-        let save = if slot_id == "legacy-save-v3" {
-            crate::save_v6::read_or_migrate(&self.save_root)?
+        let mut state = self.state.lock().map_err(|_| "E_RUNTIME_LOCK_POISONED")?;
+        let (display_name, save, recovery) = if slot_id == "legacy-save-v3" {
+            { let (save, recovery) = self.read_default_source()?; (String::new(), save, recovery) }
         } else {
-            crate::save_slots::read_slot_v6(&self.save_root, slot_id)?.1
+            crate::save_slots::read_slot_v6_source(&self.save_root, slot_id)?
         };
-        self.reject_staged_clockworks_world(&save.save.world_id, &save.save.scene_id)?;
-        if save.save.player.current_hp == 0 { return Err("E_SAVE_PLAYER_DEAD".into()); }
-        let mut restored = save.restore_state()?;
-        restored.world.last_input_seq = 0;
-        restored.world.last_client_time_ms = 0;
-        restored.world.combat_state = Default::default();
-        restored.last_received_seq = 0;
-        restored.last_client_time_ms = 0;
-        restored.latest_sample =
-            InputSample::new(restored.world.revision.world_epoch, 0, 0, 0.0, 0.0)
-                .map_err(|error| format!("E_SAVE_INPUT: {error:?}"))?;
-        restored.pending_combat.clear();
-        let mut state = self
-            .state
-            .lock()
-            .map_err(|_| "E_RUNTIME_LOCK_POISONED".to_string())?;
-        Self::rebase_restored_entry(&mut restored, &state)?;
-        let mut scene_runtime = None;
-        if save.save.scene_id != save.save.world_id {
-            let registry = self
-                .scene_registry
-                .lock()
-                .map_err(|_| "E_SCENE_REGISTRY_LOCK_POISONED")?;
-            let registry = registry.as_ref().ok_or("E_SAVE_SCENE_REGISTRY_REQUIRED")?;
-            scene_runtime = Some(restore_scene_state(
-                registry.clone(),
-                &save.save,
-                restored.world.revision.world_epoch,
-            )?);
-            clockworks_controls::restore_scene(
-                scene_runtime.as_mut().expect("runtime just restored"),
-                &restored.world_persistent_v1.clockworks,
-            )?;
-            let scene = scene_runtime
-                .as_ref()
-                .expect("runtime just restored")
-                .current_scene();
-            if scene.world_id != save.save.world_id {
-                return Err("E_SAVE_SCENE_WORLD_MISMATCH".into());
-            }
-            let spawned_legacy_actors = restored.world.generic_actors.is_empty();
-            restore_generic_actors(&mut restored.world, scene,
-                &mut restored.world_persistent_v1,
-                scene_runtime.as_ref().unwrap().is_complete_clockworks_production())?;
-            if spawned_legacy_actors {
-                reset_clockworks_regulator_encounter_for_new_boss(
-                    &mut restored.world_persistent_v1.clockworks,
-                    scene,
-                    &restored.world,
-                )?;
-            }
-            clockworks_core::restore_regulator_progression(
-                &mut restored.world,
-                scene,
-                &restored.world_persistent_v1.clockworks,
-            )?;
-            restore_clockworks_elite_progression(
-                &mut restored.world,
-                scene,
-                restored
-                    .world_persistent_v1
-                    .clockworks
-                    .forged_guard_elite_first_kill,
-            )?;
-            restore_sentinels(&mut restored.world, scene)?;
-            enable_native_sentinel_charge(&mut restored.world, scene, scene_runtime.as_ref().unwrap().is_complete_clockworks_production())?;
-            restored.kcc = scene_kcc_for_state(
-                scene,
-                &completed_world_events(&restored, &save.save.world_id),
-                &restored,
-            )?;
-            if !restored.world.actors_have_stable_support(&restored.kcc) {
-                return Err("E_SAVE_ACTOR_SUPPORT_INVALID".into());
-            }
-            let upgraded_floor = gear_shaft_support::restore_candidate(&mut restored, &save.save, scene,
-                scene_runtime.as_ref().unwrap().is_complete_clockworks_production())?;
-            if !upgraded_floor && !restored.kcc.validate_saved_support_frame(save.save.moving_support_frame.as_ref(),
-                save.save.revision.world_epoch, save.save.server_time_ms) {
-                return Err("E_SAVE_SUPPORT_FRAME_INVALID".into());
-            }
-            if !restored.kcc.valid_saved_support_contact(&restored.world.player, restored.world.server_time_ms) {
-                return Err("E_SAVE_SUPPORT_CONTACT_INVALID".into());
-            }
-            if !restored.kcc.can_occupy(
-                restored.world.player.position_m,
-                restored.world.player.radius_m,
-            ) {
-                return Err("E_SAVE_PLAYER_POSITION_INVALID".into());
-            }
-            restored.world.combat_state.traversal_markers =
-                scene_runtime.as_ref().unwrap().traversals();
-        }
-        if scene_runtime.is_none() && save.save.moving_support_frame.is_some() {
-            return Err("E_SAVE_SUPPORT_FRAME_INVALID".into());
-        }
-        if let Some(scene) = scene_runtime.as_ref() {
-            update_mist_harbor_exploration(&mut restored, scene.current_scene(), false)?;
-            environmental_hazards::prepare_scene(&mut restored, scene.current_scene())?;
-            warden_encounter::prepare_scene(&mut restored, scene.current_scene())?;
-            ordinary_enemy_presentation::prepare_restored(&mut restored, scene);
-        }
-        // Saved epochs may repeat on repeated Continue. Keep the ephemeral Build command
-        // revision monotonic within this owner without changing any saved authority records.
-        restored.build_commands.revision = state
-            .build_commands
-            .revision
-            .checked_add(1)
-            .filter(|value| *value <= build_ui::MAX_SAFE_REVISION)
-            .ok_or("E_BUILD_REVISION_EXHAUSTED")?;
-        // A held Continue clears horizontal intent, while gravity remains exact
-        // for an airborne save in a source-validated moving-support scene.
-        let support_vertical_velocity = restored.kcc.has_support_surfaces()
-            .then_some(restored.world.player.velocity_mps.y_m);
-        Self::prepare_entry(&mut restored, state.entry_generation)?;
-        if let Some(vertical) = support_vertical_velocity {
-            restored.world.player.velocity_mps.y_m = vertical;
-            // Combat's ephemeral dash direction is deliberately not restored.
-            restored.world.player.dash_remaining_ms = 0;
-        }
+        let (mut restored, scene_runtime) = self.prepare_default_save(&save, &state)?;
+        let upgraded = scanner_reward::restore_candidate(&mut restored, scene_runtime.as_ref(), &save.save)?;
         let mut scene = self.scene_runtime.lock().map_err(|_| "E_SCENE_RUNTIME_LOCK_POISONED")?;
         let mut slot = self.active_slot.lock().map_err(|_| "E_SLOT_LOCK_POISONED")?;
+        #[cfg(test)] if recovery.is_some() { crate::save_v6::recovery_test_before_continue(); }
+        // Commit the complete validated candidate before publishing either live owner.
+        if slot_id == "legacy-save-v3" {
+            if recovery.is_some() || upgraded || !crate::save_v6::path_present(&crate::save_v6::save_path(&self.save_root)) {
+                let durable = if upgraded { crate::save_v6::SaveV6::capture(&restored, scene_runtime.as_ref())? } else { save.clone() };
+                self.write_continued_default(&durable, recovery.as_ref())?;
+            }
+        } else if recovery.is_some() || upgraded || !crate::save_slots::slot_v6_present(&self.save_root, slot_id)? {
+            let durable = if upgraded { crate::save_v6::SaveV6::capture(&restored, scene_runtime.as_ref())? } else { save.clone() };
+            crate::save_slots::write_continued_slot_v6(&self.save_root, slot_id, &display_name, &durable, recovery.as_ref())?;
+        }
         *state = restored;
         *scene = scene_runtime;
         *slot = if slot_id == "legacy-save-v3" { None } else { Some(slot_id.into()) };
@@ -956,12 +906,48 @@ impl FormalRuntime {
             .state
             .lock()
             .map_err(|_| "E_RUNTIME_LOCK_POISONED".to_string())?;
-        let save = crate::save_v6::read_or_migrate(&self.save_root)?;
-        let (restored, scene_runtime) = self.prepare_default_save(&save, &state)?;
+        let (save, recovery) = self.read_default_source()?;
+        let (mut restored, scene_runtime) = self.prepare_default_save(&save, &state)?;
+        let upgraded = scanner_reward::restore_candidate(&mut restored, scene_runtime.as_ref(), &save.save)?;
         let mut scene = self.scene_runtime.lock().map_err(|_| "E_SCENE_RUNTIME_LOCK_POISONED")?;
+        let mut slot = self.active_slot.lock().map_err(|_| "E_SLOT_LOCK_POISONED")?;
+        #[cfg(test)] if recovery.is_some() { crate::save_v6::recovery_test_before_continue(); }
+        if recovery.is_some() || upgraded || !crate::save_v6::path_present(&crate::save_v6::save_path(&self.save_root)) {
+            let durable = if upgraded { crate::save_v6::SaveV6::capture(&restored, scene_runtime.as_ref())? } else { save.clone() };
+            self.write_continued_default(&durable, recovery.as_ref())?;
+        }
         *state = restored;
         *scene = scene_runtime;
+        *slot = None;
         Ok(project_scene_view(&state, scene.as_ref()))
+    }
+
+    fn write_continued_default(&self, save: &crate::save_v6::SaveV6, backup: Option<&crate::save_v6::recovery::Backup>) -> Result<(), String> {
+        if let Some(backup) = backup { return crate::save_v6::write_recovered_save(&self.save_root, save, backup); }
+        crate::save_v6::recovery::require_no_recovery(&crate::save_v6::save_path(&self.save_root), "E_SAVE")?;
+        if !crate::save_v6::path_present(&crate::save_v6::save_path(&self.save_root))
+            && !crate::save_v6::path_present(&crate::save_v5::save_path(&self.save_root)) {
+            crate::save_v6::retain_v4_backup(&crate::save_v3::save_path(&self.save_root), "E_SAVE")?;
+        }
+        crate::save_v6::write_save(&self.save_root, save)
+    }
+
+    fn read_default_candidate(&self) -> Result<crate::save_v6::SaveV6, String> {
+        self.read_default_source().map(|(save, _)| save)
+    }
+
+    fn read_default_source(&self) -> Result<(crate::save_v6::SaveV6, Option<crate::save_v6::recovery::Backup>), String> {
+        if let Some(candidate) = crate::save_v6::read_candidate(&self.save_root)? {
+            return Ok(candidate);
+        }
+        let save = if crate::save_v6::path_present(&crate::save_v5::save_path(&self.save_root)) {
+            crate::save_v5::read_save(&self.save_root).and_then(crate::save_v6::SaveV6::from_v5)?
+        } else {
+            crate::save_v5::read_v4(&self.save_root)
+                .and_then(|legacy| crate::save_v5::from_v4(&legacy))
+                .and_then(crate::save_v6::SaveV6::from_v5)?
+        };
+        Ok((save, None))
     }
 
     /// Build and validate a candidate without installing it or writing save files.
@@ -1158,6 +1144,7 @@ impl FormalRuntime {
             pending_entry: None,
             entry_pause_requested: false,
             last_lifecycle_sequence: 0,
+            enhancement_terminal: None,
             last_owner_error: None,
         })
     }
@@ -1710,10 +1697,11 @@ impl FormalRuntime {
         request_id: &str,
         world_epoch: u64,
     ) -> Result<WorldView, String> {
-        let state = self
+        let mut state = self
             .state
             .lock()
             .map_err(|_| "E_RUNTIME_LOCK_POISONED".to_string())?;
+        if state.pending_entry.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if state.world.player_hp == 0 { return Err("E_RUNTIME_DEAD".into()); }
         if state.paused {
             return Err("E_RUNTIME_PAUSED".into());
@@ -1752,18 +1740,23 @@ impl FormalRuntime {
         let dx = position.x_m - marker.position[0];
         let dy = position.y_m - marker.position[1];
         let dz = position.z_m - marker.position[2];
-        if (dx * dx + dy * dy + dz * dz).sqrt() > 2.5
+        let distance = (dx * dx + dy * dy + dz * dz).sqrt();
+        if !distance.is_finite() || distance > 2.5
             || marker.height_range_m.is_some_and(|range|!range.contains(position.y_m)) {
             return Err("E_CAPABILITY_TERMINAL_OUT_OF_RANGE".into());
         }
         active
             .claim_command_request(request_id, world_epoch)
             .map_err(|error| format!("E_CAPABILITY_TERMINAL_{error:?}"))?;
+        state.enhancement_terminal = Some(EnhancementTerminalContext {
+            id: terminal_id.into(), request_id: request_id.into(), world_epoch,
+            pause_command_sequence: 0,
+        });
         Ok(project_scene_view(&state, scene.as_ref()))
     }
 
     /// Rest at the one authored Return Station terminal, then persist the
-    /// resulting authoritative state through the existing SaveV5 store.
+    /// resulting authoritative state through the existing SaveV6 store.
     pub fn save_rest_terminal(
         &self,
         terminal_id: &str,
@@ -1822,7 +1815,8 @@ impl FormalRuntime {
             || marker.height_range_m.is_some_and(|range|!range.contains(position.y_m)) {
             return Err("E_REST_TERMINAL_OUT_OF_RANGE".into());
         }
-        active
+        let mut candidate = active.clone();
+        candidate
             .claim_command_request(request_id, world_epoch)
             .map_err(|error| format!("E_REST_TERMINAL_{error:?}"))?;
 
@@ -1833,9 +1827,10 @@ impl FormalRuntime {
             .world
             .bump_authority_revision()
             .map_err(|error| format!("E_WORLD_REVISION: {error:?}"))?;
-        let save = crate::save_v6::SaveV6::capture(&rested, Some(active))?;
-        crate::save_v6::write_save(&self.save_root, &save)?;
+        let save = crate::save_v6::SaveV6::capture(&rested, Some(&candidate))?;
+        self.persist_current_progress(&save)?;
         *state = rested;
+        *scene = Some(candidate);
         Ok(project_scene_view(&state, scene.as_ref()))
     }
 
@@ -2535,6 +2530,19 @@ impl FormalRuntime {
                 ));
             }
         }
+        let scanner = interaction_id == scanner_reward::OBJECT_ID;
+        if scanner {
+            if let Err(error) = scanner_reward::validate(&state, active, request_id, world_epoch) {
+                return Ok(interaction_rejected(&state, guard.as_ref(), &error));
+            }
+            if scanner_reward::online(&state, active) {
+                let view = project_scene_view(&state, guard.as_ref());
+                return Ok(FormalInteractionResponse {
+                    applied: false, already_applied: true, error_code: None, events: vec![],
+                    receipt: CommandReceipt::outcome(request_id, false, true, None, view.clone()), view,
+                });
+            }
+        }
         let pump_control_position = active
             .current_scene()
             .interactions
@@ -2565,6 +2573,13 @@ impl FormalRuntime {
                 Err(error) => return Ok(interaction_rejected(&state, guard.as_ref(), &error)),
             },
         };
+        let reconfirmed = if scanner && candidate.object_activated(interaction_id) {
+            // The original facility-log activation is retained; only its missing reward is repaired.
+            if let Err(error) = candidate.claim_command_request(request_id, world_epoch) {
+                return Ok(interaction_rejected(&state, guard.as_ref(), &error.to_string()));
+            }
+            Some(vec![])
+        } else { reconfirmed };
         let interacted = match reconfirmed {
             Some(events) => Ok(events),
             None => candidate.interact(
@@ -2679,6 +2694,11 @@ impl FormalRuntime {
             emit_scene_presentation(&mut next_state, event);
         }
         emit_authored_signal_ping(&mut next_state, &candidate, &events)?;
+        if scanner {
+            scanner_reward::grant_candidate(&mut next_state)?;
+            let save = crate::save_v6::SaveV6::capture(&next_state, Some(&candidate))?;
+            self.persist_current_progress(&save)?;
+        }
         *state = next_state;
         *guard = Some(candidate);
         let view = project_scene_view(&state, guard.as_ref());
@@ -3089,41 +3109,65 @@ impl FormalRuntime {
         self.project_locked_scene_view(&state)
     }
 
-    pub fn choose_first_enhancement(&self, capability_id: &str) -> Result<WorldView, String> {
-        let mut state = self
-            .state
-            .lock()
-            .map_err(|_| "E_RUNTIME_LOCK_POISONED".to_string())?;
+    pub fn choose_first_enhancement(&self, capability_id: &str, context: &EnhancementTerminalContext) -> Result<WorldView, String> {
+        let mut state = self.state.lock().map_err(|_| "E_RUNTIME_LOCK_POISONED")?;
         if state.pending_entry.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if state.world.player_hp == 0 { return Err("E_RUNTIME_DEAD".into()); }
-        if !state
-            .route
-            .progress
-            .iter()
-            .find(|progress| progress.world_id == crate::world_progression::WORLD_GREY_HIVE)
-            .is_some_and(|progress| progress.completed)
-        {
+        if state.world.world_id != "return_station" || state.world.scene_id != "rs_core_room" {
+            return Err("E_ENHANCEMENT_WrongRewardLocation".into());
+        }
+        if !state.route.progress.iter().any(|progress| progress.world_id == "grey_hive" && progress.completed) {
             return Err("E_CAPABILITY_REQUIRES_GH_FIRST_CLEAR".into());
         }
-        if !state.paused {
-            return Err("E_ENHANCEMENT_REQUIRES_FORMAL_PAUSE".into());
+        if state.capabilities.first_enhancement_choice.is_some() {
+            return Err("E_CAPABILITY_REJECTED: FirstEnhancementAlreadyChosen".into());
         }
-        let mut candidate = state.capabilities.clone();
-        let effects = choose_first_enhancement(&mut candidate, capability_id, state.world.revision)
+        if !state.paused { return Err("E_ENHANCEMENT_REQUIRES_FORMAL_PAUSE".into()); }
+        if context.world_epoch != state.world.revision.world_epoch {
+            return Err("E_ENHANCEMENT_STALE_EPOCH".into());
+        }
+        if context.id != "rs_capability_terminal_marker" || !valid_id(&context.request_id)
+            || context.pause_command_sequence == 0
+            || context.pause_command_sequence != state.last_lifecycle_sequence
+            || state.enhancement_terminal.as_ref() != Some(context) {
+            return Err("E_ENHANCEMENT_TERMINAL_CONTEXT".into());
+        }
+        let scene = self.scene_runtime.lock().map_err(|_| "E_SCENE_RUNTIME_LOCK_POISONED")?;
+        let active = scene.as_ref().ok_or("E_SCENE_REGISTRY_NOT_LOADED")?;
+        let definition = active.current_scene();
+        if definition.world_id != "return_station" || definition.scene_id != "rs_core_room"
+            || active.world_epoch != context.world_epoch {
+            return Err("E_ENHANCEMENT_SCENE_MISMATCH".into());
+        }
+        let marker = definition.interactions.iter().find(|item|
+            item.id == context.id && item.kind == "capability_terminal_marker")
+            .ok_or("E_CAPABILITY_TERMINAL_MARKER_MISSING")?;
+        let position = state.world.player.position_m;
+        let distance = ((position.x_m - marker.position[0]).powi(2)
+            + (position.y_m - marker.position[1]).powi(2)
+            + (position.z_m - marker.position[2]).powi(2)).sqrt();
+        if !distance.is_finite() || distance > 2.5
+            || marker.height_range_m.is_some_and(|range| !range.contains(position.y_m)) {
+            return Err("E_CAPABILITY_TERMINAL_OUT_OF_RANGE".into());
+        }
+        // Validate and change only the clone. Durable commit precedes in-memory success.
+        let mut candidate = state.clone();
+        let mut capabilities = candidate.capabilities.clone();
+        let effects = choose_first_enhancement(&mut capabilities, capability_id, candidate.world.revision)
             .map_err(|error| format!("E_CAPABILITY_REJECTED: {error:?}"))?;
-        candidate
-            .set_explored_map(state.world.explored.clone())
+        capabilities.set_explored_map(candidate.world.explored.clone())
             .map_err(|error| format!("E_CAPABILITY_MAP: {error:?}"))?;
-        let mut world = state.world.clone();
+        let mut world = candidate.world.clone();
         if !effects.is_empty() {
-            apply_effects_atomically(&mut world, &effects)
-                .map_err(|error| format!("E_WORLD_EFFECT: {error:?}"))?;
+            apply_effects_atomically(&mut world, &effects).map_err(|error| format!("E_WORLD_EFFECT: {error:?}"))?;
         }
-        world
-            .bump_authority_revision()
-            .map_err(|error| format!("E_WORLD_REVISION: {error:?}"))?;
-        state.install_capability_state(world, candidate)?;
-        self.project_locked_scene_view(&state)
+        world.bump_authority_revision().map_err(|error| format!("E_WORLD_REVISION: {error:?}"))?;
+        candidate.install_capability_state(world, capabilities)?;
+        let save = crate::save_v6::SaveV6::capture(&candidate, scene.as_ref())?;
+        self.persist_current_progress(&save)?;
+        candidate.enhancement_terminal = None;
+        *state = candidate;
+        Ok(project_scene_view(&state, scene.as_ref()))
     }
 
     fn rebase_restored_entry(restored: &mut RuntimeState, live: &RuntimeState) -> Result<(), String> {
@@ -3143,6 +3187,7 @@ impl FormalRuntime {
             .filter(|generation| *generation <= build_ui::MAX_SAFE_REVISION)
             .ok_or("E_SCENE_ENTRY_GENERATION_EXHAUSTED")?;
         state.world.bump_authority_revision().map_err(|error| format!("E_WORLD_REVISION: {error:?}"))?;
+        state.enhancement_terminal = None;
         state.entry_generation = generation;
         state.entry_pause_requested = false;
         state.pending_entry = Some(crate::world_v3::SceneEntryToken {
@@ -3236,6 +3281,14 @@ impl FormalRuntime {
             || !state.pending_combat.is_empty() || held_guard;
         let mut candidate = state.clone();
         if let Some(sequence) = sequence { candidate.last_lifecycle_sequence = sequence; }
+        if !paused { candidate.enhancement_terminal = None; }
+        else if context.is_some() && sequence.is_some() && !state.paused {
+            if let Some(ticket) = candidate.enhancement_terminal.as_mut() {
+                if ticket.world_epoch == candidate.world.revision.world_epoch && ticket.pause_command_sequence == 0 {
+                    ticket.pause_command_sequence = sequence.unwrap();
+                }
+            }
+        }
         if paused && context.is_some() && candidate.pending_entry.is_some() {
             // A stopped/failed frontend may have an older ready(false) still in transit.
             // That token can be acknowledged, but cannot override this newer hold.
@@ -4337,7 +4390,9 @@ fn project_scene_view(state: &RuntimeState, scene: Option<&SceneRuntime>) -> Wor
                 active: if scene.is_complete_clockworks_production() && grey_hive_beacon::is_beacon_id(&item.id) {
                     grey_hive_beacon::available(state, scene, &item.id)
                 } else { definition.height_allows(&item.id,state.world.player.position_m.y_m)
+                    && (item.id != scanner_reward::OBJECT_ID || scanner_reward::available(state, scene, &item.id))
                     && (!scene.object_activated(&item.id)
+                    || scanner_reward::available(state, scene, &item.id)
                     || clockworks_controls::reconfirmation_available(state, scene, &item.id)
                     || grey_hive_beacon::extraction_reconfirmation_available(state, scene, &item.id)
                     || (item.id == clockworks_campaign::SHUTDOWN_ID
@@ -10295,13 +10350,17 @@ mod tests {
         assert_eq!(runtime.snapshot().unwrap().world_id, "grey_hive");
     }
 
+    fn test_enhancement_context() -> EnhancementTerminalContext {
+        EnhancementTerminalContext { id: "rs_capability_terminal_marker".into(), request_id: "test-terminal".into(), world_epoch: 1, pause_command_sequence: 1 }
+    }
+
     #[test]
     fn capability_first_choice_is_rejected_before_grey_hive_first_clear() {
         let runtime = FormalRuntime::new().unwrap();
         let before = runtime.snapshot().unwrap();
         assert_eq!(
-            runtime.choose_first_enhancement(CAP_REAR_VIEW).unwrap_err(),
-            "E_CAPABILITY_REQUIRES_GH_FIRST_CLEAR"
+            runtime.choose_first_enhancement(CAP_REAR_VIEW, &test_enhancement_context()).unwrap_err(),
+            "E_ENHANCEMENT_WrongRewardLocation"
         );
         let after = runtime.snapshot().unwrap();
         assert_eq!(after.capabilities.items, before.capabilities.items);
@@ -10672,14 +10731,14 @@ mod tests {
         let rejected = runtime.apply_build_command(request.clone()).unwrap();
         assert!(!rejected.applied && !rejected.already_applied);
         assert_eq!(rejected.error_code.as_deref(), Some("E_SCENE_ENTRY_NOT_READY"));
-        assert_eq!(runtime.choose_first_enhancement(CAP_LOCAL_MAP).unwrap_err(), "E_SCENE_ENTRY_NOT_READY");
+        assert_eq!(runtime.choose_first_enhancement(CAP_LOCAL_MAP, &test_enhancement_context()).unwrap_err(), "E_SCENE_ENTRY_NOT_READY");
         assert_eq!(runtime.save().unwrap_err(), "E_SCENE_ENTRY_NOT_READY");
         assert_eq!(runtime.save_slot("blocked", "Blocked", true).unwrap_err(), "E_SCENE_ENTRY_NOT_READY");
         assert_eq!(runtime.snapshot().unwrap(), before);
         assert!(!runtime.save_root.exists());
         runtime.scene_ready(before.entry_token.as_ref().unwrap(), true).unwrap();
         assert!(runtime.apply_build_command(request).unwrap().applied);
-        runtime.choose_first_enhancement(CAP_LOCAL_MAP).unwrap();
+        assert_eq!(runtime.choose_first_enhancement(CAP_LOCAL_MAP, &test_enhancement_context()).unwrap_err(), "E_ENHANCEMENT_WrongRewardLocation");
         assert!(runtime.snapshot().unwrap().entry_token.is_none());
     }
 
@@ -10716,7 +10775,7 @@ mod tests {
         assert_eq!(runtime.resume().unwrap_err(), "E_RUNTIME_DEAD");
         assert_eq!(runtime.save().unwrap_err(), "E_RUNTIME_DEAD");
         assert_eq!(runtime.save_slot("living", "Living", false).unwrap_err(), "E_RUNTIME_DEAD");
-        assert_eq!(runtime.choose_first_enhancement(CAP_LOCAL_MAP).unwrap_err(), "E_RUNTIME_DEAD");
+        assert_eq!(runtime.choose_first_enhancement(CAP_LOCAL_MAP, &test_enhancement_context()).unwrap_err(), "E_RUNTIME_DEAD");
         assert_eq!(runtime.grant_trusted_build_item("rear_view_lens").unwrap_err(), "E_RUNTIME_DEAD");
         assert_eq!(runtime.return_to_hub_slot("living", "Living", false).unwrap_err(), "E_RUNTIME_DEAD");
         assert_eq!(runtime.return_to_hub().unwrap(), fatal);

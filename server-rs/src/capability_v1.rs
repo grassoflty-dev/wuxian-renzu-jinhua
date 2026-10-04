@@ -262,7 +262,7 @@ pub fn choose_first_enhancement(
     capability_id: &str,
     revision: WorldRevision,
 ) -> Result<Vec<WorldEffect>, CapabilityError> {
-    if state.world_id != "grey_hive" {
+    if state.world_id != "return_station" {
         return Err(CapabilityError::WrongWorld);
     }
     if state.first_enhancement_choice.is_some() {
@@ -271,20 +271,21 @@ pub fn choose_first_enhancement(
     if !FIRST_ENHANCEMENT_CHOICES.contains(&capability_id) {
         return Err(CapabilityError::IllegalFirstEnhancement);
     }
-    if state.has_grant(capability_id) {
-        return Err(CapabilityError::DuplicateGrant);
-    }
     if !revision_at_least(revision, state.current_revision) {
         return Err(CapabilityError::StaleRevision);
     }
     let mut candidate = state.clone();
     candidate.current_revision = revision;
     candidate.first_enhancement_choice = Some(capability_id.to_owned());
-    candidate.grants.push(CapabilityGrant {
-        capability_id: capability_id.to_owned(),
-        granted_at_revision: revision,
-    });
-    candidate.selected = vec![capability_id.to_owned()];
+    if !candidate.has_grant(capability_id) {
+        candidate.grants.push(CapabilityGrant {
+            capability_id: capability_id.to_owned(),
+            granted_at_revision: revision,
+        });
+    }
+    if !candidate.selected.iter().any(|id| id == capability_id) {
+        candidate.selected.push(capability_id.to_owned());
+    }
     let mut effects = vec![];
     if capability_id == CAP_REAR_VIEW {
         candidate.rear_view_authorization =
@@ -463,7 +464,9 @@ pub fn project_capabilities(
         cooldown_remaining_ms: 0,
     })
     .collect();
-    CapabilityProjection::new(items, explored_map, enemy_projection, rear_view)
+    let mut projection = CapabilityProjection::new(items, explored_map, enemy_projection, rear_view);
+    projection.first_enhancement_choice = state.first_enhancement_choice.clone();
+    projection
 }
 
 /// Preserve acquisition rows and legacy callers while the formal runtime authorizes information

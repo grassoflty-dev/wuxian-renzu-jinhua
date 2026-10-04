@@ -18,6 +18,7 @@ const ORDINARY_INTERACTION_KINDS = new Set([
 ]);
 
 export function interactionErrorText(code: string): string {
+  if (code === "E_SCANNER_POWER_REQUIRED") return "先恢复灰巢供电，再恢复扫描模块。";
   if (code === "E_BEACON_REQUIRED") return "先收取或部署便携信标；可从西侧返回信标室。";
   if (code === "E_BEACON_NOT_CARRIED") return "请先收取便携信标，再进行挂载。";
   if (code === "E_SCENE_SENTINEL_FIRST_KILL_REQUIRED") return "先击败哨卫，再前往信标室。";

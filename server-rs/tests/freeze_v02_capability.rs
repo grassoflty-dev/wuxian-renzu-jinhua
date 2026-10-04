@@ -134,6 +134,7 @@ fn four_canonical_grants_selects_serde_and_rejections() {
 fn first_grey_hive_enhancement_is_one_atomic_choice() {
     for chosen in [CAP_LOCAL_MAP, CAP_REAR_VIEW, CAP_REGENERATION] {
         let mut s = state(config(2.0, 0.75, 0, 0));
+        s.world_id = "return_station".into();
         let effects = choose_first_enhancement(&mut s, chosen, revision(1)).unwrap();
         assert_eq!(s.first_enhancement_choice.as_deref(), Some(chosen));
         assert_eq!(s.grants.len(), 1);

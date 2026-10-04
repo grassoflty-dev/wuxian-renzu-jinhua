@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { deriveHudState, HudPresenter } from "../dist/ui/Hud.js";
+import { projectWorldUi } from "../dist/renderer/WorldUiModel.js";
 
 globalThis.document = { createElement: () => element(), baseURI: "https://example.test/" };
 const testsDir = dirname(fileURLToPath(import.meta.url));
@@ -70,6 +71,55 @@ test("interaction target respects the server's 2.5 m 3D boundary and active stat
   assert.equal(deriveHudState(snapshot({ interactables: [{ ...interactable, transform: { positionM: { xM: 3.5001, yM: 0, zM: 1 }, yawRad: 0 } }] })).interactionId, null);
   assert.equal(deriveHudState(snapshot({ interactables: [{ ...interactable, transform: { positionM: { xM: 1, yM: 2.5001, zM: 1 }, yawRad: 0 } }] })).interactionId, null);
   assert.equal(deriveHudState(snapshot({ interactables: [{ ...interactable, active: false }] })).interactionId, null);
+});
+
+test("Grey Hive tutorial terminal prompt follows existing range, focus and authority, with no permanent marker", async () => {
+  const scene = JSON.parse(await readFile(resolve(repoRoot, "content/scenes/compiled/gh_entry_maintenance.json"), "utf8"));
+  const authored = scene.interactions.find(item => item.id === "gh_entry_tutorial_terminal");
+  assert.equal(authored.kind, "terminal");
+  assert.equal(authored.event, null);
+  assert.equal(authored.assetId, undefined);
+  assert.ok(!scene.presentation.sprites.some(item => item.id === authored.id));
+  const terminal = { entityId: authored.id, kind: authored.kind, active: true,
+    transform: { positionM: { xM: authored.position[0], yM: authored.position[1], zM: authored.position[2] }, yawRad: 0 } };
+  const value = snapshot({ interactables: [terminal] });
+  const position = value.player.transform.positionM;
+  const camera = { width: 1280, height: 720, origin: terminal.transform.positionM };
+  const { hud, elements } = presenter();
+  const observe = (visible) => {
+    const state = deriveHudState(value);
+    assert.equal(state.interactionText, visible ? "[F] 查看教程终端" : "");
+    assert.equal(state.interactionId, visible ? terminal.entityId : null);
+    hud.apply(value);
+    assert.equal(elements.interactionPrompt.hidden, !visible);
+    assert.equal(elements.interactionPrompt.textContent, state.interactionText);
+    // World-UI death lifecycle is separate; this text-only fix preserves its policy.
+    if (value.player.currentHp > 0) {
+      assert.deepEqual(projectWorldUi(value, camera).filter(item => item.kind === "interaction").map(item => item.id),
+        visible ? [`interaction:${terminal.entityId}`] : []);
+    }
+  };
+  Object.assign(position, { xM: 4, yM: 0, zM: 10 }); observe(false);
+  position.zM = 9.5; observe(true); // The same inclusive 2.5 m boundary as every F target.
+  position.zM = 9.5001; observe(false);
+  Object.assign(position, { xM: 4, yM: 2.5001, zM: 7 }); observe(false);
+  position.yM = 0; observe(true);
+  terminal.active = false; observe(false);
+  terminal.active = true; value.player.currentHp = 0; observe(false);
+  value.player.currentHp = 80; observe(true);
+  const closer = { entityId: "another_terminal", kind: "terminal", active: true,
+    transform: { positionM: { xM: 4, yM: 0, zM: 8 }, yawRad: 0 } };
+  position.zM = 8; value.interactables.push(closer);
+  assert.equal(deriveHudState(value).interactionId, closer.entityId);
+  assert.equal(deriveHudState(value).interactionText, "F 交互 · 终端");
+  value.interactables.reverse(); assert.equal(deriveHudState(value).interactionId, closer.entityId);
+  value.interactables = [terminal]; value.sceneId = "gh_power_room";
+  assert.equal(deriveHudState(value).interactionText, "F 交互 · 终端");
+  value.sceneId = "gh_entry_maintenance"; value.worldId = "return_station";
+  assert.equal(deriveHudState(value).interactionText, "F 交互 · 终端");
+  value.worldId = "grey_hive"; observe(true);
+  hud.reset(); assert.equal(elements.interactionPrompt.hidden, true);
+  assert.equal(elements.interactionPrompt.textContent, "");
 });
 
 test("compiled Clockworks pressure hall valves expose one nearby pressure-valve F target", async () => {

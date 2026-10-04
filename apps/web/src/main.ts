@@ -1,3 +1,5 @@
+import { scannerRewardFeedback } from "./game/ScannerReward.js";
+import { FirstEvolution } from "./game/FirstEvolution.js";
 import { developerPresentationEnabled } from "./ui/DeveloperPresentation.js";
 import { isClockworksEnemyCue } from "./renderer/ClockworksEnemyModel.js";
 import { BuildCloseBarrier, isCurrentBuildReceipt } from "./ui/InventoryCommandController.js";
@@ -6,7 +8,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { RuntimeAssetLoader } from "./assets/RuntimeAssetLoader.js";
 import { SceneDefinitionLoader } from "./assets/SceneDefinitionLoader.js";
 import { TauriClient, type SaveSlotSummary } from "./bridge/tauri-client.js";
-import { canContinueSaveSlot, canOverwriteSaveSlot } from "./bridge/save-slot-policy.js";
+import { canContinueSaveSlot, canOverwriteSaveSlot, saveSlotAvailabilityLabel } from "./bridge/save-slot-policy.js";
 import { SessionLoop } from "./game/SessionLoop.js";
 import { SceneDefinitionSession } from "./game/SceneDefinitionSession.js";
 import { capabilityTerminalSummary } from "./game/CapabilityTerminal.js";
@@ -78,8 +80,8 @@ root.innerHTML = `
             <div class="hud-meter"><span>HP</span><div class="meter-track"><i id="hp-fill" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></i></div><strong id="hp-value">— / —</strong></div>
             <div class="hud-meter energy"><span>ENERGY</span><div class="meter-track"><i id="energy-fill" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></i></div><strong id="energy-value">— / —</strong></div>
           </div>
-          <div class="hud-actions" id="hud-skills" aria-label="动作键位"></div>
           <div class="hud-world"><strong id="hud-world">—</strong><span id="hud-scene">—</span></div>
+          <div class="hud-actions" id="hud-skills" aria-label="动作键位"></div>
           <section class="hud-objectives" id="hud-objectives" aria-label="当前目标"><span class="hud-label">当前目标</span><ul id="hud-objective-list" aria-live="polite"></ul></section>
           <p class="hud-interaction" id="hud-interaction" role="status" aria-live="polite" hidden></p>
           <p class="hud-door" id="hud-door" aria-live="polite"></p>
@@ -88,7 +90,7 @@ root.innerHTML = `
           <p class="hud-environment-status" id="hud-environment-status" aria-label="环境危险状态" hidden></p>
           <p class="hud-feedback" id="hud-feedback" role="status" aria-live="polite"></p>
           <button class="hud-pause" id="hud-pause" type="button" aria-pressed="false">暂停</button><button class="hud-return" id="back-to-hub" type="button">返回主界面</button>
-          <div class="pause-overlay" id="pause-overlay" hidden><div><p class="eyebrow">PAUSE · 权威状态</p><strong id="pause-title">旅程已暂停</strong><p id="pause-detail"></p><section id="first-enhancement" hidden aria-label="灰巢首通强化"><strong>灰巢首通强化 · 任选一项</strong><div class="enhancement-choices"><button type="button" data-enhancement-id="information.local_map_i">局部地图</button><button type="button" data-enhancement-id="perception.rear_view_i">后方视野</button><button type="button" data-enhancement-id="body.regeneration_i">再生能力</button></div><p id="enhancement-feedback" role="status" aria-live="polite"></p></section><label for="pause-slot">保存到所选存档</label><select id="pause-slot" disabled><option value="">正在读取存档…</option></select><label for="new-slot-name">新存档名称</label><input id="new-slot-name" maxlength="48" value="现场记录" disabled /><div class="save-actions"><button id="save-new-slot" type="button" disabled>另存为新存档</button><button id="overwrite-slot" type="button" disabled>覆盖所选存档</button></div><p id="save-feedback" role="status" aria-live="polite"></p><button id="hud-resume" type="button">继续</button><section class="enhancement-status" id="enhancement-status" aria-label="首通强化状态" aria-live="polite" hidden></section></div></div>
+          <section class="evolution-overlay" id="first-enhancement" hidden role="dialog" aria-modal="true" aria-label="进化终端"><div><p class="eyebrow">EVOLUTION · 归航站进化终端</p><strong>灰巢首通强化 · 任选一项</strong><div class="enhancement-choices"><button type="button" data-enhancement-id="information.local_map_i">局部地图</button><button type="button" data-enhancement-id="perception.rear_view_i">后方视野</button><button type="button" data-enhancement-id="body.regeneration_i">再生能力</button></div><p id="enhancement-feedback" role="status" aria-live="polite"></p><div class="enhancement-choices"><button id="enhancement-later" type="button">稍后领取</button><button id="enhancement-close" type="button" aria-label="关闭进化终端">关闭</button></div></div></section><div class="pause-overlay" id="pause-overlay" hidden><div><p class="eyebrow">PAUSE · 权威状态</p><strong id="pause-title">旅程已暂停</strong><p id="pause-detail"></p><label for="pause-slot">保存到所选存档</label><select id="pause-slot" disabled><option value="">正在读取存档…</option></select><label for="new-slot-name">新存档名称</label><input id="new-slot-name" maxlength="48" value="现场记录" disabled /><div class="save-actions"><button id="save-new-slot" type="button" disabled>另存为新存档</button><button id="overwrite-slot" type="button" disabled>覆盖所选存档</button></div><p id="save-feedback" role="status" aria-live="polite"></p><button id="hud-resume" type="button">继续</button><section class="enhancement-status" id="enhancement-status" aria-label="首通强化状态" aria-live="polite" hidden></section></div></div>
           <div class="death-overlay" id="death-overlay" role="dialog" aria-modal="true" aria-labelledby="death-title" hidden>
             <div><p class="eyebrow">JOURNEY ENDED · 旅程终止</p><h2 id="death-title" tabindex="-1">你已倒下</h2><p>生命值已归零，本次现场已终止。死亡状态不会保存，也无法直接恢复。</p>
               <section id="death-save-picker" hidden><label for="death-slot">选择仍然存活的存档</label><select id="death-slot" disabled></select></section>
@@ -246,7 +248,7 @@ const hud = new HudPresenter({
   environmentStatus: root.querySelector<HTMLElement>("#hud-environment-status")!,
   feedback: root.querySelector<HTMLElement>("#hud-feedback")!,
   pauseButton: root.querySelector<HTMLButtonElement>("#hud-pause")!,
-  pauseOverlay: root.querySelector<HTMLElement>("#pause-overlay")!,
+  pauseOverlay: root!.querySelector<HTMLElement>("#pause-overlay")!,
   pauseTitle: root.querySelector<HTMLElement>("#pause-title")!,
   pauseDetail: root.querySelector<HTMLElement>("#pause-detail")!,
   resumeButton: root.querySelector<HTMLButtonElement>("#hud-resume")!,
@@ -275,7 +277,23 @@ let latestSaveAvailable = false;
 let slotReadId = 0;
 let deathRecoveryTarget: "slot" | "latest" | "new" | null = null;
 let saveBusy = false;
-let enhancementBusy = false;
+const evolution = new FirstEvolution(client, () => updateEnhancementControls());
+window.addEventListener("keydown", event => {
+  if (!evolution.visible) return;
+  if (event.key === "Escape") {
+    event.preventDefault(); event.stopImmediatePropagation(); void evolution.close();
+  } else if (event.key === "Tab") {
+    const buttons = Array.from(enhancementSection.querySelectorAll<HTMLButtonElement>("button:not(:disabled)"));
+    const first = buttons[0], last = buttons.at(-1);
+    if (event.shiftKey && (document.activeElement === first || !enhancementSection.contains(document.activeElement))) {
+      event.preventDefault(); last?.focus();
+    } else if (!event.shiftKey && (document.activeElement === last || !enhancementSection.contains(document.activeElement))) {
+      event.preventDefault(); first?.focus();
+    }
+  }
+}, true);
+for (const id of ["enhancement-later", "enhancement-close"]) root!.querySelector<HTMLButtonElement>(`#${id}`)!
+  .addEventListener("click", () => void evolution.close());
 
 function selectedSlot(select: HTMLSelectElement): SaveSlotSummary | undefined {
   return saveSlots.find(slot => slot.slotId === select.value);
@@ -286,7 +304,7 @@ function renderSlotOptions(select: HTMLSelectElement, selectedId?: string): void
   for (const slot of saveSlots) {
     const option = document.createElement("option");
     option.value = slot.slotId;
-    const kind = !canContinueSaveSlot(slot) ? `不可继续 · ${slot.errorCode || "无有效生命值"}` : slot.readOnly ? "旧版只读档 · 续玩时安全迁移" : "可读写";
+    const kind = saveSlotAvailabilityLabel(slot);
     option.textContent = `${slot.displayName} · ${slot.worldId || "未知世界"} · ${kind}`;
     option.disabled = !canContinueSaveSlot(slot);
     select.append(option);
@@ -305,68 +323,32 @@ function updateSaveControls(): void {
 }
 
 function updateEnhancementControls(): void {
-  const view = sessionLoop?.snapshots.view();
-  const snapshot = view?.protocolVersion === 3 ? view : null;
-  const progress = snapshot?.progression.worlds.find(item => {
-    if (!item || typeof item !== "object") return false;
-    return (item as Record<string, unknown>).worldId === "grey_hive" &&
-      (item as Record<string, unknown>).completed === true &&
-      (item as Record<string, unknown>).firstCompletion === true;
-  });
-  const capabilities = snapshot?.capabilities as { items?: unknown } | undefined;
-  const selected = Array.isArray(capabilities?.items) && capabilities.items.some(item =>
-    !!item && typeof item === "object" &&
-    ["information.local_map_i", "perception.rear_view_i", "body.regeneration_i"].includes(
-      String((item as Record<string, unknown>).capabilityId)) &&
-    ((item as Record<string, unknown>).granted === true || (item as Record<string, unknown>).selected === true));
-  const visible = sessionLoop?.pausePresentationState === "paused" && snapshot?.worldId === "grey_hive" &&
-    !!progress && !selected;
-  enhancementSection.hidden = !visible;
-  for (const button of enhancementButtons) button.disabled = !visible || enhancementBusy;
-}
-
-const enhancementNames: Record<string, string> = {
-  "information.local_map_i": "局部地图",
-  "perception.rear_view_i": "后方视野",
-  "body.regeneration_i": "再生能力",
-};
-
-async function chooseFirstEnhancement(button: HTMLButtonElement): Promise<void> {
-  const loop = sessionLoop;
-  const capabilityId = button.dataset.enhancementId;
-  const source = loop?.snapshots.view();
-  if (!loop || loop.isDead || !capabilityId || !source || source.protocolVersion !== 3 || enhancementBusy ||
-      loop.pausePresentationState !== "paused") return;
-  enhancementBusy = true;
-  enhancementFeedback.textContent = "正在确认所选强化…";
-  updateEnhancementControls();
-  try {
-    const receipt = await loop.runWhilePaused(() => client.chooseFirstEnhancement(capabilityId));
-    if (sessionLoop !== loop || !loop.acceptsExternalResults || loop.pausePresentationState !== "paused") return;
-    const current = loop.snapshots.view();
-    if (!current || current.protocolVersion !== 3 || current.worldId !== source.worldId ||
-        current.sceneId !== source.sceneId || current.worldEpoch !== source.worldEpoch ||
-        receipt.snapshot.worldId !== source.worldId || receipt.snapshot.sceneId !== source.sceneId ||
-        receipt.snapshot.worldEpoch !== source.worldEpoch || receipt.authorityRevision <= source.authorityRevision) {
-      throw new Error("E_ENHANCEMENT_RECEIPT_STALE_SESSION");
-    }
-    await loop.acceptAuthoritativeSnapshot(receipt.snapshot);
-    if (sessionLoop !== loop || !loop.acceptsExternalResults) return;
-    hud.setFeedback(`已选择「${enhancementNames[capabilityId] || capabilityId}」，强化已生效。`);
-    updateEnhancementControls();
-  } catch (error) {
-    if (sessionLoop === loop && loop.acceptsExternalResults) {
-      const message = `选择失败：${error instanceof Error ? error.message : String(error)}`;
-      enhancementFeedback.textContent = message;
-      if (loop.pausePresentationState !== "paused") hud.setFeedback(message);
-    }
-  } finally {
-    enhancementBusy = false;
-    updateEnhancementControls();
+  const wasHidden = enhancementSection.hidden;
+  enhancementSection.hidden = !evolution.visible;
+  enhancementFeedback.textContent = evolution.message;
+  for (const button of enhancementButtons) button.disabled = !evolution.ready || evolution.busy;
+  for (const id of ["enhancement-later", "enhancement-close"]) root!.querySelector<HTMLButtonElement>(`#${id}`)!.disabled = evolution.busy;
+  if (evolution.visible) root!.querySelector<HTMLElement>("#pause-overlay")!.hidden = true;
+  else if (!wasHidden && sessionLoop) hud.setPauseStatus(sessionLoop.pausePresentationState,
+    sessionLoop.pausePresentationState === "error" ? "终端已关闭，请重试暂停状态" : undefined);
+  if (wasHidden && evolution.visible || evolution.visible && !evolution.busy && !enhancementSection.contains(document.activeElement)) {
+    (enhancementButtons.find(button => !button.disabled) ?? root!.querySelector<HTMLButtonElement>("#enhancement-close"))?.focus();
   }
 }
 
-for (const button of enhancementButtons) button.addEventListener("click", () => void chooseFirstEnhancement(button));
+const enhancementNames: Record<string, string> = {
+  "information.local_map_i": "局部地图", "perception.rear_view_i": "后方视野", "body.regeneration_i": "再生能力",
+};
+for (const button of enhancementButtons) button.addEventListener("click", async () => {
+  const id = button.dataset.enhancementId!;
+  const owner = sessionLoop;
+  const source = owner?.snapshots.view();
+  const receipt = await evolution.choose(id);
+  const current = owner?.snapshots.view();
+  if (receipt && sessionLoop === owner && owner?.acceptsExternalResults && current?.worldEpoch === source?.worldEpoch) {
+    hud.setFeedback(`已获得「${enhancementNames[id]}」并保存，强化已生效。`);
+  }
+});
 
 async function refreshSaveSlots(): Promise<boolean | undefined> {
   const readId = ++slotReadId;
@@ -418,6 +400,7 @@ async function refreshSaveSlots(): Promise<boolean | undefined> {
 
 function slotStatusText(slot: SaveSlotSummary): string {
   if (!canContinueSaveSlot(slot)) return `此存档不可继续：${slot.errorCode || "没有有效的存活状态"}`;
+  if (slot.recoverable) return "可从唯一有效事务备份恢复。点击继续后安全提交，原备份与临时文件保留；不能覆盖。";
   if (slot.readOnly) return "这是旧版只读存档。继续时 Rust 会先备份并安全迁移；不能覆盖。";
   return `将从「${slot.displayName}」恢复 ${slot.worldId || "当前世界"}。`;
 }
@@ -455,6 +438,7 @@ async function showDeathRecovery(loop: SessionLoop): Promise<void> {
   coreUi.close();
   coreOpenButton.disabled = true;
   hud.setPauseStatus("dead");
+  evolution.reset();
   enhancementSection.hidden = true;
   deathSavePicker.hidden = true;
   deathRetryButton.hidden = true;
@@ -496,6 +480,7 @@ function snapshotIdentity(snapshot: WorldSnapshotV3): string {
 }
 
 function showError(error: unknown): void {
+  evolution.reset();
   resetDeathControls();
   const message = error instanceof Error ? error.message : String(error);
   if (!document.hidden) audioCuePlayer.resume();
@@ -530,6 +515,7 @@ function assertJourneyRequest(signal: AbortSignal, requestId: number): void {
 }
 
 async function enterJourney(snapshot: WorldSnapshotV3, signal: AbortSignal, requestId: number, entryNarrative: string | null = null): Promise<void> {
+  evolution.reset();
   resetDeathControls();
   continuePicker.hidden = true;
   audioCuePlayer.setEpoch(snapshot.worldEpoch);
@@ -623,6 +609,7 @@ async function enterJourney(snapshot: WorldSnapshotV3, signal: AbortSignal, requ
         coreUi.apply(null);
         enhancementStatusHud.reset();
       }
+      evolution.reconcile();
       updateEnhancementControls();
       sceneSession?.acceptSnapshot(latest);
     },
@@ -642,6 +629,7 @@ async function enterJourney(snapshot: WorldSnapshotV3, signal: AbortSignal, requ
       }
       if (status === "paused") void refreshSaveSlots();
       updateSaveControls();
+      evolution.reconcile();
       updateEnhancementControls();
       if (status === "error" && message) saveFeedback.textContent = `暂停状态未确认：${message}`;
     },
@@ -652,6 +640,7 @@ async function enterJourney(snapshot: WorldSnapshotV3, signal: AbortSignal, requ
     },
     onCleanup: () => {
       if (sessionLoop !== ownedLoop) return;
+      evolution.reset();
       resetDeathControls();
       audioCuePlayer.suspend();
       renderer = null;
@@ -713,8 +702,14 @@ async function interactFromSnapshot(snapshot: import("./protocol/types.js").Worl
       interactable.entityId, interactable.kind, result) ??
       confirmedReturnStationAfterClockworks(snapshot, interactable.entityId, interactable.kind, result);
     if (!applied) hud.setFeedback(interactionErrorText(result.errorCode || "E_INTERACTION_NOT_APPLIED"));
+    else if (scannerRewardFeedback(snapshot, interactable, result)) {
+      const scannerFeedback = scannerRewardFeedback(snapshot, interactable, result)!;
+      hud.setFeedback(narrative ? `${narrative} ${scannerFeedback}` : scannerFeedback);
+    }
     else if (narrative) hud.setFeedback(narrative);
     else if (returnNarrative) hud.setFeedback(returnNarrative);
+    else if (snapshot.worldId === "grey_hive" && interactable.entityId === "gh_exit_extraction_console")
+      hud.setFeedback("撤离完成，请返回归航站。首通强化可在归航站进化终端领取。");
     else if (interactable.kind === "beacon_mount") hud.setFeedback("信标已部署并挂载，可以前往撤离。");
     else if (interactable.kind === "beacon_collect") hud.setFeedback("便携信标已收取，可以前往撤离。");
     else if (interactable.kind === "scene_transition") hud.setFeedback("已进入新现场。");
@@ -722,7 +717,10 @@ async function interactFromSnapshot(snapshot: import("./protocol/types.js").Worl
     else if (interactable.kind === "scene_trigger") hud.setFeedback("现场事件已触发。");
     else if (interactable.kind === "world_gate") hud.setFeedback("归航链路已切换，世界状态已更新。");
     else if (interactable.kind === "mission_terminal") hud.setFeedback(missionTerminalSummary(result.snapshot));
-    else if (interactable.kind === "capability_terminal") hud.setFeedback(capabilityTerminalSummary(result.snapshot));
+    else if (interactable.kind === "capability_terminal") {
+      hud.setFeedback(capabilityTerminalSummary(result.snapshot));
+      if ("requestId" in result) await evolution.open({ loop: activeLoop, isCurrent: () => sessionLoop === activeLoop }, result);
+    }
     else if (interactable.kind === "save_rest_terminal") hud.setFeedback("休整完成，已恢复状态并保存。");
     else if (interactable.kind === "pump_control") hud.setFeedback(result.applied === true
       ? "排水泵已启动。" : result.snapshot.mistHarborPump?.state === "drained"
@@ -840,7 +838,7 @@ async function continueJourney(slot: SaveSlotSummary | undefined, recoveryLoop?:
   if (latestSave ? !latestSaveAvailable || (recoveryLoop && deathRecoveryTarget !== "latest") : !canContinueSaveSlot(slot)) return;
   if (sessionLoop && sessionLoop !== recoveryLoop) return;
   if (recoveryLoop && (sessionLoop !== recoveryLoop || !recoveryLoop.isDead)) return;
-  if (slot?.readOnly && !window.confirm(`「${slot.displayName}」是旧版只读存档。Rust 将保留原档并备份迁移后继续。现在继续？`)) return;
+  if (slot?.readOnly && !slot.recoverable && !window.confirm(`「${slot.displayName}」是旧版只读存档。Rust 将保留原档并备份迁移后继续。现在继续？`)) return;
   journeyRequestId++;
   const requestId = journeyRequestId;
   const controller = new AbortController();
@@ -939,6 +937,7 @@ saveNewSlotButton.addEventListener("click", () => void saveWhilePaused(true));
 overwriteSlotButton.addEventListener("click", () => void saveWhilePaused(false));
 function returnToMain(): void {
   if (busy || buildCloseBarrier.closing) return;
+  evolution.reset();
   const wasDead = sessionLoop?.isDead === true;
   journeyRequestId++;
   const requestId = journeyRequestId;
@@ -996,6 +995,7 @@ root.querySelector<HTMLButtonElement>("#hud-resume")!.addEventListener("click", 
 });
 
 window.addEventListener("pagehide", () => {
+  evolution.reset();
   journeyRequestId++;
   activeJourneyLoad?.abort();
   resetDeathControls();

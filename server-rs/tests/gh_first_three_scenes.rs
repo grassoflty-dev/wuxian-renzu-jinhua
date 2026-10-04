@@ -377,7 +377,12 @@ fn run_five_scene_create(root: &std::ffi::OsStr) {
         .view
         .interactables
         .iter()
-        .any(|item| item.entity_id == "gh_log_shaft_01" && !item.active));
+        .any(|item| item.entity_id == "gh_log_shaft_01" && item.active));
+    assert!(log.view.capabilities.items.iter().any(|item|
+        item.capability_id == "information.enemy_vitals_basic" && item.granted));
+    let online = runtime.activate_scene_interaction("gh_log_shaft_01", "scanner-online", log.view.world_epoch).unwrap();
+    assert!(!online.applied && online.already_applied);
+    assert!(online.events.is_empty());
     view = walk_x(&runtime, log.view, 22.5);
     view = runtime
         .transition_scene(

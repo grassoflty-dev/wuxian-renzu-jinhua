@@ -29,3 +29,17 @@ test("HUD composition uses approved portrait resolution, three-objective cap, an
   assert.match(css, /1280|1920|2560|clamp\(/);
   assert.match(css, /prefers-reduced-motion/);
 });
+
+test("world card follows variable-height vitals in normal flow with the existing nine-pixel gap", () => {
+  // Source contract only. Rendered geometry is covered by the portable HUD fixture;
+  // this assertion must not be reported as browser or Windows visual acceptance.
+  const worldRule = css.match(/\.hud-world\s*\{([^}]+)\}/)?.[1];
+  assert.ok(worldRule);
+  for (const declaration of [/position:\s*relative/, /top:\s*auto/, /left:\s*auto/,
+    /margin-top:\s*9px/, /width:\s*fit-content/, /max-width:\s*min\(340px, 42%\)/]) {
+    assert.match(worldRule, declaration);
+  }
+  assert.match(source, /id="energy-value"[\s\S]*?<\/div>\s*<\/div>\s*<div class="hud-world">/);
+  assert.match(css, /\.hud-vitals,\s*\.hud-world\s*\{\s*width:\s*min\(240px, 46%\)/);
+  assert.doesNotMatch(worldRule, /(?:^|[;\n])\s*(?:top|height|min-height):\s*\d/);
+});

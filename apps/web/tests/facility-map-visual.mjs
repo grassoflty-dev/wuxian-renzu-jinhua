@@ -54,6 +54,52 @@ test('physical actors and devices exchange front/back order by their feet, with 
  const prop={key:'scene:console',footY:200,layer:'L4_DYNAMIC_PROPS'},actor={key:'actor:player',footY:190,layer:'L3_ACTORS'};
  assert.ok(worldDepthRanks([prop,actor]).get(actor.key)<worldDepthRanks([prop,actor]).get(prop.key));actor.footY=210;assert.ok(worldDepthRanks([prop,actor]).get(actor.key)>worldDepthRanks([prop,actor]).get(prop.key));actor.footY=200;assert.deepEqual([...worldDepthRanks([prop,actor])],[...worldDepthRanks([actor,prop])]);assert.throws(()=>worldDepthRanks([{...actor,footY:NaN}]),/DEPTH/);
 });
+test('Return Station toolbox preserves its reviewed slice and placement in the actor/prop foot-sorting parent',async()=>{
+ const sceneBytes=await readFile(new URL('content/scenes/compiled/rs_core_room.json',root));
+ const build=await readFile(new URL('server-rs/build.rs',root),'utf8');
+ const nativeAuxiliary=build.match(/const NATIVE_AUXILIARY_SCENES[\s\S]*?\];/)?.[0];
+ assert.ok(nativeAuxiliary?.includes(`"${digest(sceneBytes)}"`),'native scene admission pin must match the reviewed bytes');
+ const scene=await json('content/scenes/compiled/rs_core_room.json');
+ const current=planScenePresentation(registry,scene);
+ const toolbox=current.sprites.find(p=>p.id==='approved_floor_detail');
+ assert.ok(toolbox);
+ assert.equal(toolbox.layerId,'visual.props_dynamic');
+ assert.equal(toolbox.layer,'L4_DYNAMIC_PROPS');
+ assert.deepEqual(toolbox.position,{xM:12,yM:0,zM:8});
+ assert.deepEqual(toolbox.displaySizeM,{width:1.15,height:.75});
+ const sheet=registry.resolveAsset('runtime2d.grey_hive.clutter.v1');
+ assert.deepEqual(toolbox.asset,facilitySlice(sheet,[30,40,390,305],[.5,.9]));
+ // Reconstruct only the former layer assignment; every other planned value must match.
+ const before=structuredClone(scene);
+ before.presentation.layers.find(l=>l.id==='visual.props_dynamic').id='visual.floor_detail';
+ before.presentation.sprites.find(p=>p.id==='approved_floor_detail').layer='visual.floor_detail';
+ const previous=planScenePresentation(registry,before);
+ const previousToolbox=previous.sprites.find(p=>p.id===toolbox.id);
+ assert.deepEqual({...toolbox,layer:previousToolbox.layer,layerId:previousToolbox.layerId},previousToolbox);
+ assert.deepEqual(current.sprites.filter(p=>p.id!==toolbox.id),previous.sprites.filter(p=>p.id!==toolbox.id));
+ assert.deepEqual(current.facilityFloor,previous.facilityFloor);
+ const r=Object.create(WorldRenderer.prototype);
+ r.layerContainers=new Map(['L1_FLOOR','L2_BACK_PROPS','L3_ACTORS','L4_DYNAMIC_PROPS'].map(k=>{const c=new Container();c.sortableChildren=true;return[k,c];}));
+ r.sprites=new Map();r.frameTextures=new Map();r.atlasTextures=new Map();
+ const actor=registry.resolveAsset('runtime2d.actor.cenyao.base.v1');
+ for(const asset of [actor,toolbox.asset])r.atlasTextures.set(asset.atlasUrl,new Texture({source:new TextureSource({width:8192,height:8192})}));
+ try {
+  const a=r.ensureSprite('actor:player',actor,'L3_ACTORS',undefined,.1);
+  const p=r.ensureSprite('scene:approved_floor_detail',toolbox.asset,toolbox.layer,undefined,.1);
+  const parent=r.layerContainers.get('L3_ACTORS');
+  assert.equal(p.sprite.parent,parent);assert.equal(a.sprite.parent,parent);
+  assert.equal(r.layerContainers.get('L1_FLOOR').children.length,0);
+  const depth=projectWorldPoint(toolbox.position,camera).footY;
+  for(const offset of [-10,0,10]){
+   const bodies=[{key:'actor:player',footY:depth+offset,layer:'L3_ACTORS'},
+    {key:'scene:approved_floor_detail',footY:depth,layer:toolbox.layer,asset:toolbox.asset}];
+   const ranks=worldDepthRanks(bodies);assert.equal(ranks.size,2);
+   assert.deepEqual([...ranks],[...worldDepthRanks([...bodies].reverse())]);
+   a.sprite.zIndex=ranks.get('actor:player');p.sprite.zIndex=ranks.get('scene:approved_floor_detail');parent.sortChildren();
+   assert.equal(parent.children.indexOf(a.sprite)<parent.children.indexOf(p.sprite),offset<=0);
+  }
+ } finally {for(const t of r.frameTextures.values())t.destroy();for(const t of r.atlasTextures.values())t.destroy(true);}
+});
 test('debug sidebar is opt-in and normal pause still contains return/save controls',async()=>{
  for(const q of ['','?developer=0','?developer=true','?developer=1&developer=0'])assert.equal(developerPresentationEnabled(q),false);assert.equal(developerPresentationEnabled('?developer=1'),true);
  const s=await readFile(new URL('../src/main.ts',import.meta.url),'utf8');assert.match(s,/<div class="journey-panel" id="developer-journey-panel" hidden>/);const pause=s.slice(s.indexOf('id="pause-overlay"'),s.indexOf('id="death-overlay"'));for(const id of ['save-new-slot','overwrite-slot','hud-resume','enhancement-status'])assert.ok(pause.includes(`id="${id}"`));assert.equal(s.match(/id="back-to-hub"/g).length,1);assert.ok(s.indexOf('id="back-to-hub"')<s.indexOf('id="pause-overlay"'),'return remains reachable while loading or running');

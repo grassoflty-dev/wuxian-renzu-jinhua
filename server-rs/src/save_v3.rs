@@ -412,6 +412,7 @@ impl SaveV3 {
             pending_entry: None,
             entry_pause_requested: false,
             last_lifecycle_sequence: 0,
+            enhancement_terminal: None,
             last_owner_error: None,
         })
     }

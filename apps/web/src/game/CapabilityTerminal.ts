@@ -13,7 +13,7 @@ function isGreyHiveFirstClear(snapshot: WorldSnapshotV3): boolean {
   return Array.isArray(snapshot.progression?.worlds) && snapshot.progression.worlds.some(value => {
     if (!value || typeof value !== "object") return false;
     const row = value as Record<string, unknown>;
-    return row.worldId === "grey_hive" && row.completed === true && row.firstCompletion === true;
+    return row.worldId === "grey_hive" && row.completed === true;
   });
 }
 
@@ -24,21 +24,12 @@ export function acousticMappingStatus(snapshot: WorldSnapshotV3): string {
 
 /** Formats only the capability and first-clear values in the Rust v3 snapshot. */
 export function capabilityTerminalSummary(snapshot: WorldSnapshotV3): string {
-  const rows = knownCapabilityRows(snapshot);
-  const chosen = rows.filter(row => row.granted && row.selected &&
-    Object.hasOwn(FIRST_CLEAR_CHOICES, row.capabilityId));
+  const choice = snapshot.capabilities.firstEnhancementChoice;
   const firstClear = isGreyHiveFirstClear(snapshot);
-  const inconsistentChoice = Object.keys(FIRST_CLEAR_CHOICES).some(id =>
-    capabilityState(snapshot, id as KnownCapabilityId).status === "invalid");
-  const choiceText = !firstClear
-    ? "首次撤离尚未完成（首通选择未开放）"
-    : inconsistentChoice
-      ? "首通选择状态需复核"
-      : chosen.length === 1
-      ? `首通选择：已获得${FIRST_CLEAR_CHOICES[chosen[0]!.capabilityId]}`
-      : chosen.length > 1
-        ? "首通选择状态需复核"
-        : "首通选择：尚未确认";
+  const choiceText = !firstClear ? "首次撤离尚未完成（首通选择未开放）"
+    : choice === null ? "首通选择：尚未确认"
+    : typeof choice === "string" && Object.hasOwn(FIRST_CLEAR_CHOICES, choice)
+      ? `首通选择：已获得${FIRST_CLEAR_CHOICES[choice]}` : "首通选择状态需复核";
   const capabilityRows = (Object.keys(CAPABILITY_LABELS) as KnownCapabilityId[])
     .filter(id => id !== ACOUSTIC_MAPPING_ID && capabilityState(snapshot, id).status !== "missing")
     .map(id => `${CAPABILITY_LABELS[id]}：${capabilityStatus(snapshot, id)}`);

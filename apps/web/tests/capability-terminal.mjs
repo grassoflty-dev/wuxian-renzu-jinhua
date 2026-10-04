@@ -2,13 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { capabilityTerminalSummary } from "../dist/game/CapabilityTerminal.js";
 
-function snapshot({ firstClear = false, items } = {}) {
+function snapshot({ firstClear = false, firstChoice = null, items } = {}) {
   return {
     protocolVersion: 3,
     progression: { worlds: [{
       worldId: "grey_hive", completed: firstClear, firstCompletion: firstClear,
     }] },
-    capabilities: { schemaVersion: 1, items: items ?? [
+    capabilities: { schemaVersion: 1, firstEnhancementChoice: firstChoice, items: items ?? [
       { capabilityId: "information.local_map_i", granted: false, selected: false },
       { capabilityId: "perception.rear_view_i", granted: false, selected: false },
       { capabilityId: "body.regeneration_i", granted: false, selected: false },
@@ -30,7 +30,7 @@ test("capability terminal reports unopened first-clear choices and ungranted pro
 });
 
 test("only an authoritative granted and selected first-clear row is presented as obtained", () => {
-  const summary = capabilityTerminalSummary(snapshot({ firstClear: true, items: [
+  const summary = capabilityTerminalSummary(snapshot({ firstClear: true, firstChoice: "information.local_map_i", items: [
     { capabilityId: "information.local_map_i", granted: true, selected: true },
     { capabilityId: "perception.rear_view_i", granted: false, selected: false },
     { capabilityId: "body.regeneration_i", granted: false, selected: false },
@@ -44,7 +44,7 @@ test("a selected-but-ungranted row is not promoted to an obtained first-clear ch
   const summary = capabilityTerminalSummary(snapshot({ firstClear: true, items: [
     { capabilityId: "perception.rear_view_i", granted: false, selected: true },
   ] }));
-  assert.match(summary, /首通选择状态需复核/);
+  assert.match(summary, /首通选择：尚未确认/);
   assert.match(summary, /后方视野：投影状态不一致/);
 });
 
@@ -71,7 +71,7 @@ test("acoustic mapping status uses only its exact authoritative capability row",
 });
 
 test("acoustic mapping never becomes a first-clear choice, even if selected", () => {
-  const summary = capabilityTerminalSummary(snapshot({ firstClear: true, items: [
+  const summary = capabilityTerminalSummary(snapshot({ firstClear: true, firstChoice: "information.local_map_i", items: [
     { capabilityId: "information.local_map_i", granted: true, selected: true },
     { capabilityId: "perception.acoustic_mapping_i", granted: true, selected: true },
   ] }));
@@ -88,4 +88,11 @@ test("Mist Harbor mission progress does not imply acoustic mapping authorization
     progression: { worlds: [{ worldId: "mist_harbor", completed: true }] },
   };
   assert.match(capabilityTerminalSummary(view), /声学映射：状态未报告·不可用/);
+});
+
+
+test("first choice comes only from explicit authority, even after unrelated grants or deselection", () => {
+  const items = [{ capabilityId: "information.local_map_i", granted: true, selected: true }];
+  assert.match(capabilityTerminalSummary(snapshot({ firstClear: true, items })), /首通选择：尚未确认/);
+  assert.match(capabilityTerminalSummary(snapshot({ firstClear: true, firstChoice: "body.regeneration_i", items })), /首通选择：已获得再生能力/);
 });

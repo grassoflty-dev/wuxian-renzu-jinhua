@@ -18,6 +18,7 @@ export interface SaveSlotSummary {
   gateOpen: boolean | null;
   completedEvents: string[];
   readOnly: boolean;
+  recoverable?: boolean;
   valid: boolean;
   errorCode: string | null;
 }
@@ -34,6 +35,8 @@ export interface SlotCommandReceipt {
 }
 
 export type FirstEnhancementReceipt = SlotCommandReceipt;
+export interface EnhancementTerminalContext { id: string; requestId: string; worldEpoch: number; pauseCommandSequence: number }
+
 
 export interface SceneCommandReceipt {
   commandId: string;
@@ -69,6 +72,7 @@ function assertSlotSummary(value: unknown): SaveSlotSummary {
   const slot = value as Record<string, unknown>;
   if (typeof slot.slotId !== "string" || typeof slot.displayName !== "string" ||
       typeof slot.updatedAtMs !== "number" || typeof slot.readOnly !== "boolean" ||
+      (slot.recoverable !== undefined && typeof slot.recoverable !== "boolean") ||
       typeof slot.valid !== "boolean" || !Array.isArray(slot.completedEvents) ||
       (slot.errorCode !== null && typeof slot.errorCode !== "string")) {
     throw new Error("E_SAVE_SLOT_SUMMARY_INVALID");
@@ -87,6 +91,7 @@ export class TauriClient {
   private sceneRequestSequence = 0;
   private buildRequestSequence = 0;
   private lifecycleCommandSequence = 0;
+  private confirmedPause: { context: SessionContext; sequence: number } | null = null;
   private readonly uncertainLifecycleContexts = new Set<string>();
 
   constructor(private readonly invoke: Invoke) {}
@@ -173,9 +178,19 @@ export class TauriClient {
     }
   }
 
-  async chooseFirstEnhancement(capabilityId: string): Promise<FirstEnhancementReceipt> {
-    if (!capabilityId) throw new Error("E_ENHANCEMENT_COMMAND_ARGUMENT");
-    const value = await this.invoke<unknown>("formal_choose_first_enhancement", { capabilityId });
+  confirmedPauseSequence(context: SessionContext): number {
+    const confirmed = this.confirmedPause;
+    this.assertLifecycleCertain(context);
+    if (!confirmed || confirmed.sequence !== this.lifecycleCommandSequence ||
+        this.lifecycleContextKey(confirmed.context) !== this.lifecycleContextKey(context)) throw new Error("E_ENHANCEMENT_PAUSE_UNCONFIRMED");
+    return confirmed.sequence;
+  }
+
+  async chooseFirstEnhancement(capabilityId: string, context: EnhancementTerminalContext): Promise<FirstEnhancementReceipt> {
+    if (!capabilityId || !context || context.id !== "rs_capability_terminal_marker" || !context.requestId ||
+        !Number.isSafeInteger(context.worldEpoch) || !Number.isSafeInteger(context.pauseCommandSequence) ||
+        context.pauseCommandSequence <= 0) throw new Error("E_ENHANCEMENT_COMMAND_ARGUMENT");
+    const value = await this.invoke<unknown>("formal_choose_first_enhancement", { capabilityId, context: { ...context } });
     if (!value || typeof value !== "object") throw new Error("E_ENHANCEMENT_RECEIPT_INVALID");
     const receipt = value as Record<string, unknown>;
     const snapshot = assertSnapshotV3(receipt.snapshot);
@@ -191,13 +206,12 @@ export class TauriClient {
     if (!receipt.applied && !receipt.alreadyApplied) {
       throw new Error(`E_ENHANCEMENT_COMMAND_REJECTED:${String(receipt.errorCode || capabilityId)}`);
     }
-    const capabilities = snapshot.capabilities as { items?: unknown };
+    const capabilities = snapshot.capabilities;
     const granted = Array.isArray(capabilities.items) && capabilities.items.some(item =>
       !!item && typeof item === "object" &&
-      (item as Record<string, unknown>).capabilityId === capabilityId &&
-      (item as Record<string, unknown>).granted === true &&
-      (item as Record<string, unknown>).selected === true);
-    if (!granted) throw new Error("E_ENHANCEMENT_RECEIPT_NOT_GRANTED");
+      item.capabilityId === capabilityId &&
+      item.granted === true);
+    if (!granted || capabilities.firstEnhancementChoice !== capabilityId) throw new Error("E_ENHANCEMENT_RECEIPT_NOT_GRANTED");
     return { ...receipt, snapshot } as FirstEnhancementReceipt;
   }
 
@@ -412,6 +426,12 @@ export class TauriClient {
     }>(command, expected === undefined ? undefined : { context: expected, commandSequence }, timeoutMs, "E_LIFECYCLE_TIMEOUT",
       () => this.markLifecycleUncertain(expected),
       () => { if (expected && command === "formal_resume") void this.pause(expected, timeoutMs).catch(() => undefined); });
+    if (expected && (receipt.commandId !== (command === "formal_pause" ? "pause" : "resume") ||
+        typeof receipt.applied !== "boolean" || typeof receipt.alreadyApplied !== "boolean" ||
+        (receipt.applied && receipt.alreadyApplied) ||
+        ((receipt.applied || receipt.alreadyApplied) && receipt.errorCode !== null))) {
+      throw new Error("E_LIFECYCLE_RECEIPT_INVALID");
+    }
     const snapshot = assertSnapshotV3(receipt.snapshot);
     if (receipt.worldEpoch !== snapshot.worldEpoch || receipt.serverTick !== snapshot.serverTick ||
         receipt.authorityRevision !== snapshot.authorityRevision) {
@@ -422,6 +442,9 @@ export class TauriClient {
     }
     if (expected && (snapshot.worldId !== expected.worldId || snapshot.sceneId !== expected.sceneId ||
         snapshot.worldEpoch !== expected.worldEpoch)) throw new Error("E_LIFECYCLE_RECEIPT_CONTEXT_MISMATCH");
+    if (expected && commandSequence === this.lifecycleCommandSequence) {
+      this.confirmedPause = command === "formal_pause" ? { context: expected, sequence: commandSequence } : null;
+    }
     return snapshot;
   }
 }

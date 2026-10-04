@@ -1,4 +1,5 @@
 import { clockworksCompleted, clockworksStatus } from "../game/ClockworksCampaign.js";
+import { mistHarborRevisitStatus } from "../game/MistHarborRevisit.js";
 import type { WorldSnapshotV3 } from "../protocol/types.js";
 import { capabilityLabel, knownCapabilityRows } from "./CapabilityPresentation.js";
 import { deriveMistHarborStatus } from "./components/MistHarborStatusPanel.js";
@@ -117,7 +118,7 @@ export function deriveCorePanel(id: CorePanelId, snapshot: WorldSnapshotV3 | nul
   const mistHarbor = progress(snapshot, "mist_harbor");
   const greyHiveFirstClear = greyHive?.completed === true && greyHive.firstCompletion === true;
   const mistHarborStatus = snapshot.worldId === "mist_harbor" ? "当前世界"
-    : mistHarbor?.completed === true ? mistHarborGate ? "可限次复访" : "已完成 · 复访次数用尽"
+    : mistHarbor?.completed === true ? mistHarborRevisitStatus(mistHarbor.revisitCount, mistHarborGate)
       : mistHarborGate?.active ? "归航站入口可用"
         : greyHiveFirstClear ? "已解锁 · 前往归航站进入" : "灰巢首次撤离后解锁";
   return {

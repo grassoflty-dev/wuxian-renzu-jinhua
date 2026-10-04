@@ -14,6 +14,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
+const RESERVED_SLOT_ID: &str = "legacy-save-v3";
 const LEGACY_SLOT_FILE_NAME: &str = "slot-v4.json";
 const SLOT_FILE_NAME: &str = "slot-v5.json";
 const SLOT_V6_FILE_NAME: &str = "slot-v6.json";
@@ -93,7 +94,7 @@ pub fn create_slot_v6(
     display_name: &str,
     save: &crate::save_v6::SaveV6,
 ) -> Result<(), String> {
-    validate_slot_id(slot_id)?;
+    validate_writable_slot_id(slot_id)?;
     let display_name = display_name.trim();
     validate_v6_envelope(3, slot_id, slot_id, display_name)?;
     save.validate()?;
@@ -129,13 +130,21 @@ pub fn overwrite_slot_v6(
     display_name: &str,
     save: &crate::save_v6::SaveV6,
 ) -> Result<(), String> {
-    validate_slot_id(slot_id)?;
+    validate_writable_slot_id(slot_id)?;
     let display_name = display_name.trim();
     validate_v6_envelope(3, slot_id, slot_id, display_name)?;
     save.validate()?;
     let target = slots_root(root).join(slot_id).join(SLOT_V6_FILE_NAME);
-    if !target.is_file() {
-        return Err("E_SLOT_NOT_FOUND".into());
+    let new = !crate::save_v6::path_present(&target);
+    crate::save_v6::recovery::require_no_recovery(&target, "E_SLOT")?;
+    if new {
+        // V5 slots are advertised as writable. Validate that exact source, but
+        // persist only the current game as V6; never pre-migrate or replace V5.
+        // A present newer path always wins, including corrupt/unreadable files.
+        let source = read_document(&slot_path(root, slot_id)?)?;
+        if source.slot_id != slot_id {
+            return Err("E_SLOT_ID_MISMATCH".into());
+        }
     }
     write_slot_v6(
         &target,
@@ -146,11 +155,28 @@ pub fn overwrite_slot_v6(
             updated_at_ms: now_ms(),
             save: save.clone(),
         },
-        false,
+        new,
     )
 }
 
+/// Rest/Evolution/Scanner must honor the selected slot's read-only intent,
+/// even where a writable parent directory would permit replacing its file.
+pub(crate) fn require_writable_current_source(root: &Path, slot_id: &str) -> Result<(), String> {
+    let v6 = slot_v6_path(root, slot_id)?;
+    let source = if crate::save_v6::path_present(&v6) { v6 } else { slot_path(root, slot_id)? };
+    let metadata = fs::metadata(&source).map_err(|error| format!("E_SLOT_READ: {error}"))?;
+    if !metadata.is_file() { return Err("E_SLOT_NOT_REGULAR".into()); }
+    if metadata.permissions().readonly() { return Err("E_SLOT_READ_ONLY".into()); }
+    Ok(())
+}
+
 fn write_slot_v6(target: &Path, doc: &SlotDocumentV6, new: bool) -> Result<(), String> {
+    crate::save_v6::recovery::require_no_recovery(target, "E_SLOT")?;
+    write_slot_v6_inner(target, doc, new, None)
+}
+
+fn write_slot_v6_inner(target: &Path, doc: &SlotDocumentV6, new: bool, backup: Option<&crate::save_v6::recovery::Backup>) -> Result<(), String> {
+    validate_writable_slot_id(&doc.slot_id)?;
     validate_v6_envelope(
         doc.schema_version,
         &doc.slot_id,
@@ -168,7 +194,10 @@ fn write_slot_v6(target: &Path, doc: &SlotDocumentV6, new: bool) -> Result<(), S
         Some(bytes)
     };
     let bytes = serde_json::to_vec_pretty(doc).map_err(|e| format!("E_SLOT_ENCODE: {e}"))?;
-    crate::save_v6::atomic_write_verified(target, &bytes, original.as_deref(), "E_SLOT", |raw| {
+    crate::save_v6::atomic_write_verified_guarded(target, &bytes, original.as_deref(), "E_SLOT", || {
+        if let Some(backup) = backup { crate::save_v6::recovery::require_unchanged(target, backup, "E_SLOT")?; }
+        Ok(())
+    }, |raw| {
         // Current DTO only: normalization must never conceal a mismatched temp/commit.
         let check: SlotDocumentV6 = serde_json::from_slice(raw).map_err(|_| "E_SLOT_CORRUPT")?;
         validate_v6_envelope(
@@ -185,6 +214,70 @@ fn write_slot_v6(target: &Path, doc: &SlotDocumentV6, new: bool) -> Result<(), S
     })
 }
 
+fn slot_v6_path(root: &Path, slot_id: &str) -> Result<PathBuf, String> {
+    validate_slot_id(slot_id)?;
+    Ok(slots_root(root).join(slot_id).join(SLOT_V6_FILE_NAME))
+}
+
+/// Read/migrate in memory only. Availability and candidate construction never write.
+pub(crate) fn read_slot_v6_candidate(root: &Path, slot_id: &str) -> Result<(String, crate::save_v6::SaveV6), String> {
+    read_slot_v6_source(root, slot_id).map(|(name, save, _)| (name, save))
+}
+
+pub(crate) fn read_slot_v6_source(root: &Path, slot_id: &str) -> Result<(String, crate::save_v6::SaveV6, Option<crate::save_v6::recovery::Backup>), String> {
+    let path = slot_v6_path(root, slot_id)?;
+    if crate::save_v6::path_present(&path) {
+        let bytes = crate::save_v6::read_bounded(&path, "E_SLOT", "E_SLOT_NOT_FOUND")?;
+        let (doc, _) = decode_slot_v6(&bytes, slot_id)?;
+        return Ok((doc.display_name, doc.save, None));
+    }
+    if let Some(backup) = crate::save_v6::recovery::backup(&path, "E_SLOT")? {
+        let (doc, _) = decode_slot_v6(&backup.bytes, slot_id)?;
+        return Ok((doc.display_name, doc.save, Some(backup)));
+    }
+    let path = slot_path(root, slot_id)?;
+    let (name, save) = if crate::save_v6::path_present(&path) {
+        let doc = read_document(&path)?;
+        if doc.slot_id != slot_id { return Err("E_SLOT_ID_MISMATCH".into()); }
+        (doc.display_name, doc.save)
+    } else {
+        let doc = read_legacy_document(&legacy_slot_path(root, slot_id)?)?;
+        if doc.slot_id != slot_id { return Err("E_SLOT_ID_MISMATCH".into()); }
+        let mut save = save_v5::from_v4(&doc.save)?;
+        let provenance = save.migration_provenance.as_mut().ok_or("E_SAVE_MIGRATION_PROVENANCE_INVALID")?;
+        provenance.source_format = "slot-v4.json".into();
+        provenance.method = "validated-v4-slot-copy; Grey Hive checkpoint mapping; original retained".into();
+        (doc.display_name, save)
+    };
+    Ok((name, crate::save_v6::SaveV6::from_v5(save)?, None))
+}
+pub(crate) fn slot_v6_present(root: &Path, slot_id: &str) -> Result<bool, String> {
+    Ok(crate::save_v6::path_present(&slot_v6_path(root, slot_id)?))
+}
+/// Called only after full explicit Continue validation. Original lower-version files remain intact.
+pub(crate) fn write_continued_slot_v6(root: &Path, slot_id: &str, display_name: &str, save: &crate::save_v6::SaveV6, backup: Option<&crate::save_v6::recovery::Backup>) -> Result<(), String> {
+    validate_writable_slot_id(slot_id)?;
+    let target = slot_v6_path(root, slot_id)?;
+    if let Some(backup) = backup {
+        crate::save_v6::recovery::require_unchanged(&target, backup, "E_SLOT")?;
+        decode_slot_v6(&backup.bytes, slot_id)?;
+        return write_slot_v6_inner(&target, &SlotDocumentV6 {
+            schema_version: 3, slot_id: slot_id.into(), display_name: display_name.into(),
+            updated_at_ms: now_ms(), save: save.clone(),
+        }, true, Some(backup));
+    }
+    crate::save_v6::recovery::require_no_recovery(&target, "E_SLOT")?;
+    // Verify the actual winning source, including a corrupt newer file, before replacement.
+    read_slot_v6_candidate(root, slot_id)?;
+    if !crate::save_v6::path_present(&target) && !crate::save_v6::path_present(&slot_path(root, slot_id)?) {
+        crate::save_v6::retain_v4_backup(&legacy_slot_path(root, slot_id)?, "E_SLOT")?;
+    }
+    write_slot_v6(&target, &SlotDocumentV6 {
+        schema_version: 3, slot_id: slot_id.into(), display_name: display_name.into(),
+        updated_at_ms: now_ms(), save: save.clone(),
+    }, !crate::save_v6::path_present(&target))
+}
+
 pub fn read_slot_v6(
     root: &Path,
     slot_id: &str,
@@ -194,6 +287,10 @@ pub fn read_slot_v6(
     if crate::save_v6::path_present(&path) {
         let bytes = crate::save_v6::read_bounded(&path, "E_SLOT", "E_SLOT_NOT_FOUND")?;
         let (doc, _) = decode_slot_v6(&bytes, slot_id)?;
+        return Ok((doc.display_name, doc.save));
+    }
+    if let Some(backup) = crate::save_v6::recovery::backup(&path, "E_SLOT")? {
+        let (doc, _) = decode_slot_v6(&backup.bytes, slot_id)?;
         return Ok((doc.display_name, doc.save));
     }
     let (name, old) = read_slot(root, slot_id)?;
@@ -245,6 +342,8 @@ pub struct SlotSummary {
     pub gate_open: Option<bool>,
     pub completed_events: Vec<String>,
     pub read_only: bool,
+    #[serde(default)]
+    pub recoverable: bool,
     pub valid: bool,
     pub error_code: Option<String>,
 }
@@ -259,6 +358,29 @@ pub fn validate_slot_id(slot_id: &str) -> Result<(), String> {
         return Err("E_SLOT_ID_INVALID".into());
     }
     Ok(())
+}
+
+pub(crate) fn is_reserved_slot_id(slot_id: &str) -> bool {
+    // The shipped Windows filesystem aliases ASCII case variants of this path.
+    #[cfg(windows)]
+    { slot_id.eq_ignore_ascii_case(RESERVED_SLOT_ID) }
+    #[cfg(not(windows))]
+    { slot_id == RESERVED_SLOT_ID }
+}
+
+fn validate_writable_slot_id(slot_id: &str) -> Result<(), String> {
+    validate_slot_id(slot_id)?;
+    if is_reserved_slot_id(slot_id) { return Err("E_SLOT_ID_RESERVED".into()); }
+    Ok(())
+}
+
+/// Any physical reserved path conflicts with the virtual default-save alias.
+/// Do not follow symlinks or hide unreadable, corrupt, or future-version evidence.
+pub(crate) fn require_unambiguous_legacy_alias(root: &Path) -> Result<(), String> {
+    match fs::symlink_metadata(slots_root(root).join(RESERVED_SLOT_ID)) {
+        Err(error) if matches!(error.kind(), std::io::ErrorKind::NotFound | std::io::ErrorKind::NotADirectory) => Ok(()),
+        _ => Err("E_SLOT_ID_CONFLICT".into()),
+    }
 }
 
 fn slots_root(root: &Path) -> PathBuf {
@@ -305,7 +427,7 @@ pub fn create_slot(
     display_name: &str,
     save: &SaveV5,
 ) -> Result<(), String> {
-    if slot_id == "legacy-save-v3" {
+    if is_reserved_slot_id(slot_id) {
         return Err("E_SLOT_ID_RESERVED".into());
     }
     let doc = document(slot_id, display_name, save.clone())?;
@@ -333,7 +455,7 @@ pub fn overwrite_slot(
     display_name: &str,
     save: &SaveV5,
 ) -> Result<(), String> {
-    if slot_id == "legacy-save-v3" {
+    if is_reserved_slot_id(slot_id) {
         return Err("E_SLOT_ID_RESERVED".into());
     }
     let doc = document(slot_id, display_name, save.clone())?;
@@ -471,6 +593,7 @@ fn read_legacy_document(path: &Path) -> Result<LegacySlotDocument, String> {
 }
 
 fn migrate_v4_slot(root: &Path, slot_id: &str) -> Result<(String, SaveV5), String> {
+    validate_writable_slot_id(slot_id)?;
     let source = legacy_slot_path(root, slot_id)?;
     let doc = read_legacy_document(&source)?;
     if doc.slot_id != slot_id {
@@ -533,6 +656,7 @@ fn summary(
         gate_open: Some(events.iter().any(|event| event == "hive_power")),
         completed_events: events,
         read_only,
+        recoverable: false,
         valid: true,
         error_code: None,
     }
@@ -540,10 +664,12 @@ fn summary(
 
 pub fn list_slots(root: &Path) -> Vec<SlotSummary> {
     let mut result = Vec::new();
+    let alias_conflict = require_unambiguous_legacy_alias(root).is_err();
+    if alias_conflict { result.push(corrupt_summary(RESERVED_SLOT_ID, "E_SLOT_ID_CONFLICT")); }
     if let Ok(entries) = fs::read_dir(slots_root(root)) {
         for entry in entries.flatten() {
             let name = entry.file_name().to_string_lossy().into_owned();
-            if validate_slot_id(&name).is_err() || !entry.path().is_dir() {
+            if is_reserved_slot_id(&name) || validate_slot_id(&name).is_err() || !entry.path().is_dir() {
                 continue;
             }
             let path = entry.path().join(SLOT_FILE_NAME);
@@ -565,7 +691,23 @@ pub fn list_slots(root: &Path) -> Vec<SlotSummary> {
                     )),
                     Err(error) => result.push(corrupt_summary(&name, &error)),
                 }
-            } else if path.is_file() {
+            } else if match crate::save_v6::recovery::backup(&v6_path, "E_SLOT") {
+                Ok(Some(backup)) => {
+                    match decode_slot_v6(&backup.bytes, &name) {
+                        Ok((doc, _)) => {
+                            let mut row = summary(&name, &doc.display_name, doc.updated_at_ms, &doc.save.save, true);
+                            row.recoverable = true;
+                            result.push(row);
+                        }
+                        Err(error) => result.push(corrupt_summary(&name, &error)),
+                    }
+                    true
+                }
+                Err(error) => { result.push(corrupt_summary(&name, &error)); true }
+                Ok(None) => false,
+            } {
+                // The recovery decision already supplied a row; never fall through to V5.
+            } else if crate::save_v6::path_present(&path) {
                 match read_document(&path) {
                     Ok(doc) if doc.slot_id == name => result.push(summary(
                         &name,
@@ -577,7 +719,7 @@ pub fn list_slots(root: &Path) -> Vec<SlotSummary> {
                     Ok(_) => result.push(corrupt_summary(&name, "E_SLOT_ID_MISMATCH")),
                     Err(error) => result.push(corrupt_summary(&name, &error)),
                 }
-            } else if legacy_path.is_file() {
+            } else if crate::save_v6::path_present(&legacy_path) {
                 match read_legacy_document(&legacy_path) {
                     Ok(doc) if doc.slot_id == name => result.push(summary_v4_readonly(&name, &doc)),
                     Ok(_) => result.push(corrupt_summary(&name, "E_SLOT_ID_MISMATCH")),
@@ -586,8 +728,17 @@ pub fn list_slots(root: &Path) -> Vec<SlotSummary> {
             }
         }
     }
-    if let Ok(save) = save_v3::read_save(root) {
-        result.push(summary_legacy_save("legacy-save-v3", &save));
+    if !alias_conflict {
+        if let Ok(save) = save_v3::read_save(root) {
+            if let Ok(Some((candidate, Some(_)))) = crate::save_v6::read_candidate(root) {
+                // The virtual alias will Continue the recovered default, never this older file.
+                let mut row = summary(RESERVED_SLOT_ID, "自动存档", 0, &candidate.save, true);
+                row.recoverable = true;
+                result.push(row);
+            } else {
+                result.push(summary_legacy_save(RESERVED_SLOT_ID, &save));
+            }
+        }
     }
     result.sort_by(|a, b| {
         b.updated_at_ms
@@ -620,6 +771,7 @@ fn summary_legacy_save(slot_id: &str, save: &save_v3::SaveV3) -> SlotSummary {
         gate_open: Some(events.iter().any(|e| e == "hive_power")),
         completed_events: events,
         read_only: true,
+        recoverable: false,
         valid: true,
         error_code: None,
     }
@@ -649,6 +801,7 @@ fn summary_v4_readonly(slot_id: &str, doc: &LegacySlotDocument) -> SlotSummary {
         gate_open: Some(events.iter().any(|e| e == "hive_power")),
         completed_events: events,
         read_only: true,
+        recoverable: false,
         valid: true,
         error_code: None,
     }
@@ -669,6 +822,7 @@ fn corrupt_summary(slot_id: &str, error: &str) -> SlotSummary {
         gate_open: None,
         completed_events: Vec::new(),
         read_only: true,
+        recoverable: false,
         valid: false,
         error_code: Some(error.into()),
     }

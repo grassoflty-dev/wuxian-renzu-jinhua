@@ -631,8 +631,12 @@ html[data-contrast="high"] .shell {
 }
 
 .hud-world {
-  top: 94px;
-  left: 18px;
+  /* Follow the actual portrait and meter height, including accessibility scaling. */
+  position: relative;
+  top: auto;
+  left: auto;
+  margin-top: 9px;
+  width: fit-content;
   max-width: min(340px, 42%);
 }
 

@@ -21,7 +21,7 @@ function isFirstGreyHiveClear(snapshot: WorldSnapshotV3): boolean {
   return worlds.some(progress => {
     if (!progress || typeof progress !== "object") return false;
     const world = progress as Record<string, unknown>;
-    return world.worldId === "grey_hive" && world.completed === true && world.firstCompletion === true;
+    return world.worldId === "grey_hive" && world.completed === true;
   });
 }
 
@@ -52,14 +52,13 @@ function mapDetails(snapshot: WorldSnapshotV3): string[] {
 
 export function deriveEnhancementStatus(snapshot: WorldSnapshotV3): EnhancementStatusView | null {
   if (!isFirstGreyHiveClear(snapshot) || !Array.isArray(snapshot.capabilities.items)) return null;
-  const selected = snapshot.capabilities.items.filter(item =>
-    !!item && typeof item === "object" && item.granted && item.selected &&
-    Object.hasOwn(FIRST_CLEAR_ENHANCEMENTS, item.capabilityId));
-  if (selected.length !== 1) return null;
-
-  const choice = selected[0];
-  if (!choice) return null;
-  const capabilityId = choice.capabilityId as FirstClearEnhancementId;
+  const id = snapshot.capabilities.firstEnhancementChoice;
+  if (typeof id !== "string" || !Object.hasOwn(FIRST_CLEAR_ENHANCEMENTS, id)) return null;
+  const choices = snapshot.capabilities.items.filter(item => item?.capabilityId === id && item.granted === true);
+  if (choices.length !== 1) return null;
+  const capabilityId = id as FirstClearEnhancementId;
+  if (capabilityId === "information.local_map_i" && !choices[0]!.selected) return { capabilityId, label: FIRST_CLEAR_ENHANCEMENTS[capabilityId],
+    availability: "已获得 · 请在能力管理中配置", details: [] };
   switch (capabilityId) {
     case "information.local_map_i": {
       const details = mapDetails(snapshot);

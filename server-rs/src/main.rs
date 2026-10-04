@@ -253,10 +253,11 @@ fn formal_capability_command(
 #[tauri::command]
 fn formal_choose_first_enhancement(
     capability_id: String,
+    context: wuxian_horror_ch1::formal_runtime::EnhancementTerminalContext,
     runtime: tauri::State<'_, FormalRuntime>,
 ) -> Result<wuxian_horror_ch1::world_v3::CommandReceipt, String> {
     runtime
-        .choose_first_enhancement(&capability_id)
+        .choose_first_enhancement(&capability_id, &context)
         .map(|view| {
             wuxian_horror_ch1::world_v3::CommandReceipt::from_view(
                 format!("enhancement:{capability_id}"),

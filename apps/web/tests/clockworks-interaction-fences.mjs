@@ -1,3 +1,4 @@
+import { scannerRewardFeedback } from "../dist/game/ScannerReward.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import vm from "node:vm";
@@ -44,7 +45,7 @@ function harness({ dispatchDeferred = false, acceptanceDeferred = false, navigat
     hud: { apply: value => ({ interactionId: value.interactables[0].entityId }), setFeedback: value => feedback.push(value) },
     dispatchInteractable: () => dispatchDeferred ? dispatch.promise : Promise.resolve(result),
     isCurrentSceneInteractionResult, isCurrentSceneInteractionFeedback, interactionErrorText,
-    confirmedClockworksEpilogue, confirmedReturnStationAfterClockworks,
+    scannerRewardFeedback, confirmedClockworksEpilogue, confirmedReturnStationAfterClockworks,
     confirmedGreyHiveNarrative: () => null, confirmedMistHarborBeaconSync: () => null,
     confirmedMistHarborAcousticMappingLine: () => null, confirmedReturnStationAfterGreyHive: () => null,
     missionTerminalSummary: () => "mission", capabilityTerminalSummary: () => "capability",

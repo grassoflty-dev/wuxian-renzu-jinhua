@@ -1,4 +1,5 @@
 import { clockworksStatus } from "./ClockworksCampaign.js";
+import { mistHarborRevisitStatus } from "./MistHarborRevisit.js";
 import type { WorldSnapshotV3 } from "../protocol/types.js";
 
 interface WorldProgressRow {
@@ -6,6 +7,7 @@ interface WorldProgressRow {
   completed?: unknown;
   firstCompletion?: unknown;
   completedEvents?: unknown;
+  revisitCount?: unknown;
 }
 
 /** Presents mission state strictly from the authoritative Rust v3 projection. */
@@ -33,7 +35,7 @@ export function missionTerminalSummary(snapshot: WorldSnapshotV3): string {
     ? `当前世界 · 主线目标 ${completedEvents.filter(event =>
       ["mist_beacon_west", "mist_beacon_east", "mist_signal"].includes(event)).length}/3`
     : mistHarbor?.completed === true
-      ? mistHarborGate?.active ? "已完成 · 限次复访入口可用" : "已完成 · 复访次数用尽"
+      ? mistHarborRevisitStatus(mistHarbor.revisitCount, mistHarborGate)
       : mistHarborGate?.active ? "归航站入口可用"
         : ghCleared ? "已解锁 · 前往归航站进入" : "灰巢首次撤离后解锁";
   return `灰巢设施：${greyHiveAccess}；首次撤离：${greyHiveFirstClear}。雾港余烬：${mistHarborStatus}。钟骨工厂：${clockworksStatus(snapshot)}。`;

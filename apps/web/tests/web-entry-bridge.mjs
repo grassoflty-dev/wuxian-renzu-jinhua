@@ -121,10 +121,12 @@ function slotReceipt(commandId = "save-slot") {
     serverTick: view.serverTick, authorityRevision: view.authorityRevision, snapshot: view };
 }
 
+const enhancementContext = { id: "rs_capability_terminal_marker", requestId: "terminal-test", worldEpoch: 1, pauseCommandSequence: 1 };
 function enhancementReceipt(capabilityId = "information.local_map_i") {
   const view = snapshot();
   view.progression.worlds = [{ worldId: "grey_hive", completed: true, firstCompletion: true }];
   view.capabilities.items = [{ capabilityId, granted: true, selected: true }];
+  view.capabilities.firstEnhancementChoice = capabilityId;
   view.authorityRevision++;
   return { commandId: `enhancement:${capabilityId}`, applied: true, alreadyApplied: false, errorCode: null,
     worldEpoch: view.worldEpoch, serverTick: view.serverTick, authorityRevision: view.authorityRevision, snapshot: view };
@@ -136,20 +138,20 @@ test("first-clear enhancement invokes explicit capability choice and validates g
     calls.push({ command, args });
     return enhancementReceipt(args.capabilityId);
   });
-  const receipt = await client.chooseFirstEnhancement("information.local_map_i");
+  const receipt = await client.chooseFirstEnhancement("information.local_map_i", enhancementContext);
   assert.equal(receipt.commandId, "enhancement:information.local_map_i");
   assert.equal(receipt.snapshot.capabilities.items[0].granted, true);
-  assert.deepEqual(calls, [{ command: "formal_choose_first_enhancement", args: { capabilityId: "information.local_map_i" } }]);
+  assert.deepEqual(calls, [{ command: "formal_choose_first_enhancement", args: { capabilityId: "information.local_map_i", context: enhancementContext } }]);
 
   const wrongCommand = new TauriClient(async () => ({ ...enhancementReceipt(), commandId: "enhancement:perception.rear_view_i" }));
-  await assert.rejects(wrongCommand.chooseFirstEnhancement("information.local_map_i"), /E_ENHANCEMENT_RECEIPT_COMMAND_MISMATCH/);
+  await assert.rejects(wrongCommand.chooseFirstEnhancement("information.local_map_i", enhancementContext), /E_ENHANCEMENT_RECEIPT_COMMAND_MISMATCH/);
   const wrongCounters = new TauriClient(async () => ({ ...enhancementReceipt(), authorityRevision: 999 }));
-  await assert.rejects(wrongCounters.chooseFirstEnhancement("information.local_map_i"), /E_ENHANCEMENT_RECEIPT_SNAPSHOT_MISMATCH/);
+  await assert.rejects(wrongCounters.chooseFirstEnhancement("information.local_map_i", enhancementContext), /E_ENHANCEMENT_RECEIPT_SNAPSHOT_MISMATCH/);
   const noGrant = new TauriClient(async () => {
     const receipt = enhancementReceipt();
     return { ...receipt, snapshot: { ...receipt.snapshot, capabilities: { schemaVersion: 1, items: [] } } };
   });
-  await assert.rejects(noGrant.chooseFirstEnhancement("information.local_map_i"), /E_ENHANCEMENT_RECEIPT_NOT_GRANTED/);
+  await assert.rejects(noGrant.chooseFirstEnhancement("information.local_map_i", enhancementContext), /E_ENHANCEMENT_RECEIPT_NOT_GRANTED/);
 });
 
 test("slot bridge lists slots and sends exact create, overwrite, and selected-continue protocols", async () => {
@@ -340,4 +342,19 @@ test("save availability rejects non-boolean native replies and propagates read f
     await assert.rejects(new TauriClient(async () => value).hasSave(true), /E_SAVE_PROBE_RESULT_INVALID/);
   }
   await assert.rejects(new TauriClient(async () => { throw Error("native read failed"); }).hasSave(true), /native read failed/);
+});
+
+test("only an exact confirmed lifecycle receipt can mint an evolution pause sequence", async () => {
+  const view={...snapshot(),worldId:"return_station",sceneId:"rs_core_room"};
+  const context={worldId:view.worldId,sceneId:view.sceneId,worldEpoch:view.worldEpoch};
+  const base={commandId:"pause",applied:true,alreadyApplied:false,errorCode:null,
+    worldEpoch:view.worldEpoch,serverTick:view.serverTick,authorityRevision:view.authorityRevision,snapshot:view};
+  for(const mutation of [{commandId:"resume"},{applied:"yes"},{alreadyApplied:true},{errorCode:"error"}]) {
+    const client=new TauriClient(async()=>({...base,...mutation}));
+    await assert.rejects(client.pause(context),/E_LIFECYCLE_RECEIPT_INVALID/);
+    assert.throws(()=>client.confirmedPauseSequence(context),/E_ENHANCEMENT_PAUSE_UNCONFIRMED/);
+  }
+  const client=new TauriClient(async command=>({...base,commandId:command==="formal_pause"?"pause":"resume"}));
+  await client.pause(context);assert.equal(client.confirmedPauseSequence(context),1);
+  await client.resume(context);assert.throws(()=>client.confirmedPauseSequence(context),/E_ENHANCEMENT_PAUSE_UNCONFIRMED/);
 });

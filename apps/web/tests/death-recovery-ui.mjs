@@ -5,7 +5,7 @@ import vm from "node:vm";
 import ts from "typescript";
 import { HudPresenter } from "../dist/ui/Hud.js";
 import { SessionLoop } from "../dist/game/SessionLoop.js";
-import { canContinueSaveSlot, canOverwriteSaveSlot } from "../dist/bridge/save-slot-policy.js";
+import { canContinueSaveSlot, canOverwriteSaveSlot, saveSlotAvailabilityLabel } from "../dist/bridge/save-slot-policy.js";
 
 // Run production main functions/listeners with injected DOM, IPC and renderer
 // surfaces. The recovery path still uses the real SessionLoop readiness barrier.
@@ -83,7 +83,7 @@ function harness(options = {}) {
     setInterval(callback) { const id = ++sequence; intervals.set(id, callback); return id; }, clearInterval(id) { intervals.delete(id); },
     requestAnimationFrame(callback) { const id = ++sequence; frames.set(id, callback); return id; }, cancelAnimationFrame(id) { frames.delete(id); } };
   const ctx = vm.createContext({ ...elements, client, hud, hudElements, coreUi, audioCuePlayer, document, window,
-    Error, DOMException, AbortController, canContinueSaveSlot, canOverwriteSaveSlot,
+    Error, DOMException, AbortController, canContinueSaveSlot, canOverwriteSaveSlot, saveSlotAvailabilityLabel,
     journeyRequestId: 1, activeJourneyLoad: null, slotReadId: 0, deathRecoveryTarget: null,
     saveSlots: [], slotsReady: false, latestSaveAvailable: false, busy: false, saveBusy: false, enhancementBusy: false,
     nativeJourneyUncertain: false, interactionBusy: false, hudIdentity: null,
@@ -91,6 +91,7 @@ function harness(options = {}) {
     buildCloseBarrier: { closing: false }, isTauri: () => true,
     waitForHubBuild: () => options.waitForHubBuild?.() ?? Promise.resolve(),
     applyWorldTheme() {}, worldDisplayName: value => value, confirmedReturnStationNewJourney: () => null,
+    evolution: { visible: false, ready: false, busy: false, message: "", reset() {}, reconcile() {} },
     enhancementStatusHud: { reset() {}, apply() {} },
     runtimeAssetLoader: { async load() { calls.push(["assets"]); return {}; } }, sceneDefinitionLoader: {},
     MistHarborSignalLineState: class { accept() { return null; } }, interactFromSnapshot() { throw new Error("unexpected interaction"); },
@@ -103,7 +104,7 @@ function harness(options = {}) {
       cancel() {} invalidate() {} async destroy() { calls.push(["sceneDestroy"]); } },
     SessionLoop: class extends SessionLoop { constructor(client, renderer, settings) {
       super(client, renderer, { ...settings, scheduler, documentTarget: document, windowTarget: window }); loops.push(this); } },
-    root: { querySelector: id => ({ "#hud-resume": hudElements.resumeButton, "#hud-pause": hudElements.pauseButton })[id] },
+    root: { querySelector: id => ({ "#hud-resume": hudElements.resumeButton, "#hud-pause": hudElements.pauseButton })[id] ?? new Element() },
   });
   const deadLoop = { isDead: true, pausePresentationState: "dead", acceptsExternalResults: false,
     snapshots: { view: () => snapshot(0, 1, false) },
@@ -467,5 +468,21 @@ test("running renderer failure leaves surviving autosave available after cleanup
   assert.equal(h.ctx.hub.hidden, false);
   assert.equal(h.ctx.slotsReady, true, "cleanup must not discard the only menu refresh");
   assert.equal(h.ctx.continueButton.disabled, false, "a good surviving autosave must remain retryable");
+  await h.close();
+});
+
+
+test("main menu recovery label requires an explicit click and uses ordinary Continue once", async () => {
+  const h = menuHarness({ listSaveSlots: () => [slot("recover", 1, { readOnly: true, recoverable: true })] });
+  await h.ctx.refreshSaveSlots();
+  assert.equal(h.calls.some(([name]) => name === "continueJourney" || name === "continueSlot"), false);
+  assert.match(h.ctx.continueSlot.children[0].textContent, /可恢复/);
+  h.ctx.continueSlot.value = "recover"; h.ctx.continueSlot.fire("change");
+  assert.match(h.ctx.continueNote.textContent, /唯一有效事务备份/);
+  let confirmed = 0; h.ctx.window.confirm = () => { confirmed++; return false; };
+  h.ctx.continueSelected.fire("click"); await flush();
+  assert.equal(confirmed, 0); // No unrelated legacy migration prompt for a recovery candidate.
+  assert.equal(h.calls.filter(([name]) => name === "continueSlot").length, 1);
+  assert.equal(h.calls.find(([name]) => name === "continueSlot")[1], "recover");
   await h.close();
 });

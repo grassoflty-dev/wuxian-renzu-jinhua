@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { canContinueSaveSlot, canOverwriteSaveSlot } from "../dist/bridge/save-slot-policy.js";
+import { canContinueSaveSlot, canOverwriteSaveSlot, saveSlotAvailabilityLabel } from "../dist/bridge/save-slot-policy.js";
 
 const good = { slotId: "slot-a", displayName: "存档", updatedAtMs: 0, worldId: "grey_hive", checkpointId: null,
   playerPositionM: null, currentHp: 1, maxHp: 1, currentEnergy: 1, maxEnergy: 1, gateOpen: false,
@@ -27,4 +27,15 @@ test("dead and unknown-HP slots cannot be continued, even when their envelope is
     assert.equal(canContinueSaveSlot({ ...good, currentHp }), false);
   }
   assert.equal(canContinueSaveSlot({ ...good, currentHp: 0.5 }), true);
+});
+
+
+test("unique validated backup is explicitly continuable, never overwriteable, and labelled recoverable", () => {
+  const backup = { ...good, readOnly: true, recoverable: true };
+  assert.equal(canContinueSaveSlot(backup), true);
+  assert.equal(canOverwriteSaveSlot(backup), false);
+  assert.match(saveSlotAvailabilityLabel(backup), /可恢复/);
+  assert.doesNotMatch(saveSlotAvailabilityLabel(backup), /旧版/);
+  assert.equal(canOverwriteSaveSlot({ ...backup, readOnly: false }), false);
+  assert.match(saveSlotAvailabilityLabel({ ...backup, valid: false, errorCode: "E_SLOT_RECOVERY_AMBIGUOUS" }), /不可继续.*RECOVERY_AMBIGUOUS/);
 });

@@ -298,6 +298,8 @@ pub struct CapabilityItemProjection {
 #[serde(rename_all = "camelCase")]
 pub struct CapabilityProjection {
     pub schema_version: u32,
+    #[serde(default)]
+    pub first_enhancement_choice: Option<String>,
     pub items: Vec<CapabilityItemProjection>,
     pub explored_map: ExploredMap,
     /// Resolved authorization, independent of permanent capability acquisition.
@@ -320,6 +322,7 @@ impl CapabilityProjection {
     ) -> Self {
         Self {
             schema_version: 1,
+            first_enhancement_choice: None,
             items,
             explored_map,
             map_topology_authorized: None,

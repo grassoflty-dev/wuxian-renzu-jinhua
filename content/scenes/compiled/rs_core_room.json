@@ -354,7 +354,7 @@
         "zGroup": 0
       },
       {
-        "id": "visual.floor_detail",
+        "id": "visual.props_dynamic",
         "zGroup": 10
       },
       {
@@ -376,7 +376,7 @@
       {
         "assetId": "runtime2d.grey_hive.clutter.v1",
         "id": "approved_floor_detail",
-        "layer": "visual.floor_detail",
+        "layer": "visual.props_dynamic",
         "position": [
           12.0,
           0.0,

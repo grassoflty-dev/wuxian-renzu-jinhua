@@ -1,3 +1,4 @@
+import { scannerTerminalLabel } from "../game/ScannerReward.js";
 import { sentinelStatus } from "../protocol/SentinelEncounter.js";
 import { greyHiveBeaconStatus } from "../game/GreyHiveBeacon.js";
 import { projectWardenEncounter } from "../renderer/WardenEncounterModel.js";
@@ -120,7 +121,10 @@ export function deriveHudState(snapshot: WorldSnapshotV3): HudState {
     .sort((left, right) => left.distance - right.distance || left.door.doorId.localeCompare(right.door.doorId))[0]?.door;
   const interactionText = nearestInteraction
     ? nearestInteraction.kind === "pump_control" ? "[F] 启动排水泵"
-      : `F 交互 · ${interactionLabel(nearestInteraction.kind, nearestInteraction.entityId)}`
+      : snapshot.worldId === "grey_hive" && snapshot.sceneId === "gh_entry_maintenance" &&
+        nearestInteraction.kind === "terminal" && nearestInteraction.entityId === "gh_entry_tutorial_terminal"
+        ? "[F] 查看教程终端"
+      : `F 交互 · ${(scannerTerminalLabel(snapshot, nearestInteraction) ?? interactionLabel(nearestInteraction.kind, nearestInteraction.entityId))}`
     : "";
   const nearbyDoorText = nearestDoor
     ? nearestDoor.locked ? "门锁闭" : nearestDoor.open ? "门已开启" : "门关闭"

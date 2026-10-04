@@ -29,7 +29,7 @@
     },
     {
       "id": 2,
-      "name": "visual.floor_detail",
+      "name": "visual.props_dynamic",
       "objects": [
         {
           "id": 2,

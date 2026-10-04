@@ -76,3 +76,5 @@ html[data-motion="reduced"] .death-overlay{animation:none}
 .journey:not(.developer-presentation){grid-template-columns:minmax(0,1fr)}
 .journey-panel[hidden]{display:none!important}
 .hud-return{position:absolute;top:16px;right:100px;pointer-events:auto;min-width:96px;height:36px;border:1px solid rgba(167,199,207,.5);border-radius:3px;background:rgba(8,17,22,.9);color:#e7eef1}
+
+.evolution-overlay{pointer-events:auto;position:absolute;inset:0;z-index:80;display:grid;place-items:center;background:rgba(3,9,15,.85);padding:20px}.evolution-overlay[hidden]{display:none}.evolution-overlay>div{display:grid;gap:18px;max-width:620px;padding:28px;border:1px solid #a4cfca;background:#0d1b24;color:#e5f1ef;text-align:center}.evolution-overlay button{min-height:44px;padding:10px 18px}.evolution-overlay #enhancement-feedback{min-height:24px;overflow-wrap:anywhere}

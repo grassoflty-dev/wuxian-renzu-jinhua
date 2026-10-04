@@ -127,6 +127,7 @@ export interface MapKnowledgeProjection {
 }
 export interface CapabilityProjection {
   schemaVersion: number;
+  firstEnhancementChoice?: string | null;
   items?: CapabilityItemProjection[];
   exploredMap?: ExploredMapProjection;
   /** Effective channel authorization; does not imply acquiring a permanent capability. */
@@ -321,6 +322,10 @@ export function assertSnapshotV3(value: unknown): WorldSnapshotV3 {
       Array.isArray(snapshot.interactables) && Array.isArray(snapshot.hazards) &&
       Array.isArray(snapshot.objectives) && snapshot.capabilities && typeof snapshot.capabilities === "object" &&
       snapshot.progression && typeof snapshot.progression === "object") {
+    const choice = (snapshot.capabilities as Record<string, unknown>).firstEnhancementChoice;
+    if (choice !== undefined && choice !== null && (typeof choice !== "string" || !["information.local_map_i", "perception.rear_view_i", "body.regeneration_i"].includes(choice))) {
+      throw new Error("E_FIRST_ENHANCEMENT_CHOICE_INVALID");
+    }
     assertSentinelEncounter(snapshot as unknown as WorldSnapshotV3);
     if (Object.hasOwn(snapshot, "greyHiveBeacon")) assertGreyHiveBeacon(snapshot.greyHiveBeacon, snapshot.worldId as string);
     if (Object.hasOwn(snapshot, "build")) assertBuildProjection(snapshot.build);

@@ -1,5 +1,6 @@
 //! Strict durable Save V6 wrapper. Effective rules are always resolved on load.
 mod legacy_profile;
+pub(crate) mod recovery;
 use crate::{
     effects::EffectSource,
     formal_runtime::{build_v6::PlayerProgressionV6, RuntimeState},
@@ -167,8 +168,20 @@ fn decode_bytes(bytes: &[u8]) -> Result<(SaveV6, Profile), String> {
 }
 
 pub fn read_save(root: &Path) -> Result<SaveV6, String> {
-    let bytes = read_bounded(&save_path(root), "E_SAVE", "E_NO_SAVE")?;
-    decode_bytes(&bytes).map(|(save, _)| save)
+    read_candidate(root)?.map(|(save, _)| save).ok_or_else(|| "E_NO_SAVE".into())
+}
+
+/// A normalized candidate plus the exact backup proof; never writes or grants.
+pub(crate) fn read_candidate(root: &Path) -> Result<Option<(SaveV6, Option<recovery::Backup>)>, String> {
+    let target = save_path(root);
+    if path_present(&target) {
+        let bytes = read_bounded(&target, "E_SAVE", "E_NO_SAVE")?;
+        return Ok(Some((decode_bytes(&bytes)?.0, None)));
+    }
+    match recovery::backup(&target, "E_SAVE")? {
+        Some(backup) => Ok(Some((decode_bytes(&backup.bytes)?.0, Some(backup)))),
+        None => Ok(None),
+    }
 }
 
 pub fn read_or_migrate(root: &Path) -> Result<SaveV6, String> {
@@ -176,16 +189,30 @@ pub fn read_or_migrate(root: &Path) -> Result<SaveV6, String> {
     if path_present(&save_path(root)) {
         return read_save(root);
     }
+    recovery::require_no_recovery(&save_path(root), "E_SAVE")?;
     let save = SaveV6::from_v5(crate::save_v5::read_or_migrate(root)?)?;
     write_save(root, &save)?;
     Ok(save)
 }
 
 pub fn write_save(root: &Path, save: &SaveV6) -> Result<(), String> {
+    recovery::require_no_recovery(&save_path(root), "E_SAVE")?;
+    write_save_inner(root, save, None)
+}
+
+pub(crate) fn write_recovered_save(root: &Path, save: &SaveV6, backup: &recovery::Backup) -> Result<(), String> {
+    recovery::require_unchanged(&save_path(root), backup, "E_SAVE")?;
+    write_save_inner(root, save, Some(backup))
+}
+
+fn write_save_inner(root: &Path, save: &SaveV6, backup: Option<&recovery::Backup>) -> Result<(), String> {
     save.validate()?;
     fs::create_dir_all(root).map_err(|e| format!("E_SAVE_DIR: {e}"))?;
     let target = save_path(root);
-    let original = if path_present(&target) {
+    let original = if backup.is_some() {
+        if path_present(&target) { return Err("E_SAVE_RECOVERY_SOURCE_CHANGED".into()); }
+        None
+    } else if path_present(&target) {
         let bytes = read_bounded(&target, "E_SAVE", "E_NO_SAVE")?;
         if decode_bytes(&bytes)?.1 == Profile::Legacy {
             retain_legacy_backup(&target, &bytes, "E_SAVE")?;
@@ -195,7 +222,10 @@ pub fn write_save(root: &Path, save: &SaveV6) -> Result<(), String> {
         None
     };
     let bytes = serde_json::to_vec_pretty(save).map_err(|e| format!("E_SAVE_ENCODE: {e}"))?;
-    atomic_write_verified(&target, &bytes, original.as_deref(), "E_SAVE", |raw| {
+    atomic_write_verified_guarded(&target, &bytes, original.as_deref(), "E_SAVE", || {
+        if let Some(backup) = backup { recovery::require_unchanged(&target, backup, "E_SAVE")?; }
+        Ok(())
+    }, |raw| {
         // Decode only the current DTO here. Never normalize a temp/commit equality check.
         let persisted: SaveV6 = serde_json::from_slice(raw).map_err(|_| "E_SAVE_VERIFY")?;
         persisted.validate()?;
@@ -215,6 +245,9 @@ pub(crate) fn path_present(path: &Path) -> bool {
 }
 
 pub(crate) fn read_bounded(path: &Path, prefix: &str, missing: &str) -> Result<Vec<u8>, String> {
+    recovery::reject_links(path, prefix)?;
+    let meta = fs::symlink_metadata(path).map_err(|e| if e.kind() == std::io::ErrorKind::NotFound { missing.to_string() } else { format!("{prefix}_READ: {e}") })?;
+    if !meta.file_type().is_file() { return Err(format!("{prefix}_READ_NOT_REGULAR")); }
     let file = File::open(path).map_err(|e| {
         if e.kind() == std::io::ErrorKind::NotFound {
             missing.to_string()
@@ -222,10 +255,9 @@ pub(crate) fn read_bounded(path: &Path, prefix: &str, missing: &str) -> Result<V
             format!("{prefix}_READ: {e}")
         }
     })?;
-    let size = file
-        .metadata()
-        .map_err(|e| format!("{prefix}_READ: {e}"))?
-        .len();
+    let metadata = file.metadata().map_err(|e| format!("{prefix}_READ: {e}"))?;
+    if !metadata.is_file() { return Err(format!("{prefix}_READ_NOT_REGULAR")); }
+    let size = metadata.len();
     if size > MAX_SAVE_BYTES {
         return Err(format!("{prefix}_TOO_LARGE"));
     }
@@ -251,6 +283,17 @@ pub(crate) fn retain_legacy_backup(
         .and_then(|s| s.to_str())
         .ok_or("E_SAVE_PATH_INVALID")?;
     let backup = target.with_file_name(format!("{name}.legacy-effect-sources-v1.bak"));
+    retain_backup_at(target, &backup, bytes, prefix)
+}
+
+/// Preserve the established V4 backup name without writing an intermediate migrated save.
+pub(crate) fn retain_v4_backup(target: &Path, prefix: &str) -> Result<(), String> {
+    let bytes = read_bounded(target, prefix, "E_SAVE_MIGRATION_SOURCE_MISSING")?;
+    let name = target.file_name().and_then(|s| s.to_str()).ok_or("E_SAVE_PATH_INVALID")?;
+    retain_backup_at(target, &target.with_file_name(format!("{name}.bak")), &bytes, prefix)
+}
+
+fn retain_backup_at(target: &Path, backup: &Path, bytes: &[u8], prefix: &str) -> Result<(), String> {
     match OpenOptions::new()
         .write(true)
         .create_new(true)
@@ -306,6 +349,15 @@ pub(crate) fn atomic_write_verified(
     prefix: &str,
     verify: impl Fn(&[u8]) -> Result<(), String>,
 ) -> Result<(), String> {
+    atomic_write_verified_guarded(target, bytes, original, prefix, || Ok(()), verify)
+}
+
+pub(crate) fn atomic_write_verified_guarded(
+    target: &Path, bytes: &[u8], original: Option<&[u8]>, prefix: &str,
+    precommit: impl Fn() -> Result<(), String>,
+    verify: impl Fn(&[u8]) -> Result<(), String>,
+) -> Result<(), String> {
+    recovery::reject_links(target, prefix)?;
     let parent = target.parent().ok_or("E_SAVE_PATH_INVALID")?;
     let name = target
         .file_name()
@@ -331,6 +383,8 @@ pub(crate) fn atomic_write_verified(
             return Err(format!("{prefix}_VERIFY_MISMATCH"));
         }
         verify(&prepared)?;
+        precommit()?;
+        #[cfg(test)] recovery_test_fault("prepared")?;
         if let Some(old) = original {
             if read_bounded(target, prefix, "E_SAVE_TARGET_MISSING")? != old {
                 return Err(format!("{prefix}_TARGET_CHANGED"));
@@ -349,12 +403,16 @@ pub(crate) fn atomic_write_verified(
                     return Err(format!("{prefix}_BACKUP_MISMATCH"));
                 }
             }
+            #[cfg(test)] recovery_test_fault("commit")?;
             fs::rename(&temp, target).map_err(|e| format!("{prefix}_COMMIT: {e}"))?;
+            #[cfg(test)] RECOVERY_TEST_COMMITS.with(|count| count.set(count.get() + 1));
+            #[cfg(test)] recovery_test_fault("postwrite")?;
             let actual = read_bounded(target, prefix, "E_SAVE_POSTWRITE_MISSING")?;
             if actual != bytes {
                 return Err(format!("{prefix}_POSTWRITE_MISMATCH"));
             }
             verify(&actual)?;
+            #[cfg(test)] recovery_test_fault("verified")?;
             sync_directory(parent, prefix)
         })();
         if let Err(error) = committed {
@@ -388,6 +446,23 @@ pub(crate) fn atomic_write_verified(
         let _ = fs::remove_file(&temp);
     }
     result
+}
+
+#[cfg(test)]
+thread_local! { pub(crate) static BEFORE_RECOVERY_CONTINUE: std::cell::RefCell<Option<Box<dyn FnOnce()>>> = std::cell::RefCell::new(None); }
+#[cfg(test)]
+pub(crate) fn recovery_test_before_continue() {
+    BEFORE_RECOVERY_CONTINUE.with(|hook| if let Some(hook) = hook.borrow_mut().take() { hook(); });
+}
+
+#[cfg(test)]
+thread_local! { pub(crate) static RECOVERY_TEST_COMMITS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+    pub(crate) static RECOVERY_TEST_FAULT: std::cell::Cell<Option<&'static str>> = const { std::cell::Cell::new(None) }; }
+#[cfg(test)]
+fn recovery_test_fault(stage: &str) -> Result<(), String> {
+    if RECOVERY_TEST_FAULT.with(|fault| fault.get() == Some(stage)) {
+        Err(format!("E_SAVE_INJECTED_{stage}"))
+    } else { Ok(()) }
 }
 
 #[cfg(test)]

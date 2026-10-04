@@ -11,7 +11,7 @@ function snapshot(capabilityId, overrides = {}) {
       facingX: 0, facingZ: 1, aimX: 0, aimZ: 1, actionState: "idle" },
     actors: [], doors: [], interactables: [], hazards: [], objectives: [],
     capabilities: {
-      schemaVersion: 1,
+      schemaVersion: 1, firstEnhancementChoice: capabilityId ?? null,
       items: capabilityId ? [{ capabilityId, granted: true, selected: true, cooldownRemainingMs: 0 }] : [],
       exploredMap: { worldId: "grey_hive", playerPositionM: { xM: 1, yM: 0, zM: 2 }, rooms: [], connections: [], objectives: [] },
       enemyVitals: [],
@@ -32,7 +32,7 @@ test("no enhancement status is shown before Grey Hive first clear or without a s
   assert.equal(deriveEnhancementStatus(notGranted), null);
   const notSelected = snapshot("information.local_map_i");
   notSelected.capabilities.items[0].selected = false;
-  assert.equal(deriveEnhancementStatus(notSelected), null);
+  assert.equal(deriveEnhancementStatus(notSelected).availability, "已获得 · 请在能力管理中配置");
 });
 
 test("Local Map lists only room, connection, and objective data from the matching server projection", () => {

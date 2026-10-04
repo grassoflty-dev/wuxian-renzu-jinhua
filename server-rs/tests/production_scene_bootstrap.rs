@@ -887,6 +887,14 @@ fn run_route_journey(
         view.world_epoch,
     );
     assert_eq!(view.scene_id, "gh_central_shaft");
+    // The player-facing F path awards Scanner before Lockdown or Sentinel.
+    // Authored shaft spawn is within the unchanged terminal range.
+    let scanner = scene_route_commands::interaction(runtime, "gh_log_shaft_01",
+        &format!("{request_prefix}-scanner-f"), Some(view.world_epoch)).unwrap();
+    assert_v3_receipt(&scanner.receipt, &format!("{request_prefix}-scanner-f"), true);
+    view = runtime.snapshot().unwrap();
+    assert!(view.capabilities.items.iter().any(|item|
+        item.capability_id == "information.enemy_vitals_basic" && item.granted && !item.selected));
     view = walk_x(runtime, view, 22.5);
     view = apply_transition(
         runtime,
@@ -1098,10 +1106,6 @@ fn production_route_reaches_exit_and_records_extraction_after_lockdown() {
         .unwrap();
     assert_eq!(return_gate.kind, "world_gate");
     assert!(return_gate.active);
-    continued_runtime.pause().unwrap();
-    let chosen = continued_runtime.choose_first_enhancement(wuxian_horror_ch1::capability_v1::CAP_REAR_VIEW).unwrap();
-    assert!(chosen.capabilities.rear_view.granted);
-    continued_runtime.resume().unwrap();
     let returned = scene_route_commands::world_gate(
         &continued_runtime,
         "gh_extraction_return_to_rs",
@@ -1113,6 +1117,18 @@ fn production_route_reaches_exit_and_records_extraction_after_lockdown() {
     acknowledge_ready(&continued_runtime, continued_runtime.snapshot().unwrap());
     assert_eq!(returned.snapshot.world_id, "return_station");
     assert_eq!(returned.snapshot.scene_id, "rs_core_room");
+    let at_terminal = walk_to_compiled_target(&continued_runtime, continued_runtime.snapshot().unwrap(),
+        "rs_core_room", "interactions", "rs_capability_terminal_marker");
+    continued_runtime.capability_terminal_status("rs_capability_terminal_marker", "eleven-scene-evolution-terminal", at_terminal.world_epoch).unwrap();
+    continued_runtime.pause_context_ordered(&wuxian_horror_ch1::formal_runtime::SessionContext {
+        world_id: "return_station".into(), scene_id: "rs_core_room".into(), world_epoch: at_terminal.world_epoch,
+    }, 1).unwrap();
+    let chosen = continued_runtime.choose_first_enhancement(wuxian_horror_ch1::capability_v1::CAP_REAR_VIEW,
+        &wuxian_horror_ch1::formal_runtime::EnhancementTerminalContext { id: "rs_capability_terminal_marker".into(),
+            request_id: "eleven-scene-evolution-terminal".into(), world_epoch: at_terminal.world_epoch, pause_command_sequence: 1 }).unwrap();
+    assert!(chosen.capabilities.rear_view.granted);
+    assert_eq!(chosen.capabilities.first_enhancement_choice.as_deref(), Some(wuxian_horror_ch1::capability_v1::CAP_REAR_VIEW));
+    continued_runtime.resume().unwrap();
     continued_runtime.save().unwrap();
     let saved = save_v6::read_save(&save_dir).unwrap().save;
     assert_eq!(saved.world_id, "return_station");
@@ -1181,7 +1197,8 @@ fn production_route_reaches_exit_and_records_extraction_after_lockdown() {
     let rested = restarted.save_rest_terminal("rs_save_rest_terminal_marker", "campaign-rest-before-mh", at_rest.world_epoch).unwrap();
     assert_eq!(rested.player.current_hp, rested.player.max_hp);
     assert_eq!(rested.player.current_energy, rested.player.max_energy);
-    let at_mh_gate = walk_to(&restarted, rested, 18.5, 12.0);
+    let at_mh_gate = walk_to_compiled_target(&restarted, rested,
+        "rs_core_room", "interactions", "rs_mh_world_gate_marker");
     let mh_entry = scene_route_commands::world_gate(
         &restarted,
         "rs_world_gate_to_mh",
@@ -1524,12 +1541,8 @@ fn production_route_reaches_exit_and_records_extraction_after_lockdown() {
         "rs_save_rest_terminal_marker", "campaign-rest-before-mh-revisit",
         at_revisit_rest.world_epoch).unwrap();
     assert_eq!(rested_for_revisit.player.current_hp, rested_for_revisit.player.max_hp);
-    let at_mh_gate = walk_to(
-        &continued_mh_runtime,
-        rested_for_revisit,
-        18.5,
-        12.0,
-    );
+    let at_mh_gate = walk_to_compiled_target(&continued_mh_runtime, rested_for_revisit,
+        "rs_core_room", "interactions", "rs_mh_world_gate_marker");
     let mh_revisit = scene_route_commands::world_gate(
         &continued_mh_runtime,
         "rs_world_gate_to_mh",
