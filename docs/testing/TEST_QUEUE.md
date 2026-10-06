@@ -1,23 +1,30 @@
 # GitHub 测试队列
 
-更新时间：2026-10-06 21:44 JST（UTC+09:00）
+更新时间：2026-10-06 22:04 JST（UTC+09:00）
 
 本文件是唯一执行入口。协议见 [GITHUB_TEST_LOOP.md](GITHUB_TEST_LOOP.md)。普通历史指南、报告、新分支或提交本身均不触发测试。
 
 ## 当前队列
 
-- task_id: LOOP-BOOTSTRAP-20261006
+- task_id: TEST-EVIDENCE-VITE-001
 - revision: 1
-- status: DRAFT
-- availability: NO_READY_TASK
-- code_sha: null
-- task_document: null
+- task_type: test
+- status: READY
+- availability: READY_TASK
+- code_sha: e4d3a864ae4156e256b4ee5951d1dd4c74bfdb1f
+- source_branch: candidate/test-evidence-vite-20261006
+- task_document: https://github.com/grassoflty-dev/wuxian-renzu-jinhua/blob/ee815354cc561dee9b1856f77a099568d8e259a8/docs/testing/tasks/TEST-EVIDENCE-VITE-001-r1.md
+- task_document_sha: ee815354cc561dee9b1856f77a099568d8e259a8
 - claimed_by: null
 - run_id: null
 - claimed_at_jst: null
-- result_path: null
+- result_path: docs/testing/results/TEST-EVIDENCE-VITE-001/<run-id>.md
 
-这是协议初始化记录，不是可执行测试任务。不要构建或重跑旧 Round 3/4，也不要自行选择最新分支。现有本地 Codex 的 EDGE04、consumer gate、Vite 等独立修改尚需汇总审查；Vite 报告明确保留未验证 WIP，缺少新的已审查固定源码及测试计划。因此目前没有 READY 任务。
+仅按固定任务文档领取一次。Windows Node 24 证据记录器自测、3 条语法检查、Vite 12 项与组合 42 项纯 mock；不启动浏览器、Rust 或原生游戏。只有本地结果回传后才有本轮执行结论。
+
+## 初始化历史
+
+LOOP-BOOTSTRAP-20261006 revision 1 原为 DRAFT / NO_READY_TASK，未执行；由本 READY 任务替代。原历史指南和独立分支不会自动触发测试。
 
 ## 已保存资料（仅供审查，不能执行）
 
