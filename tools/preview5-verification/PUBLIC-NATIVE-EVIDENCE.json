@@ -1,0 +1,2558 @@
+{
+  "generatedAtUtc": "2026-10-04T14:08:22.953363+00:00",
+  "status": "passed-static-verification-of-frozen-preview5-executable",
+  "sourceSha": "1d8aff05f35b24c49355cf64aa58cd7eba561571",
+  "sourceTree": "1bd25e0bcb32d5e4ae1d1ff3625d11abd958780a",
+  "sourceClean": true,
+  "sizeBytes": 255988736,
+  "sha256": "e97d0c07d0ceb393ba3d6775f765c7546a55a7f66d8799535617cd23bca602da",
+  "peMachine": "0x8664",
+  "peFormat": "PE32+",
+  "subsystem": 2,
+  "architecture": "x86-64",
+  "sections": [
+    {
+      "name": ".text",
+      "rva": 4096,
+      "virtualSize": 9417334,
+      "rawOffset": 1024,
+      "rawSize": 9417728
+    },
+    {
+      "name": ".rdata",
+      "rva": 9424896,
+      "virtualSize": 245930860,
+      "rawOffset": 9418752,
+      "rawSize": 245931008
+    },
+    {
+      "name": ".data",
+      "rva": 255356928,
+      "virtualSize": 18920,
+      "rawOffset": 255349760,
+      "rawSize": 5632
+    },
+    {
+      "name": ".pdata",
+      "rva": 255377408,
+      "virtualSize": 463956,
+      "rawOffset": 255355392,
+      "rawSize": 464384
+    },
+    {
+      "name": ".gfids",
+      "rva": 255844352,
+      "virtualSize": 128,
+      "rawOffset": 255819776,
+      "rawSize": 512
+    },
+    {
+      "name": ".tls",
+      "rva": 255848448,
+      "virtualSize": 437,
+      "rawOffset": 255820288,
+      "rawSize": 512
+    },
+    {
+      "name": "_RDATA",
+      "rva": 255852544,
+      "virtualSize": 500,
+      "rawOffset": 255820800,
+      "rawSize": 512
+    },
+    {
+      "name": ".rsrc",
+      "rva": 255856640,
+      "virtualSize": 145168,
+      "rawOffset": 255821312,
+      "rawSize": 145408
+    },
+    {
+      "name": ".reloc",
+      "rva": 256004096,
+      "virtualSize": 21664,
+      "rawOffset": 255966720,
+      "rawSize": 22016
+    }
+  ],
+  "imports": [
+    "kernel32.dll",
+    "user32.dll",
+    "ole32.dll",
+    "gdi32.dll",
+    "comctl32.dll",
+    "dwmapi.dll",
+    "shlwapi.dll",
+    "api-ms-win-core-synch-l1-2-0.dll",
+    "bcryptprimitives.dll",
+    "shell32.dll",
+    "advapi32.dll",
+    "ntdll.dll",
+    "oleaut32.dll"
+  ],
+  "staticCRTHasNoDynamicCRTImports": true,
+  "resources": [
+    {
+      "path": [
+        3,
+        1,
+        1033
+      ],
+      "sizeBytes": 92360,
+      "sha256": "8b35fac8a2cccf0ecd9ab0d7a84b5e2200200863bd7b491c1c8d1332f878caa3",
+      "fileOffset": 255822368,
+      "codepage": 0
+    },
+    {
+      "path": [
+        3,
+        2,
+        1033
+      ],
+      "sizeBytes": 30245,
+      "sha256": "8d59662efdfefaccb6ef43cecebc95f131b377fa8450e6bf47ba515acafb0ce3",
+      "fileOffset": 255914728,
+      "codepage": 0
+    },
+    {
+      "path": [
+        3,
+        3,
+        1033
+      ],
+      "sizeBytes": 9584,
+      "sha256": "22d3cd39c921a2ae38f422e25de0b311607cd275efefa19a4fa7fcbd766ad266",
+      "fileOffset": 255944976,
+      "codepage": 0
+    },
+    {
+      "path": [
+        3,
+        4,
+        1033
+      ],
+      "sizeBytes": 5831,
+      "sha256": "151104a3633284c2aca0532e72240bc95b3cfcfd1aa386f0613ed7f3a74571b7",
+      "fileOffset": 255954560,
+      "codepage": 0
+    },
+    {
+      "path": [
+        3,
+        5,
+        1033
+      ],
+      "sizeBytes": 2911,
+      "sha256": "e5856ad24239b0efbb85e9f2fedc5f7efc582b0666e631629bb0fa4ab6bd25b8",
+      "fileOffset": 255960392,
+      "codepage": 0
+    },
+    {
+      "path": [
+        3,
+        6,
+        1033
+      ],
+      "sizeBytes": 1758,
+      "sha256": "e16e28feadb99b0363c596267edff7ed2520886da1c6048bc7ca7ce8496b2a51",
+      "fileOffset": 255963304,
+      "codepage": 0
+    },
+    {
+      "path": [
+        3,
+        7,
+        1033
+      ],
+      "sizeBytes": 969,
+      "sha256": "b8cd4ef18ada6acc9374e3a6d4e819b75c4d6e03b143d7af911018d06ce5f2bb",
+      "fileOffset": 255965064,
+      "codepage": 0
+    },
+    {
+      "path": [
+        14,
+        32512,
+        1033
+      ],
+      "sizeBytes": 104,
+      "sha256": "45a7a2784a900cca5606d7648c3e3fab17e3c3ce4f8bffd912bda257d470bd22",
+      "fileOffset": 255966040,
+      "codepage": 0
+    },
+    {
+      "path": [
+        16,
+        1,
+        1033
+      ],
+      "sizeBytes": 464,
+      "sha256": "b97d7628ab59fe78409fb925fc1c264094d3c022718424b5670ff47a462b26f7",
+      "fileOffset": 255821904,
+      "codepage": 0
+    },
+    {
+      "path": [
+        24,
+        1,
+        1033
+      ],
+      "sizeBytes": 334,
+      "sha256": "b1cb832f790c153aa0e9a66f76e75460263cf1d41971d2dbcc9a4d87ec18b7d8",
+      "fileOffset": 255966144,
+      "codepage": 0
+    }
+  ],
+  "nativeIconPayloadMatchesSourceICO": true,
+  "nativeIconRGBAMatchesSourceICO": true,
+  "iconVerification": {
+    "icoSha256": "24b1ca62669340f115362191bce2efda61e698da5ee371674606c2ad0d2cd3b4",
+    "frameCount": 7,
+    "resourceIconCount": 7,
+    "resourceGroupCount": 1,
+    "allRTIconResourcesAndGroupReferencesVerified": true,
+    "frames": [
+      {
+        "index": 0,
+        "width": 256,
+        "height": 256,
+        "planes": 1,
+        "bitCount": 32,
+        "sizeBytes": 92360,
+        "icoOffset": 118,
+        "sha256": "8b35fac8a2cccf0ecd9ab0d7a84b5e2200200863bd7b491c1c8d1332f878caa3",
+        "rgbaSha256": "1be7cb85d54e5f157a68fc6ec4f0c16ec69edb1c43e1872e80e30cb881d9ab35"
+      },
+      {
+        "index": 1,
+        "width": 128,
+        "height": 128,
+        "planes": 1,
+        "bitCount": 32,
+        "sizeBytes": 30245,
+        "icoOffset": 92478,
+        "sha256": "8d59662efdfefaccb6ef43cecebc95f131b377fa8450e6bf47ba515acafb0ce3",
+        "rgbaSha256": "bb743ecc7d9b741e5d184ef1793d00ed49598efa391088f9e5d2f869577506b1"
+      },
+      {
+        "index": 2,
+        "width": 64,
+        "height": 64,
+        "planes": 1,
+        "bitCount": 32,
+        "sizeBytes": 9584,
+        "icoOffset": 122723,
+        "sha256": "22d3cd39c921a2ae38f422e25de0b311607cd275efefa19a4fa7fcbd766ad266",
+        "rgbaSha256": "10c4e990fe7f81ad96c0aa3243c78e1cefa88ce3d0c1a6507df50fc295760b2c"
+      },
+      {
+        "index": 3,
+        "width": 48,
+        "height": 48,
+        "planes": 1,
+        "bitCount": 32,
+        "sizeBytes": 5831,
+        "icoOffset": 132307,
+        "sha256": "151104a3633284c2aca0532e72240bc95b3cfcfd1aa386f0613ed7f3a74571b7",
+        "rgbaSha256": "073ce6598874dd48ea5c3981e8bb94b6c47a2af4c9a3106f7fa215221c0dd1d0"
+      },
+      {
+        "index": 4,
+        "width": 32,
+        "height": 32,
+        "planes": 1,
+        "bitCount": 32,
+        "sizeBytes": 2911,
+        "icoOffset": 138138,
+        "sha256": "e5856ad24239b0efbb85e9f2fedc5f7efc582b0666e631629bb0fa4ab6bd25b8",
+        "rgbaSha256": "eff79638373ce53957afc2eac9b83ee22998cb7da3d1cfb1f319c3338be031c1"
+      },
+      {
+        "index": 5,
+        "width": 24,
+        "height": 24,
+        "planes": 1,
+        "bitCount": 32,
+        "sizeBytes": 1758,
+        "icoOffset": 141049,
+        "sha256": "e16e28feadb99b0363c596267edff7ed2520886da1c6048bc7ca7ce8496b2a51",
+        "rgbaSha256": "8d9118204895e90c5c2b72607c94530d75a6989ac4d912ab519ae7d27e946c8f"
+      },
+      {
+        "index": 6,
+        "width": 16,
+        "height": 16,
+        "planes": 1,
+        "bitCount": 32,
+        "sizeBytes": 969,
+        "icoOffset": 142807,
+        "sha256": "b8cd4ef18ada6acc9374e3a6d4e819b75c4d6e03b143d7af911018d06ce5f2bb",
+        "rgbaSha256": "09b4e1926a608af11ecf526130d571e2b526ee4cc185b2f35e7b93e0c40cc727"
+      }
+    ],
+    "groups": [
+      {
+        "path": [
+          14,
+          32512,
+          1033
+        ],
+        "fileOffset": 255966040,
+        "entries": [
+          {
+            "frameIndex": 0,
+            "resourceId": 1,
+            "languageId": 1033,
+            "width": 256,
+            "height": 256,
+            "sizeBytes": 92360,
+            "sourcePngSha256": "8b35fac8a2cccf0ecd9ab0d7a84b5e2200200863bd7b491c1c8d1332f878caa3",
+            "resourceFileOffset": 255822368
+          },
+          {
+            "frameIndex": 1,
+            "resourceId": 2,
+            "languageId": 1033,
+            "width": 128,
+            "height": 128,
+            "sizeBytes": 30245,
+            "sourcePngSha256": "8d59662efdfefaccb6ef43cecebc95f131b377fa8450e6bf47ba515acafb0ce3",
+            "resourceFileOffset": 255914728
+          },
+          {
+            "frameIndex": 2,
+            "resourceId": 3,
+            "languageId": 1033,
+            "width": 64,
+            "height": 64,
+            "sizeBytes": 9584,
+            "sourcePngSha256": "22d3cd39c921a2ae38f422e25de0b311607cd275efefa19a4fa7fcbd766ad266",
+            "resourceFileOffset": 255944976
+          },
+          {
+            "frameIndex": 3,
+            "resourceId": 4,
+            "languageId": 1033,
+            "width": 48,
+            "height": 48,
+            "sizeBytes": 5831,
+            "sourcePngSha256": "151104a3633284c2aca0532e72240bc95b3cfcfd1aa386f0613ed7f3a74571b7",
+            "resourceFileOffset": 255954560
+          },
+          {
+            "frameIndex": 4,
+            "resourceId": 5,
+            "languageId": 1033,
+            "width": 32,
+            "height": 32,
+            "sizeBytes": 2911,
+            "sourcePngSha256": "e5856ad24239b0efbb85e9f2fedc5f7efc582b0666e631629bb0fa4ab6bd25b8",
+            "resourceFileOffset": 255960392
+          },
+          {
+            "frameIndex": 5,
+            "resourceId": 6,
+            "languageId": 1033,
+            "width": 24,
+            "height": 24,
+            "sizeBytes": 1758,
+            "sourcePngSha256": "e16e28feadb99b0363c596267edff7ed2520886da1c6048bc7ca7ce8496b2a51",
+            "resourceFileOffset": 255963304
+          },
+          {
+            "frameIndex": 6,
+            "resourceId": 7,
+            "languageId": 1033,
+            "width": 16,
+            "height": 16,
+            "sizeBytes": 969,
+            "sourcePngSha256": "b8cd4ef18ada6acc9374e3a6d4e819b75c4d6e03b143d7af911018d06ce5f2bb",
+            "resourceFileOffset": 255965064
+          }
+        ]
+      }
+    ],
+    "tauriDefaultWindowIcon": {
+      "selection": "tauri-codegen 2.6.3 CachedIcon::new_ico uses entries()[0]",
+      "selectedFrameIndex": 0,
+      "width": 256,
+      "height": 256,
+      "sizeBytes": 262144,
+      "sha256": "1be7cb85d54e5f157a68fc6ec4f0c16ec69edb1c43e1872e80e30cb881d9ab35",
+      "fileOffset": 252039880
+    },
+    "legacyPNGAndRGBAAbsent": true
+  },
+  "nativeBuildIdentity": {
+    "schemaVersion": 1,
+    "gitSha": "1d8aff05f35b24c49355cf64aa58cd7eba561571",
+    "appVersion": "1.0.0",
+    "contentVersion": "campaign-content-v1",
+    "saveV6SchemaVersion": 6,
+    "runtimeAssetManifestSha256": "081bebad5eede90e6ed50f2f7cacb930a67f2295961d405f58141d23874ec414",
+    "sceneDefinitionManifestSha256": "9c2d4e33cd88027ed0d9b97bb23e6242572967f099466016b650b9fc73137fc9",
+    "builtAtUtc": "2026-10-04T13:20:41.716Z",
+    "hasTrackedDiff": false,
+    "hasUntrackedFiles": false,
+    "sourceTreeDirty": false
+  },
+  "nativeBuildIdentityJsonExact": "{\"schemaVersion\":1,\"gitSha\":\"1d8aff05f35b24c49355cf64aa58cd7eba561571\",\"appVersion\":\"1.0.0\",\"contentVersion\":\"campaign-content-v1\",\"saveV6SchemaVersion\":6,\"runtimeAssetManifestSha256\":\"081bebad5eede90e6ed50f2f7cacb930a67f2295961d405f58141d23874ec414\",\"sceneDefinitionManifestSha256\":\"9c2d4e33cd88027ed0d9b97bb23e6242572967f099466016b650b9fc73137fc9\",\"builtAtUtc\":\"2026-10-04T13:20:41.716Z\",\"hasTrackedDiff\":false,\"hasUntrackedFiles\":false,\"sourceTreeDirty\":false}",
+  "nativeIconRGBA": {
+    "sizeBytes": 262144,
+    "sha256": "1be7cb85d54e5f157a68fc6ec4f0c16ec69edb1c43e1872e80e30cb881d9ab35",
+    "fileOffset": 252039880
+  },
+  "nativeSidecarSha256": "690c84621d98edef548f73c8f6fa302cf4a523da0b8904c0c02898dbdd049e87",
+  "nativeSceneCount": 30,
+  "nativeScenes": [
+    {
+      "name": "cw_boiler_chamber.json",
+      "sizeBytes": 7927,
+      "sha256": "04b00520e16435d159f1a459016083020fd40d11a2f8086d2f78dcbd0e483b39",
+      "fileOffset": 252769427
+    },
+    {
+      "name": "cw_conveyor_bridge.json",
+      "sizeBytes": 7443,
+      "sha256": "845b664b2212c5d9bf55cf72d34c9c69bf0caf345fa90ed9a7173a1df276e0ae",
+      "fileOffset": 252761984
+    },
+    {
+      "name": "cw_entry_foundry.json",
+      "sizeBytes": 5551,
+      "sha256": "d90f852367b998cf5874b82fed583f1254664d4a88a8175bb3c94524b8f496b1",
+      "fileOffset": 252748418
+    },
+    {
+      "name": "cw_forged_guard_arena.json",
+      "sizeBytes": 6794,
+      "sha256": "38ae047e46e980f953377121c78713a79b69f84b994e2dd1984e1404fe77ccf5",
+      "fileOffset": 252794743
+    },
+    {
+      "name": "cw_furnace_heart.json",
+      "sizeBytes": 8424,
+      "sha256": "f16f3941767aed71023cd8b9ce75642345a103eabf5c77682e358c96c2e219d5",
+      "fileOffset": 252786319
+    },
+    {
+      "name": "cw_gear_shaft.json",
+      "sizeBytes": 8965,
+      "sha256": "91afdb035c3df824806884c49d1e8f71034ff8f51b7bf90280bf71594896fea9",
+      "fileOffset": 252777354
+    },
+    {
+      "name": "cw_pressure_hall.json",
+      "sizeBytes": 8015,
+      "sha256": "53a7dc2925d5210da366abe8d03c07334c39cfe8b7da12f238090e27b1e5017a",
+      "fileOffset": 252753969
+    },
+    {
+      "name": "cw_regulator_core.json",
+      "sizeBytes": 7495,
+      "sha256": "b9b352865c5b4acdddbc52abe19abce7fea560687607b268dbe41dd456000fc7",
+      "fileOffset": 252801537
+    },
+    {
+      "name": "cw_shutdown_exit.json",
+      "sizeBytes": 5877,
+      "sha256": "4e24942874fb43b0111eea4c4ac6035fd4ccd65e5b45b845ca4063f63ab2692b",
+      "fileOffset": 252809032
+    },
+    {
+      "name": "gh_beacon.json",
+      "sizeBytes": 5927,
+      "sha256": "3cab424771d10799ee82a453a72117affb0ebca09dd814f25308be70310da9ee",
+      "fileOffset": 252585962
+    },
+    {
+      "name": "gh_bio_isolation.json",
+      "sizeBytes": 7071,
+      "sha256": "a3d629f04dc955cf0f8e644b54a4a64d054411a7d59a9fb15da5c9d9ea953aff",
+      "fileOffset": 252591889
+    },
+    {
+      "name": "gh_central_shaft.json",
+      "sizeBytes": 10328,
+      "sha256": "806ef2be417d59ab7041002cecfb26c1fc383db920157feb29c2669c343df5da",
+      "fileOffset": 252598960
+    },
+    {
+      "name": "gh_deep_decon.json",
+      "sizeBytes": 9748,
+      "sha256": "65e0cbf11183fe114259d680b0cd84a23a7f8619a25e628f4b30a7a84ce870a8",
+      "fileOffset": 252609288
+    },
+    {
+      "name": "gh_entry_maintenance.json",
+      "sizeBytes": 5472,
+      "sha256": "5deb6c01b2ad81144144ae2526c06f8c337839e8d880aeb1b3af3a225afe787b",
+      "fileOffset": 252619036
+    },
+    {
+      "name": "gh_exit.json",
+      "sizeBytes": 5617,
+      "sha256": "6ab262467e1992feac94f27d8bf571dcf77ddbc8c1693a79c57b3aeebff0c54c",
+      "fileOffset": 252624508
+    },
+    {
+      "name": "gh_gate_a.json",
+      "sizeBytes": 6948,
+      "sha256": "3c62f3c35a2c9f2e935707e7a93c34a8d6f5696ed730b8487c4efe0b6d1ee484",
+      "fileOffset": 252630125
+    },
+    {
+      "name": "gh_gate_b.json",
+      "sizeBytes": 6855,
+      "sha256": "a82c10a6fa50129c48267e255d2ca86f4ebaca43e0e0da81b639ee88228312c1",
+      "fileOffset": 252637073
+    },
+    {
+      "name": "gh_lockdown.json",
+      "sizeBytes": 10081,
+      "sha256": "718489a1ea4ec4622ccdcefc8459a1dc1bd4f66ccf26abc813b6a06519197850",
+      "fileOffset": 252643928
+    },
+    {
+      "name": "gh_power_room.json",
+      "sizeBytes": 7000,
+      "sha256": "3d05edeca4a119bc7f2db7aa094041a7ad61380b00015a613fda787025e67854",
+      "fileOffset": 252654009
+    },
+    {
+      "name": "gh_sentinel_arena.json",
+      "sizeBytes": 8241,
+      "sha256": "3e3e3a52dca003ec13c7b3698317f6a32627091eeda833a49896910e521f45bb",
+      "fileOffset": 252661009
+    },
+    {
+      "name": "mh_breakwater.json",
+      "sizeBytes": 8283,
+      "sha256": "2de6f7b471b6b873fafad7e943a0f163e057ffca0787823625bf37bb23bd0b14",
+      "fileOffset": 252710435
+    },
+    {
+      "name": "mh_drowned_quay.json",
+      "sizeBytes": 8840,
+      "sha256": "e315ef1be88ab2f1ff8defcf7050beef439b7793cda3d121e4e97b4bdf9b41a9",
+      "fileOffset": 252701595
+    },
+    {
+      "name": "mh_extraction.json",
+      "sizeBytes": 6215,
+      "sha256": "3476501f29ea441c51caeab61633b929ef7e7abc3c887691a7557098986a47aa",
+      "fileOffset": 252742203
+    },
+    {
+      "name": "mh_fog_pier.json",
+      "sizeBytes": 7671,
+      "sha256": "1f12ceae6565dcfb8f3b9f497840f8027748e6109208e788ea6d7579fff00946",
+      "fileOffset": 252677347
+    },
+    {
+      "name": "mh_pump_station.json",
+      "sizeBytes": 7826,
+      "sha256": "557c180648bc8c73621b444dd108f2207535750947e9a7738a5716dd1b2a5437",
+      "fileOffset": 252718718
+    },
+    {
+      "name": "mh_resonance_tower.json",
+      "sizeBytes": 8668,
+      "sha256": "61d42c94a06204b1c4ddac4f29577d3e031a14f1b6fcc66613d625006fd94452",
+      "fileOffset": 252726544
+    },
+    {
+      "name": "mh_signal_yard.json",
+      "sizeBytes": 8327,
+      "sha256": "14f708142f6d4c15b8abdb3671e5357f845d96228c5b9aed719e19895e3a66d8",
+      "fileOffset": 252693268
+    },
+    {
+      "name": "mh_tidal_warehouse.json",
+      "sizeBytes": 8250,
+      "sha256": "bcf83727cbf17118a534547e8d50abd65f8c606a342290b66e5a778a0c2d61d9",
+      "fileOffset": 252685018
+    },
+    {
+      "name": "mh_warden_arena.json",
+      "sizeBytes": 6991,
+      "sha256": "bb0ddca043c57ef4d0d1b327ace455e7f5f8c870845c113064144f64006df86b",
+      "fileOffset": 252735212
+    },
+    {
+      "name": "rs_core_room.json",
+      "sizeBytes": 8097,
+      "sha256": "927f8dc466403837b081027bafb04c3c66a6ca17ee71bf5ce0a7d891e4fb3ad9",
+      "fileOffset": 252669250
+    }
+  ],
+  "embeddedWebLogicalFiles": 163,
+  "embeddedWebRepresentations": 163,
+  "embeddedWebAssets": [
+    {
+      "codegenFile": "03933fc22d071322ab3bfc141de0ede48a0ed12f554395fa300d5a338a16c595.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/atlases/world-clockworks-00.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 6699304,
+      "decodedBytes": 6699288,
+      "sha256": "4cd2f31175b5ad2f85d49f7d9e5f6e2a8362c04eaaa567808dc941f2c93680af",
+      "decodedSha256": "0714240d8a859b713e760dbee6a3fb8fb432e7bc6bb7ddf845d14356b26873e5",
+      "fileOffset": 221010545
+    },
+    {
+      "codegenFile": "0588b3f7313aa671454cf86f4560ef2da5bed8f933a79e19eb040d06d9c7d682.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.gate_a.closed_open.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1385616,
+      "decodedBytes": 1386982,
+      "sha256": "399097e34aea4544a72b81aa9384d9dfacdea40cc07233e1e386bb802685a6b5",
+      "decodedSha256": "0fa3981a0abfa5a1f7a5d4b75033f392e46f1b91f901605dcacf415c796e1b7b",
+      "fileOffset": 113843932
+    },
+    {
+      "codegenFile": "079998bdd084beabffac78a2beb30ba20c7628d448f02d3790cde741783e60d9.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.clockworks.furnace.v2.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1584397,
+      "decodedBytes": 1584389,
+      "sha256": "0e64ec1dc4aef0f0ad394f4b7639a64fc740db6da9c33728d109b7ef32f33679",
+      "decodedSha256": "207e2b4c1759e49bfd03613958f86787586410dc0abe6da526f34679f17cc74d",
+      "fileOffset": 30325821
+    },
+    {
+      "codegenFile": "09a70f3b3945481a1931fd308f390f80c283a65f0aa4fb8ac1f5a7c225da908a.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.clockworks.pressure_pipes.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1127806,
+      "decodedBytes": 1127801,
+      "sha256": "eab32347efd83e5cf6d29b9adef96a781872b530f2e3b0a1d936130b7d303331",
+      "decodedSha256": "3b653f643bd0f806bb5fef318c5e80271fc4b3e19cfedbf0f5051843898e0b9b",
+      "fileOffset": 177624486
+    },
+    {
+      "codegenFile": "0b3c9973d42c266c2081c6188c3d94d1c5c8f0e8441dee7a6d04248afb59f76c.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.clockworks.pressure_pipes.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 787069,
+      "decodedBytes": 787064,
+      "sha256": "cda652f0c5aa1260aa6d7c697cd8c04bcb23377ddd8f2c234843edf8a3e11935",
+      "decodedSha256": "2541c9986e78a4e3ecf130ce397d7b23facb2c18717a91e33d878c1f92c3a7fa",
+      "fileOffset": 229554411
+    },
+    {
+      "codegenFile": "0e25eca595b99c662579238a84fe528052adaeac89bfa6409706025f1772baf7.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.ui.capability.local_map.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1895334,
+      "decodedBytes": 1895326,
+      "sha256": "57790d14590cf70fe5d8f971ac351e5a041689d33653a629af3d4fba83ed29ed",
+      "decodedSha256": "e8c86cdcf20486755cff69d67023ddcfc550240b7d696f81db08e384c17ad375",
+      "fileOffset": 9482098
+    },
+    {
+      "codegenFile": "0e72127fe1d0f60e3d9b9eb9c112d0b02aaf1b055f8944523f45e416eb5db528.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.sentinel.parts.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1672054,
+      "decodedBytes": 1672046,
+      "sha256": "93fe1058f340d3eead969d3db518e4b70e49ae73540177e6d443b305b6a34f82",
+      "decodedSha256": "6615f51c60cd1d5ec64abbc5de1e78fd50153b45a5d89018811331658c449962",
+      "fileOffset": 19602452
+    },
+    {
+      "codegenFile": "0f71f9648fe5c77b586e81ea7d6fa719cdadd5790d3e7597c62fef583dbf52d1.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.grey_hive.clutter.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1298019,
+      "decodedBytes": 1298014,
+      "sha256": "ac2e74135d1669880ac0835df86789242f230a378ef7cf20e8cb9acb72593800",
+      "decodedSha256": "ad7c9f14d9ffa67cc9cec2c8328568236001b30ea0c75edd1f7cac994c8aace3",
+      "fileOffset": 142514662
+    },
+    {
+      "codegenFile": "11aeae6b63519128929f8c1647a616e9c3c6946d6a1f7734b847438d64d45d05.json",
+      "paths": [
+        "scene-definitions/compiled/mist_harbor/mh_drowned_quay.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1183,
+      "decodedBytes": 8840,
+      "sha256": "ced6e4bfd9ea91b5d5e0f543289ce409fdf226880c129c909291dace77545c98",
+      "decodedSha256": "e315ef1be88ab2f1ff8defcf7050beef439b7793cda3d121e4e97b4bdf9b41a9",
+      "fileOffset": 165775154
+    },
+    {
+      "codegenFile": "128829e8505bf418e2b1d8ee3313e4a8390cbabc4d0291e0fc9434078eb85550.json",
+      "paths": [
+        "scene-definitions/compiled/clockworks/cw_pressure_hall.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1077,
+      "decodedBytes": 8015,
+      "sha256": "5696595998e01cbd80ae8f9d5c599623e0ec1c17f8583580a375e7951d34781a",
+      "decodedSha256": "53a7dc2925d5210da366abe8d03c07334c39cfe8b7da12f238090e27b1e5017a",
+      "fileOffset": 80559407
+    },
+    {
+      "codegenFile": "12c215abeae19b913566a6f9227e49c4f1f4448b471ca05db715ab9e04c36190.js",
+      "paths": [
+        "assets/canvasUtils-CxYPZET9.js"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1942,
+      "decodedBytes": 6054,
+      "sha256": "4c793868d7e963d2db7e91830dc1e007fe1d8e31c8712022c8b824770da49d67",
+      "decodedSha256": "1e29f32d043bc9342dabb11cb033adf27013606f32f8d363cf3c2ff34bed5b03",
+      "fileOffset": 13774878
+    },
+    {
+      "codegenFile": "1545c853edc3b4bddc222dae5df60c9d24e644091fe2cfcb32aa16a7d4b98ae5.json",
+      "paths": [
+        "governance/assets/RUNTIME_ASSET_MANIFEST.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 10823,
+      "decodedBytes": 76142,
+      "sha256": "ffdd7ee6c20b8942205d65df31ef9e76e5f71fb1c142e4ed13340a359fb34453",
+      "decodedSha256": "081bebad5eede90e6ed50f2f7cacb930a67f2295961d405f58141d23874ec414",
+      "fileOffset": 96106245
+    },
+    {
+      "codegenFile": "15ed81e28b38eaf9bbaeb7ef923d6d86a964cee3ad87ea17667d78f3bedf6ce3.js",
+      "paths": [
+        "assets/Cache-DDo62lBW.js"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 515,
+      "decodedBytes": 1100,
+      "sha256": "e0c5edb7401139ca7cce8a3d6dba80f6ed6ea666639f000308fa65c0bab6e515",
+      "decodedSha256": "94f3d177d09bfecefa8b80e646a55ff894635dd1723d6e7128d802477f3bae3a",
+      "fileOffset": 149144195
+    },
+    {
+      "codegenFile": "18ce9740d9c80177bd9268bb71efff8bbab68f89a7cf576b0cd9cf8cc928ffbf.json",
+      "paths": [
+        "scene-definitions/compiled/return_station/rs_core_room.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1033,
+      "decodedBytes": 8097,
+      "sha256": "c241950d942b4b5c66ae2ab19eda52e9e2d6fc52a22385bac64f4d31506f2b7f",
+      "decodedSha256": "927f8dc466403837b081027bafb04c3c66a6ca17ee71bf5ce0a7d891e4fb3ad9",
+      "fileOffset": 78565290
+    },
+    {
+      "codegenFile": "1a5614c35bc07ef072daf6b7b4fd8f5c9892a1237c306756d456964f5f8d1dae.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.gate_b.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 2397341,
+      "decodedBytes": 2397332,
+      "sha256": "1a71a29e4e37b65d78ebb2f4decf1e1b6595dee461781bd61d1f4615ce162a8e",
+      "decodedSha256": "fdad9675bb90b37bc3c452773934536918fa56f4bef2b6f95c10a9823e2a67f6",
+      "fileOffset": 11377506
+    },
+    {
+      "codegenFile": "1c0cd2cc9f8c3ba6d0fae37eeaf946c9f782b7d2c45d8fabe54ef578dd8f2854.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.enemy.mistharbor.signal_wraith.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1051635,
+      "decodedBytes": 1051630,
+      "sha256": "5f5023f74a8f18f58f0cff954a174f6b168ded78bd875be981285f6d22bacd6c",
+      "decodedSha256": "496cd7795e2213d86c9958cca06a5847b71fb8ed57c7e5e34003d1af359889a7",
+      "fileOffset": 212724499
+    },
+    {
+      "codegenFile": "1e9a400248c3d8741bc8ff7327c97018f33802f8eca60da6717fc142298c4fa9.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.lockdown_terminal.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1870327,
+      "decodedBytes": 1870319,
+      "sha256": "61c72661d538144d3238a7a8832e511345920b38d2584143ab1e671b831aac64",
+      "decodedSha256": "e917f9b4677d49e6d534b6b5f32b8756fb2934dbe4e87e76391c09ccd786361c",
+      "fileOffset": 59503893
+    },
+    {
+      "codegenFile": "1e9e09c1f996fd09bb2bc25c98ce3cff6330937516f6934d0ff951216cd35d2c.json",
+      "paths": [
+        "scene-definitions/compiled/grey_hive/gh_central_shaft.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1312,
+      "decodedBytes": 10328,
+      "sha256": "8085c91f6c28f9d8015487323c32dbf6711f27dedc4bc3801e7cb12b709e2104",
+      "decodedSha256": "806ef2be417d59ab7041002cecfb26c1fc383db920157feb29c2669c343df5da",
+      "fileOffset": 145710577
+    },
+    {
+      "codegenFile": "1ef2b651b6aea7948a2472092269a4062a1b10681ebdaf633e53cb8320fee5e2.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.grey_hive.wall_tiles.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1673431,
+      "decodedBytes": 1673423,
+      "sha256": "42e219bdb0fb50d149e88d5ea8c5bec1c4a563c82f39cefa31a202411102691f",
+      "decodedSha256": "c5a18cae9a3ddc95c8515f6b342cb7ca3be12c23ff502ab5b3f16000bb4c9a5b",
+      "fileOffset": 25457891
+    },
+    {
+      "codegenFile": "20c27a376269e368d7d6f58a9feb8507cdd7718eda563cd81bb22fab293c849a.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/atlases/actor-shared-00.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 2866331,
+      "decodedBytes": 2876697,
+      "sha256": "69c20c76ee43f6f6892341891328e7290ce731d2a714411ceae9cbceed2a7f27",
+      "decodedSha256": "7213ad36b3b39c14f1ee294973c88661c2599aefc3267cd9aa2b169ee48be040",
+      "fileOffset": 230341541
+    },
+    {
+      "codegenFile": "23323d71448dfe09799b3a24a37f8c0e4fd81fec83b2f23257231dc2eb9d093e.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.enemy.mistharbor.drowned.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 905737,
+      "decodedBytes": 905732,
+      "sha256": "09f91fa47eface4da78f0d82a70465dd7885a2b06a2e843ce5716f7f9bbe2582",
+      "decodedSha256": "36930099495af6b3fba7742c21364119dc2a1d8aaba2165239f5d99fd947cdfe",
+      "fileOffset": 112050225
+    },
+    {
+      "codegenFile": "2351a21510e07851027bd3d6656d2016fe477368ffe0b6f11dfeac53cf5365f3.js",
+      "paths": [
+        "assets/index-CPxs744q.js"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 166687,
+      "decodedBytes": 653040,
+      "sha256": "0a963b8b28fb3a9f4ecc43f34404aa18559860d98560af2a8a10f7e4bee8a2ab",
+      "decodedSha256": "21078a91bebe86e99538246b5fe87c52b2b08641fa641cb2b93165cd3d65844c",
+      "fileOffset": 113677159
+    },
+    {
+      "codegenFile": "23ee38a7f9d4e5088854bdad15afdd099c6598b8aac099375044ff7ece153037.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.grey_hive.sentinel_arena.v1.attempt.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 2562802,
+      "decodedBytes": 2562793,
+      "sha256": "65bebdd771abf4490df2af169d4283e1a662f082281b901ca9911332c77ea632",
+      "decodedSha256": "766029367f61fb21e9eedd8f1e8077d58c769ccd892f73fe493dd114db590882",
+      "fileOffset": 44332135
+    },
+    {
+      "codegenFile": "268eb47b0ec2208e64b5d6f03c53bc7e7f9a1b8ea7b9f089917f535e26b5590a.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.clockworks.floor_steel.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1608602,
+      "decodedBytes": 1610704,
+      "sha256": "e630595b6dd8416248968005a475b6fec02d7b4b2052d056884418889d459241",
+      "decodedSha256": "0b4555021799ac849756e0f11c207d4e9309df19f4b8f68d0f4e8177f5204043",
+      "fileOffset": 84518480
+    },
+    {
+      "codegenFile": "27933475236a4dbd145e35ad2e43a9c067280bd2a99e2daf5ceda7329b99cc7c.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.prop.beacon.folded.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 893003,
+      "decodedBytes": 892998,
+      "sha256": "efe14e000114ad646fe8aa0b78c23ef06876850830e6ae3d8ad558f609e15f7a",
+      "decodedSha256": "24558f046e040199e2fe1ddc1ea42fa72f44f4cffc57c074e97989552ed29c15",
+      "fileOffset": 150309226
+    },
+    {
+      "codegenFile": "29ec05267fff57e2fecb922a50be1ee770d21e69badf365c18b62a1b4e4751e1.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.clockworks.pressure_pipe_valve.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 983215,
+      "decodedBytes": 983210,
+      "sha256": "76745a4fd33fcae994e44a85bc7455eb4040c3cfa479a92bc01e9276ff182bae",
+      "decodedSha256": "f1591e1273ffb46564dad104a27dc959f4fc7fda0cc6f4db4673749443c7fc56",
+      "fileOffset": 134659501
+    },
+    {
+      "codegenFile": "2a6d698dd3614586645b97b82f5dda1c9d8ce9a2d8b5211d6aadae2726447551.json",
+      "paths": [
+        "scene-definitions/compiled/grey_hive/gh_gate_b.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1008,
+      "decodedBytes": 6855,
+      "sha256": "d457167c7ca134de280d993f2b60bca0d4c1eaa33e331499bb843698c882e42e",
+      "decodedSha256": "a82c10a6fa50129c48267e255d2ca86f4ebaca43e0e0da81b639ee88228312c1",
+      "fileOffset": 70321744
+    },
+    {
+      "codegenFile": "2b838ae02c29111d217f2c695d8a6c4f618950044edb41f6373e1a02c2c2706d.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/atlases/vfx-shared-00.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 8581041,
+      "decodedBytes": 8587770,
+      "sha256": "2e3009260118191c389ebfa9d2b933be14ec1da80aed33fa8a08e75d8e5de0a6",
+      "decodedSha256": "c13f2b5961e23cd12054edf58a63e367cbed516cd99b6fe96ccd06d01296b2a1",
+      "fileOffset": 165776396
+    },
+    {
+      "codegenFile": "2cca0c699f5346cc651464d33cc530a42e6ff2fa866c74bfec4af5b9a4ef4602.json",
+      "paths": [
+        "scene-definitions/compiled/clockworks/cw_forged_guard_arena.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 980,
+      "decodedBytes": 6794,
+      "sha256": "fb96fa897f30344ccaa42db34249205ef73a76901dac823394617b70d0bc768c",
+      "decodedSha256": "38ae047e46e980f953377121c78713a79b69f84b994e2dd1984e1404fe77ccf5",
+      "fileOffset": 135653017
+    },
+    {
+      "codegenFile": "2f02d8304d0195e7ef19969f8e70d1affb8d337251693d8d36bf44b480864425.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.returnstation.terminals.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 517297,
+      "decodedBytes": 517292,
+      "sha256": "bf52787eb1d5ee26497d0a1c5b71cccdf09c94eb6c8ab43c741a72fb3808ce34",
+      "decodedSha256": "58afdf57327af8daff32e9af7f06c31dfa8eb1e90084ac58841d43acbc279192",
+      "fileOffset": 203060529
+    },
+    {
+      "codegenFile": "2fbfa8d99994e0113317b1a5feece83af6db5e4c04c3f6b1143219454a41ddf3.js",
+      "paths": [
+        "assets/CanvasPool-DecUtJxW.js"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 21145,
+      "decodedBytes": 68480,
+      "sha256": "6a4dc8d990c9d7c141650ab288f357ccff5f42f4c80331861885057c1ee47a23",
+      "decodedSha256": "45335d161156296b274b89eb85b9040a0d08b1870125bfcc5e7100bb937589f1",
+      "fileOffset": 34222997
+    },
+    {
+      "codegenFile": "32229225be89794c766f128626074550bc560027727abdba9b78cd73b65ad481.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/atlases/ui-shared-01.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1925305,
+      "decodedBytes": 1941430,
+      "sha256": "47daf5f7e6749a5bfc75df61cf0dd46903d1118a3cf7e44fd376600369230671",
+      "decodedSha256": "191a81f5644ecf9fa91df6edd0c92d7ac0cc83b6d5d7ad92d94b7d6607982ca2",
+      "fileOffset": 115230935
+    },
+    {
+      "codegenFile": "324a884c90d1d5e64aa8cce7326c4485e27e5b3a029e239c29c4482fd24d0949.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/atlases/boss-sentinel-00.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 2678828,
+      "decodedBytes": 2678920,
+      "sha256": "49199dfa6fc2ad4345e59a399cc349bdbbae474e91d3c9db2eb4b0228e0c0fbc",
+      "decodedSha256": "53d24b81d3862241753b01ac56351fd1a9a0923dcfb2111bb29063b0f28c4c43",
+      "fileOffset": 210045576
+    },
+    {
+      "codegenFile": "334d7860a952aa96a1919ddf8a2e629e8f4f13eae59f33c01454db22b28ac481.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.vfx.pulse.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 2318417,
+      "decodedBytes": 2318409,
+      "sha256": "540a7de0687e66b3e150d3b4b380842475c4aaf4b1c403ddcea26ec68596b18f",
+      "decodedSha256": "c83331ce706f810b40cc05a949c4d83e0d5ab8a696bdb24c392c2d843e16ef9b",
+      "fileOffset": 37664718
+    },
+    {
+      "codegenFile": "3735b3db54de190c7abd2d9364b00fdea0863f318b1c84b461f812c439283893.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.mistharbor.signal_wraith.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1474614,
+      "decodedBytes": 1474606,
+      "sha256": "ecd6d7b195e33ce46b1e459b964131a4329e2db1e49a7d28bb105f0ec5dce4e3",
+      "decodedSha256": "f353f33cae02d49208a02d51ee404f328d89515488d69b83a82cf7030c8a8c6a",
+      "fileOffset": 205241299
+    },
+    {
+      "codegenFile": "3872617f1ab2b817554a07240482b9aef250e255dd16bd59cc732d01f31a331a.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.clockworks.furnace.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1938862,
+      "decodedBytes": 1938854,
+      "sha256": "766c4700b956468d5e801bb7de71cac7cd633c7eefea3d9e68c10a1af8f21326",
+      "decodedSha256": "4a36e98fec3057bac6e59e01bcd2287ee5e412071a5396731c50082a351aec44",
+      "fileOffset": 46895024
+    },
+    {
+      "codegenFile": "387f63caf38c70389dcfb7d8f7d2dad740ac23374922a6f028820b3334ede9d6.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.vfx.dash.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1593714,
+      "decodedBytes": 1593706,
+      "sha256": "fc4e5eb4e921a8f571b9258706a8884d7840f12d3da4e4663244113f139ae3d9",
+      "decodedSha256": "95b3e7038aff27c2366adfffe60407a143a5ed52930142ac6ae0142515880d61",
+      "fileOffset": 80560557
+    },
+    {
+      "codegenFile": "3b850561a2ce0805d85c58f40c7130d385d94d21ec778ce088119bf71f5eaa6d.js",
+      "paths": [
+        "assets/GraphicsContext-BBABHYLV.js"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 19675,
+      "decodedBytes": 61728,
+      "sha256": "f0138a31e524c8d9a6d68ba03d8897213bade76c9f182383abfab4863eeba719",
+      "decodedSha256": "aee356589ae880fc9928a97c64a178596a79aecdb2d6be15521b7ac439c30217",
+      "fileOffset": 21274541
+    },
+    {
+      "codegenFile": "3d110971acb3c3b011ba3e4a2c45c164860a0920e8e1379ca8f7eb3cc330b6e4.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.mistharbor.fog_vfx.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1128873,
+      "decodedBytes": 1128868,
+      "sha256": "59fa562d755fef7abe6f824440020ef323d48ee0b9e65470a00651606486f329",
+      "decodedSha256": "ee45ad9981d7499d74e0ffc74a3fb5d158d98ee15f9ccc35d7ebcc74f6462182",
+      "fileOffset": 175679354
+    },
+    {
+      "codegenFile": "3e4842865493bc592b015b178e9fae9a75bfc79b613f3f0edc1cf6e644b36a12.json",
+      "paths": [
+        "scene-definitions/compiled/clockworks/cw_furnace_heart.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1269,
+      "decodedBytes": 8424,
+      "sha256": "77cc54bdc04893e48227fa176d4b98d7cdf6facda72238061f65c183e8ef87ea",
+      "decodedSha256": "f16f3941767aed71023cd8b9ce75642345a103eabf5c77682e358c96c2e219d5",
+      "fileOffset": 115229608
+    },
+    {
+      "codegenFile": "3e4e81c790dade930e5ed6990465d9faf17c60b1ecdc2cbec97e0e9e3c29d9c2.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.mistharbor.drowned.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1292356,
+      "decodedBytes": 1292351,
+      "sha256": "3da9eb29e2dd1c8b75b2e5605385086e3d827409eb3faa5adeca9340067142b1",
+      "decodedSha256": "c5dc238233817d9e89fd46e961bb75ab87e3379a8143dcfcb8219ca364c672a8",
+      "fileOffset": 110757780
+    },
+    {
+      "codegenFile": "408487c526c7e6ca0ec980ae4bd010f5f290fca65e787e5b1ddab813d909ca57.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.infected_maintenance_worker.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1870196,
+      "decodedBytes": 1870188,
+      "sha256": "76b282eb4eef83ef3e30de238dc96ba84a463b1d6086846aab2035ad3c7c32db",
+      "decodedSha256": "f7ee9460d18be46a8aea81fda2e566b29e5ac7b80d9ad2b20fd58f2f7e7a8168",
+      "fileOffset": 159938066
+    },
+    {
+      "codegenFile": "419338767c587c0b898e6c979aa39a349dde1efedf125646a3a6af1c1b517d86.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.clockworks.furnace.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1352692,
+      "decodedBytes": 1352684,
+      "sha256": "e8ae2005380113f6b72c403e587fbd3790f4dc7e58605f859d9476b81a2283ad",
+      "decodedSha256": "88ceab4f4cd8ec8bb586f2e847a9ee33676802f686bb8b98c3b1cde3dea6bc95",
+      "fileOffset": 250672698
+    },
+    {
+      "codegenFile": "437b2904d255035f0d189249e9cad90419eb5ac3a744f850e62b4ee8516def32.json",
+      "paths": [
+        "scene-definitions/compiled/mist_harbor/mh_resonance_tower.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1199,
+      "decodedBytes": 8668,
+      "sha256": "762f610ec23118fe8d42d1aad351006ef4fc9ec12b4e54335cd95fa16bd0b21e",
+      "decodedSha256": "61d42c94a06204b1c4ddac4f29577d3e031a14f1b6fcc66613d625006fd94452",
+      "fileOffset": 135642779
+    },
+    {
+      "codegenFile": "4525a55c5e9c16a45a84ad39bfa94c5d3e9ee3b9cb928a5dfcc6ba986dfe8622.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/atlases/actor-clockworks-00.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 2690010,
+      "decodedBytes": 2721832,
+      "sha256": "26fe3dc935d21f46231133b3571fab7b6bc43f22733058ea04bcdffcb56c0725",
+      "decodedSha256": "530d98841157b03d003cdf3de6c1e7e5564789ea7f1e53c67aeaa4144d2c62a9",
+      "fileOffset": 200370425
+    },
+    {
+      "codegenFile": "4548a4222a4b33e6699124ac5d387c3898130e3a462c849663b55c452680d578.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.grey_hive.wall_tiles.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1144403,
+      "decodedBytes": 1144398,
+      "sha256": "30a6469c9b688e88eb1c47284aa349663b3a4288c7db3d943c5da86ee05bf852",
+      "decodedSha256": "9c2885818c96ccd6e4e820b79d284974d4ef01f5a09904ebcb90c0d8779c35ae",
+      "fileOffset": 247715391
+    },
+    {
+      "codegenFile": "45e223e3fa1221c7f709de20c5e873e96884330e808ea2fe1f66ac82d376c135.json",
+      "paths": [
+        "bundle-identity.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 8953,
+      "decodedBytes": 35099,
+      "sha256": "4c1bfac864040eefa0dd48f544e56a78e06ab2baf2fdedd78c3c9336139487b3",
+      "decodedSha256": "690c84621d98edef548f73c8f6fa302cf4a523da0b8904c0c02898dbdd049e87",
+      "fileOffset": 135643999
+    },
+    {
+      "codegenFile": "46ae7b02e1bd83e73dd869674795125192c19c42499e252b6352be8690b33c1d.json",
+      "paths": [
+        "scene-definitions/compiled/grey_hive/gh_sentinel_arena.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1121,
+      "decodedBytes": 8241,
+      "sha256": "a18d64f5a5d095b2eb43ea7ccce5e884f1185fc5075fbdb0310b8d3d9d064d0e",
+      "decodedSha256": "3e3e3a52dca003ec13c7b3698317f6a32627091eeda833a49896910e521f45bb",
+      "fileOffset": 83305479
+    },
+    {
+      "codegenFile": "479805f24854b03a25ed8dcd562818d2aeac386f4d773c2d8be9f1bdf1ded6b4.json",
+      "paths": [
+        "scene-definitions/compiled/grey_hive/gh_gate_a.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1023,
+      "decodedBytes": 6948,
+      "sha256": "0ed0c88cf784abe867ec3afd0c993a83fb7d1d7671cb68d1348f808dcb43831e",
+      "decodedSha256": "3c62f3c35a2c9f2e935707e7a93c34a8d6f5696ed730b8487c4efe0b6d1ee484",
+      "fileOffset": 93225228
+    },
+    {
+      "codegenFile": "4b36be9fa3a4243b43b39ad2d4ca7b39807a9245dc2fec279927237b36542379.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.beacon.folded.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1349577,
+      "decodedBytes": 1350329,
+      "sha256": "6c40dcd886bb73d3e0c7e45276550bb1ca15f0c8542ae89296e1f34a8620f6c9",
+      "decodedSha256": "e31b18c233f03f39cdbfd51aeaf3541dd7141550d17c4c2c65bfbae043d7f080",
+      "fileOffset": 146397438
+    },
+    {
+      "codegenFile": "4c478fef001ad47be7a9a7e128e528ad0a94dd14f048ad4926c3b606b00b04e6.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.enemy.infected_maintenance_worker.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1295323,
+      "decodedBytes": 1295318,
+      "sha256": "246d18afd3f2c428d2098d362758234403b53c4afb2f1fe40bb2eb74bd523ee0",
+      "decodedSha256": "0e37bf04868097e0460efb74a5790ffa815ebaf7169392c5a5d122e6a5b7a4d8",
+      "fileOffset": 61374318
+    },
+    {
+      "codegenFile": "4ea19affde94fa3c2363010ed31c3f028810dd3a27e5be45f49d9a3444b66777.json",
+      "paths": [
+        "scene-definitions/compiled/grey_hive/gh_bio_isolation.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1074,
+      "decodedBytes": 7071,
+      "sha256": "febabf31bdfc4cd95b2faf7dde074c67cea60b9ed622627317b956866d4015a7",
+      "decodedSha256": "a3d629f04dc955cf0f8e644b54a4a64d054411a7d59a9fb15da5c9d9ea953aff",
+      "fileOffset": 87628819
+    },
+    {
+      "codegenFile": "510fffb355b4ce8a6adae95ab761ee92fb712f8d6ca25e076425ad68c1a1d588.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.grey_hive.clutter.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1857730,
+      "decodedBytes": 1857722,
+      "sha256": "537b5f4ddb0ffed595ab469f4429898b3bb71b3389d9a11371f0d9d6fce0d749",
+      "decodedSha256": "4743030e58286fdac5c4e119941608763d1ceb1d3bbed79ca1d7361ceab97ebe",
+      "fileOffset": 57646078
+    },
+    {
+      "codegenFile": "54562bd7c67eba80742453af8022433a22776d0091b6d7e0da55774fb2336aff.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.returnstation.terminal.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 664379,
+      "decodedBytes": 664374,
+      "sha256": "c96ddb55531fb8e0c90b5ff14495fccda81f893ff85770e041b0e6d21461b6aa",
+      "decodedSha256": "b924f9f06e90daa69a2f9ea928e0737f0c385e7fa07be12ef8371da6bfeefeb0",
+      "fileOffset": 206716006
+    },
+    {
+      "codegenFile": "5841f590cbb5e565b448b1e28a310416eeb77aad40123b088de65a4aa025a90d.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.clockworks.pressure_pipe_valve.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1383223,
+      "decodedBytes": 1384057,
+      "sha256": "a5e6bbfd94a05484440ddcccc52a5c5ad222ee164e03bffe1dde103b8be9fdc8",
+      "decodedSha256": "cb411faf57aacc7be0c116b3806b64dac0f75a9a421875b2215f54e9447a6e3a",
+      "fileOffset": 41297489
+    },
+    {
+      "codegenFile": "58aea8bbff34fa2984082b0e3dce159194f506ba32b088ca03253e2c18955227.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.enemy.clockworks.forged_guard.v2.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 922519,
+      "decodedBytes": 922514,
+      "sha256": "2418e8897d6f4f5c8cd9e93e6bad99444ca536c77605be64ec31fc7d40c10ae3",
+      "decodedSha256": "dc3986baeaebd65da34112b2e7cd3156857936fcb791ae04f77f171119bcba2a",
+      "fileOffset": 93227520
+    },
+    {
+      "codegenFile": "5df6e72edef435caf1103bbd1190146b2d1fe709dd11a3c1eaf818fe0459b98e.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.prop.gate_a.closed_open.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 992401,
+      "decodedBytes": 992396,
+      "sha256": "34ba62f6bdfc89e8da08d919a9db8a2819d6bf06f525cd7560a0fe95acf03dc1",
+      "decodedSha256": "567fff07a19fab2e5b405162090a3721c0d21a64bb1d3c33d319b12efcc2d1ed",
+      "fileOffset": 62670017
+    },
+    {
+      "codegenFile": "60813c7bdecd912aaa3177967f4ba44180fed9fc5a0873dedd98c9356f066b82.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/atlases/world-returnstation-00.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1853920,
+      "decodedBytes": 1894612,
+      "sha256": "efb0b7ea41ca1e1f450bbc8547c30aa7fbad2ba08aba4a90642281235909c9d5",
+      "decodedSha256": "bdf41d43c50ebb83d70458a0ab6363640520245e2e5b9887df5f3ff6a25579d2",
+      "fileOffset": 190079575
+    },
+    {
+      "codegenFile": "60efa8d3b354e17e30d026e5c4c650e6aaa5dd5c38e1592238572dc8db44c141.js",
+      "paths": [
+        "assets/BufferResource-BGRuMpsB.js"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 2690,
+      "decodedBytes": 11068,
+      "sha256": "2a153339df009128fd6f3b14184e4e203c71bd24e9f9a956694c595f2ceb6d3a",
+      "decodedSha256": "8715b7e7ebacdd492f875f250ad96a2c23a7926bc5602b825c6043c01c9268ad",
+      "fileOffset": 136783359
+    },
+    {
+      "codegenFile": "61227d29f608e98a20a200d21b6b9703c959632cd7aee0a11b5d0c168e92511e.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/portrait.cenyao.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1195451,
+      "decodedBytes": 1195446,
+      "sha256": "ec31788b82f27ee70ca5fcbf492677061cfa78bcc28cd15accb0f7e634545a04",
+      "decodedSha256": "6c7c2b7daaa928ddc31dec002f869932dcd274c80f721b8851d0c2324981d9e9",
+      "fileOffset": 197012606
+    },
+    {
+      "codegenFile": "61969a932decbf332117e63e50add2ca60a76659454e3915e90bfcd04a34a04f.webp",
+      "paths": [
+        "assets/derived/cenyao-runtime-master-v1/atlas/cenyao-idle-atlas-v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 802329,
+      "decodedBytes": 802324,
+      "sha256": "e97a9d9ff9763fddd6d2e56cb1183e7e71f68a1f7dce650de13063f2d32d02ac",
+      "decodedSha256": "b0cc05697fdb89a3f55fdbce2bd558e6800a088f1147f7f8edce8fad842c5af0",
+      "fileOffset": 138731685
+    },
+    {
+      "codegenFile": "61a30b6b15d183a0dc0f8cd8edc1d21045449cdd66631bdf5cfafaa5187facde.json",
+      "paths": [
+        "scene-definitions/compiled/clockworks/cw_boiler_chamber.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1239,
+      "decodedBytes": 7927,
+      "sha256": "078cde378b34d7342fe4e17adc17b01f154841d22e5fbcdee9818552cc89373d",
+      "decodedSha256": "04b00520e16435d159f1a459016083020fd40d11a2f8086d2f78dcbd0e483b39",
+      "fileOffset": 69536763
+    },
+    {
+      "codegenFile": "626e5c639a129f4d05622b0d3836a182516b2eeebe9c3cb7b96a34837ebefaf0.js",
+      "paths": [
+        "assets/init-C_QDqPHy.js"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 4594,
+      "decodedBytes": 15389,
+      "sha256": "7549f06d833680ce24715dcdac5ab2b52f48945ae2240969ac8c86d4c3de0b68",
+      "decodedSha256": "315787f8a215cfa496468c770e43b37e5ee88bbfdd2bc9cece38cba246333628",
+      "fileOffset": 86127106
+    },
+    {
+      "codegenFile": "653b4ea2a6e4f1fcd4513a9f3539bef72968b64ba912d9ce62dc109c77ab7e69.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/atlases/boss-sentinel-00.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 3886304,
+      "decodedBytes": 3886291,
+      "sha256": "23d222a673d7a053b3f54b636139faa683f7b703c17ccd4ce48a8e04fccac50b",
+      "decodedSha256": "85a83a47b0620ecc2cba782e3d8ef0d6d23e3186e0f402e69ee00cfac11e73a4",
+      "fileOffset": 178753305
+    },
+    {
+      "codegenFile": "68ca8f279cb448cf142dc5f73802a0e943dd8541ea8c75bf64c067db83893994.json",
+      "paths": [
+        "scene-definitions/compiled/mist_harbor/mh_warden_arena.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1012,
+      "decodedBytes": 6991,
+      "sha256": "4d8932c804a4e05e5c4d989c5c4c96186b8e40b1154ee8b4c214b678102fb292",
+      "decodedSha256": "bb0ddca043c57ef4d0d1b327ace455e7f5f8c870845c113064144f64006df86b",
+      "fileOffset": 219641774
+    },
+    {
+      "codegenFile": "6ad2f8cd5e5d1e56cc61953ef1a8177124ce29c81a1eef278f2c4781d177b2b4.json",
+      "paths": [
+        "scene-definitions/compiled/grey_hive/gh_beacon.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 918,
+      "decodedBytes": 5927,
+      "sha256": "eedbf49508193f8f1a39cd1e32a1f831881d8777494d08fcacb53ad78d126da8",
+      "decodedSha256": "3cab424771d10799ee82a453a72117affb0ebca09dd814f25308be70310da9ee",
+      "fileOffset": 48833938
+    },
+    {
+      "codegenFile": "6b9ef5683e9045a7d2a3d544d124e108dae6c8106683490c995f17f07ab4a8df.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.beacon.deployed.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 702414,
+      "decodedBytes": 710102,
+      "sha256": "40710e5825cfe5d4985508693af8d31bfd58a859271c2ea000bc3a0fc81cedc8",
+      "decodedSha256": "2b2fe4729122f66740dcb1a00c2ea0cb7cd18bfbc3816822a5be4294f8c7d1e4",
+      "fileOffset": 24755394
+    },
+    {
+      "codegenFile": "6e48f190ac0bd1c798156922c12f29f3e83d5ae03f9c4b37c783f0921da467dc.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.clockworks.forged_guard.v2.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1300726,
+      "decodedBytes": 1300721,
+      "sha256": "8d84f6e978894f76fb9f2de27b99a76a5e6240d36809ca22d172c641639e6180",
+      "decodedSha256": "b41cdc83c587805d0beee9d48668a9328001882595e0ab97fa69347d9bcf8cb4",
+      "fileOffset": 218340988
+    },
+    {
+      "codegenFile": "71ff4e40b08539a2aa39f0d08e616b22574d1507f6a5192bcdedfff5fcec0291.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.mistharbor.fog_vfx.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 870495,
+      "decodedBytes": 870490,
+      "sha256": "8d3024b5d0eda546a1aa55b03b4b23500fc0152128980a43aab4c2e8813c2272",
+      "decodedSha256": "2284513e95b7181655d9855644a57e623a196fbb79256205e673328dea663926",
+      "fileOffset": 213776223
+    },
+    {
+      "codegenFile": "729c49fdb974bb0b2657a28f8ee6f6debfcf2ee6e2b032e9bf619b353bab7fd3.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/atlases/world-mistharbor-00.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 3459706,
+      "decodedBytes": 3459694,
+      "sha256": "10eb98bf713d02974ebce69ff5b52c3564d1c40959a7cbb576e3dd790e1c2fc8",
+      "decodedSha256": "c7feb923e84e9a7d4b1a68d02b068be7152dea324b8979fa5431b39801e28aad",
+      "fileOffset": 21294282
+    },
+    {
+      "codegenFile": "7400b80f4b208d2f025bf88962e6ca1a8f9a24dabe045e8efb795572e47748b5.html",
+      "paths": [
+        "index.html"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 404,
+      "decodedBytes": 1221,
+      "sha256": "80cddfd855ec91ce2c43d7f26659feb1e0a330d3c730ce9cd438bf143fa0cb24",
+      "decodedSha256": "36f17e4d87d08bdf0d13e27138a50a9aa304f801aadc203fa07204206e35418c",
+      "fileOffset": 146396953
+    },
+    {
+      "codegenFile": "741350a783cdafb8097a65dbb8c422ee11012d16368726d43d2a0e9267ecce15.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.enemy.mistharbor.signal_wraith.v2.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1014703,
+      "decodedBytes": 1014698,
+      "sha256": "e72bde4468373c25eacba7d1b6a5b81e77092dbe4bba9efb5669825cc2553a91",
+      "decodedSha256": "3b652829ddb56b10d348ee800ae335a4261828f87505224e70c998bc25519aa9",
+      "fileOffset": 94150134
+    },
+    {
+      "codegenFile": "75ebc1d41777e3e345691332d6c4a954c616e8e913f3e5d2cb5fe0980f1cc5f0.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.actor.cenyao.base.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1164353,
+      "decodedBytes": 1164348,
+      "sha256": "cba4e0c4b2c48fa0046ffdafa6e7f5cc57207742a9c77cc961668497ed5615eb",
+      "decodedSha256": "5bcdc7662c6d7cdbe1972113aa415a61a2a79e12fede6d35d0ed5af587d8d2ac",
+      "fileOffset": 149144790
+    },
+    {
+      "codegenFile": "774858ba48903db6060d7aca3610d1f61792bbbcb92c0b0800bd8dc744d0c86d.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.prop.bio_pod.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 925305,
+      "decodedBytes": 925300,
+      "sha256": "c3e714e1b81c5879a14eac525fe4389a673e620d39dd1fd31a611fcdf2f4f90d",
+      "decodedSha256": "a732507b887bc699681b83fcaf43b7def1b18da9640f144286bf32f3eee8e719",
+      "fileOffset": 56720693
+    },
+    {
+      "codegenFile": "777d43035cbe4654aced26e1c41ad73e78cd93290859010f0bbf97e50feccfff.json",
+      "paths": [
+        "scene-definitions/compiled/grey_hive/gh_lockdown.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1237,
+      "decodedBytes": 10081,
+      "sha256": "f8688d14f70f1b70400d5572ef83c5e4808b3b56e2f058568b70ee9fc2aa9080",
+      "decodedSha256": "718489a1ea4ec4622ccdcefc8459a1dc1bd4f66ccf26abc813b6a06519197850",
+      "fileOffset": 68685273
+    },
+    {
+      "codegenFile": "79e36ade82c6e77b1eec0a634a768451a8928099595d9ef7e79d6f72ba47bd04.json",
+      "paths": [
+        "scene-definitions/compiled/clockworks/cw_conveyor_bridge.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1081,
+      "decodedBytes": 7443,
+      "sha256": "0c62c976655029419a013b20ff56621e118ee2dfe99c368b880d3bfd5429497c",
+      "decodedSha256": "845b664b2212c5d9bf55cf72d34c9c69bf0caf345fa90ed9a7173a1df276e0ae",
+      "fileOffset": 229553234
+    },
+    {
+      "codegenFile": "79eb8955316617c92f3ae26d3c6dfd45df82ec20699842dd8b783be1ecdc1134.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.grey_hive.floor_tiles.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1314171,
+      "decodedBytes": 1315059,
+      "sha256": "2f53a27cb1e868bf5c870637eb1320aa263c7072cf6f08d22391feeb5451d50a",
+      "decodedSha256": "4c93e192505e71d6ec4e414aeb5c9b76376b7407d677017b31b8eba5e24e744f",
+      "fileOffset": 39983219
+    },
+    {
+      "codegenFile": "80fd049fe5fbbd018c592b0e549a0d8fa1d2f625af6ed8dac2edaa50eeb1e929.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.medical_station.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1417275,
+      "decodedBytes": 1418293,
+      "sha256": "ceaab2559e77bf2eb64b97d136036113d3125da3d1b26ba253364484cfbd7c37",
+      "decodedSha256": "de4fdadfd8b9fc21afd1bf430a1da846129fa09b2a303a064eaedeb8552dc0f2",
+      "fileOffset": 87629976
+    },
+    {
+      "codegenFile": "870f6752cb705e1cfe200c18c6c3d5e22ecec91f470267eec407bec55cac7ed2.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.actor.cenyao.parts.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1137033,
+      "decodedBytes": 1137028,
+      "sha256": "70ec521545b917c04fd46d848142d006599d7d9f775b99d3c5c5a0e231749167",
+      "decodedSha256": "5b2d7f25dd2a2836bd59dcdf8bde1d2a8152c86072ec1ceae82f8decf0bd5b25",
+      "fileOffset": 48834939
+    },
+    {
+      "codegenFile": "886854e71ba96f4307e64d6f88a2272d9526ee2aa3d10886e48c2d1d983c56f2.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.ui.capability.local_map.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1350956,
+      "decodedBytes": 1351106,
+      "sha256": "c50513f8dfb5184333d33ef89483e3d5a6db4e5ef45475fa335cbd4737cc5abf",
+      "decodedSha256": "6481d308d7cf5d1488fb185dfe98c7af0d973574b16bdc4eb637566900154c4d",
+      "fileOffset": 28974778
+    },
+    {
+      "codegenFile": "8bb3a067222755337201bc7c49de988040b4999448a29f2d8e6442427caa8711.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.supply_crates.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 2067557,
+      "decodedBytes": 2067549,
+      "sha256": "742644391b8cfe852b2704b931fc230a0caa83a294ce551406ae24074fa2f56e",
+      "decodedSha256": "0dbad1364c14649b021f20510b9faf970ff317e6202131bd4cb2c32648b34b00",
+      "fileOffset": 35597089
+    },
+    {
+      "codegenFile": "8be01cdd2122c4f59b37b025fb26346c8e26f9d5d00cc0e1e25109c1a3dbd18f.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.prop.power_console.off_on.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1651232,
+      "decodedBytes": 1651224,
+      "sha256": "a6bd933dcc613dd8a0ef9096de668a8016120a08556059f2f049e51f46e480bb",
+      "decodedSha256": "abd81e6845d3c3640ec7fedf10f3bb15c4017a9a9fe8986e114020b85b8e048a",
+      "fileOffset": 42680802
+    },
+    {
+      "codegenFile": "8c581f6adc3f66071c9a1cf2124fd59ec9310187485987536801882d1f3f15ef.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/atlases/prop-grey_hive-00.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 10636805,
+      "decodedBytes": 10649780,
+      "sha256": "7de30d6d5613e4f5bc1232a35af3040d208454fa31be6df2025cb5aadf4d50b5",
+      "decodedSha256": "73c4f5cecd3d71441ac49ff4df8b15a89eb6a31f6caab7980b79cfef2a86a490",
+      "fileOffset": 100120888
+    },
+    {
+      "codegenFile": "8c895e786369393383dbb90711c94fbd04bb8190059b32a970bd8071a8f284ae.json",
+      "paths": [
+        "scene-definitions/compiled/clockworks/cw_gear_shaft.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1266,
+      "decodedBytes": 8965,
+      "sha256": "b5b433998033b0887d72b4e5c814ff5a72edbaa777e464c159fe686d3b371f83",
+      "decodedSha256": "91afdb035c3df824806884c49d1e8f71034ff8f51b7bf90280bf71594896fea9",
+      "fileOffset": 24754045
+    },
+    {
+      "codegenFile": "8cd41d0e402005b9d8710c322f28f777c81c8e676d23556b76e2ae949bdc1db4.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/atlases/prop-grey_hive-00.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 15178438,
+      "decodedBytes": 15187415,
+      "sha256": "3bdb76761a68010828db02a56d27e92ad02b4307d8b74b55d2a13c4df2c4ace6",
+      "decodedSha256": "e0e06057bb0eff78962b2dfc6af36cc4c3abc5f080b1ffd7e9bb7b6f52eb8f58",
+      "fileOffset": 119480962
+    },
+    {
+      "codegenFile": "8d988a7351d67cbd399f636c45c80d4ecd9086cfa9123477d446dc8ceb7b3ec1.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.enemy.sentinel.parts.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1151063,
+      "decodedBytes": 1151058,
+      "sha256": "8cb7246fa86c556b91686c4ff8abbaf68e9194d1b74e6f6d10357c94df09c1ce",
+      "decodedSha256": "862f8b8a5cefda1214f277e26003d50b885d0fd67cbf47b81414ed913a8401a9",
+      "fileOffset": 82154356
+    },
+    {
+      "codegenFile": "8eafc54dbf83c1d0dfd71afe9994286a4d255e3b38b0f10447791498b5aafff7.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/atlases/world-grey_hive-00.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 5825484,
+      "decodedBytes": 5825464,
+      "sha256": "7897f69b8d6b3dfc58034b0e448837c7b1ed9b7065d3ee64fb26576b89701003",
+      "decodedSha256": "3a98a11d171fda3ebd49dd0cf7ff4b123fc374c55d3b510ff9930038ff5ad32b",
+      "fileOffset": 13776885
+    },
+    {
+      "codegenFile": "8ecbf87017526995a388690bb2c6011ed2d8859063713154cd2deda7445947fc.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.grey_hive.floor_tiles.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 838607,
+      "decodedBytes": 838602,
+      "sha256": "01ec433b8fcef06542ce32cc9083d64220f65bb782cc7fbb739acf900865aa7c",
+      "decodedSha256": "35176a085b974fd68c58d775baa68ae6dd42cd97f20e926cfe4ce8ceee7492b7",
+      "fileOffset": 68686596
+    },
+    {
+      "codegenFile": "8ffea2a9b12dc2ef04163046d9557949b141488222b33791bccbb29a9b409e55.json",
+      "paths": [
+        "scene-definitions/SCENE_DEFINITION_MANIFEST.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1712,
+      "decodedBytes": 7185,
+      "sha256": "9379bc9f4517a314cdfa7fe3d9b0f0f1193add352d9fd329bc827e9552ede07c",
+      "decodedSha256": "9c2d4e33cd88027ed0d9b97bb23e6242572967f099466016b650b9fc73137fc9",
+      "fileOffset": 191933544
+    },
+    {
+      "codegenFile": "9327c365ea484ace781816b7111d651a4562a96e49008b35c74e0516d67e292b.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/atlases/world-mistharbor-00.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 5022736,
+      "decodedBytes": 5022719,
+      "sha256": "b943e0cb3f55271497f91db4a650ac3ea971a1e4fb640855955e538b57d74b95",
+      "decodedSha256": "7adc44539fae389a063e209f38c6f85953597b28e5ad56ab0ecb2880c4d71cad",
+      "fileOffset": 63662483
+    },
+    {
+      "codegenFile": "93acfa5d874066be96224fff276d33f773eea616618244cc85910d99a0c7ef05.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.clockworks.furnace.v2.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1133247,
+      "decodedBytes": 1133242,
+      "sha256": "2875a60e455ba786e375386d697a4078e04c5039be6de49f910a78bd017983db",
+      "decodedSha256": "88c969861604ad271462ae57bb05c122d84653b0fe81d03b8c9edd89577dc0b2",
+      "fileOffset": 235945730
+    },
+    {
+      "codegenFile": "93b6855a1be7196c5daf2b3b3baf0a8f8489ada8ba81e2a8fae5ea5cdc681e9f.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.mistharbor.fog_bank.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 684965,
+      "decodedBytes": 684960,
+      "sha256": "f4ef7cb39e5ce8deafca4f2c669026a11e216ebf9792c6538aa353b92b38a2e4",
+      "decodedSha256": "9bbbfd9783f70a8b1f6ffeaabd44e568074f4c20f1f7500d7ef4f0e534edeac2",
+      "fileOffset": 145711977
+    },
+    {
+      "codegenFile": "93b85528487faf5362c363b01e83ab9a8859b6ed249af946bfa29a9373051eab.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/atlases/actor-grey_hive-00.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 3743947,
+      "decodedBytes": 3743934,
+      "sha256": "b2ce749b6034621e307190a96b750958fdf1da0945468f5dfa8294c25731b08b",
+      "decodedSha256": "b22bfe7b4fcd178bb4703b0234c194ce860e9378c551ee9784fb7bc5efa2ed60",
+      "fileOffset": 186335560
+    },
+    {
+      "codegenFile": "93d35513bdfa3ce95642b403b0892e05af235e7eb1948895a04e01cb89fca6dd.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.mistharbor.drowned.v2.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1128167,
+      "decodedBytes": 1128162,
+      "sha256": "9e4384fe501b2d4823cd58db5c7bd6ac73c69b18941ec231008c72f8dec14071",
+      "decodedSha256": "752ac830587fc957d5695cd7714c57e584f40ec1a8f511f324ee491adaee7f2d",
+      "fileOffset": 135655158
+    },
+    {
+      "codegenFile": "966646bd71fa9b3457559b44287b356decd0ba037fee7b210ad5ba959b2a592d.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/atlases/world-grey_hive-00.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 8735677,
+      "decodedBytes": 8775361,
+      "sha256": "5b83e0b69fcdd8221bf042f94181c17daeb24f05755685b2b9000e28be14ad60",
+      "decodedSha256": "a042cdeda255b2cca79e0d01b878f38ee58889acd14f1ec174b79784dc834ef9",
+      "fileOffset": 151202293
+    },
+    {
+      "codegenFile": "96facae554f9ee7cc33e006ff5dccfb4bc74908a6c0c6ee46e4cc6b6197f1267.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.actor.cenyao.parts.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1658531,
+      "decodedBytes": 1658523,
+      "sha256": "49c78f9c68996983d3738377b6c6ff844fa9b6ad42ef3ce98ca35d6cc4fbe481",
+      "decodedSha256": "b936ae8af95a57e9dbfff29f4b51f0db5c5af58ce24a7d6283abb7230d4ce911",
+      "fileOffset": 140856049
+    },
+    {
+      "codegenFile": "977c2d628c6c2c8737b0baf41b4caaeec6cf97c51f612635aecdb0f3cb86cc32.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.mistharbor.water_edge_stone.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1983611,
+      "decodedBytes": 1983603,
+      "sha256": "cc2185d5546ce2cc73999638e18e55560b3de6eb17f1b0080a1011d0500e3e4c",
+      "decodedSha256": "e823434b3fbc420fc14270200f81e0a459e594597304b1323d336e532a924f9d",
+      "fileOffset": 182639705
+    },
+    {
+      "codegenFile": "9862cdc29df048cba2f4b3ef99432ac59ec93f2de4391277230264e1723a46e1.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.grey_hive.pipes_cables.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 721085,
+      "decodedBytes": 721080,
+      "sha256": "721974bc201709d553f0327395ce64ad638ce97bdbf22bceb5f1e3fc439ebc5c",
+      "decodedSha256": "936a75beb71400061b0fa787f17d1d0f869dc308c14819c0705423d5e2afca82",
+      "fileOffset": 112956049
+    },
+    {
+      "codegenFile": "993043199796152ae32c771a79b4f97936381c728b1d38ad9d74b47baca32c8a.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.prop.supply_crates.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1409866,
+      "decodedBytes": 1409858,
+      "sha256": "8ec791d531db94e890b41297ad5fca81a933be96eac797973a374a4dd7ffc632",
+      "decodedSha256": "0bffdf5bf91da409ad95d26b13dd04d65ddef41fbf878b9efd6cecc08f72dc5b",
+      "fileOffset": 96117151
+    },
+    {
+      "codegenFile": "995f98289c0150d3c1909438f0fb1e7eb816f2d15aeaed47ad8645711afeab47.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.vfx.guard_pierce.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 2324578,
+      "decodedBytes": 2324570,
+      "sha256": "cbb0b67c0dcb009664b68902c255923b3927d6761e7350cb739a8b1c611e6b38",
+      "decodedSha256": "c8f076e68874cf09c58abb5c26628da73308a2ceb810e5297198d3dd163c20b7",
+      "fileOffset": 117156321
+    },
+    {
+      "codegenFile": "99d86d33e4ba57cd36fd871bb6d8b9e664b04ea980f35d7f9c0581b67e0584e8.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/atlases/actor-clockworks-00.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1945498,
+      "decodedBytes": 1945490,
+      "sha256": "3f2cc713e71479bc711e2490f78375e63d6f8dfacbe90e57d7eb96839efb9ba6",
+      "decodedSha256": "4f643ebe053114b5b0fba658213eb246b015e86622876279d463ea88b381e879",
+      "fileOffset": 136786115
+    },
+    {
+      "codegenFile": "9a6362aa93188a774411b52eaa5579076cdbf54d3a78a86130bb29b25d09bff7.json",
+      "paths": [
+        "scene-definitions/compiled/clockworks/cw_regulator_core.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1190,
+      "decodedBytes": 7495,
+      "sha256": "a97a139ba19d699b057a799007c818ad7cc4d8b507025d3766eaa872f5f3e80b",
+      "decodedSha256": "b9b352865c5b4acdddbc52abe19abce7fea560687607b268dbe41dd456000fc7",
+      "fileOffset": 145709328
+    },
+    {
+      "codegenFile": "9c1c4629f9f12ce12236b47087e367628d400e0eb430c832f7c7ea7af6c391c9.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.enemy.infected_security.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1321742,
+      "decodedBytes": 1321734,
+      "sha256": "e18f8890050145deddb6bbe7c3403b42c8ff7aaf7afd582c48282aca9bd267ee",
+      "decodedSha256": "cc2a1da571af684452673447a43e9e3b8a481682a3e0e7230b027d361d6d8b96",
+      "fileOffset": 174357525
+    },
+    {
+      "codegenFile": "9d5dc7ffe512d79de7cd5314fa71127a6b39d33b1a5e0d4b1a010fd686f09c25.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.mistharbor.water_edge.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1496968,
+      "decodedBytes": 1496960,
+      "sha256": "6e14672da5271ca9edbd470988dda4df9e2629d60940f58c3de53b6cc42f3c4a",
+      "decodedSha256": "afd0e86fa9b74ef87056338c417f51a84087d91d67ef8a3357f756c0db5a9874",
+      "fileOffset": 86131792
+    },
+    {
+      "codegenFile": "9e623a69e7a66b2f8b7ef3f579dd39d49d607e6ffe2f0029cc5e482c4c698456.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/atlases/world-clockworks-00.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 9568742,
+      "decodedBytes": 9586334,
+      "sha256": "400bce8323daeced6948822642df72835a85e95aa0b180fc4290565b17b70c73",
+      "decodedSha256": "842bbd92a06f4fceb0a8db864333a95869d43ddbc355c071cb20b998f9aaf919",
+      "fileOffset": 238136038
+    },
+    {
+      "codegenFile": "a290df56e45e5e4fb2f5fc1e97ad572ac9fe049c5fe8088821d9fbbbd197990f.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/atlases/ui-shared-01.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1352807,
+      "decodedBytes": 1352802,
+      "sha256": "f375da96bcbb8f05569e23b95361033eee7b7b7d5d1767995838fbf68f859113",
+      "decodedSha256": "69f3bf15726c4b28604b7b096ce88b680f0c40f9802b8199c8ec2315964b3ff1",
+      "fileOffset": 34244201
+    },
+    {
+      "codegenFile": "a4a5a49ece87138d820a024c29374a7bacda76bc446c5ead08403a18b8f5185f.json",
+      "paths": [
+        "scene-definitions/compiled/grey_hive/gh_exit.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 901,
+      "decodedBytes": 5617,
+      "sha256": "1e468d8ca9022f883e5a26df305eeb2adb3f440a212e44028b9c8b51152f9927",
+      "decodedSha256": "6ab262467e1992feac94f27d8bf571dcf77ddbc8c1693a79c57b3aeebff0c54c",
+      "fileOffset": 49972022
+    },
+    {
+      "codegenFile": "a5b744a3fba1a7dbbdaf346cbbc3b7d5298e6fc4fe62cceb8130fd5dad14288c.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.clockworks.forged_guard.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1367601,
+      "decodedBytes": 1368019,
+      "sha256": "678d28faf57e7d43b987d3e3b1023e708ef039b39e2ebff036d93bdb415ed8f9",
+      "decodedSha256": "e654a27ece2155ba1a127187af75e5e2b6139a082e58f0da75c0a1a02629087b",
+      "fileOffset": 219642878
+    },
+    {
+      "codegenFile": "a5ebc66b0b262f487d0939a59fc249f516cec3a3234a14ac5ba0947d08b8664f.json",
+      "paths": [
+        "scene-definitions/compiled/grey_hive/gh_entry_maintenance.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 883,
+      "decodedBytes": 5472,
+      "sha256": "57651fa3930267905a507ee6c50a329b53405aee9946e71374e2ba6c4a87b116",
+      "decodedSha256": "5deb6c01b2ad81144144ae2526c06f8c337839e8d880aeb1b3af3a225afe787b",
+      "fileOffset": 233207935
+    },
+    {
+      "codegenFile": "a9571c75512d52a56ba78ec9884a77fcb9ff3a9dae11df4e59f70be733e4e51a.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.vfx.dash.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1895520,
+      "decodedBytes": 1895512,
+      "sha256": "76a97d4b0c6eb1c4dbed6a4675fbf2c471ae033595bb4da55051c8e5827b9a38",
+      "decodedSha256": "3043fdbd65c6b885f89da4ed1fd55d023515d0ff912df4ff21d84f896f4b5917",
+      "fileOffset": 143813747
+    },
+    {
+      "codegenFile": "ad0c0180250c7293609808f4cbfba4a203f8cbab34e90fd1afcc1d891df49746.json",
+      "paths": [
+        "scene-definitions/compiled/mist_harbor/mh_pump_station.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1097,
+      "decodedBytes": 7826,
+      "sha256": "2d0c55d01bf0e4ac9465575d78f4121310b2eeec6d36faac1f7da8d020ba4f6e",
+      "decodedSha256": "557c180648bc8c73621b444dd108f2207535750947e9a7738a5716dd1b2a5437",
+      "fileOffset": 84517292
+    },
+    {
+      "codegenFile": "aeabcf48c366ab48114a28ba97a967e921c85e8ae2019f4d8a3bbd7b083af43c.js",
+      "paths": [
+        "assets/webworkerAll-o_ZkXJ5a.js"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 51,
+      "decodedBytes": 55,
+      "sha256": "5e20be485089a4570e465405030d0fbf7a2c853ab613b5ff2cafd235cb551da1",
+      "decodedSha256": "2dee0de3fa591e6ad2c7ff5a428c9738e7e8ebf1bcaed6ac661752de79fbc0aa",
+      "fileOffset": 69536651
+    },
+    {
+      "codegenFile": "af1fd0fc70788b6a0f209db7b1ce87e7c71b2099ea821b45efeb1f209fc3237e.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.mistharbor.signal_wraith.v2.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1439853,
+      "decodedBytes": 1440594,
+      "sha256": "2099d0d6034004c114bdfa368bdd2e7e9b661c8464ad189e591d22396eaef999",
+      "decodedSha256": "942a294e86076bfa91762113cd9bb14c81db329baabf5804ba9138942cc7166b",
+      "fileOffset": 97534964
+    },
+    {
+      "codegenFile": "b3b59c78cf2b2463caa5875c6cee1f92b229abd267d9f64bf6c4fab1a5cc1a33.json",
+      "paths": [
+        "scene-definitions/compiled/clockworks/cw_entry_foundry.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 891,
+      "decodedBytes": 5551,
+      "sha256": "a3dc459441fc9db61f50bffd79a7decd1aac6e7628b824a9222fee5d0bb3ba27",
+      "decodedSha256": "d90f852367b998cf5874b82fed583f1254664d4a88a8175bb3c94524b8f496b1",
+      "fileOffset": 178752352
+    },
+    {
+      "codegenFile": "b5a066e98c462b51e2619e28d85a63e08fb38196ad66647ff3d7b5dc7a7e2c3d.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/atlases/actor-mistharbor-00.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 5382724,
+      "decodedBytes": 5434237,
+      "sha256": "65b36695c80f579888d01f6fb21a95fa1ee84717e564ec331f96454d6dbeb1ab",
+      "decodedSha256": "aab8940001c56b3b82c7bf68cc2bd8e20dcbd47f0cb38315258e4c1fb9177216",
+      "fileOffset": 72404166
+    },
+    {
+      "codegenFile": "b7fba88cf96e647fbb04d70f469042354ce1446a7b8226ce7c9de5cadda26d62.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/atlases/world-returnstation-00.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1210563,
+      "decodedBytes": 1210558,
+      "sha256": "6bbdebc5c12545eecccb6e66d03d8f659b246a21ef0920eba65ecc3f00c212f8",
+      "decodedSha256": "6d3f695375a38c7cab3dcbdf903d5ec96472d553e4f9403014e1530538aaa13e",
+      "fileOffset": 83306669
+    },
+    {
+      "codegenFile": "b80862ee1c17cea86db6b2d6f481fdfc4e82831e010c5878dfe6ffafadbe7757.js",
+      "paths": [
+        "assets/Filter-Cuc6AtmF.js"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 11390,
+      "decodedBytes": 42020,
+      "sha256": "74ab5f130d863639e7b267b58abed5ddca3bf45d14edfde2322cdf16a241e4cf",
+      "decodedSha256": "9e1c5fd831dd6ee15b65ae5a881cacd4ae61919ad52a7262534a59e8ad965b8c",
+      "fileOffset": 69525229
+    },
+    {
+      "codegenFile": "bb1de55646c81dabc2882b405e5e8443d18610a13b9bd6ca068e915a8c77c983.png",
+      "paths": [
+        "assets/derived/cenyao-runtime-master-v1/atlas/cenyao-idle-atlas-v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1145936,
+      "decodedBytes": 1145931,
+      "sha256": "5ed6f24cbf88cd40789c07d52b5dd7f41e8f9cb9339fae819405af92fefd9918",
+      "decodedSha256": "2146eeedc2945149fbee98a4f24739bff6cefeeef548e0bdace37fe8217028fe",
+      "fileOffset": 98974888
+    },
+    {
+      "codegenFile": "bc734f1c497c0fed8fef4ba40caef1f166ca70b0b9043ad33b353a7b5ef6f65f.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.grey_hive.pipes_cables.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1049898,
+      "decodedBytes": 1049893,
+      "sha256": "27e71b4fb3258a800c9240ab61c7476c0b79998d5e88d59dad83280009c5b468",
+      "decodedSha256": "7f3c67879398e89adc9026fc2aca5fbe7792b1dc360b73c737c1b2299eac96da",
+      "fileOffset": 70322837
+    },
+    {
+      "codegenFile": "bde46964b40f6b8cfa32dd160a824dc287ef5f1c8f7c04e441eb8afafee0f6b0.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.prop.lockdown_terminal.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1321867,
+      "decodedBytes": 1321862,
+      "sha256": "5a0be090cc41628b8d6d0b02d138f52da559af7958d36f66694b9274d191240a",
+      "decodedSha256": "1e712d402a8a61e7695ec8c65edfaeb50a893738124b1b1fb1a90a0fc4cc3402",
+      "fileOffset": 139534101
+    },
+    {
+      "codegenFile": "bf01b2022ee77b7b462321c48f0891b711f5844234e3941012dfd68fe4c59000.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/atlases/ui-shared-00.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1811567,
+      "decodedBytes": 1832176,
+      "sha256": "04a1531410366cf565232373bb389440338a13884856657bb5a86627327256d8",
+      "decodedSha256": "61d4dfaf37b6f6be6959f16a5eb77cbdac734bdcea3298a9beec03fd0d324dd2",
+      "fileOffset": 248861042
+    },
+    {
+      "codegenFile": "c030cdfce87218b3ff5bdffd9d71acba59598bcdc985ed3fda7a7d1ad6d2a0f3.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.actor.cenyao.base.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 816083,
+      "decodedBytes": 816078,
+      "sha256": "99dba611892f8361677668cb5c0e5aa0503cf868daf0438bcecd3c9ac6a90198",
+      "decodedSha256": "46e46561bce6d67b3093cd65668b8f7db2a94b7a5f8fff20f2cf6e9d9d7af098",
+      "fileOffset": 176808309
+    },
+    {
+      "codegenFile": "c19a2d2f29830a789c263a836e08bc52596e5a298cd2a74275e420d23dea3a80.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.sentinel.base.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 2160797,
+      "decodedBytes": 2160789,
+      "sha256": "c95b0b259e8df3c0abe95ad49204458458f91fa8e80e9fc079550e67159686be",
+      "decodedSha256": "c490ace4eb8ec9bf27e176359aefb8c3cd36c55a0651452be39ef25e4864df1d",
+      "fileOffset": 198209563
+    },
+    {
+      "codegenFile": "c223ac9f47b5cb9a81fc5a264b5fb4c66903a3ee9b2339ce1fb53a53b7abd25c.js",
+      "paths": [
+        "assets/GCManagedHash-Bz2ZMBJN.js"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 6038,
+      "decodedBytes": 19356,
+      "sha256": "cb89daac569c3a5da40be86d3bee7aaa8e91196d8d76cfad2e3a177de9e14698",
+      "decodedSha256": "b634a4602cfa70019626a0e83942f76dfbe49feadf28825410f0b96cb1849ef6",
+      "fileOffset": 165287808
+    },
+    {
+      "codegenFile": "c4998a0924c1e9192179d3708e2a44d6be4757b65ad72d77cc74a02b5297b295.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/atlases/actor-mistharbor-00.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 3820798,
+      "decodedBytes": 3820786,
+      "sha256": "3afe3bfb86b15987b2b1c68cd1f8b129c5c09b21418a5e6c4d8f2facfe7d159f",
+      "decodedSha256": "c563ff9f54d222d7c7020017557b9c8addc32603a166fecba93442c7a7431c9c",
+      "fileOffset": 191935322
+    },
+    {
+      "codegenFile": "c99566d345c269c786438b3562bbca24ed10b990efb41d6ceccfbae06395681b.json",
+      "paths": [
+        "scene-definitions/compiled/mist_harbor/mh_extraction.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 962,
+      "decodedBytes": 6215,
+      "sha256": "432846eacafb84ca6047086a98340ce059e9e187577310306cfbb41f706f8f43",
+      "decodedSha256": "3476501f29ea441c51caeab61633b929ef7e7abc3c887691a7557098986a47aa",
+      "fileOffset": 28973728
+    },
+    {
+      "codegenFile": "c9c007d94a23fbc3bb240f6e6a58fc198cc60d47923e33b1ce31bea473651f78.js",
+      "paths": [
+        "assets/RenderTargetSystem-BnbXMZZz.js"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 15599,
+      "decodedBytes": 58786,
+      "sha256": "8cd4b484a1201dfc2696a587b1ee865bb9e20c4fb5782966b47721943146ef72",
+      "decodedSha256": "7f48097dd5b322d68761ba618ebd038a78996d2e584868ea6a69877b37b541a6",
+      "fileOffset": 227709887
+    },
+    {
+      "codegenFile": "cca8d9c6e037b21387c1c14034192b6ec23e166d1982fc01622c5dd14f296584.json",
+      "paths": [
+        "governance/assets/AI_ASSET_RELEASE_MANIFEST.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 6527,
+      "decodedBytes": 31953,
+      "sha256": "d004414f1bc207e2afa1c28572486fa20c57f83e7b7f7a15bc2fd3a288a3c293",
+      "decodedSha256": "c644b5953e9265d45796dfb8a6dad1c0fd8abfbffb3eb4ace84987d8238cee2d",
+      "fileOffset": 233208867
+    },
+    {
+      "codegenFile": "ccb8b92d119df9dd4efc03c79521bc398725fed861a570665f90643639b429c9.json",
+      "paths": [
+        "scene-definitions/compiled/clockworks/cw_shutdown_exit.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 935,
+      "decodedBytes": 5877,
+      "sha256": "67a220c9d762ad7827bdc8e8d041b0d36b89ebea8c8e14021e93ba59575b61f8",
+      "decodedSha256": "4e24942874fb43b0111eea4c4ac6035fd4ccd65e5b45b845ca4063f63ab2692b",
+      "fileOffset": 143812741
+    },
+    {
+      "codegenFile": "ce62a1bd5193049f39ae07ddcb5c214ad055371c0703d6e7dee9b05d96726f13.json",
+      "paths": [
+        "scene-definitions/compiled/mist_harbor/mh_tidal_warehouse.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1149,
+      "decodedBytes": 8250,
+      "sha256": "1b4eaefa88cf0ece31e4b9ee558908cf792a7b44ffe724b6995830c9b1d42cf6",
+      "decodedSha256": "bcf83727cbf17118a534547e8d50abd65f8c606a342290b66e5a778a0c2d61d9",
+      "fileOffset": 34221818
+    },
+    {
+      "codegenFile": "ced870a48a6cd8d606bba767e63809fe099d7346dcdc1bf161b06ca999c15287.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.clockworks.floor_steel.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1056903,
+      "decodedBytes": 1056898,
+      "sha256": "3918ad36035a8d3ba38da23a0e0eca65dab969b6278b41b6cc1d971f775ee76e",
+      "decodedSha256": "94b96626f07acb36d00ca0f87b4a831f94c6879e82ec1691ebf4e33a74bdcbfc",
+      "fileOffset": 237079070
+    },
+    {
+      "codegenFile": "cfc040926a8273b055612974e2377f55e574ac76f7a0a78839754ec53793e61e.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.power_console.off_on.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 2311449,
+      "decodedBytes": 2311441,
+      "sha256": "1ae0e100543f80cf2d5c81c454b200d0cc48943d4f698437e7ab92b3520eaaf3",
+      "decodedSha256": "740eaaf0d0b9c0b1ba3b9f2c6650ffc3e270e70e15d0d979f2637df4092f048c",
+      "fileOffset": 31910306
+    },
+    {
+      "codegenFile": "d036971bc7b1f5753247b616cc9db70557afcbc1aefe0909ae8fde781a2be0ca.json",
+      "paths": [
+        "scene-definitions/compiled/mist_harbor/mh_signal_yard.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1149,
+      "decodedBytes": 8327,
+      "sha256": "0f62c36a2a0a57c695a0f57ded5839eb66d3d28e6cc8b08b85a7cf37359f1545",
+      "decodedSha256": "14f708142f6d4c15b8abdb3671e5357f845d96228c5b9aed719e19895e3a66d8",
+      "fileOffset": 49972982
+    },
+    {
+      "codegenFile": "d068da6b0aec31095ff1370c1661bcf9768c6da5c5ab3f10afbc3d8c8dba5f1f.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.vfx.pulse.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1747264,
+      "decodedBytes": 1747256,
+      "sha256": "2ff75bcd43a75ee505b2d2178918ee8436fb3a7fdbda1c5a510eb461741424f4",
+      "decodedSha256": "9eb554ff088257093985b0f9172ceff0368465a7604f35a84b90644b6eaa7f40",
+      "fileOffset": 234198377
+    },
+    {
+      "codegenFile": "d0c90350bdf043109cd6ca0e7962d9000d3f1de90b598c4eb2071c9508e29d5b.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.vfx.guard_pierce.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 2806798,
+      "decodedBytes": 2806786,
+      "sha256": "9975f9df178b09f7bd3b8d5c8bd34bf142acffff9fe7e02fb69953a8a0ed8d48",
+      "decodedSha256": "4c1f574f03cf0f4dba35cb8d495f37bd7271848c290027fdb51e561a4bdf286b",
+      "fileOffset": 90418378
+    },
+    {
+      "codegenFile": "d0e3e5f75b8a0554453e708b1f0686a9b86e66568df0f8c65663fd555bf60286.js",
+      "paths": [
+        "assets/browserAll-C18UVv48.js"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 10496,
+      "decodedBytes": 42676,
+      "sha256": "3a42be16bb5c72c6909fd78b566d019478bb033d9add159d5aceeda383cf3f24",
+      "decodedSha256": "26d1f3ac4a4da45aff453117ba5dc30e548de53fb7519e18e0b1b343959d9a31",
+      "fileOffset": 247704810
+    },
+    {
+      "codegenFile": "d26d342f0a04a6c1fd5ac216409c3e9eee5d132c3c3caa031163797e0d3c7203.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.bio_pod.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1370973,
+      "decodedBytes": 1371757,
+      "sha256": "5b789ffa3229d36228e2cc46395aa7d8957e44ddac5a71f87a9be6cc497861c5",
+      "decodedSha256": "d71d51dea193527c71262ccb54d7d7b14d80e43346b017dede9a4122e2589588",
+      "fileOffset": 89047326
+    },
+    {
+      "codegenFile": "d2cd6a1696b3139cd5aca05be2861dcd0c1accbf4798d541f71170accd9ee8d0.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.prop.medical_station.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 941277,
+      "decodedBytes": 941272,
+      "sha256": "b0ccc6615a0df55e9992c3c58b16b9203d3955baa5193805a9b275003aeee030",
+      "decodedSha256": "90d2a7aad63568ac59617f13a266c0f13af38026d68b6eb77dd2480096a35746",
+      "fileOffset": 95164922
+    },
+    {
+      "codegenFile": "d311c207154fdfd644fc20143a84e48e94e35390c2a42113dcfc4da1cd6fd3f4.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/atlases/actor-shared-00.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1992962,
+      "decodedBytes": 1992954,
+      "sha256": "071888630ee6b930239b0c1f06c01531dca8dd6cdaab7f8343689e0067686f93",
+      "decodedSha256": "6686673c4977a8b04d806f56f5680449d591a190c1980ffe15a67816c1437c5c",
+      "fileOffset": 78566385
+    },
+    {
+      "codegenFile": "d921445bd199db4cc03d766b5601dc9f65593c92b69963f5e11f6e237d41042b.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/atlases/actor-grey_hive-00.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 2665063,
+      "decodedBytes": 2665054,
+      "sha256": "b2397e233a4f486c1d6a3dac154b8d2fef8581e294b62287c1dd7591c742e899",
+      "decodedSha256": "89576d022f469d0077956b23898c4e1e74d1f1cc229fff922853c0716e305608",
+      "fileOffset": 207380450
+    },
+    {
+      "codegenFile": "dac38b4d6f494cc8f17eaa0d39dcc94d4c352a14affed6be1f1423575009b5db.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/atlases/ui-shared-00.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1195171,
+      "decodedBytes": 1195166,
+      "sha256": "2625dddd22d9891d85fe677e3862758d9bd873c1f466586d7eb7268d50f8b8f4",
+      "decodedSha256": "af7d91cdb87958b5637315cf43538d7da701afaf560cb70ff8395b8c7cfe1dbe",
+      "fileOffset": 161808321
+    },
+    {
+      "codegenFile": "dac909ffd6d713b8a50a977b8028e30486c23e822d5e7c6df2880250130a5a30.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.returnstation.terminal.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1031275,
+      "decodedBytes": 1036337,
+      "sha256": "fe8e22841c883063f7df3fddacf859c2b6031f2f97bbbd749d42c4f8da361247",
+      "decodedSha256": "a9bdd20187d6944f5e485291fe8c8d36e2464daca2a6a1487ad0bbabdd37221a",
+      "fileOffset": 71372826
+    },
+    {
+      "codegenFile": "dd5100165a333aeca0d56b2a148e03fd316a2213e5d6847829fb426f57380a6a.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.grey_hive.sentinel_arena.v1.attempt.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1663277,
+      "decodedBytes": 1663272,
+      "sha256": "e8f2ba4c68922fbaa8e7090cad98727dc3d8bedaa0b1bdf3df7baac1b9b981b5",
+      "decodedSha256": "327eb0f65a54daf5a3cd4751b88139ff84ed7c4806cfd6f231bc9db91366300e",
+      "fileOffset": 203577929
+    },
+    {
+      "codegenFile": "df5d3588c937739838776180af8710146a1ba7bd92bbdc664ceb63de319990ca.css",
+      "paths": [
+        "assets/index-CZChYZGa.css"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 7828,
+      "decodedBytes": 38033,
+      "sha256": "fe9d4a8e6940ade6bc2218a92f4a642fe3b79414db79322f7e6a46954dd715f8",
+      "decodedSha256": "6c0666704753bad1ba741a4abac5c1a9e1dc8b2e9c58d0aa724c21b64c023bd4",
+      "fileOffset": 97527043
+    },
+    {
+      "codegenFile": "dfdb48c8013bceae5e28e96bb8315dad9a6a9296c9935a2e5fa5d82951aa3f6b.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/portrait.cenyao.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1772668,
+      "decodedBytes": 1772660,
+      "sha256": "c3be12df3d2e2a43890dcd31c43a34026f08a27ae55aa7cf76c9ba52c462547e",
+      "decodedSha256": "74137f60a3f9b580c21d677d3268794f52eb190f3d722458674219a9f3d43726",
+      "fileOffset": 163515107
+    },
+    {
+      "codegenFile": "e11ef1bf55b4edebbb34c8563d643a12d866c0251940187bdd82b8777aebc66a.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.infected_security.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1827600,
+      "decodedBytes": 1827592,
+      "sha256": "9fe9bff6bea565a883cc2ddfc5a926bfac3a7a36c79d5c8a70d0836991359d9d",
+      "decodedSha256": "cee3c171a14d82317e98ef00f39c3341a16364931dd8d56ec0ced330bcbecf66",
+      "fileOffset": 227725572
+    },
+    {
+      "codegenFile": "e17a821789786efa6f4a74a54a32e53011ba3d532e8f02dd3e9e442563a824a5.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.mistharbor.water_edge_stone.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1397057,
+      "decodedBytes": 1397052,
+      "sha256": "d0c41a97b0e276767e472d938ac72044e55023ca3920f3fdd041feb912333a1f",
+      "decodedSha256": "44fe08f5f77dba5b069bdbbe4592b7a042662cdffd16a9a639d6e8a6287c1c3b",
+      "fileOffset": 147747113
+    },
+    {
+      "codegenFile": "e1e32bccf9d55c2407e17f08e2ac9f34238c7fe42293ee6a15ec19c607d6e7a3.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.mistharbor.water_edge.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 2206541,
+      "decodedBytes": 2206533,
+      "sha256": "402195e8484a74dd962170c9db44118ab866faadfb0fdd09a1bf9d6450f98f70",
+      "decodedSha256": "adc828475b6a45a82c9f27c913f20b9f368bf6fa4347dc17b27b34240d7731fc",
+      "fileOffset": 216134355
+    },
+    {
+      "codegenFile": "e235d47ffd077857428040d0d14bdb252bc1021b61ca75e320a520ec96c0312e.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.enemy.sentinel.base.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1487463,
+      "decodedBytes": 1487458,
+      "sha256": "f515b439b8aa675d3e0124eddb0bf688ad8b38098ea56b498c6928686727a93e",
+      "decodedSha256": "de34593f99118f8d493cc51e11c62c705cf6296f594a07cefe218874de1ce17d",
+      "fileOffset": 214646802
+    },
+    {
+      "codegenFile": "e46f3ece2ed8fd61b91eb67bdd539ee235fafa3a42a375ad2addf3758aea07fc.json",
+      "paths": [
+        "scene-definitions/compiled/mist_harbor/mh_fog_pier.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1119,
+      "decodedBytes": 7671,
+      "sha256": "cf698b619e3ae847f5b8feed699b8e6e617e03bad75a179eee283f0fd18c0fcf",
+      "decodedSha256": "1f12ceae6565dcfb8f3b9f497840f8027748e6109208e788ea6d7579fff00946",
+      "fileOffset": 93226307
+    },
+    {
+      "codegenFile": "e835dcc129b6a917a15c296eba1108b07afedcbd74744b5826a1cdc52251f275.js",
+      "paths": [
+        "assets/getTextureBatchBindGroup-DBCrgHVb.js"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 244,
+      "decodedBytes": 344,
+      "sha256": "5101b234429d3fc8c8390584a8656dbbfbd217735e26ae3c9859a86349e324c9",
+      "decodedSha256": "f97cfacaed002298725cd05c62cb5668989473d0bfe5850c4c36dbd773b59766",
+      "fileOffset": 62669685
+    },
+    {
+      "codegenFile": "e89098e184e67f3641afbe56648f155b5d4e119ef4c3a333134243f0e317a4c0.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.returnstation.terminals.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 778248,
+      "decodedBytes": 785007,
+      "sha256": "e261729f56deac1998d5413a0867f04fbfbb5fda8496ff17f7078a9505a4b3c5",
+      "decodedSha256": "9cbee889ed0f97f3b2bb122e5b3abc6cbd41edf8dc15beaf816fa00570e8691d",
+      "fileOffset": 77786982
+    },
+    {
+      "codegenFile": "ec4640545facf6e397837732e0c3174e8d5dad7f87cb183548271d5634cac94a.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.enemy.clockworks.forged_guard.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 982815,
+      "decodedBytes": 982810,
+      "sha256": "3c579e7f940f5c21e3fa361cee177fd0bdeeff834f79bccf2cdb6d6ec9b43c24",
+      "decodedSha256": "1bffaf4a937c5a1684aca5836a6a6699d9dfaffe022f9cd340dd56dc53f599f4",
+      "fileOffset": 233215488
+    },
+    {
+      "codegenFile": "ee2b33b11e1bc71fc078d0d7304fc5b7d24fa17f58de7a4c6c7d53bc1dcbc07a.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.mistharbor.fog_bank.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 511457,
+      "decodedBytes": 511452,
+      "sha256": "eb24dbb6874afb36c7b7b679ebef4afc99f3c8f8da912b633e8ce620a2a09a59",
+      "decodedSha256": "49b22444320ecb5f3232cf95e977dbdf0f47a1ec8dee56fab8f661ffba19bf47",
+      "fileOffset": 163003582
+    },
+    {
+      "codegenFile": "f13349d3e4fd2588bad1b94be6e43c31b729a9d372cf2caaf955f492a3410844.png",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.clockworks.factory_tiles.v1.png"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1842255,
+      "decodedBytes": 1842247,
+      "sha256": "128f66ba7ec77fed70561d2709ba589394dc8fd84600e64ab18392974cfb1c66",
+      "decodedSha256": "601f819dcf6f61a0c0003b117c7752617e054ce6d14c491bc03a3ef4950d0130",
+      "fileOffset": 27131415
+    },
+    {
+      "codegenFile": "f30fe9e43cf77cf35e5dc0b37da5b40efcd927ca05ca70731a194d8aa02cb60e.json",
+      "paths": [
+        "scene-definitions/compiled/mist_harbor/mh_breakwater.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1132,
+      "decodedBytes": 8283,
+      "sha256": "17b822b5a644e0e5da4ac93c48c6ff4bba165a88edb2e9dc4a24834c19eaf57e",
+      "decodedSha256": "2de6f7b471b6b873fafad7e943a0f163e057ffca0787823625bf37bb23bd0b14",
+      "fileOffset": 248859852
+    },
+    {
+      "codegenFile": "f31db870f1dd7c8a1d60a6c404a9985f8f4c8b73a6b1529ad1332f717cc7c9a3.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.prop.beacon.deployed.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 481163,
+      "decodedBytes": 481158,
+      "sha256": "278ec135b2ad6cee5c265faceeef5005d10cb04230cefb4e336ad6d441142782",
+      "decodedSha256": "29789adf38c849cb6974858d3343d3246ed0d970612a47029e9ec1bb9098b383",
+      "fileOffset": 165293931
+    },
+    {
+      "codegenFile": "f36e8be374dc93b5bf40df3df643625650d0355ad9c16f635f23079a42feff54.json",
+      "paths": [
+        "scene-definitions/compiled/grey_hive/gh_power_room.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1018,
+      "decodedBytes": 7000,
+      "sha256": "ef450429f9517515ccddf0bef2e2c9d3be1b5ffbc7a9ff574ae544b3df1915f6",
+      "decodedSha256": "3d05edeca4a119bc7f2db7aa094041a7ad61380b00015a613fda787025e67854",
+      "fileOffset": 135654053
+    },
+    {
+      "codegenFile": "f43e5925c73f828d695f396005c8588e198a6f8cdbd461dcc577c2a9e60d2421.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.clockworks.factory_tiles.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1256321,
+      "decodedBytes": 1256316,
+      "sha256": "0fcd4b9a18e972c742f68f228042502dbd7cf459d5094c478d45ed2d2c83ad29",
+      "decodedSha256": "21363448f85374ef2d1a49c7f0daae929a0e84e2dff2568779fb7ba088113dff",
+      "fileOffset": 195756215
+    },
+    {
+      "codegenFile": "f89953ca65f1cd687e8d5279b9c629f06dfdcf9d01abf28ac43f0dbb39121585.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.prop.gate_b.v1.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1712104,
+      "decodedBytes": 1712096,
+      "sha256": "24022a76b37b0e503bea3405fe20114ef13aedc7197fd00871fce93645ecd9b6",
+      "decodedSha256": "6b264e3c683fc43ec2cdd7a822da2843eeefde9674abdbb25c2a35b9dcf1cf85",
+      "fileOffset": 184623392
+    },
+    {
+      "codegenFile": "f8c0498248dc2b83bcd3d1baea6d00d0807fd87e63cc786df1e5f01722210065.json",
+      "paths": [
+        "scene-definitions/compiled/grey_hive/gh_deep_decon.json"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 1368,
+      "decodedBytes": 9748,
+      "sha256": "1c536dd05d8f30e1f6410b3bb023f26c96b343437fda0ffe65586742718842b2",
+      "decodedSha256": "65e0cbf11183fe114259d680b0cd84a23a7f8619a25e628f4b30a7a84ce870a8",
+      "fileOffset": 198208113
+    },
+    {
+      "codegenFile": "fefe0ff22b061e2b125c55259184c64158772f39cf5ab273be18e209f111ab5a.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/atlases/vfx-shared-00.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 6746425,
+      "decodedBytes": 6746404,
+      "sha256": "ca16757de870e71c2b50d747633b39da270a0169c5538b01cd793f79a1b3bf82",
+      "decodedSha256": "cf4257092eb3977c6dd81ab35de218a0403e54b1377ab3cb69265817d3edded9",
+      "fileOffset": 49974191
+    },
+    {
+      "codegenFile": "ffb96d746d68f76aba79d1b13adf7b4b7d71d5a82d4af9f65cff7502d0f9b7d1.webp",
+      "paths": [
+        "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.enemy.mistharbor.drowned.v2.webp"
+      ],
+      "encoding": "brotli",
+      "sizeBytes": 783601,
+      "decodedBytes": 783596,
+      "sha256": "9b7165827887ee944181a3e45b004c5ea63d5fc248ec68f5adea8e73773875d9",
+      "decodedSha256": "f5476703cfa844d8f8e09c6ca8ca20c78dbce2999e3024490171340b108e3fd1",
+      "fileOffset": 69538091
+    }
+  ],
+  "embeddedWebClosureMethod": "Each generated representation found byte-for-byte in actual EXE; raw/Brotli decode matches complete frontend file bytes; all logical route keys found",
+  "WindowsExecutableExecuted": false,
+  "WindowsRuntime": "not tested",
+  "installer": "not produced",
+  "codeSigning": "not performed",
+  "publicRelease": "Build verification prepared locally; actual publication state belongs to the hosting Release record.",
+  "iconAuthorization": "exact designated ChatGPT generated original and ICO derivatives authorized for project purpose; not an absolute copyright/trademark warranty",
+  "nativeSceneBytesMatchFrozenSource": true,
+  "filename": "wuxian-renzu-jinhua-preview.5-windows-x64.exe"
+}

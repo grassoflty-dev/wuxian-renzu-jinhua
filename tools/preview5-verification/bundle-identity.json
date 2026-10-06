@@ -1,0 +1,834 @@
+{
+  "schemaId": "native-web-bundle-identity/1",
+  "schemaVersion": 1,
+  "buildIdentity": {
+    "schemaVersion": 1,
+    "gitSha": "1d8aff05f35b24c49355cf64aa58cd7eba561571",
+    "appVersion": "1.0.0",
+    "contentVersion": "campaign-content-v1",
+    "saveV6SchemaVersion": 6,
+    "runtimeAssetManifestSha256": "081bebad5eede90e6ed50f2f7cacb930a67f2295961d405f58141d23874ec414",
+    "sceneDefinitionManifestSha256": "9c2d4e33cd88027ed0d9b97bb23e6242572967f099466016b650b9fc73137fc9",
+    "builtAtUtc": "2026-10-04T13:20:41.716Z",
+    "hasTrackedDiff": false,
+    "hasUntrackedFiles": false,
+    "sourceTreeDirty": false
+  },
+  "entry": {
+    "path": "assets/index-CPxs744q.js",
+    "sizeBytes": 653040,
+    "sha256": "21078a91bebe86e99538246b5fe87c52b2b08641fa641cb2b93165cd3d65844c"
+  },
+  "files": [
+    {
+      "path": "assets/BufferResource-BGRuMpsB.js",
+      "sizeBytes": 11068,
+      "sha256": "8715b7e7ebacdd492f875f250ad96a2c23a7926bc5602b825c6043c01c9268ad"
+    },
+    {
+      "path": "assets/Cache-DDo62lBW.js",
+      "sizeBytes": 1100,
+      "sha256": "94f3d177d09bfecefa8b80e646a55ff894635dd1723d6e7128d802477f3bae3a"
+    },
+    {
+      "path": "assets/CanvasPool-DecUtJxW.js",
+      "sizeBytes": 68480,
+      "sha256": "45335d161156296b274b89eb85b9040a0d08b1870125bfcc5e7100bb937589f1"
+    },
+    {
+      "path": "assets/Filter-Cuc6AtmF.js",
+      "sizeBytes": 42020,
+      "sha256": "9e1c5fd831dd6ee15b65ae5a881cacd4ae61919ad52a7262534a59e8ad965b8c"
+    },
+    {
+      "path": "assets/GCManagedHash-Bz2ZMBJN.js",
+      "sizeBytes": 19356,
+      "sha256": "b634a4602cfa70019626a0e83942f76dfbe49feadf28825410f0b96cb1849ef6"
+    },
+    {
+      "path": "assets/GraphicsContext-BBABHYLV.js",
+      "sizeBytes": 61728,
+      "sha256": "aee356589ae880fc9928a97c64a178596a79aecdb2d6be15521b7ac439c30217"
+    },
+    {
+      "path": "assets/RenderTargetSystem-BnbXMZZz.js",
+      "sizeBytes": 58786,
+      "sha256": "7f48097dd5b322d68761ba618ebd038a78996d2e584868ea6a69877b37b541a6"
+    },
+    {
+      "path": "assets/browserAll-C18UVv48.js",
+      "sizeBytes": 42676,
+      "sha256": "26d1f3ac4a4da45aff453117ba5dc30e548de53fb7519e18e0b1b343959d9a31"
+    },
+    {
+      "path": "assets/canvasUtils-CxYPZET9.js",
+      "sizeBytes": 6054,
+      "sha256": "1e29f32d043bc9342dabb11cb033adf27013606f32f8d363cf3c2ff34bed5b03"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/atlases/actor-clockworks-00.png",
+      "sizeBytes": 2721832,
+      "sha256": "530d98841157b03d003cdf3de6c1e7e5564789ea7f1e53c67aeaa4144d2c62a9"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/atlases/actor-clockworks-00.webp",
+      "sizeBytes": 1945490,
+      "sha256": "4f643ebe053114b5b0fba658213eb246b015e86622876279d463ea88b381e879"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/atlases/actor-grey_hive-00.png",
+      "sizeBytes": 3743934,
+      "sha256": "b22bfe7b4fcd178bb4703b0234c194ce860e9378c551ee9784fb7bc5efa2ed60"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/atlases/actor-grey_hive-00.webp",
+      "sizeBytes": 2665054,
+      "sha256": "89576d022f469d0077956b23898c4e1e74d1f1cc229fff922853c0716e305608"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/atlases/actor-mistharbor-00.png",
+      "sizeBytes": 5434237,
+      "sha256": "aab8940001c56b3b82c7bf68cc2bd8e20dcbd47f0cb38315258e4c1fb9177216"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/atlases/actor-mistharbor-00.webp",
+      "sizeBytes": 3820786,
+      "sha256": "c563ff9f54d222d7c7020017557b9c8addc32603a166fecba93442c7a7431c9c"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/atlases/actor-shared-00.png",
+      "sizeBytes": 2876697,
+      "sha256": "7213ad36b3b39c14f1ee294973c88661c2599aefc3267cd9aa2b169ee48be040"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/atlases/actor-shared-00.webp",
+      "sizeBytes": 1992954,
+      "sha256": "6686673c4977a8b04d806f56f5680449d591a190c1980ffe15a67816c1437c5c"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/atlases/boss-sentinel-00.png",
+      "sizeBytes": 3886291,
+      "sha256": "85a83a47b0620ecc2cba782e3d8ef0d6d23e3186e0f402e69ee00cfac11e73a4"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/atlases/boss-sentinel-00.webp",
+      "sizeBytes": 2678920,
+      "sha256": "53d24b81d3862241753b01ac56351fd1a9a0923dcfb2111bb29063b0f28c4c43"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/atlases/prop-grey_hive-00.png",
+      "sizeBytes": 15187415,
+      "sha256": "e0e06057bb0eff78962b2dfc6af36cc4c3abc5f080b1ffd7e9bb7b6f52eb8f58"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/atlases/prop-grey_hive-00.webp",
+      "sizeBytes": 10649780,
+      "sha256": "73c4f5cecd3d71441ac49ff4df8b15a89eb6a31f6caab7980b79cfef2a86a490"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/atlases/ui-shared-00.png",
+      "sizeBytes": 1832176,
+      "sha256": "61d4dfaf37b6f6be6959f16a5eb77cbdac734bdcea3298a9beec03fd0d324dd2"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/atlases/ui-shared-00.webp",
+      "sizeBytes": 1195166,
+      "sha256": "af7d91cdb87958b5637315cf43538d7da701afaf560cb70ff8395b8c7cfe1dbe"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/atlases/ui-shared-01.png",
+      "sizeBytes": 1941430,
+      "sha256": "191a81f5644ecf9fa91df6edd0c92d7ac0cc83b6d5d7ad92d94b7d6607982ca2"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/atlases/ui-shared-01.webp",
+      "sizeBytes": 1352802,
+      "sha256": "69f3bf15726c4b28604b7b096ce88b680f0c40f9802b8199c8ec2315964b3ff1"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/atlases/vfx-shared-00.png",
+      "sizeBytes": 8587770,
+      "sha256": "c13f2b5961e23cd12054edf58a63e367cbed516cd99b6fe96ccd06d01296b2a1"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/atlases/vfx-shared-00.webp",
+      "sizeBytes": 6746404,
+      "sha256": "cf4257092eb3977c6dd81ab35de218a0403e54b1377ab3cb69265817d3edded9"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/atlases/world-clockworks-00.png",
+      "sizeBytes": 9586334,
+      "sha256": "842bbd92a06f4fceb0a8db864333a95869d43ddbc355c071cb20b998f9aaf919"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/atlases/world-clockworks-00.webp",
+      "sizeBytes": 6699288,
+      "sha256": "0714240d8a859b713e760dbee6a3fb8fb432e7bc6bb7ddf845d14356b26873e5"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/atlases/world-grey_hive-00.png",
+      "sizeBytes": 8775361,
+      "sha256": "a042cdeda255b2cca79e0d01b878f38ee58889acd14f1ec174b79784dc834ef9"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/atlases/world-grey_hive-00.webp",
+      "sizeBytes": 5825464,
+      "sha256": "3a98a11d171fda3ebd49dd0cf7ff4b123fc374c55d3b510ff9930038ff5ad32b"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/atlases/world-mistharbor-00.png",
+      "sizeBytes": 5022719,
+      "sha256": "7adc44539fae389a063e209f38c6f85953597b28e5ad56ab0ecb2880c4d71cad"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/atlases/world-mistharbor-00.webp",
+      "sizeBytes": 3459694,
+      "sha256": "c7feb923e84e9a7d4b1a68d02b068be7152dea324b8979fa5431b39801e28aad"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/atlases/world-returnstation-00.png",
+      "sizeBytes": 1894612,
+      "sha256": "bdf41d43c50ebb83d70458a0ab6363640520245e2e5b9887df5f3ff6a25579d2"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/atlases/world-returnstation-00.webp",
+      "sizeBytes": 1210558,
+      "sha256": "6d3f695375a38c7cab3dcbdf903d5ec96472d553e4f9403014e1530538aaa13e"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/portrait.cenyao.v1.png",
+      "sizeBytes": 1772660,
+      "sha256": "74137f60a3f9b580c21d677d3268794f52eb190f3d722458674219a9f3d43726"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.actor.cenyao.base.v1.png",
+      "sizeBytes": 1164348,
+      "sha256": "5bcdc7662c6d7cdbe1972113aa415a61a2a79e12fede6d35d0ed5af587d8d2ac"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.actor.cenyao.parts.v1.png",
+      "sizeBytes": 1658523,
+      "sha256": "b936ae8af95a57e9dbfff29f4b51f0db5c5af58ce24a7d6283abb7230d4ce911"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.clockworks.forged_guard.v1.png",
+      "sizeBytes": 1368019,
+      "sha256": "e654a27ece2155ba1a127187af75e5e2b6139a082e58f0da75c0a1a02629087b"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.clockworks.forged_guard.v2.png",
+      "sizeBytes": 1300721,
+      "sha256": "b41cdc83c587805d0beee9d48668a9328001882595e0ab97fa69347d9bcf8cb4"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.infected_maintenance_worker.v1.png",
+      "sizeBytes": 1870188,
+      "sha256": "f7ee9460d18be46a8aea81fda2e566b29e5ac7b80d9ad2b20fd58f2f7e7a8168"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.infected_security.v1.png",
+      "sizeBytes": 1827592,
+      "sha256": "cee3c171a14d82317e98ef00f39c3341a16364931dd8d56ec0ced330bcbecf66"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.mistharbor.drowned.v1.png",
+      "sizeBytes": 1292351,
+      "sha256": "c5dc238233817d9e89fd46e961bb75ab87e3379a8143dcfcb8219ca364c672a8"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.mistharbor.drowned.v2.png",
+      "sizeBytes": 1128162,
+      "sha256": "752ac830587fc957d5695cd7714c57e584f40ec1a8f511f324ee491adaee7f2d"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.mistharbor.signal_wraith.v1.png",
+      "sizeBytes": 1474606,
+      "sha256": "f353f33cae02d49208a02d51ee404f328d89515488d69b83a82cf7030c8a8c6a"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.mistharbor.signal_wraith.v2.png",
+      "sizeBytes": 1440594,
+      "sha256": "942a294e86076bfa91762113cd9bb14c81db329baabf5804ba9138942cc7166b"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.sentinel.base.v1.png",
+      "sizeBytes": 2160789,
+      "sha256": "c490ace4eb8ec9bf27e176359aefb8c3cd36c55a0651452be39ef25e4864df1d"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.sentinel.parts.v1.png",
+      "sizeBytes": 1672046,
+      "sha256": "6615f51c60cd1d5ec64abbc5de1e78fd50153b45a5d89018811331658c449962"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.grey_hive.clutter.v1.png",
+      "sizeBytes": 1857722,
+      "sha256": "4743030e58286fdac5c4e119941608763d1ceb1d3bbed79ca1d7361ceab97ebe"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.grey_hive.floor_tiles.v1.png",
+      "sizeBytes": 1315059,
+      "sha256": "4c93e192505e71d6ec4e414aeb5c9b76376b7407d677017b31b8eba5e24e744f"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.grey_hive.pipes_cables.v1.png",
+      "sizeBytes": 1049893,
+      "sha256": "7f3c67879398e89adc9026fc2aca5fbe7792b1dc360b73c737c1b2299eac96da"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.grey_hive.wall_tiles.v1.png",
+      "sizeBytes": 1673423,
+      "sha256": "c5a18cae9a3ddc95c8515f6b342cb7ca3be12c23ff502ab5b3f16000bb4c9a5b"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.beacon.deployed.v1.png",
+      "sizeBytes": 710102,
+      "sha256": "2b2fe4729122f66740dcb1a00c2ea0cb7cd18bfbc3816822a5be4294f8c7d1e4"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.beacon.folded.v1.png",
+      "sizeBytes": 1350329,
+      "sha256": "e31b18c233f03f39cdbfd51aeaf3541dd7141550d17c4c2c65bfbae043d7f080"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.bio_pod.v1.png",
+      "sizeBytes": 1371757,
+      "sha256": "d71d51dea193527c71262ccb54d7d7b14d80e43346b017dede9a4122e2589588"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.gate_a.closed_open.v1.png",
+      "sizeBytes": 1386982,
+      "sha256": "0fa3981a0abfa5a1f7a5d4b75033f392e46f1b91f901605dcacf415c796e1b7b"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.gate_b.v1.png",
+      "sizeBytes": 2397332,
+      "sha256": "fdad9675bb90b37bc3c452773934536918fa56f4bef2b6f95c10a9823e2a67f6"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.lockdown_terminal.v1.png",
+      "sizeBytes": 1870319,
+      "sha256": "e917f9b4677d49e6d534b6b5f32b8756fb2934dbe4e87e76391c09ccd786361c"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.medical_station.v1.png",
+      "sizeBytes": 1418293,
+      "sha256": "de4fdadfd8b9fc21afd1bf430a1da846129fa09b2a303a064eaedeb8552dc0f2"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.power_console.off_on.v1.png",
+      "sizeBytes": 2311441,
+      "sha256": "740eaaf0d0b9c0b1ba3b9f2c6650ffc3e270e70e15d0d979f2637df4092f048c"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.supply_crates.v1.png",
+      "sizeBytes": 2067549,
+      "sha256": "0dbad1364c14649b021f20510b9faf970ff317e6202131bd4cb2c32648b34b00"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.ui.capability.local_map.v1.png",
+      "sizeBytes": 1895326,
+      "sha256": "e8c86cdcf20486755cff69d67023ddcfc550240b7d696f81db08e384c17ad375"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.vfx.dash.v1.png",
+      "sizeBytes": 1895512,
+      "sha256": "3043fdbd65c6b885f89da4ed1fd55d023515d0ff912df4ff21d84f896f4b5917"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.vfx.guard_pierce.v1.png",
+      "sizeBytes": 2806786,
+      "sha256": "4c1f574f03cf0f4dba35cb8d495f37bd7271848c290027fdb51e561a4bdf286b"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.vfx.pulse.v1.png",
+      "sizeBytes": 2318409,
+      "sha256": "c83331ce706f810b40cc05a949c4d83e0d5ab8a696bdb24c392c2d843e16ef9b"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.clockworks.factory_tiles.v1.png",
+      "sizeBytes": 1842247,
+      "sha256": "601f819dcf6f61a0c0003b117c7752617e054ce6d14c491bc03a3ef4950d0130"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.clockworks.floor_steel.v1.png",
+      "sizeBytes": 1610704,
+      "sha256": "0b4555021799ac849756e0f11c207d4e9309df19f4b8f68d0f4e8177f5204043"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.clockworks.furnace.v1.png",
+      "sizeBytes": 1938854,
+      "sha256": "4a36e98fec3057bac6e59e01bcd2287ee5e412071a5396731c50082a351aec44"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.clockworks.furnace.v2.png",
+      "sizeBytes": 1584389,
+      "sha256": "207e2b4c1759e49bfd03613958f86787586410dc0abe6da526f34679f17cc74d"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.clockworks.pressure_pipe_valve.v1.png",
+      "sizeBytes": 1384057,
+      "sha256": "cb411faf57aacc7be0c116b3806b64dac0f75a9a421875b2215f54e9447a6e3a"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.clockworks.pressure_pipes.v1.png",
+      "sizeBytes": 1127801,
+      "sha256": "3b653f643bd0f806bb5fef318c5e80271fc4b3e19cfedbf0f5051843898e0b9b"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.grey_hive.sentinel_arena.v1.attempt.png",
+      "sizeBytes": 2562793,
+      "sha256": "766029367f61fb21e9eedd8f1e8077d58c769ccd892f73fe493dd114db590882"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.mistharbor.fog_bank.v1.png",
+      "sizeBytes": 684960,
+      "sha256": "9bbbfd9783f70a8b1f6ffeaabd44e568074f4c20f1f7500d7ef4f0e534edeac2"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.mistharbor.fog_vfx.v1.png",
+      "sizeBytes": 1128868,
+      "sha256": "ee45ad9981d7499d74e0ffc74a3fb5d158d98ee15f9ccc35d7ebcc74f6462182"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.mistharbor.water_edge.v1.png",
+      "sizeBytes": 2206533,
+      "sha256": "adc828475b6a45a82c9f27c913f20b9f368bf6fa4347dc17b27b34240d7731fc"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.mistharbor.water_edge_stone.v1.png",
+      "sizeBytes": 1983603,
+      "sha256": "e823434b3fbc420fc14270200f81e0a459e594597304b1323d336e532a924f9d"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.returnstation.terminal.v1.png",
+      "sizeBytes": 1036337,
+      "sha256": "a9bdd20187d6944f5e485291fe8c8d36e2464daca2a6a1487ad0bbabdd37221a"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.returnstation.terminals.v1.png",
+      "sizeBytes": 785007,
+      "sha256": "9cbee889ed0f97f3b2bb122e5b3abc6cbd41edf8dc15beaf816fa00570e8691d"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/portrait.cenyao.v1.webp",
+      "sizeBytes": 1195446,
+      "sha256": "6c7c2b7daaa928ddc31dec002f869932dcd274c80f721b8851d0c2324981d9e9"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.actor.cenyao.base.v1.webp",
+      "sizeBytes": 816078,
+      "sha256": "46e46561bce6d67b3093cd65668b8f7db2a94b7a5f8fff20f2cf6e9d9d7af098"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.actor.cenyao.parts.v1.webp",
+      "sizeBytes": 1137028,
+      "sha256": "5b2d7f25dd2a2836bd59dcdf8bde1d2a8152c86072ec1ceae82f8decf0bd5b25"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.enemy.clockworks.forged_guard.v1.webp",
+      "sizeBytes": 982810,
+      "sha256": "1bffaf4a937c5a1684aca5836a6a6699d9dfaffe022f9cd340dd56dc53f599f4"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.enemy.clockworks.forged_guard.v2.webp",
+      "sizeBytes": 922514,
+      "sha256": "dc3986baeaebd65da34112b2e7cd3156857936fcb791ae04f77f171119bcba2a"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.enemy.infected_maintenance_worker.v1.webp",
+      "sizeBytes": 1295318,
+      "sha256": "0e37bf04868097e0460efb74a5790ffa815ebaf7169392c5a5d122e6a5b7a4d8"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.enemy.infected_security.v1.webp",
+      "sizeBytes": 1321734,
+      "sha256": "cc2a1da571af684452673447a43e9e3b8a481682a3e0e7230b027d361d6d8b96"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.enemy.mistharbor.drowned.v1.webp",
+      "sizeBytes": 905732,
+      "sha256": "36930099495af6b3fba7742c21364119dc2a1d8aaba2165239f5d99fd947cdfe"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.enemy.mistharbor.drowned.v2.webp",
+      "sizeBytes": 783596,
+      "sha256": "f5476703cfa844d8f8e09c6ca8ca20c78dbce2999e3024490171340b108e3fd1"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.enemy.mistharbor.signal_wraith.v1.webp",
+      "sizeBytes": 1051630,
+      "sha256": "496cd7795e2213d86c9958cca06a5847b71fb8ed57c7e5e34003d1af359889a7"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.enemy.mistharbor.signal_wraith.v2.webp",
+      "sizeBytes": 1014698,
+      "sha256": "3b652829ddb56b10d348ee800ae335a4261828f87505224e70c998bc25519aa9"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.enemy.sentinel.base.v1.webp",
+      "sizeBytes": 1487458,
+      "sha256": "de34593f99118f8d493cc51e11c62c705cf6296f594a07cefe218874de1ce17d"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.enemy.sentinel.parts.v1.webp",
+      "sizeBytes": 1151058,
+      "sha256": "862f8b8a5cefda1214f277e26003d50b885d0fd67cbf47b81414ed913a8401a9"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.grey_hive.clutter.v1.webp",
+      "sizeBytes": 1298014,
+      "sha256": "ad7c9f14d9ffa67cc9cec2c8328568236001b30ea0c75edd1f7cac994c8aace3"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.grey_hive.floor_tiles.v1.webp",
+      "sizeBytes": 838602,
+      "sha256": "35176a085b974fd68c58d775baa68ae6dd42cd97f20e926cfe4ce8ceee7492b7"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.grey_hive.pipes_cables.v1.webp",
+      "sizeBytes": 721080,
+      "sha256": "936a75beb71400061b0fa787f17d1d0f869dc308c14819c0705423d5e2afca82"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.grey_hive.wall_tiles.v1.webp",
+      "sizeBytes": 1144398,
+      "sha256": "9c2885818c96ccd6e4e820b79d284974d4ef01f5a09904ebcb90c0d8779c35ae"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.prop.beacon.deployed.v1.webp",
+      "sizeBytes": 481158,
+      "sha256": "29789adf38c849cb6974858d3343d3246ed0d970612a47029e9ec1bb9098b383"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.prop.beacon.folded.v1.webp",
+      "sizeBytes": 892998,
+      "sha256": "24558f046e040199e2fe1ddc1ea42fa72f44f4cffc57c074e97989552ed29c15"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.prop.bio_pod.v1.webp",
+      "sizeBytes": 925300,
+      "sha256": "a732507b887bc699681b83fcaf43b7def1b18da9640f144286bf32f3eee8e719"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.prop.gate_a.closed_open.v1.webp",
+      "sizeBytes": 992396,
+      "sha256": "567fff07a19fab2e5b405162090a3721c0d21a64bb1d3c33d319b12efcc2d1ed"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.prop.gate_b.v1.webp",
+      "sizeBytes": 1712096,
+      "sha256": "6b264e3c683fc43ec2cdd7a822da2843eeefde9674abdbb25c2a35b9dcf1cf85"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.prop.lockdown_terminal.v1.webp",
+      "sizeBytes": 1321862,
+      "sha256": "1e712d402a8a61e7695ec8c65edfaeb50a893738124b1b1fb1a90a0fc4cc3402"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.prop.medical_station.v1.webp",
+      "sizeBytes": 941272,
+      "sha256": "90d2a7aad63568ac59617f13a266c0f13af38026d68b6eb77dd2480096a35746"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.prop.power_console.off_on.v1.webp",
+      "sizeBytes": 1651224,
+      "sha256": "abd81e6845d3c3640ec7fedf10f3bb15c4017a9a9fe8986e114020b85b8e048a"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.prop.supply_crates.v1.webp",
+      "sizeBytes": 1409858,
+      "sha256": "0bffdf5bf91da409ad95d26b13dd04d65ddef41fbf878b9efd6cecc08f72dc5b"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.ui.capability.local_map.v1.webp",
+      "sizeBytes": 1351106,
+      "sha256": "6481d308d7cf5d1488fb185dfe98c7af0d973574b16bdc4eb637566900154c4d"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.vfx.dash.v1.webp",
+      "sizeBytes": 1593706,
+      "sha256": "95b3e7038aff27c2366adfffe60407a143a5ed52930142ac6ae0142515880d61"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.vfx.guard_pierce.v1.webp",
+      "sizeBytes": 2324570,
+      "sha256": "c8f076e68874cf09c58abb5c26628da73308a2ceb810e5297198d3dd163c20b7"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.vfx.pulse.v1.webp",
+      "sizeBytes": 1747256,
+      "sha256": "9eb554ff088257093985b0f9172ceff0368465a7604f35a84b90644b6eaa7f40"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.clockworks.factory_tiles.v1.webp",
+      "sizeBytes": 1256316,
+      "sha256": "21363448f85374ef2d1a49c7f0daae929a0e84e2dff2568779fb7ba088113dff"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.clockworks.floor_steel.v1.webp",
+      "sizeBytes": 1056898,
+      "sha256": "94b96626f07acb36d00ca0f87b4a831f94c6879e82ec1691ebf4e33a74bdcbfc"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.clockworks.furnace.v1.webp",
+      "sizeBytes": 1352684,
+      "sha256": "88ceab4f4cd8ec8bb586f2e847a9ee33676802f686bb8b98c3b1cde3dea6bc95"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.clockworks.furnace.v2.webp",
+      "sizeBytes": 1133242,
+      "sha256": "88c969861604ad271462ae57bb05c122d84653b0fe81d03b8c9edd89577dc0b2"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.clockworks.pressure_pipe_valve.v1.webp",
+      "sizeBytes": 983210,
+      "sha256": "f1591e1273ffb46564dad104a27dc959f4fc7fda0cc6f4db4673749443c7fc56"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.clockworks.pressure_pipes.v1.webp",
+      "sizeBytes": 787064,
+      "sha256": "2541c9986e78a4e3ecf130ce397d7b23facb2c18717a91e33d878c1f92c3a7fa"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.grey_hive.sentinel_arena.v1.attempt.webp",
+      "sizeBytes": 1663272,
+      "sha256": "327eb0f65a54daf5a3cd4751b88139ff84ed7c4806cfd6f231bc9db91366300e"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.mistharbor.fog_bank.v1.webp",
+      "sizeBytes": 511452,
+      "sha256": "49b22444320ecb5f3232cf95e977dbdf0f47a1ec8dee56fab8f661ffba19bf47"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.mistharbor.fog_vfx.v1.webp",
+      "sizeBytes": 870490,
+      "sha256": "2284513e95b7181655d9855644a57e623a196fbb79256205e673328dea663926"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.mistharbor.water_edge.v1.webp",
+      "sizeBytes": 1496960,
+      "sha256": "afd0e86fa9b74ef87056338c417f51a84087d91d67ef8a3357f756c0db5a9874"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.mistharbor.water_edge_stone.v1.webp",
+      "sizeBytes": 1397052,
+      "sha256": "44fe08f5f77dba5b069bdbbe4592b7a042662cdffd16a9a639d6e8a6287c1c3b"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.returnstation.terminal.v1.webp",
+      "sizeBytes": 664374,
+      "sha256": "b924f9f06e90daa69a2f9ea928e0737f0c385e7fa07be12ef8371da6bfeefeb0"
+    },
+    {
+      "path": "assets/derived/asset-pipeline-v1/sprites/webp/runtime2d.world.returnstation.terminals.v1.webp",
+      "sizeBytes": 517292,
+      "sha256": "58afdf57327af8daff32e9af7f06c31dfa8eb1e90084ac58841d43acbc279192"
+    },
+    {
+      "path": "assets/derived/cenyao-runtime-master-v1/atlas/cenyao-idle-atlas-v1.png",
+      "sizeBytes": 1145931,
+      "sha256": "2146eeedc2945149fbee98a4f24739bff6cefeeef548e0bdace37fe8217028fe"
+    },
+    {
+      "path": "assets/derived/cenyao-runtime-master-v1/atlas/cenyao-idle-atlas-v1.webp",
+      "sizeBytes": 802324,
+      "sha256": "b0cc05697fdb89a3f55fdbce2bd558e6800a088f1147f7f8edce8fad842c5af0"
+    },
+    {
+      "path": "assets/getTextureBatchBindGroup-DBCrgHVb.js",
+      "sizeBytes": 344,
+      "sha256": "f97cfacaed002298725cd05c62cb5668989473d0bfe5850c4c36dbd773b59766"
+    },
+    {
+      "path": "assets/index-CPxs744q.js",
+      "sizeBytes": 653040,
+      "sha256": "21078a91bebe86e99538246b5fe87c52b2b08641fa641cb2b93165cd3d65844c"
+    },
+    {
+      "path": "assets/index-CZChYZGa.css",
+      "sizeBytes": 38033,
+      "sha256": "6c0666704753bad1ba741a4abac5c1a9e1dc8b2e9c58d0aa724c21b64c023bd4"
+    },
+    {
+      "path": "assets/init-C_QDqPHy.js",
+      "sizeBytes": 15389,
+      "sha256": "315787f8a215cfa496468c770e43b37e5ee88bbfdd2bc9cece38cba246333628"
+    },
+    {
+      "path": "assets/webworkerAll-o_ZkXJ5a.js",
+      "sizeBytes": 55,
+      "sha256": "2dee0de3fa591e6ad2c7ff5a428c9738e7e8ebf1bcaed6ac661752de79fbc0aa"
+    },
+    {
+      "path": "governance/assets/AI_ASSET_RELEASE_MANIFEST.json",
+      "sizeBytes": 31953,
+      "sha256": "c644b5953e9265d45796dfb8a6dad1c0fd8abfbffb3eb4ace84987d8238cee2d"
+    },
+    {
+      "path": "governance/assets/RUNTIME_ASSET_MANIFEST.json",
+      "sizeBytes": 76142,
+      "sha256": "081bebad5eede90e6ed50f2f7cacb930a67f2295961d405f58141d23874ec414"
+    },
+    {
+      "path": "index.html",
+      "sizeBytes": 1221,
+      "sha256": "36f17e4d87d08bdf0d13e27138a50a9aa304f801aadc203fa07204206e35418c"
+    },
+    {
+      "path": "scene-definitions/SCENE_DEFINITION_MANIFEST.json",
+      "sizeBytes": 7185,
+      "sha256": "9c2d4e33cd88027ed0d9b97bb23e6242572967f099466016b650b9fc73137fc9"
+    },
+    {
+      "path": "scene-definitions/compiled/clockworks/cw_boiler_chamber.json",
+      "sizeBytes": 7927,
+      "sha256": "04b00520e16435d159f1a459016083020fd40d11a2f8086d2f78dcbd0e483b39"
+    },
+    {
+      "path": "scene-definitions/compiled/clockworks/cw_conveyor_bridge.json",
+      "sizeBytes": 7443,
+      "sha256": "845b664b2212c5d9bf55cf72d34c9c69bf0caf345fa90ed9a7173a1df276e0ae"
+    },
+    {
+      "path": "scene-definitions/compiled/clockworks/cw_entry_foundry.json",
+      "sizeBytes": 5551,
+      "sha256": "d90f852367b998cf5874b82fed583f1254664d4a88a8175bb3c94524b8f496b1"
+    },
+    {
+      "path": "scene-definitions/compiled/clockworks/cw_forged_guard_arena.json",
+      "sizeBytes": 6794,
+      "sha256": "38ae047e46e980f953377121c78713a79b69f84b994e2dd1984e1404fe77ccf5"
+    },
+    {
+      "path": "scene-definitions/compiled/clockworks/cw_furnace_heart.json",
+      "sizeBytes": 8424,
+      "sha256": "f16f3941767aed71023cd8b9ce75642345a103eabf5c77682e358c96c2e219d5"
+    },
+    {
+      "path": "scene-definitions/compiled/clockworks/cw_gear_shaft.json",
+      "sizeBytes": 8965,
+      "sha256": "91afdb035c3df824806884c49d1e8f71034ff8f51b7bf90280bf71594896fea9"
+    },
+    {
+      "path": "scene-definitions/compiled/clockworks/cw_pressure_hall.json",
+      "sizeBytes": 8015,
+      "sha256": "53a7dc2925d5210da366abe8d03c07334c39cfe8b7da12f238090e27b1e5017a"
+    },
+    {
+      "path": "scene-definitions/compiled/clockworks/cw_regulator_core.json",
+      "sizeBytes": 7495,
+      "sha256": "b9b352865c5b4acdddbc52abe19abce7fea560687607b268dbe41dd456000fc7"
+    },
+    {
+      "path": "scene-definitions/compiled/clockworks/cw_shutdown_exit.json",
+      "sizeBytes": 5877,
+      "sha256": "4e24942874fb43b0111eea4c4ac6035fd4ccd65e5b45b845ca4063f63ab2692b"
+    },
+    {
+      "path": "scene-definitions/compiled/grey_hive/gh_beacon.json",
+      "sizeBytes": 5927,
+      "sha256": "3cab424771d10799ee82a453a72117affb0ebca09dd814f25308be70310da9ee"
+    },
+    {
+      "path": "scene-definitions/compiled/grey_hive/gh_bio_isolation.json",
+      "sizeBytes": 7071,
+      "sha256": "a3d629f04dc955cf0f8e644b54a4a64d054411a7d59a9fb15da5c9d9ea953aff"
+    },
+    {
+      "path": "scene-definitions/compiled/grey_hive/gh_central_shaft.json",
+      "sizeBytes": 10328,
+      "sha256": "806ef2be417d59ab7041002cecfb26c1fc383db920157feb29c2669c343df5da"
+    },
+    {
+      "path": "scene-definitions/compiled/grey_hive/gh_deep_decon.json",
+      "sizeBytes": 9748,
+      "sha256": "65e0cbf11183fe114259d680b0cd84a23a7f8619a25e628f4b30a7a84ce870a8"
+    },
+    {
+      "path": "scene-definitions/compiled/grey_hive/gh_entry_maintenance.json",
+      "sizeBytes": 5472,
+      "sha256": "5deb6c01b2ad81144144ae2526c06f8c337839e8d880aeb1b3af3a225afe787b"
+    },
+    {
+      "path": "scene-definitions/compiled/grey_hive/gh_exit.json",
+      "sizeBytes": 5617,
+      "sha256": "6ab262467e1992feac94f27d8bf571dcf77ddbc8c1693a79c57b3aeebff0c54c"
+    },
+    {
+      "path": "scene-definitions/compiled/grey_hive/gh_gate_a.json",
+      "sizeBytes": 6948,
+      "sha256": "3c62f3c35a2c9f2e935707e7a93c34a8d6f5696ed730b8487c4efe0b6d1ee484"
+    },
+    {
+      "path": "scene-definitions/compiled/grey_hive/gh_gate_b.json",
+      "sizeBytes": 6855,
+      "sha256": "a82c10a6fa50129c48267e255d2ca86f4ebaca43e0e0da81b639ee88228312c1"
+    },
+    {
+      "path": "scene-definitions/compiled/grey_hive/gh_lockdown.json",
+      "sizeBytes": 10081,
+      "sha256": "718489a1ea4ec4622ccdcefc8459a1dc1bd4f66ccf26abc813b6a06519197850"
+    },
+    {
+      "path": "scene-definitions/compiled/grey_hive/gh_power_room.json",
+      "sizeBytes": 7000,
+      "sha256": "3d05edeca4a119bc7f2db7aa094041a7ad61380b00015a613fda787025e67854"
+    },
+    {
+      "path": "scene-definitions/compiled/grey_hive/gh_sentinel_arena.json",
+      "sizeBytes": 8241,
+      "sha256": "3e3e3a52dca003ec13c7b3698317f6a32627091eeda833a49896910e521f45bb"
+    },
+    {
+      "path": "scene-definitions/compiled/mist_harbor/mh_breakwater.json",
+      "sizeBytes": 8283,
+      "sha256": "2de6f7b471b6b873fafad7e943a0f163e057ffca0787823625bf37bb23bd0b14"
+    },
+    {
+      "path": "scene-definitions/compiled/mist_harbor/mh_drowned_quay.json",
+      "sizeBytes": 8840,
+      "sha256": "e315ef1be88ab2f1ff8defcf7050beef439b7793cda3d121e4e97b4bdf9b41a9"
+    },
+    {
+      "path": "scene-definitions/compiled/mist_harbor/mh_extraction.json",
+      "sizeBytes": 6215,
+      "sha256": "3476501f29ea441c51caeab61633b929ef7e7abc3c887691a7557098986a47aa"
+    },
+    {
+      "path": "scene-definitions/compiled/mist_harbor/mh_fog_pier.json",
+      "sizeBytes": 7671,
+      "sha256": "1f12ceae6565dcfb8f3b9f497840f8027748e6109208e788ea6d7579fff00946"
+    },
+    {
+      "path": "scene-definitions/compiled/mist_harbor/mh_pump_station.json",
+      "sizeBytes": 7826,
+      "sha256": "557c180648bc8c73621b444dd108f2207535750947e9a7738a5716dd1b2a5437"
+    },
+    {
+      "path": "scene-definitions/compiled/mist_harbor/mh_resonance_tower.json",
+      "sizeBytes": 8668,
+      "sha256": "61d42c94a06204b1c4ddac4f29577d3e031a14f1b6fcc66613d625006fd94452"
+    },
+    {
+      "path": "scene-definitions/compiled/mist_harbor/mh_signal_yard.json",
+      "sizeBytes": 8327,
+      "sha256": "14f708142f6d4c15b8abdb3671e5357f845d96228c5b9aed719e19895e3a66d8"
+    },
+    {
+      "path": "scene-definitions/compiled/mist_harbor/mh_tidal_warehouse.json",
+      "sizeBytes": 8250,
+      "sha256": "bcf83727cbf17118a534547e8d50abd65f8c606a342290b66e5a778a0c2d61d9"
+    },
+    {
+      "path": "scene-definitions/compiled/mist_harbor/mh_warden_arena.json",
+      "sizeBytes": 6991,
+      "sha256": "bb0ddca043c57ef4d0d1b327ace455e7f5f8c870845c113064144f64006df86b"
+    },
+    {
+      "path": "scene-definitions/compiled/return_station/rs_core_room.json",
+      "sizeBytes": 8097,
+      "sha256": "927f8dc466403837b081027bafb04c3c66a6ca17ee71bf5ce0a7d891e4fb3ad9"
+    }
+  ]
+}

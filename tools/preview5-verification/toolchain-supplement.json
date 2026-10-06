@@ -1,0 +1,37 @@
+{
+  "sourceSha": "1d8aff05f35b24c49355cf64aa58cd7eba561571",
+  "exeSha256": "e97d0c07d0ceb393ba3d6775f765c7546a55a7f66d8799535617cd23bca602da",
+  "reuse": "Previously restored workspace-local toolchains, official registry packages, SDK/CRT caches. No tools or SDK downloaded/installed and no new legal agreement accepted by this rebuild.",
+  "actualVersions": {
+    "Rust": "1.98.1",
+    "Cargo": "1.98.1",
+    "cargo-xwin": "0.23.1",
+    "LLVM": "19.1.7",
+    "WindowsSdkSelector": "10.0.26100",
+    "WindowsSdkPackage": "10.0.26100.15",
+    "CRTSelector": "14.44.17.14",
+    "CRTHeaders": "14.44.35220",
+    "CRTX64DesktopLibraries": "14.44.35226",
+    "CRTX64StoreLibrariesIncludedInXwinCache": "14.44.35226"
+  },
+  "sdkPostBuildInventoryVerified": {
+    "entries": 8518,
+    "regularFiles": 5604,
+    "symlinks": 2914,
+    "regularBytes": 647686571,
+    "inventorySha256": "eacaf1361ab4b9f069a49e2a8c6abbac581d491dab7bde94145f6fafe783ffe7"
+  },
+  "noticeCorrection": "The inherited Microsoft notice records CRT 14.44.35220.0. Preserve that historical notice unchanged. This rebuild uses headers 14.44.35220 and x64 libraries 14.44.35226; the historical notice alone is not the complete current toolchain inventory.",
+  "manifestProvenanceQualification": {
+    "channelUrl": "https://aka.ms/vs/17/release/channel",
+    "channelSha256": "fca418ba94ffbcfb7a2b25f10f16f39dd09660568d21eef4bd3f274cb0b27b8c",
+    "packageManifestURL": "https://download.visualstudio.microsoft.com/download/pr/bc92e2cb-33de-4a0c-995d-efa817f16b16/6e470016e4324c84c255ffd0beb3767d17ec89cc8561e9409ee3e1f6d29400f5/VisualStudio.vsman",
+    "packageManifestAdvertisedSha256": "6e470016e4324c84c255ffd0beb3767d17ec89cc8561e9409ee3e1f6d29400f5",
+    "packageManifestActualSha256": "f0a50ea157222c29abd5ea6ff01bfc3c33b04e011c5e45ee2ca38ef0778e5643",
+    "packageManifestHashMatchesAdvertised": false,
+    "retrieval": "Official Microsoft HTTPS endpoint; evidence retrieved immediately after successful xwin restore",
+    "caution": "cargo-xwin removes original dl/unpack cache after completion. This independently preserved metadata is not proof of an independently verified manifest signature; xwin verifies selected individual package payload SHA256 before unpacking."
+  },
+  "staticCRTQualification": "Rustflags and actual imports support static CRT linkage. No dynamic VCRUNTIME, MSVCP or UCRT imports found. Does not prove absence of LoadLibrary/runtime-loaded components; Windows system APIs and WebView2 remain external requirements.",
+  "legalStatus": "Evidence only, not public-readiness or legal clearance; specific generated-icon project authorization documented; no absolute legal warranty."
+}
