@@ -250,3 +250,11 @@
 - **PASS 1 / FAIL 0 / BLOCKED 1 / NOT_RUN 14**，共16项。FAIL 0不代表游戏无缺陷；未进行浏览器/构建/原生试玩，无正式原生验收结论。
 - 原始截图（无）、存档（无）和完整工具日志保留本地；不上传原始证据。断电/崩溃/并发存档注入 NOT_RUN。
 - 仅追加本测试文档，保留模板和历史；提交含 [skip ci]，普通非强制推送main后独立核远端。此句写成时尚未推送，交付时另报实际远端结果。不改游戏、旧工程、仓库设置或工作流，不启动 Actions。
+
+#### Round 2 后续路径诊断（2026-10-06 12:32 Asia/Tokyo / 03:32 UTC）
+
+- 上述 W01 记录已随 commit `e26f39c4d0d739d53f406d1b8bd1b9801f6c3881` 普通推送，远端 HEAD、文件内容及历史保留均核实。本段只追加路径诊断，不是新的游戏试玩或重复静态核验。
+- 用户随后在桌面 Windows PowerShell 5.1.26100.9549 手动执行此前提供的隔离启动命令，报告 WorkingDirectory 的 DirectoryNotFoundException；三个 Test-Path 均 False。此为用户报告，助手未直接观察该终端；没有证据证明 EXE 被执行，不记游戏 FAIL。
+- 助手最初将差异描述为可能不同执行环境，证据不足。后续只读检查找到同一测试目录在应用包 `<LOCALAPPDATA>/Packages/<CODEX_PACKAGE>/LocalCache/Local/WuxianPreviewTests/<RUN>` 下的实际可见路径。原逻辑路径与包缓存路径的 EXE 文件 ID 完全一致，SHA256 均为固定 preview.5 期望值。该证据支持应用包文件重定向，而不是两份不同 EXE；不据 PowerShell 5.1/7.6.5 差异断言不同电脑。桌面工具仅列出应用，用户确认当前应用吻合；截图/输入能力及游戏环境仍未验收。
+- 本段依据 E05 `evidence/E05-path-alias.txt`，SHA256 `a9b05409f33bea29bf824557c0f1553ea53fbd43445f25c84048f388351e9548`；原始私人路径和文件 ID 留本地，不上传。包缓存真实路径是否在用户终端可访问，仍待用户 Test-Path 确认。
+- W01 的本机 Windows Python 静态核验结果保持；W02 仍 BLOCKED，W03–W16 仍 NOT_RUN。未重试被拒绝启动、未使用桌面/其他接口绕过策略，无游戏 PID 或窗口。将向用户提供包缓存实际路径的隔离手动步骤，禁止默认环境双击；安全提示由用户处理。合计仍 PASS 1 / FAIL 0 / BLOCKED 1 / NOT_RUN 14。
