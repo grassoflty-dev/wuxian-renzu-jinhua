@@ -8,6 +8,8 @@ import { AssetRegistry } from "../dist/assets/AssetRegistry.js";
 import { SessionLoop } from "../dist/game/SessionLoop.js";
 import { SceneDefinitionSession } from "../dist/game/SceneDefinitionSession.js";
 import { WorldRenderer, RenderCommitError } from "../dist/renderer/WorldRenderer.js";
+import { planScenePresentation } from "../dist/renderer/ScenePresentation.js";
+import { returnStationRoomEnvelope } from "../dist/renderer/ReturnStationRoomCamera.js";
 const root = fileURLToPath(new URL("../../../", import.meta.url));
 const registry = new AssetRegistry();
 await registry.registerManifest(new Uint8Array(await readFile(resolve(root, "governance/assets/RUNTIME_ASSET_MANIFEST.json"))),
@@ -490,6 +492,41 @@ test("combat contact and phase graphics use physical/ground layers and clear at 
   assert.deepEqual(f.renderer.acceptCombatPresentationEvents([{ ...hurt, eventId: 2 }], pulse), []);
 }));
 
+// Use the actual scene/asset/snapshot envelope, but solve its 5% fit independently
+// of fitReturnStationRoom, projectWorldPoint and the renderer's camera state.
+function roomFitCameraOracle(value, width, height) {
+  const plan = planScenePresentation(registry, scene);
+  const player = registry.resolveAsset('runtime2d.actor.cenyao.base.v1');
+  const points = returnStationRoomEnvelope(plan, player, value);
+  const us = points.map(point => point.u), vs = points.map(point => point.v);
+  const left = Math.min(...us), right = Math.max(...us), top = Math.min(...vs), bottom = Math.max(...vs);
+  const widthPpm = width * .9 / (right - left), heightPpm = height * .9 / (bottom - top);
+  const ppm = Math.min(widthPpm, heightPpm);
+  return { ppm, widthPpm, heightPpm, originY: 0,
+    tx: width / 2 - (left + right) / 2 * ppm,
+    ty: height / 2 - (top + bottom) / 2 * ppm };
+}
+
+// A stationary, boss-free scene starts the ordinary rig at its 1.25 m aim lead.
+function initialFollowCameraOracle(value, width, height) {
+  const { aimX, aimZ, transform: { positionM } } = value.player;
+  const aimLength = Math.hypot(aimX, aimZ);
+  const x = positionM.xM + (aimLength ? aimX / aimLength * 1.25 : 0);
+  const z = positionM.zM + (aimLength ? aimZ / aimLength * 1.25 : 0);
+  const ppm = 48 * Math.max(.5, Math.min(width / 1280, height / 720));
+  return { ppm, originY: positionM.yM, tx: width / 2 - (x - z) * ppm, ty: height / 2 - (x + z) / 2 * ppm };
+}
+
+function assertContactProjection(mark, position, camera, label) {
+  assert.ok(mark, `${label}: contact mark exists`);
+  const scale = camera.ppm / 48;
+  const close = (actual, expected, property) => assert.ok(Math.abs(actual - expected) < 1e-9,
+    `${label}: ${property}, expected ${expected}, got ${actual}`);
+  close(mark.scale.x, scale, 'scale.x'); close(mark.scale.y, scale, 'scale.y');
+  close(mark.x, camera.tx + (position.xM - position.zM) * camera.ppm, 'x');
+  close(mark.y, camera.ty + ((position.xM + position.zM) / 2 - position.yM + camera.originY) * camera.ppm - 18 * scale, 'y');
+}
+
 test('composed contact events tint the displayed walking mesh and clear on expiry, pause and replacement', async () => fixture(async f => {
   document.documentElement.dataset.motion='full';f.target.matchMedia=()=>({matches:false});
   const moving=(tick,x,speed=3)=>{const s=snapshot();return {...s,serverTick:tick,authorityRevision:tick,
@@ -504,15 +541,67 @@ test('composed contact events tint the displayed walking mesh and clear on expir
   assert.ok(mesh);assert.equal(sprite.tint,0xffbbb5);assert.equal(mesh.tint,0xffbbb5);
   const mark=[...f.renderer.combatFeedbackLayer.marks.values()][0];
   assert.equal(mark.parent,sprite.parent);assert.equal(mark.zIndex,sprite.zIndex+.12);
-  assert.equal(mark.y,sprite.y-18*(f.app.screen.width/1280),'contact uses the displayed elevated footpoint');
+  const camera=roomFitCameraOracle(s,f.app.screen.width,f.app.screen.height);
+  assert.notEqual(camera.ppm/48,f.app.screen.width/1280,'ROOM_FIT is not the ordinary width-only scale');
+  assertContactProjection(mark,s.player.transform.positionM,camera,'elevated walking ROOM_FIT contact');
+  assert.equal(mark.x,mesh.x);
+  assert.ok(Math.abs(mark.y-(mesh.y-18*camera.ppm/48))<1e-9,'contact uses the displayed elevated footpoint');
   s=moving(30,4.1,0);await f.renderer.render(s);
   assert.equal(sprite.tint,0xffffff);assert.equal(f.renderer.playerLocomotionMesh,null);assert.equal(f.renderer.combatFeedbackLayer.marks.size,0);
   assert.deepEqual(f.renderer.acceptCombatPresentationEvents([event(2,s)],s),[2]);await f.renderer.render(s);assert.equal(sprite.tint,0xffbbb5);
   f.renderer.clearTransientPresentation();await f.flush();assert.equal(sprite.tint,0xffffff);assert.equal(f.renderer.actorFeedbackTints.size,0);
   assert.equal(f.renderer.combatFeedbackLayer.marks.size,0);
+  assert.deepEqual(f.renderer.acceptCombatPresentationEvents([event(3,s)],s),[3]);await f.renderer.render(s);
+  const replacedMark=[...f.renderer.combatFeedbackLayer.marks.values()][0];assert.ok(replacedMark);assert.equal(sprite.tint,0xffbbb5);
   const next={...s,worldEpoch:2};f.renderer.expectSceneIdentity(next);f.renderer.setSceneDefinition(scene);await f.renderer.render(next);
   assert.equal(f.renderer.sprites.get('actor:player').sprite.tint,0xffffff);assert.equal(f.renderer.actorFeedbackTints.size,0);
+  assert.equal(replacedMark.destroyed,true);assert.equal(f.renderer.combatFeedbackLayer.marks.size,0);
 }));
+
+test('ROOM_FIT contact scale and coordinates reproject through width, height-limited and resize-back viewports', async () => fixture(async f => {
+  const value=snapshot();value.player.transform.positionM.yM=2;
+  await f.renderer.render(value);await f.renderer.render(value);
+  const hit={protocolVersion:2,eventId:1,worldEpoch:value.worldEpoch,serverTick:value.serverTick,kind:'Damaged',
+    positionM:{...value.player.transform.positionM},directionRad:0,radiusM:1,intensity:1,durationMs:260,
+    combatFeedback:{worldId:value.worldId,sceneId:value.sceneId,outcome:'player_hurt',targetId:'player',sourceId:'enemy_01'}};
+  assert.deepEqual(f.renderer.combatFeedbackModel.accept([hit],value,1000),[1]);
+  await f.renderer.renderFrame(value,undefined,undefined,1000);
+  const mark=[...f.renderer.combatFeedbackLayer.marks.values()][0];
+  let original;
+  for(const [width,height,limiter] of [[882,552,'width'],[900,552,'width'],[2034,400,'height'],[2400,400,'height'],[882,552,'width']]){
+    Object.assign(f.canvas.parentElement,{clientWidth:width,clientHeight:height});
+    f.target.dispatchEvent(new Event('resize'));f.observers[0].callback();await f.flush();
+    assert.deepEqual(f.app.screen,{width,height});
+    assert.equal(f.renderer.combatFeedbackLayer.marks.get(1),mark,'resize reprojects the existing contact');
+    assert.equal(f.renderer.lastFrame.timeMs,1000,'resize preserves the contact lifetime');
+    const camera=roomFitCameraOracle(value,width,height);
+    assert.equal(camera.widthPpm<camera.heightPpm,limiter==='width',`${width}x${height} exercises the ${limiter} constraint`);
+    assertContactProjection(mark,hit.positionM,camera,`ROOM_FIT ${width}x${height}`);
+    const actual={x:mark.x,y:mark.y,scale:mark.scale.x};
+    if(!original)original=actual;
+    else if(width===882)assert.deepEqual(actual,original,'resize-back restores the original contact geometry');
+  }
+}));
+
+for(const [width,height] of [[882,552],[1600,400]]){
+  test(`ordinary scene contact uses the follow-camera projection at ${width}x${height}`, async () => fixture(async f => {
+    const definition=JSON.parse(await readFile(resolve(root,'content/scenes/compiled/gh_entry_maintenance.json'),'utf8'));
+    const value={...snapshot(),worldId:'grey_hive',sceneId:'gh_entry_maintenance'};
+    value.player.transform.positionM.yM=2;value.player.aimX=.6;value.player.aimZ=.8;
+    Object.assign(f.canvas.parentElement,{clientWidth:width,clientHeight:height});
+    f.renderer.expectSceneIdentity(value);f.renderer.setSceneDefinition(definition);await f.renderer.render(value);await f.renderer.render(value);
+    const hit={protocolVersion:2,eventId:1,worldEpoch:value.worldEpoch,serverTick:value.serverTick,kind:'Damaged',
+      positionM:{...value.player.transform.positionM},directionRad:0,radiusM:1,intensity:1,durationMs:260,
+      combatFeedback:{worldId:value.worldId,sceneId:value.sceneId,outcome:'player_hurt',targetId:'player',sourceId:'enemy_01'}};
+    assert.deepEqual(f.renderer.combatFeedbackModel.accept([hit],value,1000),[1]);
+    await f.renderer.renderFrame(value,undefined,undefined,1000);
+    const mark=f.renderer.combatFeedbackLayer.marks.get(1),camera=initialFollowCameraOracle(value,width,height);
+    assertContactProjection(mark,hit.positionM,camera,`ordinary scene ${width}x${height}`);
+    const sprite=f.renderer.sprites.get('actor:player').sprite;
+    assert.equal(mark.parent,sprite.parent);assert.equal(mark.zIndex,sprite.zIndex+.12);
+    assert.equal(sprite.tint,0xffbbb5);
+  }));
+}
 
 test('composed enemy contact keeps crop anchor, actual normal color and shared prop occlusion depth', async () => fixture(async f => {
   const definition=JSON.parse(await readFile(resolve(root,'content/scenes/compiled/gh_gate_b.json'),'utf8'));

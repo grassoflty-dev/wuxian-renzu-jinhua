@@ -71,7 +71,7 @@ async function connectCdp(url) {
 
 function installMockIpc() {
   const state = {
-    calls: [], saved: null, latest: null, epoch: 1, tick: 1, newFailures: 1,
+    calls: [], saved: null, latest: null, rendered: null, renderHistory: [], epoch: 1, tick: 1, newFailures: 1,
   };
   const snapshot = (worldId, sceneId) => ({
     kind: "full", protocolVersion: 3, schemaVersion: "freeze-v02-interfaces/1.2",
@@ -168,7 +168,13 @@ const rendererMocks = {
     async init() {}
     expectSceneIdentity() {}
     setSceneDefinition() {}
-    async render() {}
+    async render(snapshot) {
+      // Observe the renderer boundary, not the IPC producer's latest snapshot.
+      const identity = { worldId: snapshot.worldId, sceneId: snapshot.sceneId,
+        worldEpoch: snapshot.worldEpoch, serverTick: snapshot.serverTick };
+      window.__hubLifecycleMock.rendered = identity;
+      window.__hubLifecycleMock.renderHistory.push(identity);
+    }
     reconcileSoundCue() {}
     acceptSoundCues() {}
     clearSoundCues() {}
@@ -176,6 +182,30 @@ const rendererMocks = {
     async destroy() {}
   }`,
 };
+
+test("hub render probe records only snapshots passed to render", async () => {
+  const previousWindow = globalThis.window;
+  const state = { rendered: null, renderHistory: [], latest: {
+    worldId: "grey_hive", sceneId: "gh_entry", worldEpoch: 6, serverTick: 20,
+  } };
+  globalThis.window = { __hubLifecycleMock: state };
+  try {
+    const { WorldRenderer } = await import(`data:text/javascript,${encodeURIComponent(rendererMocks["./renderer/WorldRenderer.js"])}`);
+    const renderer = new WorldRenderer();
+    renderer.expectSceneIdentity(state.latest);
+    assert.equal(state.rendered, null, "an accepted IPC snapshot is not a rendered frame");
+    const frame = { ...state.latest, worldEpoch: 2, serverTick: 3 };
+    await renderer.render(frame);
+    assert.deepEqual(state.rendered, frame, "the probe must report the actual render argument");
+    assert.notEqual(state.rendered.worldEpoch, state.latest.worldEpoch, "a stale render cannot pass as the latest IPC epoch");
+    frame.sceneId = "changed_after_render";
+    assert.equal(state.rendered.sceneId, "gh_entry", "probe stores a value copy");
+    assert.equal(state.renderHistory.length, 1);
+  } finally {
+    if (previousWindow === undefined) delete globalThis.window;
+    else globalThis.window = previousWindow;
+  }
+});
 
 test("hub lifecycle: two new journeys, save, return, continue, and recover after IPC failure", { timeout: 120_000 }, async (t) => {
   const edge = findEdge();
@@ -234,7 +264,9 @@ test("hub lifecycle: two new journeys, save, return, continue, and recover after
       hubHidden: document.querySelector("#hub")?.hidden,
       journeyHidden: document.querySelector("#journey")?.hidden,
       world: document.querySelector("#hud-world")?.textContent,
-      scene: document.querySelector("#hud-scene")?.textContent,
+      rendered: window.__hubLifecycleMock.rendered,
+      hudText: document.querySelector("#game-hud")?.textContent,
+      hasSceneLabel: document.querySelector("#hud-scene") !== null,
       feedback: document.querySelector("#feedback")?.textContent,
       newDisabled: document.querySelector("#new-journey")?.disabled,
       continueDisabled: document.querySelector("#continue-journey")?.disabled,
@@ -256,11 +288,20 @@ test("hub lifecycle: two new journeys, save, return, continue, and recover after
     assert.equal(current.continueDisabled, true, "Continue remains unavailable without a valid save");
 
     await click("#new-journey");
-    await waitFor("document.querySelector('.shell').dataset.view === 'journey' && document.querySelector('#hud-world').textContent === '灰巢设施'", "first successful New Journey");
+    await waitFor("document.querySelector('.shell').dataset.view === 'journey' && document.querySelector('#hud-world').textContent === '灰巢设施' && window.__hubLifecycleMock.rendered?.worldEpoch === 2", "first successful New Journey reaches the renderer");
     current = await state();
     assert.equal(current.hubHidden, true);
     assert.equal(current.journeyHidden, false);
-    assert.equal(current.scene, "gh_entry");
+    const assertRenderedJourney = (current, epoch) => {
+      assert.equal(current.rendered?.worldId, "grey_hive");
+      assert.equal(current.rendered?.sceneId, "gh_entry");
+      assert.equal(current.rendered?.worldEpoch, epoch, "the current journey was actually rendered");
+      assert.equal(current.hasSceneLabel, false, "internal scene label stays absent from ordinary HUD");
+      assert.equal(typeof current.hudText, "string");
+      assert.doesNotMatch(current.hudText, /gh_entry|rs_core_room|grey_hive|return_station/,
+        "ordinary HUD must not expose internal world or scene IDs");
+    };
+    assertRenderedJourney(current, 2);
 
     await click("#hud-pause");
     await waitFor("document.querySelector('#pause-overlay').hidden === false && document.querySelector('#save-new-slot').disabled === false", "pause receipt and save controls");
@@ -275,7 +316,8 @@ test("hub lifecycle: two new journeys, save, return, continue, and recover after
     assert.equal(current.journeyHidden, true);
 
     await click("#new-journey");
-    await waitFor("document.querySelector('.shell').dataset.view === 'journey' && document.querySelector('#hud-world').textContent === '灰巢设施'", "second successful New Journey");
+    await waitFor("document.querySelector('.shell').dataset.view === 'journey' && document.querySelector('#hud-world').textContent === '灰巢设施' && window.__hubLifecycleMock.rendered?.worldEpoch === 4", "second successful New Journey reaches the renderer");
+    assertRenderedJourney(await state(), 4);
     await click("#back-to-hub");
     await waitFor("document.querySelector('.shell').dataset.view === 'hub' && document.querySelector('#continue-journey').disabled === false", "second return to hub");
 
@@ -284,11 +326,14 @@ test("hub lifecycle: two new journeys, save, return, continue, and recover after
     await evalValue(`(() => { const e=document.querySelector('#continue-slot'); e.value='saved-grey-hive'; e.dispatchEvent(new Event('change',{bubbles:true})); return true; })()`);
     await waitFor("document.querySelector('#continue-selected').disabled === false", "valid saved slot selection");
     await click("#continue-selected");
-    await waitFor("document.querySelector('.shell').dataset.view === 'journey' && document.querySelector('#hud-world').textContent === '灰巢设施' && document.querySelector('#hud-scene').textContent === 'gh_entry'", "Continue from saved journey");
+    await waitFor("document.querySelector('.shell').dataset.view === 'journey' && document.querySelector('#hud-world').textContent === '灰巢设施' && window.__hubLifecycleMock.rendered?.worldEpoch === 6", "Continue from saved journey");
     current = await state();
     assert.equal(current.hubHidden, true);
     assert.equal(current.journeyHidden, false);
     assert.equal(current.newDisabled, true, "hub entry controls stay disabled while inside a journey");
+    assertRenderedJourney(current, 6);
+    assert.deepEqual(await evalValue("[...new Set(window.__hubLifecycleMock.renderHistory.map(frame => frame.worldEpoch))]"),
+      [2, 4, 6], "both new journeys and the restored journey reached the renderer as distinct epochs");
 
     const calls = await evalValue("window.__hubLifecycleMock.calls.map(x=>x.command)");
     assert.equal(calls.filter(command => command === "formal_new").length, 3, "one failed attempt plus two successful new journeys");

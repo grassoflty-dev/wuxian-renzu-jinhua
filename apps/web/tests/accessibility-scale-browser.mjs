@@ -2,13 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
-import { readFile, mkdtemp, rm } from "node:fs/promises";
+import { readFile, mkdtemp } from "node:fs/promises";
 import { createServer } from "node:http";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
+import { cleanupBrowserResources, watchBrowserProcess, withBrowserCleanup } from "./support/browser-cleanup.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 function browserPath() {
@@ -18,17 +19,46 @@ function browserPath() {
   ].filter(Boolean).find(p => existsSync(p));
 }
 async function freePort() { const s = net.createServer(); await new Promise(r => s.listen(0,"127.0.0.1",r)); const p=s.address().port; await new Promise(r=>s.close(r)); return p; }
-async function connect(port, browser) {
+async function connect(port, browserState) {
   let url; const end = Date.now()+15000;
   while (!url && Date.now()<end) {
-    if ((browser.exitCode !== null || browser.signalCode !== null)) throw new Error(`Browser exited ${browser.exitCode}`);
+    if (browserState.error) throw browserState.error;
+    if (browserState.hasExited()) throw new Error(`Browser exited ${browserState.child.exitCode}`);
     try { const pages=await(await fetch(`http://127.0.0.1:${port}/json/list`, { signal: AbortSignal.timeout(1000) })).json(); url=pages.find(p=>p.type==="page")?.webSocketDebuggerUrl; } catch {}
     if(!url) await delay(50);
   }
   if(!url) throw new Error("E_ACCESSIBILITY_BROWSER_TIMEOUT");
   const socket=new WebSocket(url); await new Promise((r,j)=>{const timer=setTimeout(()=>j(new Error("E_CDP_CONNECT_TIMEOUT")),5000);socket.addEventListener("open",()=>{clearTimeout(timer);r();},{once:true});socket.addEventListener("error",e=>{clearTimeout(timer);j(e);},{once:true});});
   let next=0;const pending=new Map();socket.addEventListener("message",({data})=>{const m=JSON.parse(data),p=pending.get(m.id);if(p){pending.delete(m.id);m.error?p.reject(new Error(m.error.message)):p.resolve(m.result);}});
-  return { close:()=>socket.close(),send(method,params={}){const id=++next;return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{pending.delete(id);reject(new Error(`E_CDP_TIMEOUT:${method}`));},5000);pending.set(id,{resolve:value=>{clearTimeout(timer);resolve(value);},reject:error=>{clearTimeout(timer);reject(error);}});socket.send(JSON.stringify({id,method,params}));});} };
+  const rejectPending = () => {
+    const error = Object.assign(new Error("CDP connection closed"), { code: "E_CDP_CLOSED" });
+    for (const request of pending.values()) request.reject(error);
+    pending.clear();
+  };
+  socket.addEventListener("close", rejectPending);
+  return {
+    close() {
+      rejectPending();
+      if (socket.readyState === WebSocket.CLOSED) return Promise.resolve();
+      return new Promise((resolve, reject) => {
+        socket.addEventListener("close", resolve, { once: true });
+        try { socket.close(); } catch (error) { socket.removeEventListener("close", resolve); reject(error); }
+      });
+    },
+    send(method, params = {}, { timeoutMs = 5000 } = {}) {
+      const id = ++next;
+      return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => { pending.delete(id); reject(new Error(`E_CDP_TIMEOUT:${method}`)); }, timeoutMs);
+        const request = {
+          resolve: value => { clearTimeout(timer); resolve(value); },
+          reject: error => { clearTimeout(timer); reject(error); },
+        };
+        pending.set(id, request);
+        try { socket.send(JSON.stringify({ id, method, params })); }
+        catch (error) { pending.delete(id); request.reject(error); }
+      });
+    },
+  };
 }
 const mainSource=await readFile(path.join(root,"src/main.ts"),"utf8");
 const markup=mainSource.match(/root\.innerHTML = `([\s\S]*?)`;/)[1];
@@ -40,10 +70,16 @@ test("real browser settings panel scales preserve panel layout, focus and restar
     if(!/^\/(dist\/.*\.js|src\/(style|visual-authority)\.css)$/.test(pathname)||pathname.includes("..")){res.writeHead(404);res.end();return;}
     res.setHeader("Content-Type",pathname.endsWith(".css")?"text/css":"text/javascript");res.end(await readFile(path.join(root,pathname.slice(1))));
   }catch{res.writeHead(404);res.end();}});
-  await new Promise(r=>server.listen(0,"127.0.0.1",r));const port=await freePort();const profile=await mkdtemp(path.join(os.tmpdir(),"accessibility-browser-"));
-  const browser=spawn(binary,["--headless=new","--disable-gpu","--no-first-run","--no-default-browser-check",`--remote-debugging-port=${port}`,`--user-data-dir=${profile}`,"about:blank"],{stdio:["ignore","ignore","pipe"]});
-  let cdp;const evaluate=async expression=>{const result=await cdp.send("Runtime.evaluate",{expression,awaitPromise:true,returnByValue:true});if(result.exceptionDetails)throw Error(result.exceptionDetails.exception?.description||result.exceptionDetails.text);return result.result.value;};
-  try{cdp=await connect(port,browser);await cdp.send("Page.enable");await cdp.send("Runtime.enable");
+  let cdp, browserState, profile;
+  const evaluate=async expression=>{const result=await cdp.send("Runtime.evaluate",{expression,awaitPromise:true,returnByValue:true});if(result.exceptionDetails)throw Error(result.exceptionDetails.exception?.description||result.exceptionDetails.text);return result.result.value;};
+  await withBrowserCleanup(async () => {
+    await new Promise((resolve, reject) => { server.once("error", reject); server.listen(0, "127.0.0.1", resolve); });
+    const port = await freePort();
+    profile = await mkdtemp(path.join(os.tmpdir(), "accessibility-browser-"));
+    const browser=spawn(binary,["--headless=new","--disable-gpu","--no-first-run","--no-default-browser-check",`--remote-debugging-port=${port}`,`--user-data-dir=${profile}`,"about:blank"],{stdio:["ignore","ignore","pipe"]});
+    browserState = watchBrowserProcess(browser);
+    browser.stderr.resume();
+    cdp=await connect(port,browserState);await cdp.send("Page.enable");await cdp.send("Runtime.enable");
     await cdp.send("Page.navigate",{url:`http://127.0.0.1:${server.address().port}/`});
     for(let n=0;n<100&&!(await evaluate("!!document.querySelector('#core-panel-content')"));n++)await delay(20);
     await evaluate(`(async()=>{const {CoreUiPresenter}=await import('/dist/ui/CoreUiPresenter.js');const {AccessibilityPreferenceStore}=await import('/dist/ui/AccessibilityPreferences.js');window.prefs=new AccessibilityPreferenceStore(()=>localStorage,document.documentElement);prefs.restore();window.presenter=new CoreUiPresenter(document.querySelector('#core-panel'),prefs);presenter.open(document.querySelector('#main-settings'),'settings');})()`);
@@ -64,5 +100,5 @@ test("real browser settings panel scales preserve panel layout, focus and restar
     await evaluate("presenter.close()");assert.equal(await evaluate("document.activeElement.id"),"main-settings");
     await evaluate(`(async()=>{const {AccessibilityPreferenceStore}=await import('/dist/ui/AccessibilityPreferences.js');window.restored=new AccessibilityPreferenceStore(()=>localStorage,document.documentElement);restored.restore();})()`);
     assert.deepEqual(await evaluate("restored.getScale()"),{textScalePercent:130,uiScalePercent:125});
-  }finally{cdp?.close();browser.kill();await new Promise(r=>server.close(r));await rm(profile,{recursive:true,force:true});}
+  }, () => cleanupBrowserResources({ browserState, cdp, server, ownedProfile: profile }));
 });
