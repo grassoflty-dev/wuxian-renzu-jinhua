@@ -139,9 +139,21 @@ export async function cleanupBrowserResources({ browserState, cdp, server, owned
         server.closeAllConnections?.();
       }), budget(serverCloseTimeoutMs), "E_BROWSER_SERVER_CLOSE_TIMEOUT"));
     }
-    for (const resource of otherResources) await attempt(() => resource.close(budget(4500)));
-    // Never remove a live browser's profile, even after a termination timeout.
-    if (exited && ownedProfile) await attempt(() => removeOwnedProfile(ownedProfile, { ...profileRemoval, deadline, verify: profileVerifier ?? profileRemoval.verify }));
+    const consumerClosures = [];
+    for (const resource of otherResources) {
+      const closure = { resource, closed: false };
+      consumerClosures.push(closure);
+      try {
+        await resource.close(budget(4500));
+        closure.closed = true;
+      } catch (error) {
+        closure.error = error;
+        errors.push(error);
+      }
+    }
+    // Browser exit alone does not release registered consumers' profile data.
+    // A rejected close stays unconfirmed even if its underlying work finishes later.
+    if (exited && consumerClosures.every(closure => closure.closed) && ownedProfile) await attempt(() => removeOwnedProfile(ownedProfile, { ...profileRemoval, deadline, verify: profileVerifier ?? profileRemoval.verify }));
   } finally {
     await attempt(() => browserState?.dispose?.());
   }
