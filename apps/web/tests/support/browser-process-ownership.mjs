@@ -128,13 +128,26 @@ export function createProcessOwnership({ profile, binary, port, startedAt, befor
     registerLauncher(child) { launcher = child; },
     refresh,
     async inspectPort(options = {}) {
-      const owned = await refresh(options);
-      options.signal?.throwIfAborted();
-      const pids = await listener(port, options);
-      options.signal?.throwIfAborted();
+      const now = options.now ?? Date.now;
+      const deadline = now() + (options.timeoutMs ?? 3000);
+      const sampleOptions = () => {
+        options.signal?.throwIfAborted();
+        if (now() >= deadline) throw ownershipError("E_PROCESS_QUERY_TIMEOUT", "Listener identity sampling deadline expired");
+        return { ...options, timeoutMs: Math.max(1, deadline - now()) };
+      };
+      const owned = await refresh(sampleOptions());
+      const listenerOptions = sampleOptions();
+      const pids = await bounded(() => listener(port, listenerOptions), Math.min(1000, listenerOptions.timeoutMs), "E_PORT_QUERY_TIMEOUT");
+      sampleOptions();
       if (!pids.length) return { ready: false, owned };
       if (pids.length !== 1 || !owned.some(p => p.pid === pids[0] && !commandFlag(p.command, "type"))) throw ownershipError("E_CDP_OWNER", "CDP listener does not belong to the session root");
-      return { ready: true, owned };
+      const freshOwned = await refresh(sampleOptions());
+      sampleOptions();
+      const root = freshOwned.find(p => p.pid === pids[0]);
+      if (!root || !sameProcess(root, known.get(pids[0])) || !valid(root) || !exactProfile(root)
+        || canonical(root.exe) !== canonical(binary) || commandFlag(root.command, "type")
+        || commandFlag(root.command, "remote-debugging-port") !== String(port)) throw ownershipError("E_CDP_OWNER", "CDP listener root disappeared or no longer matches its session");
+      return { ready: true, owned: freshOwned };
     },
     async verifyPort(options) { return (await this.inspectPort(options)).ready; },
     async hasExited(options) { return (await refresh(options)).length === 0 && (!launcher || launcher.pid == null || launcher.exitCode !== null || launcher.signalCode !== null); },

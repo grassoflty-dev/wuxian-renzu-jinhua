@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { createProcessOwnership, commandFlag, sameProcess } from "./support/browser-process-ownership.mjs";
-import { connectCdp, connectOwnedBrowser, waitForPage, closeVite, closeOwnedProcess } from "./support/browser-session.mjs";
+import { connectCdp, connectOwnedBrowser, createAttemptedTransportRegistry, waitForPage, closeVite, closeOwnedProcess } from "./support/browser-session.mjs";
 import { cleanupBrowserResources, removeOwnedProfile, withBrowserCleanup } from "./support/browser-cleanup.mjs";
 
 const profile = path.resolve("owned-session", "unique-run", "profile");
@@ -457,4 +457,145 @@ test('pre-stop second query mismatch keeps exact diagnostic and never invokes st
     assert.equal(queries, 2);
     assert.deepEqual(stopped, []);
   }
+});
+
+class AttemptSocket extends EventTarget {
+  static OPEN = 1; static CLOSED = 3;
+  static latest;
+  constructor() { super(); AttemptSocket.latest = this; this.readyState = 0; this.listeners = new Map(); this.closeCalls = 0; }
+  addEventListener(type, fn, options) { this.listeners.set(fn, type); super.addEventListener(type, fn, options); }
+  removeEventListener(type, fn) { this.listeners.delete(fn); super.removeEventListener(type, fn); }
+  emit(type, error) { const event = new Event(type); if (error) event.error = error; this.dispatchEvent(event); }
+  close() { this.closeCalls++; this.readyState = 3; this.emit('close'); }
+}
+const containsError = (error, target) => error === target || error?.cause === target || error?.errors?.some(member => containsError(member, target));
+
+for (const mode of ['throws', 'delayed', 'never']) test(`failed handshake ${mode} disposal remains reachable in the real session registry`, async () => {
+  const registry = createAttemptedTransportRegistry();
+  const socketFailure = new Error('original socket failure');
+  const closeFailure = new Error('original disposal failure');
+  let resolveClose, caught, returned = false;
+  class BrokenSocket extends AttemptSocket {
+    constructor() { super(); queueMicrotask(() => this.emit('error', socketFailure)); }
+    close() {
+      this.closeCalls++;
+      if (mode === 'throws') throw closeFailure;
+      if (mode === 'delayed') resolveClose = () => { this.readyState = 3; this.emit('close'); };
+    }
+  }
+  const run = connectOwnedBrowser(12345, connectionFixture(() => assert.fail('handshake must not reach sample')).state, {
+    ...connectionFixture(() => assert.fail('no ready')),
+    Socket: BrokenSocket, disposalTimeoutMs: 15,
+    onAttempt: handle => registry.register(handle), onConnection: () => assert.fail('failed handshake must not register success'),
+  }).catch(error => { caught = error; returned = true; });
+  // Flush allocation, handshake rejection and entry into disposal, without a timer race.
+  for (let i = 0; i < 20; i++) await Promise.resolve();
+  assert.equal(registry.retainedCount, 1);
+  if (mode === 'delayed') {
+    assert.equal(returned, false); assert.ok(resolveClose);
+    resolveClose();
+  }
+  await run;
+  assert.ok(containsError(caught, socketFailure));
+  if (mode === 'throws') assert.ok(containsError(caught, closeFailure));
+  if (mode === 'never') assert.ok(caught instanceof AggregateError && caught.errors[1].code === 'E_CDP_SOCKET_CLOSE_TIMEOUT');
+  const attempted = AttemptSocket.latest;
+  assert.equal(attempted.listeners.size, 0);
+  assert.equal(attempted.closeCalls, 1);
+  // Session cleanup can reach exactly the same attempted transport after rejection.
+  attempted.close = () => { attempted.closeCalls++; attempted.readyState = 3; attempted.emit('close'); };
+  await registry.close(15);
+  assert.equal(registry.retainedCount, 0);
+  assert.equal(attempted.closeCalls, mode === 'delayed' ? 1 : 2);
+  assert.equal(attempted.listeners.size, 0);
+});
+
+for (const mode of ['deadline', 'abort']) test(`${mode} during handshake drains listeners and rejects a late open`, async () => {
+  const controller = new AbortController(), registry = createAttemptedTransportRegistry();
+  const original = new Error('explicit cancellation');
+  let ready = 0, registered;
+  const fixture = connectionFixture(() => assert.fail('late socket cannot sample'), {
+    Socket: AttemptSocket, timeoutMs: 15, signal: controller.signal, disposalTimeoutMs: 15,
+    onAttempt: handle => { registered = handle; registry.register(handle); if (mode === 'abort') queueMicrotask(() => controller.abort(original)); },
+    onReady: () => { ready++; },
+  });
+  await assert.rejects(fixtureConnect(fixture), error => mode === 'abort' ? error === original : error.code === 'E_BROWSER_CONNECT_TIMEOUT');
+  assert.ok(registered); assert.equal(ready, 0); assert.equal(AttemptSocket.latest.listeners.size, 0);
+  AttemptSocket.latest.readyState = 1; AttemptSocket.latest.emit('open');
+  await Promise.resolve();
+  assert.equal(ready, 0);
+  await assert.rejects(registered.send('Page.enable'), { code: 'E_CDP_CLOSED' });
+  await registry.close(15);
+  assert.equal(registry.retainedCount, 0); assert.equal(AttemptSocket.latest.listeners.size, 0);
+});
+
+for (const code of ['E_PROCESS_INCOMPLETE', 'E_PROCESS_QUERY', 'E_PROCESS_QUERY_TIMEOUT']) test(`page outer timer preserves the latest original ${code} cause`, async () => {
+  const first = Object.assign(new Error('first unavailable query'), { code });
+  const latest = Object.assign(new Error('last unavailable query'), { code });
+  let calls = 0;
+  const fixture = connectionFixture(() => assert.fail('page failure must not handshake'), {
+    timeoutMs: 15,
+    state: { hasExited: async () => { throw ++calls === 1 ? first : latest; } },
+    sleep: async (ms, value, { signal }) => {
+      if (calls === 1) return;
+      await new Promise((resolve, reject) => signal.addEventListener('abort', () => reject(signal.reason), { once: true }));
+    },
+    fetcher: () => assert.fail('failed identity cannot fetch'), Socket: class { constructor() { assert.fail('no socket'); } },
+  });
+  await assert.rejects(fixtureConnect(fixture), error => error.code === 'E_BROWSER_CONNECT_TIMEOUT' && error.cause === latest && /page/.test(error.message));
+  assert.equal(calls, 2);
+});
+
+test('page hard identity errors retain the original object without polling', async () => {
+  const original = Object.assign(new Error('hard page identity'), { code: 'E_PROCESS_IDENTITY' });
+  await assert.rejects(fixtureConnect(connectionFixture(() => assert.fail('no sample'), {
+    state: { hasExited: async () => { throw original; } }, sleep: () => assert.fail('hard page failure must not poll'),
+  })), error => error === original);
+});
+
+for (const patch of [{ created: new Date(start + 1000).toISOString() }, { exe: path.resolve('new', 'msedge.exe') },
+  { command: 'replacement command' }, { exe: null }, { command: null }]) test(`listener-side replacement is refused: ${Object.keys(patch)[0]} ${patch[Object.keys(patch)[0]] === null ? 'missing' : 'changed'}`, async () => {
+  const expected = processRow(11); let rows = [expected], queries = 0, stopped = 0;
+  const owner = createProcessOwnership({ profile, binary, port: 12345, startedAt: start, before: [],
+    query: async () => { queries++; return rows; }, listener: async () => { rows = [{ ...expected, ...patch }]; return [11]; }, stop: () => { stopped++; } });
+  await assert.rejects(owner.verifyPort({ timeoutMs: 100 }), error => checkIdentityDiagnostic(error, 'refresh', expected, rows[0], Object.keys(patch)));
+  assert.equal(queries, 2); assert.equal(stopped, 0);
+});
+
+test('a root disappearing while listener is queried cannot use a stale snapshot', async () => {
+  let rows = [processRow(11)];
+  const owner = createProcessOwnership({ profile, binary, port: 12345, startedAt: start, before: [],
+    query: async () => rows, listener: async () => { rows = []; return [11]; }, stop: () => assert.fail('no stop') });
+  await assert.rejects(owner.inspectPort({ timeoutMs: 100 }), { code: 'E_CDP_OWNER' });
+});
+
+test('stable listener returns the last exact snapshot with remaining budgets and cancellation', async () => {
+  const initial = processRow(11), final = { ...initial }; let queries = 0, clock = 0;
+  const controller = new AbortController(), budgets = [];
+  const owner = createProcessOwnership({ profile, binary, port: 12345, startedAt: start, before: [],
+    query: async options => { assert.equal(options.signal, controller.signal); budgets.push(options.timeoutMs); clock += 10; return ++queries === 1 ? [initial] : [final]; },
+    listener: async (port, options) => { assert.equal(port, 12345); assert.equal(options.signal, controller.signal); budgets.push(options.timeoutMs); clock += 10; return [11]; } });
+  const sample = await owner.inspectPort({ timeoutMs: 100, signal: controller.signal, now: () => clock });
+  assert.equal(sample.ready, true); assert.equal(sample.owned[0], final); assert.deepEqual(budgets, [100, 90, 80]);
+});
+
+for (const mode of ['late', 'aborted']) test(`listener ${mode} success never authorizes readiness`, async () => {
+  let clock = 0; const controller = new AbortController();
+  const owner = createProcessOwnership({ profile, binary, port: 12345, startedAt: start, before: [], query: async () => [processRow(11)],
+    listener: async () => { if (mode === 'late') clock = 100; else controller.abort(new Error('cancel listener')); return [11]; } });
+  await assert.rejects(owner.inspectPort({ timeoutMs: 100, signal: controller.signal, now: () => clock }));
+});
+
+test('registered attempted transport can synchronously open before handshake listeners attach', async () => {
+  let registered;
+  const connection = await connectCdp(socketUrl, { Socket: AttemptSocket, onAttempt: handle => {
+    registered = handle;
+    AttemptSocket.latest.readyState = AttemptSocket.OPEN;
+    AttemptSocket.latest.emit('open');
+  } });
+  assert.equal(connection, registered);
+  assert.equal(AttemptSocket.latest.readyState, AttemptSocket.OPEN);
+  await connection.close();
+  assert.equal(AttemptSocket.latest.readyState, AttemptSocket.CLOSED);
+  assert.equal(AttemptSocket.latest.listeners.size, 0);
 });
