@@ -1,5 +1,5 @@
 import { createBrowserSession, freePort, startHttpServer, withBrowserCleanup } from "./support/browser-session.mjs";
-import { bounded } from "./support/browser-cleanup.mjs";
+import { createViteSessionResource } from "./support/vite-session-resource.mjs";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import path from "node:path";
@@ -187,7 +187,7 @@ test("hub lifecycle: two new journeys, save, return, continue, and recover after
   const vitePort = await freePort();
   let cdp;
   await withBrowserCleanup(async () => {
-  const vite = await bounded(() => createServer({
+  const viteResource = createViteSessionResource(() => createServer({
     configFile: path.join(webRoot, "vite.config.ts"),
     root: webRoot,
     cacheDir: path.join(profile, "vite-cache"),
@@ -204,7 +204,8 @@ test("hub lifecycle: two new journeys, save, return, continue, and recover after
         return rendererMocks[id.slice("\0hub-lifecycle:".length)];
       },
     }],
-  }), 15000, "E_VITE_CREATE_TIMEOUT");
+  }), resource => session.trackVite(resource), { timeoutMs: 15000 });
+  const vite = await viteResource.ready();
     await session.listenVite(vite, webRoot);
     await session.start();
     cdp = await session.connect();
