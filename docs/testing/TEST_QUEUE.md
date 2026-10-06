@@ -9,8 +9,8 @@
 - task_id: TEST-EVIDENCE-VITE-001
 - revision: 1
 - task_type: test
-- status: RUNNING
-- availability: RUNNING_TASK
+- status: BLOCKED
+- availability: NO_READY_TASK
 - code_sha: e4d3a864ae4156e256b4ee5951d1dd4c74bfdb1f
 - source_branch: candidate/test-evidence-vite-20261006
 - task_document: https://github.com/grassoflty-dev/wuxian-renzu-jinhua/blob/ee815354cc561dee9b1856f77a099568d8e259a8/docs/testing/tasks/TEST-EVIDENCE-VITE-001-r1.md
