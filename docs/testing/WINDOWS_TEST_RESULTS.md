@@ -258,3 +258,71 @@
 - 助手最初将差异描述为可能不同执行环境，证据不足。后续只读检查找到同一测试目录在应用包 `<LOCALAPPDATA>/Packages/<CODEX_PACKAGE>/LocalCache/Local/WuxianPreviewTests/<RUN>` 下的实际可见路径。原逻辑路径与包缓存路径的 EXE 文件 ID 完全一致，SHA256 均为固定 preview.5 期望值。该证据支持应用包文件重定向，而不是两份不同 EXE；不据 PowerShell 5.1/7.6.5 差异断言不同电脑。桌面工具仅列出应用，用户确认当前应用吻合；截图/输入能力及游戏环境仍未验收。
 - 本段依据 E05 `evidence/E05-path-alias.txt`，SHA256 `a9b05409f33bea29bf824557c0f1553ea53fbd43445f25c84048f388351e9548`；原始私人路径和文件 ID 留本地，不上传。包缓存真实路径是否在用户终端可访问，仍待用户 Test-Path 确认。
 - W01 的本机 Windows Python 静态核验结果保持；W02 仍 BLOCKED，W03–W16 仍 NOT_RUN。未重试被拒绝启动、未使用桌面/其他接口绕过策略，无游戏 PID 或窗口。将向用户提供包缓存实际路径的隔离手动步骤，禁止默认环境双击；安全提示由用户处理。合计仍 PASS 1 / FAIL 0 / BLOCKED 1 / NOT_RUN 14。
+
+### Run: 20261006T033723Z-12828 (人工启动后的原生交互)
+
+- 实际观察：2026-10-06 12:37:23–12:42:56 Asia/Tokyo (UTC+09:00)，03:37:23–03:42:56 UTC；后续整理证据与文档不计作试玩。用户先报告“好了，游戏启动了”；查询该进程创建时间为12:36:37，没有测量冷启动到首帧耗时。
+- 直接执行、无子代理；用户确认配置 GPT-6.1 Sol medium，未独立查询模型接口。人工参与仅隔离启动；助手随后使用 node_repl + @oai/sky 截图、聚焦、点击、Escape/Return及输入框 set_value；只针对唯一返回的游戏窗口。不通过浏览器或源码替代原生试玩。
+- 指南固定 `11130bf9b09fd1016818daeda0eed7f4a3b4cab8`。文档工作区沿用 Round2 独立 clone，初始 main HEAD `c2c10e1cef155edfe31b86d1e0e6b9d4311ce01f`、干净，origin `https://github.com/grassoflty-dev/wuxian-renzu-jinhua.git`，写入前 ls-remote 同值；未操作旧开发目录 Git 写命令。
+- 本记录为新 Run ID、接续用户已启动的 Round2 隔离环境，**没有另建全新运行根目录**；saves/diagnostics仍属测试目录，不是用户原存档。新建 evidence/native-session 独立证据子目录，不覆盖前轮证据。保留这一偏离与前轮关联，不声称重新冷启动或新建全空根目录。
+- 受测固定 `v0.1.0-preview.5`：公共源码身份 `b85ac67644b6730b268293339f62e37cf73059fa`，清单构建身份 `1d8aff05f35b24c49355cf64aa58cd7eba561571`，规范化树 `1bd25e0bcb32d5e4ae1d1ff3625d11abd958780a`；本段未重新下载/查询tag/执行源码或bundle验证，引用独立 Round2 W01，不重复算为本 Run PASS。
+- 实际进程路径核为 `<RUN_ROOT>/downloads/wuxian-renzu-jinhua-preview.5-windows-x64.exe`，255988736 bytes；本段重新计算完整 SHA256 `e97d0c07d0ceb393ba3d6775f765c7546a55a7f66d8799535617cd23bca602da`。版本字段1.0.0不改变preview.5身份。关联源 ZIP 428215921 bytes、SHA256 `2b54c7f18452d7eae5739107f57a9841f7c050162551872118e37ecf30c9b033`，本段未重算源ZIP。
+- Windows实查：Windows11家庭版中文版10.0.26200 x64，PowerShell7.6.5、Git2.53.0.windows.2。游戏PID12828，真实窗口标题“无限人族进化”，窗口ID1180472；子进程PID20372实际路径位于WebView2 `154.0.4258.53` 目录。不是仅据安装目录推测游戏版本。
+- 截图外框1282×751，画面可读；未测实际client尺寸、DPI/缩放、其他窗口尺寸，也未重测CPU/GPU/RAM/显示器。没有验证音频采集、FPS或掉帧测量能力；UIA“音频正在播放”和设置“临时合成音频就绪”不等于实际听到声音。
+- 原目录仅只读结束status：桌面既存1个ZIP删除与5个untracked条目、正式release既存server-rs/gen/均保留；未对所有文件逐字节快照，不能声称全盘无其他进程写入。未改游戏代码/素材/原工程/系统设置/ACL，未启动或终止其他实例。
+
+#### 实际步骤与命令
+
+- 用户手动启动所提供的子进程隔离步骤（助手未执行或观察用户终端的完整输出）：先设置`WUXIAN_FORMAL_SAVE_DIR=<RUN_ROOT>/saves`及`WUXIAN_NATIVE_DIAGNOSTICS_DIR=<RUN_ROOT>/diagnostics`，`Start-Process -FilePath <RUN_ROOT>/downloads/wuxian-renzu-jinhua-preview.5-windows-x64.exe -WorkingDirectory <RUN_ROOT>/downloads -PassThru`，finally恢复调用方原环境值；实际路径使用前段核实的应用包缓存真实路径。用户报告启动，加上实际PID/路径/游戏窗口及新文件落点证据，不是断言平台已授权助手重放启动。
+- 助手12:37–12:42按游戏窗口逐步观察→输入→刷新：初始菜单（继续disabled）→设置→关闭→新旅程→归航站→Escape暂停→命名`Codex-preview5-native-test`→保存→恢复→返回菜单→第二次新旅程→归航站→返回→继续选择命名槽→指定槽读取→归航站→返回菜单→退出。没有对每次点击独立计时；不虚构首帧/加载时延。
+- 第一次存档实际落在`<RUN_ROOT>/saves/slots/<TEST_SLOT>/slot-v6.json`，5295 bytes，保存提示“第826帧”；场景rs_core_room、HP/energy100、位置(4,0,8)，无世界完成事件、奖励或成长。菜单返回后还观察到隔离saves/formal-save-v6.json自动档4756 bytes；不能据文件存在声称自动档重启读取已通过。
+- 下拉指定槽的indexed click一次被工具拒绝：point over non-target msedgewebview2 “Chrome Legacy Window”。保留窗口身份保护；激活原游戏并刷新，使用Return选中已观察的高亮槽，再点Continue Selected成功。同进程实际加载完成；没有操作其他窗口或绕过启动策略。此为已恢复的工具子步骤阻碍，不是游戏崩溃。
+- 结束只读命令：`Get-CimInstance Win32_Process -Filter 'ProcessId=12828'`及ParentProcessId查询；`Get-FileHash -Algorithm SHA256`；`Get-ChildItem <RUN_ROOT>/saves -Recurse -File`；读取测试槽/自动档JSON和诊断；`git status --porcelain=v1`（旧目录只读），`git remote -v/rev-parse HEAD/ls-remote`（独立文档clone）。日志/存档只复制到新证据文件，不修改原件；查询单元退出0，未逐命令计时。
+
+#### 逐项结果
+
+| ID | 状态 | 实际步骤、观察、未覆盖部分及证据 |
+|---|---|---|
+| W01 | NOT_RUN | 本Run仅重核实际EXE路径/hash。完整静态核验在前述Round2已PASS，未重跑，不移植为本Run PASS |
+| W02 | PASS | 用户隔离启动后，唯一对应PID/路径的真实原生主菜单可读，新旅程也呈现地图，无持续黑/白屏或本段启动崩溃。冷启动耗时未知，未观测安全提示；不是助手启动权限已解除。E01/E03/E09/E13 |
+| W03 | FAIL | 设置可打开/关闭、Continue初始disabled且保存后可选择槽；主菜单退出按钮实际报ACL错误且未关闭。尚未覆盖全部页面/取消/重复组合。此FAIL对应下述唯一D01，不算第二个独立缺陷。E01/E02/E08 |
+| W04 | NOT_RUN | 部分完成两次新旅程、归航站、暂停/恢复和返回；两次HUD baseline100/100。未做held-input残留或有进度/奖励状态的reset验收，按指南不将一次/两次新旅程呈现升为整项PASS。E03–E06/E12 |
+| W05 | NOT_RUN | 未做四向/斜向持续移动、松键、绕角色鼠标瞄准；支持单次按键不证明可完成held-key验收 |
+| W06 | NOT_RUN | 只见归航站地面/设施，不曾绕行、穿门、走平台或切世界；未判遮挡PASS |
+| W07 | NOT_RUN | 未进入战斗、未试J/左键/Shift/Q/E按下松开/R和受击反馈 |
+| W08 | NOT_RUN | 非战斗暂停/恢复已观察，但战斗焦点/持续移动/Guard释放未覆盖 |
+| W09 | FAIL | 命名槽隔离写入及同PID明确槽读取成功；尝试正常退出实际失败，重启后的自动档Continue/指定槽及进度一致性未完成。E05/E07–E11；不能将同进程加载当重启恢复 |
+| W10 | NOT_RUN | 最后到达归航站rs_core_room；未进灰巢/首通强化 |
+| W11 | NOT_RUN | 未到雾港/泵站/首次完成 |
+| W12 | NOT_RUN | 未到钟骨/炉心推进 |
+| W13 | NOT_RUN | 尚无世界完成事件，未做Archive解锁/重读验收 |
+| W14 | NOT_RUN | 未到Bio，白芷unresolved/taken/left三独立分支均未操作 |
+| W15 | NOT_RUN | 只有单一外框1282×751截图；其他尺寸/client尺寸/DPI未验证 |
+| W16 | BLOCKED | 当前受支持工具未验证音频/FPS观测方法，不以UIA音频标记/进程存在判通过；没有连续切场景测稳定性。退出实际缺陷另见D01，不将它改称工具阻塞 |
+
+#### 本地证据索引
+
+以下相对路径均位于`<RUN_ROOT>/evidence/native-session/`。原始截图、完整日志和存档未上传；哈希只索引本地原件，不是公开可下载附件。
+
+| ID | 文件 | SHA256 | 证明范围 |
+|---|---|---|---|
+| E01 | E01-menu.png | 46d5b835f8eb90e6e59dd4f0b2077e1c7da979559b3870e59eedafbe3fad6d02 | 真实初始主菜单 |
+| E02 | E02-settings.png | ab89c4b016f6e02ce6024e0414790b9e5babb3b37f0162cf13b0ff3484073fc8 | 设置页面，非实际声音证据 |
+| E03 | E03-station.png | 47e922a5054c80c47611974c93015e10e82fcf952f8b1af76ce31c0d5256654f | 第一次新旅程归航站 |
+| E04 | E04-paused.png | 2a1125b754446dc520067fa7ff2010140374382214247291830c8255adc4e367 | 暂停覆盖层 |
+| E05 | E05-saved.png | ac7fa3e13f0175b5cf0cd1d123458a603eca16869c7b132adcfb9cb2e1aacec9 | 命名槽保存成功提示 |
+| E06 | E06-second-journey.png | f11a72f3c3f8caac0550d312340d1b71d44da39d3dfe9916638a3e5659a745ea | 第二次新旅程 |
+| E07 | E07-loaded-slot.png | a288372dad725c3d535cfaf80107c56a129030720008448002153b144ed1f296 | 同进程指定槽加载，不是重启 |
+| E08 | E08-exit-failed.png | 7f6dcd5b558e08087d68b8bc8420ed3301417f26ed2622c3c2191f0d275c48ef | 退出ACL报错 |
+| E09 | E09-native-final.txt | f5f64bcb5b03362ec52af68244eafb80130503206231f92baf8c958f9c2ad716 | 本地只读结束查询transcript，部分表列显示省略，不据其虚构值 |
+| E10 | E10-auto-save.json | e9252b73eb7ea559257dc8bae4d01ad9f15bf0bd92dc1d9291d9418c44ba4f27 | 实际隔离自动档原样快照 |
+| E11 | E11-named-slot.json | 131e898cfe8a6fc29636fd597faeed1aa0c8cfcaa770859c2c87f38ae593ae62 | 实际隔离命名槽原样快照 |
+| E12 | E12-new-journey-stages.log | c3701761ea6da9a670ef85137e065de3fc200b741532de406eb52b9039d8d7c9 | 两次新旅程command/reset/receipt阶段，非FPS证据 |
+| E13 | E13-observation-notes.md | c95b9ab46b9ae3d11a66c2c2541c200f7f507218d3588bb8484b8c8241301912 | 观察顺序与补充查询转录，非独立自动化测试输出 |
+
+#### 缺陷、限制与接续
+
+- **D01 / 正常退出失败 / W03、W09 / 实际1次。** 主菜单点“退出”，预期正常关闭受测进程；实际可见`退出失败：Command plugin:window|close not allowed by ACL`，PID12828仍存在。E08/同进程查询。提示与window-close命令被ACL拒绝一致，但未审查源码确定根因。没有修改权限/安全设置、换接口强退或借其他工具重放启动。
+- 后续需用户通过普通窗口关闭操作结束本实例，再亲自在**同一隔离saves/diagnostics环境**重新启动，另段验证自动档Continue与指定槽、场景/成长/任务状态。即使人工标题栏关闭可用，D01仍是退出按钮FAIL，不能改写成正常退出通过。当前保留失败窗口及本地证据。
+- **PASS1 / FAIL2 / BLOCKED1 / NOT_RUN12，共16项**；FAIL2是两项验收受同一个D01影响，不是两项不同游戏缺陷。W04等NOT_RUN中记录了部分实际步骤，完整细目未通过。旧Run和模板完整保留；前轮W01 PASS与本段W02 PASS不等于正式native-verified或三世界通过。
+- 仅追加脱敏测试文档，普通非强制推送main并核对远端；提交含[skip ci]。没有改游戏/原工程/仓库设置/工作流，没有调用Actions。此段写成时尚未推送；上传情况以交付核验为准。断电/强制崩溃/并发写档注入均NOT_RUN。
