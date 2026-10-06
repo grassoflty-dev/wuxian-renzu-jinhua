@@ -187,3 +187,66 @@
 - 断电/强制崩溃/并发存档注入：NOT_RUN，未执行。
 - 先解决启动策略和 Windows 验证器阻塞再扩大试玩；本记录不支持 native-verified、三世界通过或发行验收结论。
 - 远端写回：下述记录写成时尚未推送；只提交本文件，说明含 `[skip ci]`，将按普通非强制推送及远端内容核对结果交付。仓库当前没有被 Git 跟踪的 `.github/workflows` 文件；未调用 Actions、未改变设置。
+
+### Run: 20261006T031535Z-626073de (Round 2 / W01)
+
+- 实际时间：2026-10-06 12:15:35–12:17:06 Asia/Tokyo (UTC+09:00)，03:15:35–03:17:06 UTC。关联历史 Run 20261006T005149Z-9001ab28；旧记录未改写。
+- Codex 直接执行，无子代理、无人工游戏操作；用户确认配置 GPT-6.1 Sol medium，未独立查询模型身份。实际工具：PowerShell/exec_command、Git、GitHub connector；本轮未使用桌面控制工具，截图、键鼠、音频、性能能力未复核。
+- 范围：仅 W01 静态复测。指南和补充工具固定 commit `11130bf9b09fd1016818daeda0eed7f4a3b4cab8`。全新 documents clone 的初始 main HEAD 同值，初始干净；origin `https://github.com/grassoflty-dev/wuxian-renzu-jinhua.git`。未修改旧开发目录。
+- 固定标签 `v0.1.0-preview.5`，本轮 ls-remote 确认公共标签提交 `b85ac67644b6730b268293339f62e37cf73059fa`。原构建源码声明 `1d8aff05f35b24c49355cf64aa58cd7eba561571`，独立重算规范化树 `1bd25e0bcb32d5e4ae1d1ff3625d11abd958780a`；ZIP 不包含原 Git 提交历史对象。
+- EXE `wuxian-renzu-jinhua-preview.5-windows-x64.exe`：255988736 bytes，SHA256 `e97d0c07d0ceb393ba3d6775f765c7546a55a7f66d8799535617cd23bca602da`。文件/产品版本字段 1.0.0 不替代 preview.5 身份。
+- source ZIP `wuxian-renzu-jinhua-preview.5-corresponding-source.zip`：428215921 bytes，SHA256 `2b54c7f18452d7eae5739107f57a9841f7c050162551872118e37ecf30c9b033`。
+- 上述完整附件与六份发布说明从首轮 downloads 复制到本轮新目录，并重新计算完整大小/hash、对照当前 Release API digest 和同版 SHA256SUMS/manifest；不是重新下载大附件。源目录未写入。11 份补充工具从指定不可变 ref 的 raw URL 新下载，逐文件 SHA256 全部匹配指南第 0 节；未替换原发布工具 ZIP，未改断言、期望值或使用 -O/-OO。
+- Windows 11 家庭版中文版 10.0.26200 x64；PowerShell 7.6.5、Git 2.53.0.windows.2、同一 bundled CPython 3.12.14 x64、pip 26.2.1。开始 C 盘空闲 28896116736 bytes。WebView2 游戏实际版本、游戏窗口/分辨率/DPI、音频、性能无运行观察；本轮不重复硬件测量，也不移植历史环境为新实测。
+- 新建 `<RUN_ROOT>`，downloads/saves/diagnostics/evidence/verification-windows-fix/documents 隔离。官方 Brotli 1.2.0 cp312-win_amd64 wheel 仅安装至本轮 verification-windows-fix，要求 hash `b35c13ce241abdd44cb8ca70683f20c0c079728a36a996297adb5334adfc1c44`，来自 PyPI，pip --require-hashes 成功。未改全局 Python 或系统设置。
+- 开始与结束只读 Git status 一致：旧桌面目录既存删除和 5 个 untracked 条目保留，正式 release 仍仅 server-rs/gen/ untracked。没有逐字节快照全盘；不声称其他进程未写入。结束未见游戏进程，saves/diagnostics 为空，无 PID、游戏窗口、截图、存档或诊断日志；存档隔离实际写入尚未验证。
+
+#### 命令记录
+
+`<PYTHON>` 为首轮相同 bundled CPython 的绝对路径（公开记录脱敏），`<V>` 为 `<RUN_ROOT>/verification-windows-fix`。E01 中保留完整命令与私人路径，仅留本地。
+
+| 编号 | 时间 Asia/Tokyo | 实际命令/参数 | 实际结果/耗时 | 证据 |
+|---|---|---|---|---|
+| C01 | 12:15:35–12:16:29 | 执行本轮 w01.ps1：Get-PSDrive C、旧目录 git status、Get-CimInstance Win32_OperatingSystem/Win32_Process；git clone --depth 1 --branch main <公开origin> <RUN_ROOT>/documents；git ls-remote origin refs/heads/main refs/tags/v0.1.0-preview.5；逐文件 Invoke-WebRequest <固定ref raw URL>；Copy-Item 旧下载至新 downloads；Get-FileHash；Release API；Python 平台/版本检查及 -m pip --version | 命令单元最终退出 0；11 工具及8附件身份一致；复制/下载子步骤未独立计时 | E01 |
+| C02 | 12:16:35–12:16:47 区间 | <PYTHON> -m pip install --only-binary=:all: --no-deps --index-url https://pypi.org/simple --target <V> --require-hashes -r <V>/requirements-windows-py312-x64.txt | pip 退出 0；Brotli 1.2.0 安装成功；单元 3.617s（包含前置文件阅读，非纯 pip 耗时） | E02 |
+| C03 | 12:16:47–12:16:50 | <PYTHON> <V>/verify-source.py <RUN_ROOT>/downloads/wuxian-renzu-jinhua-preview.5-corresponding-source.zip | 实际 result pass，退出 0，2.309s | E03 |
+| C04 | 12:16:50–12:16:56 | <PYTHON> <V>/verify-native.py <RUN_ROOT>/downloads/wuxian-renzu-jinhua-preview.5-windows-x64.exe <RUN_ROOT>/downloads/wuxian-renzu-jinhua-preview.5-corresponding-source.zip | 实际 result pass，退出 0，6.576s；没有执行 EXE | E03 |
+| C05 | 12:17:06 | 旧目录 git status、游戏名进程查询、saves/diagnostics 列表、EXE VersionInfo、Get-FileHash 本轮证据 | 成功；无本轮游戏进程/存档/诊断 | E04 |
+
+#### 逐项结果
+
+| ID | 状态 | 实际步骤/观察及限制 |
+|---|---|---|
+| W01 | PASS | 完整文件/hash/标签/工具来源检查；源码验证1906清单项、757工程文件、8份PS规范化；Windows Python 实际完成完整 PE32+ x64 GUI/13系统DLL/图标/场景/raw+Brotli/sidecar 正向闭包：7图标帧、256×256默认图标、30原生scene、163Web载荷。没有重跑云端维护测试/负样本，不代表游戏运行通过。E01–E03 |
+| W02 | BLOCKED | 历史策略拒绝未解除，用户明确没有平台允许启动的证据；本轮没有提交启动命令，没有重试被拒绝动作或更换工具。待用户在本轮隔离环境亲自启动；无窗口/PID。E04与历史B02 |
+| W03 | NOT_RUN | 没有原生窗口，菜单页面未操作 |
+| W04 | NOT_RUN | 新旅程/暂停/再次新旅程未操作 |
+| W05 | NOT_RUN | 移动/停止/鼠标朝向未观察 |
+| W06 | NOT_RUN | 遮挡/地图未观察 |
+| W07 | NOT_RUN | J/左键/Shift/Q/E/R及受击未观察 |
+| W08 | NOT_RUN | 暂停/恢复及焦点未操作 |
+| W09 | NOT_RUN | 保存退出重启继续未操作；saves为空 |
+| W10 | NOT_RUN | 未到灰巢；最后场景无 |
+| W11 | NOT_RUN | 未到雾港 |
+| W12 | NOT_RUN | 未到钟骨 |
+| W13 | NOT_RUN | 未确认世界事件/Archive |
+| W14 | NOT_RUN | 白芷unresolved/taken/left均未操作 |
+| W15 | NOT_RUN | 游戏窗口尺寸/DPI未观察 |
+| W16 | NOT_RUN | 音频/性能/连续游玩/正常退出未观察 |
+
+#### 证据索引（原件仅本地，不是公开附件）
+
+| ID | 相对路径 | SHA256 | 证明范围 |
+|---|---|---|---|
+| E01 | preflight-transcript.txt | b50a160124c2da709c82c6c91502684cb04ba4357b2eaa93750e73577c34f857 | 来源、工具/附件身份、版本、初始旧Git状态 |
+| E02 | evidence/E02-pip.txt | 172f343476b0b7c583d5dfdc606e80ed312252a46f3e70c45d997ff4302a7eea | hash限定的本轮隔离依赖安装输出 |
+| E03 | evidence/E03-verifications.txt | f2f10e8ed2830ef12421f62e2bd9e843890efd270a5a71a96c73497052762408 | 两项实际Windows静态核验输出/退出码/耗时 |
+| E04 | evidence/E04-final.txt | 5bf84b6171b58ce32354b2cdd6d6738203e27a5f8e53154bc22567e4ff71b010 | 结束旧Git状态、无游戏进程、空隔离保存/诊断 |
+
+#### 阻塞与覆盖结论
+
+- 历史 B01 在本轮 Windows 完整静态核验范围已解决，旧 Run 的 BLOCKED 原样保留。验证器输出 WindowsExecuted=false 表示未运行 Windows 游戏，不否认本轮验证器确实在 Windows Python 执行。
+- B02 保留：未获取平台允许启动的证据，不再次提交 Start-Process。将向用户展示本轮隔离环境的可见窗口启动步骤；不是游戏崩溃或损坏证据。
+- **PASS 1 / FAIL 0 / BLOCKED 1 / NOT_RUN 14**，共16项。FAIL 0不代表游戏无缺陷；未进行浏览器/构建/原生试玩，无正式原生验收结论。
+- 原始截图（无）、存档（无）和完整工具日志保留本地；不上传原始证据。断电/崩溃/并发存档注入 NOT_RUN。
+- 仅追加本测试文档，保留模板和历史；提交含 [skip ci]，普通非强制推送main后独立核远端。此句写成时尚未推送，交付时另报实际远端结果。不改游戏、旧工程、仓库设置或工作流，不启动 Actions。
