@@ -157,3 +157,9 @@ Round 3 的 [原始结果](WINDOWS_ROUND3_RESULTS.md) 保持不变：固定源�
 #### 本 Run 写回阶段
 
 测试事实先保存到独立文档 clone，普通提交使用 `[skip ci]`，仅本文件；当前段落不预先声称推送成功。后续确认远端后追加写回核验。旧 Round 3、main、游戏代码、锁文件、工作流及仓库设置不变，不创建 Release、不上传 EXE。
+
+#### 本 Run 写回核验（首次推送已实际确认）
+
+- 首次普通提交/推送成功：[043d8b59202862593522ecbb8ea4a0f9a4456469](https://github.com/grassoflty-dev/wuxian-renzu-jinhua/commit/043d8b59202862593522ecbb8ea4a0f9a4456469)，仅 `docs/testing/WINDOWS_ROUND4_RESULTS.md`，97 行追加、0 删除，消息含 `[skip ci]`。
+- `git ls-remote origin refs/heads/candidate/preview5-exit-return-station-20261006` 返回同一完整 SHA；再次从 GitHub 读取该固定提交的[结果文档](https://github.com/grassoflty-dev/wuxian-renzu-jinhua/blob/043d8b59202862593522ecbb8ea4a0f9a4456469/docs/testing/WINDOWS_ROUND4_RESULTS.md)，核对 Run、模板、四项失败和干预收尾限制均存在，Git blob `f2e3abbec97832302da2488b811ac0d4b7088c43`，本地文档 clone clean。
+- 本段是在上述远端核验完成后追加，将以第二个同文件普通文档提交保存；第二次远端核验由最终回复报告。不预写未知提交 SHA，不强推，不改旧结果/代码，不上传本地原件。
