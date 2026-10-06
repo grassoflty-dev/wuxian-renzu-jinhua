@@ -40,14 +40,16 @@ export async function startHttpServer(server) {
   } catch (error) { server.closeAllConnections?.(); server.close(); throw error; }
 }
 
-export async function connectCdp(url, { Socket = WebSocket, timeoutMs = 5000 } = {}) {
+export async function connectCdp(url, { Socket = WebSocket, timeoutMs = 5000, signal } = {}) {
+  signal?.throwIfAborted();
   const parsed = new URL(url);
   if (parsed.protocol !== "ws:" || !["127.0.0.1", "localhost", "[::1]"].includes(parsed.hostname)) throw ownershipError("E_CDP_URL", "CDP must be a local WebSocket");
   const socket = new Socket(url);
   let next = 0, closed = false;
+  const transport = new AbortController();
   const pending = new Map();
   const disconnected = () => ownershipError("E_CDP_CLOSED", "CDP connection closed");
-  const rejectPending = error => { closed = true; for (const request of pending.values()) request.reject(error); pending.clear(); };
+  const rejectPending = error => { closed = true; transport.abort(error); for (const request of pending.values()) request.reject(error); pending.clear(); };
   socket.addEventListener("close", () => rejectPending(disconnected()));
   socket.addEventListener("error", () => rejectPending(ownershipError("E_CDP_SOCKET", "CDP socket failed")));
   socket.addEventListener("message", ({ data }) => {
@@ -60,17 +62,19 @@ export async function connectCdp(url, { Socket = WebSocket, timeoutMs = 5000 } =
   });
   try {
     await new Promise((resolve, reject) => {
-      const finish = error => { clearTimeout(timer); socket.removeEventListener("open", opened); socket.removeEventListener("error", failed); socket.removeEventListener("close", failed); error ? reject(error) : resolve(); };
+      const finish = error => { clearTimeout(timer); signal?.removeEventListener("abort", aborted); socket.removeEventListener("open", opened); socket.removeEventListener("error", failed); socket.removeEventListener("close", failed); error ? reject(error) : resolve(); };
       const opened = () => finish();
       const failed = () => finish(disconnected());
+      const aborted = () => finish(signal.reason);
       const timer = setTimeout(() => finish(ownershipError("E_CDP_CONNECT_TIMEOUT", "CDP handshake timed out")), timeoutMs);
       socket.addEventListener("open", opened, { once: true }); socket.addEventListener("error", failed, { once: true }); socket.addEventListener("close", failed, { once: true });
+      signal?.addEventListener("abort", aborted, { once: true });
     });
   } catch (error) {
-    try { socket.close(); } catch {}
-    throw error;
+    await withBrowserCleanup(async () => { throw error; }, async () => { socket.close(); });
   }
   return {
+    transportSignal: transport.signal,
     send(method, params = {}, { timeoutMs: requestTimeout = 5000 } = {}) {
       if (closed || socket.readyState !== Socket.OPEN) return Promise.reject(disconnected());
       const id = ++next;
@@ -86,7 +90,7 @@ export async function connectCdp(url, { Socket = WebSocket, timeoutMs = 5000 } =
       if (socket.readyState === Socket.CLOSED) return;
       await new Promise((resolve, reject) => {
         const finish = error => { clearTimeout(timer); socket.removeEventListener("close", ended); error ? reject(error) : resolve(); };
-        const ended = () => finish();
+        const ended = () => queueMicrotask(() => finish());
         const timer = setTimeout(() => finish(ownershipError("E_CDP_SOCKET_CLOSE_TIMEOUT", "CDP socket did not close")), 1500);
         socket.addEventListener("close", ended, { once: true });
         try { socket.close(); } catch (error) { finish(error); }
@@ -95,37 +99,101 @@ export async function connectCdp(url, { Socket = WebSocket, timeoutMs = 5000 } =
   };
 }
 
-export async function waitForPage(port, state, { fetcher = fetch, connectTimeoutMs = 15000 } = {}) {
-  const deadline = Date.now() + connectTimeoutMs;
+export async function waitForPage(port, state, { fetcher = fetch, connectTimeoutMs = 15000, deadline = Date.now() + connectTimeoutMs, signal, now = Date.now, sleep = delay } = {}) {
   let missingSince, lastOwnershipError;
-  while (Date.now() < deadline) {
+  const options = () => { signal?.throwIfAborted(); if (now() >= deadline) throw ownershipError("E_BROWSER_CONNECT_TIMEOUT", "Page discovery deadline expired", lastOwnershipError); return { signal, timeoutMs: Math.max(1, deadline - now()) }; };
+  while (now() < deadline) {
+    options();
     if (state.error) throw state.error;
     let gone;
-    try { gone = await state.hasExited(); }
+    try { gone = await state.hasExited(options()); options(); }
     catch (error) {
       if (!["E_PROCESS_INCOMPLETE", "E_PROCESS_QUERY", "E_PROCESS_QUERY_TIMEOUT"].includes(error.code)) throw error;
       lastOwnershipError = error;
-      await delay(Math.min(50, Math.max(0, deadline - Date.now())));
+      await sleep(Math.min(50, Math.max(0, deadline - now())), undefined, { signal });
       continue;
     }
-    if (gone) { missingSince ??= Date.now(); if (Date.now() - missingSince >= 1000) throw ownershipError("E_BROWSER_EXIT", "Browser session exited before CDP became ready"); }
+    if (gone) { missingSince ??= now(); if (now() - missingSince >= 1000) throw ownershipError("E_BROWSER_EXIT", "Browser session exited before CDP became ready"); }
     else missingSince = undefined;
     let page;
     try {
-      const response = await fetcher(`http://127.0.0.1:${port}/json/list`, { signal: AbortSignal.timeout(Math.min(1000, Math.max(1, deadline - Date.now()))) });
+      const requestSignal = AbortSignal.timeout(Math.min(1000, options().timeoutMs));
+      const response = await fetcher(`http://127.0.0.1:${port}/json/list`, { signal: signal ? AbortSignal.any([signal, requestSignal]) : requestSignal });
       if (response.ok) page = (await response.json()).find(p => p.type === "page");
     } catch {}
+    options();
     if (page?.webSocketDebuggerUrl) {
       if (new URL(page.webSocketDebuggerUrl).port !== String(port)) throw ownershipError("E_CDP_URL", "Unexpected CDP debug port");
-      try { if (await state.ownership.verifyPort()) return page.webSocketDebuggerUrl; }
+      try { const verified = await state.ownership.verifyPort(options()); options(); if (verified) return page.webSocketDebuggerUrl; }
       catch (error) {
         if (!["E_PROCESS_INCOMPLETE", "E_PROCESS_QUERY", "E_PROCESS_QUERY_TIMEOUT"].includes(error.code)) throw error;
         lastOwnershipError = error;
       }
     }
-    await delay(Math.min(50, Math.max(0, deadline - Date.now())));
+    await sleep(Math.min(50, Math.max(0, deadline - now())), undefined, { signal });
   }
   throw ownershipError("E_BROWSER_CONNECT_TIMEOUT", "Browser session CDP readiness timed out", lastOwnershipError);
+}
+
+// This is the connection path used by real sessions and injected regressions.
+// A single cancellation boundary spans discovery, handshake and fresh identity.
+export async function connectOwnedBrowser(port, state, { Socket = WebSocket, fetcher = fetch,
+  timeoutMs = 15000, now = Date.now, sleep = delay, deadline = now() + Math.min(15000, timeoutMs),
+  onConnection = () => {}, onReady = () => {} } = {}) {
+  const controller = new AbortController();
+  let phase = "page", lastError, connection;
+  const expired = () => ownershipError("E_BROWSER_CONNECT_TIMEOUT", `Browser connection deadline expired during ${phase}`, lastError);
+  const remaining = () => {
+    controller.signal.throwIfAborted();
+    if (now() >= deadline) throw expired();
+    return Math.max(1, deadline - now());
+  };
+  const timer = setTimeout(() => controller.abort(expired()), Math.max(1, deadline - now()));
+  let transportSignal;
+  const transportFailed = () => controller.abort(transportSignal.reason);
+  const run = async action => {
+    remaining();
+    let aborted;
+    try {
+      const value = await Promise.race([Promise.resolve().then(() => { remaining(); return action(); }),
+        new Promise((resolve, reject) => { aborted = () => reject(controller.signal.reason); controller.signal.addEventListener("abort", aborted, { once: true }); })]);
+      remaining();
+      return value;
+    } finally { controller.signal.removeEventListener("abort", aborted); }
+  };
+  try {
+    const url = await run(() => waitForPage(port, state, { fetcher, deadline, signal: controller.signal, now, sleep }));
+    phase = "handshake";
+    connection = await connectCdp(url, { Socket, timeoutMs: remaining(), signal: controller.signal });
+    // Register before any later check can throw; cleanup always knows the socket.
+    onConnection(connection);
+    transportSignal = connection.transportSignal;
+    transportSignal.addEventListener("abort", transportFailed, { once: true });
+    if (transportSignal.aborted) transportFailed();
+    remaining();
+    phase = "fresh-ownership";
+    while (true) {
+      let sample;
+      try { sample = await run(() => state.ownership.inspectPort({ signal: controller.signal, timeoutMs: remaining() })); }
+      catch (error) {
+        if (!["E_PROCESS_INCOMPLETE", "E_PROCESS_QUERY", "E_PROCESS_QUERY_TIMEOUT"].includes(error.code)) throw error;
+        lastError = error;
+      }
+      remaining();
+      if (sample?.ready) {
+        onReady(sample.owned);
+        return connection;
+      }
+      await run(() => sleep(Math.min(50, remaining()), undefined, { signal: controller.signal }));
+    }
+  } catch (error) {
+    controller.abort(error);
+    await withBrowserCleanup(async () => { throw error; }, async () => { if (connection) await connection.close(); });
+  } finally {
+    clearTimeout(timer);
+    transportSignal?.removeEventListener("abort", transportFailed);
+    controller.abort(ownershipError("E_CONNECT_FINISHED", "Connection polling finished"));
+  }
 }
 
 export async function createBrowserSession(binary, label) {
@@ -154,7 +222,7 @@ export async function createBrowserSession(binary, label) {
       browserState = {
         ownership: browserOwnership, child,
         get error() { return launcher.error; },
-        hasExited: () => browserOwnership.hasExited(),
+        hasExited: options => browserOwnership.hasExited(options),
         waitForExit: timeout => browserOwnership.waitForExit(timeout),
         terminate: (signal, timeout) => browserOwnership.terminate(timeout),
         dispose: () => launcher.dispose(),
@@ -164,8 +232,10 @@ export async function createBrowserSession(binary, label) {
       return child;
     },
     async connect() {
-      cdp = await connectCdp(await waitForPage(port, browserState));
-      console.log(`browser-session ${label}: CDP-ready owners=${JSON.stringify((await browserOwnership.refresh()).map(p => ({ pid: p.pid, parent: p.parent, created: p.created })))}`);
+      cdp = await connectOwnedBrowser(port, browserState, {
+        onConnection: connection => { cdp = connection; },
+        onReady: owned => console.log(`browser-session ${label}: CDP-ready owners=${JSON.stringify(owned.map(p => ({ pid: p.pid, parent: p.parent, created: p.created })))}`),
+      });
       return cdp;
     },
     trackVite(vite) {

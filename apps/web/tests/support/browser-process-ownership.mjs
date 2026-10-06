@@ -16,20 +16,20 @@ export function sameProcess(a, b) {
   return !!a && !!b && a.pid === b.pid && a.created === b.created && a.exe === b.exe && a.command === b.command;
 }
 
-export async function windowsProcesses() {
+export async function windowsProcesses({ timeoutMs = 1000, signal } = {}) {
   const script = '$ErrorActionPreference="Stop"; @(Get-CimInstance Win32_Process | ForEach-Object { [pscustomobject]@{pid=[int]$_.ProcessId;parent=[int]$_.ParentProcessId;name=$_.Name;created=$_.CreationDate.ToUniversalTime().ToString("o");exe=$_.ExecutablePath;command=$_.CommandLine} }) | ConvertTo-Json -Compress';
   try {
     const { stdout } = await execute("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", script],
-      { windowsHide: true, timeout: 1000, maxBuffer: 8 * 1024 * 1024 });
+      { windowsHide: true, timeout: Math.min(1000, timeoutMs), signal, maxBuffer: 8 * 1024 * 1024 });
     const rows = JSON.parse(stdout);
     if (!Array.isArray(rows) || rows.some(p => !Number.isInteger(p.pid) || !Number.isInteger(p.parent) || !Number.isFinite(Date.parse(p.created)))) throw new Error("Invalid process inventory");
     return rows;
   } catch (error) { throw ownershipError("E_PROCESS_QUERY", "Cannot verify process ownership", error); }
 }
 
-export async function windowsListener(port) {
+export async function windowsListener(port, { timeoutMs = 1000, signal } = {}) {
   try {
-    const { stdout } = await execute("netstat.exe", ["-ano", "-p", "TCP"], { windowsHide: true, timeout: 1000, maxBuffer: 4 * 1024 * 1024 });
+    const { stdout } = await execute("netstat.exe", ["-ano", "-p", "TCP"], { windowsHide: true, timeout: Math.min(1000, timeoutMs), signal, maxBuffer: 4 * 1024 * 1024 });
     return [...new Set(stdout.split(/\r?\n/).map(line => line.trim().split(/\s+/))
       .filter(fields => fields[0] === "TCP" && fields[1]?.endsWith(`:${port}`) && fields[3] === "LISTENING")
       .map(fields => Number(fields[4])))];
@@ -60,8 +60,10 @@ export function createProcessOwnership({ profile, binary, port, startedAt, befor
     const value = commandFlag(p.command, "user-data-dir");
     return profile && value && canonical(value) === canonical(profile);
   };
-  async function refresh() {
-    const rows = await bounded(query, 1000, "E_PROCESS_QUERY_TIMEOUT");
+  async function refresh(options = {}) {
+    options.signal?.throwIfAborted();
+    const rows = await bounded(() => query(options), Math.min(1000, options.timeoutMs ?? 1000), "E_PROCESS_QUERY_TIMEOUT");
+    options.signal?.throwIfAborted();
     if (!Array.isArray(rows) || rows.some(p => !Number.isInteger(p.pid) || !Number.isInteger(p.parent) || !Number.isFinite(Date.parse(p.created)))) throw ownershipError("E_PROCESS_QUERY", "Invalid process query result");
     const byPid = new Map(rows.map(p => [p.pid, p]));
     for (const [pid, identity] of known) {
@@ -102,14 +104,17 @@ export function createProcessOwnership({ profile, binary, port, startedAt, befor
   return {
     registerLauncher(child) { launcher = child; },
     refresh,
-    async verifyPort() {
-      const owned = await refresh();
-      const pids = await listener(port);
-      if (!pids.length) return false;
+    async inspectPort(options = {}) {
+      const owned = await refresh(options);
+      options.signal?.throwIfAborted();
+      const pids = await listener(port, options);
+      options.signal?.throwIfAborted();
+      if (!pids.length) return { ready: false, owned };
       if (pids.length !== 1 || !owned.some(p => p.pid === pids[0] && !commandFlag(p.command, "type"))) throw ownershipError("E_CDP_OWNER", "CDP listener does not belong to the session root");
-      return true;
+      return { ready: true, owned };
     },
-    async hasExited() { return (await refresh()).length === 0 && (!launcher || launcher.pid == null || launcher.exitCode !== null || launcher.signalCode !== null); },
+    async verifyPort(options) { return (await this.inspectPort(options)).ready; },
+    async hasExited(options) { return (await refresh(options)).length === 0 && (!launcher || launcher.pid == null || launcher.exitCode !== null || launcher.signalCode !== null); },
     async waitForExit(timeoutMs) {
       const end = Date.now() + timeoutMs;
       do { if (await this.hasExited()) return true; if (Date.now() >= end) return false; await delay(Math.min(50, end - Date.now())); } while (Date.now() < end);

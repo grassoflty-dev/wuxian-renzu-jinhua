@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
 import { createProcessOwnership, commandFlag, sameProcess } from "./support/browser-process-ownership.mjs";
-import { connectCdp, waitForPage, closeVite, closeOwnedProcess } from "./support/browser-session.mjs";
+import { connectCdp, connectOwnedBrowser, waitForPage, closeVite, closeOwnedProcess } from "./support/browser-session.mjs";
 import { cleanupBrowserResources, removeOwnedProfile, withBrowserCleanup } from "./support/browser-cleanup.mjs";
 
 const profile = path.resolve("owned-session", "unique-run", "profile");
@@ -271,4 +271,117 @@ test("dispose-only failure cannot turn successful resource cleanup into PASS", a
 test("body assertion and session cleanup failure remain inspectable together", async () => {
   const body = new assert.AssertionError({ message: "real behavior failed" }), cleanup = new Error("ownership failed");
   await assert.rejects(withBrowserCleanup(async () => { throw body; }, async () => { throw cleanup; }), error => error.cause === body && error.errors[0] === body && error.errors[1] === cleanup);
+});
+
+function connectionFixture(inspectPort, extra = {}) {
+  return { Socket: FakeSocket, fetcher: async () => ({ ok: true, json: async () => [{ type: "page", webSocketDebuggerUrl: socketUrl }] }),
+    state: { hasExited: async () => false, ownership: { verifyPort: async () => true, inspectPort } }, ...extra };
+}
+async function fixtureConnect(fixture) {
+  const { state, ...options } = fixture;
+  return connectOwnedBrowser(12345, state, options);
+}
+
+test("connected socket waits for fresh complete ownership before returning its actual snapshot", async () => {
+  const incomplete = Object.assign(new Error("missing executable"), { code: "E_PROCESS_INCOMPLETE" });
+  const snapshot = [processRow(11)]; let queries = 0, ready = 0, clock = 0;
+  const fixture = connectionFixture(async () => {
+    assert.equal(FakeSocket.latest.readyState, FakeSocket.OPEN);
+    assert.equal(ready, 0);
+    if (++queries === 1) throw incomplete;
+    return { ready: true, owned: snapshot };
+  }, { now: () => clock, sleep: async ms => { clock += ms; }, onReady: owned => { ready++; assert.equal(owned, snapshot); } });
+  const connection = await fixtureConnect(fixture);
+  assert.equal(queries, 2); assert.equal(ready, 1); await connection.close();
+});
+
+for (const code of ["E_PROCESS_INCOMPLETE", "E_PROCESS_QUERY", "E_PROCESS_QUERY_TIMEOUT"]) {
+  test(`persistent ${code} fails within one connection deadline and closes the registered socket`, async () => {
+    const original = Object.assign(new Error("sample unavailable"), { code });
+    let clock = 0, queries = 0, registered;
+    const fixture = connectionFixture(async () => { queries++; throw original; }, {
+      timeoutMs: 100, now: () => clock, sleep: async ms => { clock += ms; },
+      onConnection: connection => { registered = connection; }, onReady: () => assert.fail("incomplete sample cannot be ready"),
+    });
+    await assert.rejects(fixtureConnect(fixture), error => error.code === "E_BROWSER_CONNECT_TIMEOUT" && error.cause === original && /fresh-ownership/.test(error.message));
+    assert.equal(clock, 100); assert.equal(queries, 2);
+    assert.ok(registered); assert.equal(FakeSocket.latest.readyState, FakeSocket.CLOSED);
+  });
+}
+
+for (const code of ["E_PROCESS_IDENTITY", "E_CDP_OWNER", "E_CDP_URL"]) {
+  test(`hard ${code} after handshake fails immediately without accepting a later sample`, async () => {
+    const original = Object.assign(new Error("hard identity failure"), { code }); let queries = 0;
+    await assert.rejects(fixtureConnect(connectionFixture(async () => { if (++queries === 1) throw original; return { ready: true, owned: [processRow(11)] }; },
+      { sleep: () => assert.fail("hard failure must not poll"), onReady: () => assert.fail("hard failure cannot be ready") })), error => error === original);
+    assert.equal(queries, 1); assert.equal(FakeSocket.latest.readyState, FakeSocket.CLOSED);
+  });
+}
+
+test("PID reuse through the real registry immediately fails the connected path", async () => {
+  const { owner, setRows } = ownershipFixture(); await owner.refresh();
+  setRows([{ ...processRow(11), created: new Date(start + 1000).toISOString() }]);
+  await assert.rejects(fixtureConnect(connectionFixture(options => owner.inspectPort(options), { sleep: () => assert.fail("PID reuse must not poll") })), { code: "E_PROCESS_IDENTITY" });
+  assert.equal(FakeSocket.latest.readyState, FakeSocket.CLOSED);
+});
+
+test("foreign listener through the real registry fails after handshake", async () => {
+  const owner = createProcessOwnership({ profile, binary, port: 12345, startedAt: start, before: [], query: async () => [processRow(11)], listener: async () => [999] });
+  await assert.rejects(fixtureConnect(connectionFixture(options => owner.inspectPort(options))), { code: "E_CDP_OWNER" });
+  assert.equal(FakeSocket.latest.readyState, FakeSocket.CLOSED);
+});
+
+test("wrong discovered port never starts the socket handshake", async () => {
+  await assert.rejects(fixtureConnect(connectionFixture(() => assert.fail("no ownership phase"), {
+    Socket: class { constructor() { assert.fail("wrong port must not allocate socket"); } },
+    fetcher: async () => ({ ok: true, json: async () => [{ type: "page", webSocketDebuggerUrl: "ws://127.0.0.1:999/devtools/page/1" }] }),
+  })), { code: "E_CDP_URL" });
+});
+
+test("expired connection deadline cannot begin page discovery", async () => {
+  const fixture = connectionFixture(() => assert.fail("must not query"), { deadline: 5, now: () => 5,
+    fetcher: () => assert.fail("must not fetch"), Socket: class { constructor() { assert.fail("must not allocate socket"); } } });
+  await assert.rejects(fixtureConnect(fixture), { code: "E_BROWSER_CONNECT_TIMEOUT" });
+});
+
+test("page discovery consumes the same budget and cannot start a late handshake", async () => {
+  let clock = 0;
+  const fixture = connectionFixture(() => assert.fail("must not reach fresh ownership"), { timeoutMs: 100, now: () => clock,
+    Socket: class { constructor() { assert.fail("must not start late handshake"); } },
+    fetcher: async () => { clock = 100; return { ok: true, json: async () => [{ type: "page", webSocketDebuggerUrl: socketUrl }] }; } });
+  await assert.rejects(fixtureConnect(fixture), { code: "E_BROWSER_CONNECT_TIMEOUT" });
+});
+
+test("late complete ownership cannot emit ready or return a connection", async () => {
+  let clock = 0;
+  await assert.rejects(fixtureConnect(connectionFixture(async () => { clock = 100; return { ready: true, owned: [processRow(11)] }; },
+    { timeoutMs: 100, now: () => clock, onReady: () => assert.fail("late readiness") })), { code: "E_BROWSER_CONNECT_TIMEOUT" });
+  assert.equal(FakeSocket.latest.readyState, FakeSocket.CLOSED);
+});
+
+for (const event of ["close", "error"]) test(`transport ${event} during ownership sampling aborts polling and remains visible`, async () => {
+  let queries = 0;
+  await assert.rejects(fixtureConnect(connectionFixture(async () => {
+    queries++; FakeSocket.latest.dispatchEvent(new Event(event));
+    return { ready: true, owned: [processRow(11)] };
+  }, { onReady: () => assert.fail("disconnected transport cannot be ready"), sleep: () => assert.fail("must not poll") })),
+  { code: event === "close" ? "E_CDP_CLOSED" : "E_CDP_SOCKET" });
+  assert.equal(queries, 1); assert.equal(FakeSocket.latest.readyState, FakeSocket.CLOSED);
+});
+
+test("original ownership failure and socket close failure remain inspectable together", async () => {
+  const original = Object.assign(new Error("identity failed"), { code: "E_PROCESS_IDENTITY" }), cleanup = new Error("close failed");
+  class FailedClose extends FakeSocket { close() { super.close(); throw cleanup; } }
+  await assert.rejects(fixtureConnect(connectionFixture(async () => { throw original; }, { Socket: FailedClose })),
+    error => error instanceof AggregateError && error.cause === original && error.errors[0] === original && error.errors[1] === cleanup);
+});
+
+test("deadline cancellation reaches an in-flight query and cannot later emit ready", async () => {
+  let cancelled = false, ready = 0, queries = 0;
+  await assert.rejects(fixtureConnect(connectionFixture(({ signal }) => new Promise((resolve, reject) => {
+    queries++;
+    signal.addEventListener("abort", () => { cancelled = true; reject(signal.reason); }, { once: true });
+  }), { timeoutMs: 10, onReady: () => { ready++; } })), { code: "E_BROWSER_CONNECT_TIMEOUT" });
+  assert.equal(cancelled, true); assert.equal(queries, 1); assert.equal(ready, 0);
+  assert.equal(FakeSocket.latest.readyState, FakeSocket.CLOSED);
 });

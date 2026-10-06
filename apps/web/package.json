@@ -6,7 +6,7 @@
     "dev": "vite",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "build": "npm run typecheck && vite build",
-    "test": "tsc -p tsconfig.json && node --test tests/*.mjs"
+    "test": "tsc -p tsconfig.json && node --test --test-concurrency=1 tests/*.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.1",
