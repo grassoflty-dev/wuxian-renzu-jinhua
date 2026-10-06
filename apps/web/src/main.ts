@@ -79,11 +79,11 @@ root.innerHTML = `
         <canvas id="world-canvas" aria-label="2.5D 世界画布"></canvas>
         <section class="hud" id="game-hud" aria-label="游戏状态">
           <div class="hud-vitals">
-            <div class="hud-identity"><div class="hud-portrait" id="hud-portrait" aria-label="岑遥头像"></div><div><strong>岑遥</strong><span id="hud-action-state">状态未报告</span></div></div>
+            <div class="hud-identity"><div class="hud-portrait" id="hud-portrait" aria-label="岑遥头像"></div><div><strong>岑遥</strong><span id="hud-action-state" hidden></span></div></div>
             <div class="hud-meter"><span>HP</span><div class="meter-track"><i id="hp-fill" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></i></div><strong id="hp-value">— / —</strong></div>
             <div class="hud-meter energy"><span>ENERGY</span><div class="meter-track"><i id="energy-fill" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></i></div><strong id="energy-value">— / —</strong></div>
           </div>
-          <div class="hud-world"><strong id="hud-world">—</strong><span id="hud-scene">—</span></div>
+          <div class="hud-world"><strong id="hud-world">—</strong></div>
           <div class="hud-actions" id="hud-skills" aria-label="动作键位"></div>
           <section class="hud-objectives" id="hud-objectives" aria-label="当前目标"><span class="hud-label">当前目标</span><ul id="hud-objective-list" aria-live="polite"></ul></section>
           <p class="hud-interaction" id="hud-interaction" role="status" aria-live="polite" hidden></p>
@@ -242,7 +242,6 @@ const hud = new HudPresenter({
   energyValue: root.querySelector<HTMLElement>("#energy-value")!,
   energyFill: root.querySelector<HTMLElement>("#energy-fill")!,
   world: root.querySelector<HTMLElement>("#hud-world")!,
-  scene: root.querySelector<HTMLElement>("#hud-scene")!,
   objectives: root.querySelector<HTMLElement>("#hud-objectives")!,
   interaction: root.querySelector<HTMLElement>("#hud-interaction")!,
   doorStatus: root.querySelector<HTMLElement>("#hud-door")!,

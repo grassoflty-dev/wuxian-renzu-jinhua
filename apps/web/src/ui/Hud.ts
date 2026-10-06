@@ -36,7 +36,6 @@ export interface HudState {
   energyText: string;
   energyRatio: number;
   worldLabel: string;
-  sceneId: string;
   objectives: HudObjective[];
   actionState: string;
   interactionId: string | null;
@@ -69,7 +68,26 @@ function worldLabel(worldId: string): string {
     case "mist_harbor": return "雾港余烬";
     case "clockworks": return "钟骨工厂";
     case "return_station": return "归航站";
-    default: return worldId || "未知世界";
+    default: return "未知世界";
+  }
+}
+
+/** Idle also covers ordinary locomotion; it is not a player-facing warning. */
+function actionLabel(state: string): string {
+  switch (state) {
+    case "idle": return "";
+    case "primaryAttack": return "普通攻击";
+    case "dash": return "短距冲刺";
+    case "pulse": return "环形扫描";
+    case "guard": return "弧盾防御";
+    case "pierce": return "线性穿透";
+    case "walk": return "行走";
+    case "run": return "奔跑";
+    case "hit": return "受击";
+    case "death": return "已倒下";
+    case "interact": return "交互中";
+    case "contextTraversal": return "通行中";
+    default: return "状态未知";
   }
 }
 
@@ -143,9 +161,8 @@ export function deriveHudState(snapshot: WorldSnapshotV3): HudState {
     energyText: energy.text,
     energyRatio: energy.ratio,
     worldLabel: worldLabel(snapshot.worldId),
-    sceneId: snapshot.sceneId || "未知场景",
     objectives: objectiveViews(snapshot.objectives),
-    actionState: snapshot.player.currentHp === 0 ? "已倒下" : snapshot.player.actionState || "状态未报告",
+    actionState: snapshot.player.currentHp === 0 ? "已倒下" : actionLabel(snapshot.player.actionState),
     interactionId: baizhiPrompt ? BAIZHI_INTERACTION_ID : nearestInteraction?.entityId ?? null,
     interactionText,
     nearbyDoorText,
@@ -167,7 +184,6 @@ export interface HudElements {
   energyValue: HTMLElement;
   energyFill: HTMLElement;
   world: HTMLElement;
-  scene: HTMLElement;
   objectives: HTMLElement;
   interaction: HTMLElement;
   doorStatus: HTMLElement;
@@ -210,8 +226,8 @@ export class HudPresenter {
     this.elements.energyFill.style.transform = `scaleX(${state.energyRatio})`;
     this.elements.energyFill.setAttribute("aria-valuenow", String(Math.round(state.energyRatio * 100)));
     this.elements.world.textContent = state.worldLabel;
-    this.elements.scene.textContent = state.sceneId;
     this.elements.actionState.textContent = state.actionState;
+    this.elements.actionState.hidden = state.actionState === "";
     this.objectivePanel.render(state.objectives);
     this.interactionPrompt.render(state.interactionText);
     this.elements.interaction.textContent = state.interactionText;
@@ -271,8 +287,8 @@ export class HudPresenter {
     this.elements.energyFill.style.transform = "scaleX(0)";
     this.elements.energyFill.setAttribute("aria-valuenow", "0");
     this.elements.world.textContent = "—";
-    this.elements.scene.textContent = "—";
-    this.elements.actionState.textContent = "状态未报告";
+    this.elements.actionState.textContent = "";
+    this.elements.actionState.hidden = true;
     this.objectivePanel.render([]);
     this.interactionPrompt.render("");
     this.elements.interaction.textContent = "";

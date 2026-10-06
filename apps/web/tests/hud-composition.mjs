@@ -43,3 +43,14 @@ test("world card follows variable-height vitals in normal flow with the existing
   assert.match(css, /\.hud-vitals,\s*\.hud-world\s*\{\s*width:\s*min\(240px, 46%\)/);
   assert.doesNotMatch(worldRule, /(?:^|[;\n])\s*(?:top|height|min-height):\s*\d/);
 });
+
+
+test("player HUD has no raw scene row and idle starts hidden without exposing developer frame", () => {
+  assert.doesNotMatch(source, /id="hud-scene"|querySelector[^\n]*#hud-scene/);
+  assert.match(source, /<span id="hud-action-state" hidden><\/span>/);
+  assert.match(css, /\.hud-identity span\[hidden\]\s*\{\s*display:\s*none;\s*\}/);
+  assert.match(source, /id="developer-journey-panel" hidden/);
+  assert.match(source, /#developer-journey-panel"\)!\.hidden = !developerPresentation/);
+  assert.match(source, /id="hud-pause"[^>]*type="button"/);
+  assert.match(source, /id="back-to-hub"[^>]*type="button"/);
+});

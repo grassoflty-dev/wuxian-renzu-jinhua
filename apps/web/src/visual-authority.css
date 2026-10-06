@@ -766,6 +766,7 @@ html[data-contrast="high"] .shell {
 .hud-portrait-placeholder { color: var(--va-amber); font-size:clamp(calc(24px * var(--text-scale, 1)), calc(2.5vw * var(--text-scale, 1)), calc(38px * var(--text-scale, 1))); font-weight: 700; }
 .hud-identity strong { font-size:clamp(calc(15px * var(--text-scale, 1)), calc(1.2vw * var(--text-scale, 1)), calc(20px * var(--text-scale, 1))); }
 .hud-identity span { display: block; }
+.hud-identity span[hidden] { display: none; }
 .hud-objectives { top: 16px; right: 16px; left: auto; width: min(340px, 34%); }
 .hud-objectives ul { display: grid; gap: 7px; margin: 8px 0 0; padding: 0; list-style: none; }
 .hud-objective { color: var(--va-text); font-size:clamp(calc(12px * var(--text-scale, 1)), calc(1vw * var(--text-scale, 1)), calc(15px * var(--text-scale, 1))); line-height: 1.35; overflow-wrap: anywhere; }

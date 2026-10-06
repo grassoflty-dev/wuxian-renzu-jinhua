@@ -10,6 +10,7 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "无限人族进化",
         "width": 1280,
         "height": 720,
@@ -20,7 +21,16 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": null,
+      "capabilities": [
+        {
+          "identifier": "main-window-close",
+          "description": "Allow the bundled main menu to close its window after pending game commands drain.",
+          "local": true,
+          "windows": ["main"],
+          "permissions": ["core:window:allow-close"]
+        }
+      ]
     }
   },
   "bundle": {

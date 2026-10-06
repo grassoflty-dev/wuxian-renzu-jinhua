@@ -36,7 +36,7 @@ function presenter() {
   const elements = {
     portrait: element(), actionState: element(), skills: element(), objectivePanel: element(), interactionPrompt: element(),
     hpValue: element(), hpFill: element(), energyValue: element(), energyFill: element(),
-    world: element(), scene: element(), objectives: element(), interaction: element(), doorStatus: element(),
+    world: element(), objectives: element(), interaction: element(), doorStatus: element(),
     pumpStatus: element(), environmentStatus: element(),
     feedback: element(), pauseButton: element(), pauseOverlay: element(),
     pauseTitle: element(), pauseDetail: element(), resumeButton: element(),
@@ -50,7 +50,7 @@ test("HUD follows v3 snapshot vitals, world, scene, objectives, and later author
   assert.equal(first.hpRatio, 0.8);
   assert.equal(first.energyText, "25 / 50");
   assert.equal(first.worldLabel, "灰巢设施");
-  assert.equal(first.sceneId, "gh_entry_maintenance");
+  assert.equal("sceneId" in first, false);
   assert.deepEqual(first.objectives, [{ id: "restore_power", state: "active" }]);
 
   const changed = deriveHudState(snapshot({
@@ -59,7 +59,7 @@ test("HUD follows v3 snapshot vitals, world, scene, objectives, and later author
     objectives: [{ objectiveId: "restore_power", state: "complete", positionM: { xM: 4, yM: 0, zM: 1 } }],
   }));
   assert.equal(changed.worldLabel, "钟骨工厂");
-  assert.equal(changed.sceneId, "cw_factory");
+  assert.equal("sceneId" in changed, false);
   assert.equal(changed.hpRatio, 0);
   assert.equal(changed.energyRatio, 1);
   assert.deepEqual(changed.objectives, [{ id: "restore_power", state: "complete" }]);
@@ -380,4 +380,55 @@ test("environment controls and non-color HUD status follow projected authority a
  assert.doesNotMatch(elements.environmentStatus.textContent,/0\.9秒/);
  hud.apply(snapshot());assert.equal(elements.environmentStatus.hidden,true);
  hud.apply(input);hud.reset();assert.equal(elements.environmentStatus.textContent,"");assert.equal(elements.environmentStatus.hidden,true);
+});
+
+
+test("ordinary HUD omits scene IDs and idle while retaining localized active and unknown status", () => {
+  const { elements, hud } = presenter();
+  // Any HTML write to a HUD element must fail, even if a future field is malformed.
+  for (const value of Object.values(elements)) {
+    Object.defineProperty(value, "innerHTML", { set() { throw new Error("HUD must use textContent"); } });
+  }
+  for (const [worldId, label] of [["return_station", "归航站"], ["grey_hive", "灰巢设施"],
+    ["mist_harbor", "雾港余烬"], ["clockworks", "钟骨工厂"]]) {
+    const state = hud.apply(snapshot({ worldId, sceneId: "rs_core_room" }));
+    assert.equal(elements.world.textContent, label);
+    assert.equal(elements.actionState.textContent, "");
+    assert.equal(elements.actionState.hidden, true);
+    assert.equal("sceneId" in state, false);
+  }
+  const labels = { primaryAttack: "普通攻击", dash: "短距冲刺", pulse: "环形扫描",
+    guard: "弧盾防御", pierce: "线性穿透", walk: "行走", run: "奔跑", hit: "受击",
+    death: "已倒下", interact: "交互中", contextTraversal: "通行中" };
+  for (const [actionState, label] of Object.entries(labels)) {
+    hud.apply(snapshot({ player: { ...snapshot().player, actionState } }));
+    assert.equal(elements.actionState.textContent, label);
+    assert.equal(elements.actionState.hidden, false);
+  }
+  for (const untrusted of ["future_internal_state", "", "<img src=x onerror=alert(1)>", "constructor", "__proto__"]) {
+    const state = hud.apply(snapshot({ worldId: untrusted, sceneId: untrusted,
+      player: { ...snapshot().player, actionState: untrusted } }));
+    assert.equal(elements.world.textContent, "未知世界");
+    assert.equal(elements.actionState.textContent, "状态未知");
+    assert.equal(elements.actionState.hidden, false);
+    assert.equal("sceneId" in state, false);
+  }
+  hud.apply(snapshot({ player: { ...snapshot().player, currentHp: 0, actionState: "idle" } }));
+  assert.equal(elements.actionState.textContent, "已倒下");
+  assert.equal(elements.actionState.hidden, false);
+  hud.reset();
+  assert.equal(elements.actionState.textContent, "");
+  assert.equal(elements.actionState.hidden, true);
+  hud.apply(snapshot({ worldId: "return_station", worldEpoch: 10, sceneId: "rs_core_room",
+    player: { ...snapshot().player, currentHp: 65, currentEnergy: 10 } }));
+  assert.equal(elements.world.textContent, "归航站");
+  assert.equal(elements.actionState.hidden, true);
+  assert.equal(elements.hpValue.textContent, "65 / 100");
+  assert.equal(elements.hpFill.attributes["aria-valuenow"], "65");
+  assert.equal(elements.energyValue.textContent, "10 / 50");
+  assert.equal(elements.energyFill.attributes["aria-valuenow"], "20");
+  hud.apply(snapshot({ player: { ...snapshot().player, actionState: "guard" } }));
+  assert.equal(elements.actionState.hidden, false);
+  hud.apply(snapshot({ player: { ...snapshot().player, velocityMps: { xM: 2, yM: 0, zM: 0 } } }));
+  assert.equal(elements.actionState.hidden, true, "moving idle must not retain an old guard label");
 });

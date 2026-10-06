@@ -4,6 +4,8 @@ import { isMappedProp, projectPropPresentation } from "./PropPresentationModel.j
 import { sharesWorldDepth, worldDepthRanks } from "./WorldDepthModel.js";
 import { facilityFloorGeometry } from "./FacilityFloorGeometry.js";
 import type { FacilityFloor } from "./FacilityMapModel.js";
+import { returnStationArchitecture, projectArchitectureFace, isReturnStationRearWall } from "./ReturnStationArchitecture.js";
+import { returnStationRoomEnvelope, fitReturnStationRoom } from "./ReturnStationRoomCamera.js";
 import { validatedSignalPerception, isNativeSignalWraith } from "../protocol/PresentationEventValidation.js";
 import { projectVerticalSupports, type VerticalSupportFrame } from "./VerticalSupportModel.js";
 import { validatedSwarmMembers } from "../protocol/PresentationEventValidation.js";
@@ -171,6 +173,7 @@ export class WorldRenderer {
   private readonly sceneResources = new SceneResourceTracker();
   private readonly sceneEpoch = new SceneEpochTracker();
   private readonly cameraRig = new CameraRig();
+  private roomFitActive = false;
   private readonly bossCameraModel = new BossCameraModel();
   private readonly occluderFader = new OccluderFader();
   private scenePresentation: ScenePresentationPlan | null = null;
@@ -183,7 +186,8 @@ export class WorldRenderer {
   private ready = false;
   private cancelled = false;
   private contextLost = false;
-  private committedFrame: { sceneKey: string; revision: number; surface: PresentationSurface; supportGeometryKey: string | null; sentinelGeometryKey: string | null;
+  private viewportRevision = 0;
+  private committedFrame: { sceneKey: string; revision: number; viewportRevision: number; surface: PresentationSurface; supportGeometryKey: string | null; sentinelGeometryKey: string | null;
     playerAim: PresentedPlayerAimFrame } | null = null;
   private surface: PresentationSurface | null = null;
   private surfaceCanvas: HTMLCanvasElement | null = null;
@@ -192,16 +196,22 @@ export class WorldRenderer {
   private transientsCleared = false;
   private lastFrame: { snapshot: WorldSnapshotEnvelope; playerPosition?: Vec3;
     actorPositions?: ReadonlyMap<string, Vec3>; timeMs: number } | null = null;
+  private pendingViewportFrame: typeof this.lastFrame = null;
   private readonly resizeSurface = (): void => {
     const host = this.surfaceCanvas?.parentElement ?? this.surfaceCanvas;
     if (this.ready && host && (Math.max(1, host.clientWidth) !== this.app.screen.width ||
-      Math.max(1, host.clientHeight) !== this.app.screen.height)) this.surface?.request(true);
+      Math.max(1, host.clientHeight) !== this.app.screen.height)) {
+      this.viewportRevision++;
+      this.committedFrame = null;
+      this.surface?.request(true);
+    }
   };
   private readonly loseContext = (event: Event): void => {
     event.preventDefault();
     this.contextLost = true;
     this.committedFrame = null;
     this.lastFrame = null;
+    this.pendingViewportFrame = null;
     this.sceneRequestRevision++;
     this.surface?.lost();
     this.clearTransientPresentation();
@@ -244,6 +254,7 @@ export class WorldRenderer {
     this.cancelled = false;
     this.committedFrame = null;
     this.lastFrame = null;
+    this.pendingViewportFrame = null;
     this.surface?.invalidate();
     this.clearTransientPresentation();
     this.soundCueModel.reset();
@@ -269,6 +280,7 @@ export class WorldRenderer {
     this.sceneRequestRevision++;
     this.committedFrame = null;
     this.lastFrame = null;
+    this.pendingViewportFrame = null;
     this.expectedSceneKey = null;
     this.scenePresentation = null;
     this.surface?.invalidate();
@@ -278,7 +290,7 @@ export class WorldRenderer {
     const committed = this.committedFrame;
     if (!this.ready || this.cancelled || this.contextLost || this.surfaceError !== null || !committed ||
       committed.revision !== this.sceneRequestRevision || committed.surface !== this.surface ||
-      !committed.surface.isAvailable()) return false;
+      !committed.surface.isAvailable() || !this.viewportCurrent(committed.viewportRevision, committed.playerAim)) return false;
     const view = normalizeRenderSnapshot(snapshot);
     const key = `${view.worldId}\0${view.sceneId}\0${view.worldEpoch}`;
     if (committed.sceneKey !== key || this.expectedSceneKey && this.expectedSceneKey !== key) return false;
@@ -291,7 +303,7 @@ export class WorldRenderer {
     const frame = this.committedFrame;
     if (!this.ready || this.cancelled || this.contextLost || this.surfaceError !== null || !frame ||
         frame.revision !== this.sceneRequestRevision || frame.surface !== this.surface || !frame.surface.isAvailable() ||
-        frame.playerAim.width !== this.app.screen.width || frame.playerAim.height !== this.app.screen.height) return null;
+        !this.viewportCurrent(frame.viewportRevision, frame.playerAim)) return null;
     const view = normalizeRenderSnapshot(snapshot);
     const key = `${view.worldId}\0${view.sceneId}\0${view.worldEpoch}`;
     if (frame.sceneKey !== key || this.expectedSceneKey && this.expectedSceneKey !== key) return null;
@@ -415,8 +427,8 @@ export class WorldRenderer {
       if (!host) return;
       const width = Math.max(1, host.clientWidth), height = Math.max(1, host.clientHeight);
       if (width !== this.app.screen.width || height !== this.app.screen.height) this.app.renderer.resize(width, height);
-      const frame = this.lastFrame;
-      if (frame) await this.renderFrame(frame.snapshot, frame.playerPosition, frame.actorPositions, frame.timeMs, revision);
+      const frame = this.pendingViewportFrame ?? this.lastFrame;
+      if (frame) await this.renderStableFrame(frame.snapshot, frame.playerPosition, frame.actorPositions, frame.timeMs, revision);
     });
     this.renderQueue = operation.catch(() => undefined);
     return operation;
@@ -428,13 +440,32 @@ export class WorldRenderer {
     const requestedRevision = this.sceneRequestRevision;
     const scheduled = this.renderQueue.then(() => {
       if (requestedTransientRevision === this.transientPresentationRevision) this.transientsCleared = false;
-      return this.renderFrame(snapshot, playerPosition, actorPositions, undefined, requestedRevision);
+      return this.renderStableFrame(snapshot, playerPosition, actorPositions, undefined, requestedRevision);
     }).catch(error => {
       if (requestedRevision === this.sceneRequestRevision) this.committedFrame = null;
       throw error;
     });
     this.renderQueue = scheduled.catch(() => undefined);
     return scheduled;
+  }
+
+  /** Complete only after presentation, including a resize during the draw itself.
+   * Stay inside this queue operation: awaiting refreshSurface here would deadlock.
+   * Yield between redraws so repeated host changes cannot spin a microtask loop.
+   */
+  private async renderStableFrame(snapshot: WorldSnapshotEnvelope, playerPosition?: Vec3,
+    actorPositions?: ReadonlyMap<string, Vec3>, replayTimeMs?: number, renderRevision = this.sceneRequestRevision): Promise<void> {
+    const frameTimeMs = replayTimeMs ?? performance.now();
+    const view = normalizeRenderSnapshot(snapshot);
+    const sceneKey = `${view.worldId}\0${view.sceneId}\0${view.worldEpoch}`;
+    for (;;) {
+      await this.renderFrame(snapshot, playerPosition, actorPositions, frameTimeMs, renderRevision);
+      this.assertFrameCurrent(sceneKey, renderRevision);
+      const committed = this.committedFrame;
+      if (committed && this.viewportCurrent(committed.viewportRevision, committed.playerAim)) return;
+      await new Promise<void>(resolve => setTimeout(resolve, 16));
+      // renderFrame rechecks scene, cancellation, context and surface before work.
+    }
   }
 
   private async renderFrame(snapshot: WorldSnapshotEnvelope, playerPosition?: Vec3, actorPositions?: ReadonlyMap<string, Vec3>, replayTimeMs?: number, renderRevision = this.sceneRequestRevision): Promise<void> {
@@ -482,14 +513,26 @@ export class WorldRenderer {
     const resourcePlan = buildRendererResourcePlan(this.registry, view.worldId, actors, view.doors);
     await this.preloadAtlasPages([...resourcePlan.atlasPages, ...(scenePresentation?.atlasPages ?? [])]);
     this.assertFrameCurrent(sceneKey, renderRevision);
+    // Atlas IO may outlive a host resize. Fit against the current buffer, then
+    // capture the revision used by the synchronous projection and draw below.
+    const host = this.surfaceCanvas?.parentElement ?? this.surfaceCanvas;
+    if (host) {
+      const width = Math.max(1, host.clientWidth), height = Math.max(1, host.clientHeight);
+      if (width !== this.app.screen.width || height !== this.app.screen.height) {
+        this.committedFrame = null;
+        this.app.renderer.resize(width, height);
+      }
+    }
+    const viewportRevision = this.viewportRevision;
 
     const assetsById = new Map(resourcePlan.assets.map(asset => [asset.assetId, asset]));
+    const playerAsset = assetsById.get("runtime2d.actor.cenyao.base.v1");
     const cameraOrigin = playerPosition ?? view.playerPosition;
     const deltaSeconds = this.cameraLastTimeMs === null ? 0 : Math.min(0.1, Math.max(0, (frameTimeMs - this.cameraLastTimeMs) / 1000));
     this.cameraLastTimeMs = frameTimeMs;
     const basePixelsPerMeter = viewportPixelsPerMeter(this.app.screen.width, this.app.screen.height);
     const { camera, pixelsPerMeter } = this.updateCameraFrame(snapshot, cameraOrigin, view.playerAimX, view.playerAimZ,
-      this.app.screen.width, this.app.screen.height, deltaSeconds, basePixelsPerMeter);
+      this.app.screen.width, this.app.screen.height, deltaSeconds, basePixelsPerMeter, scenePresentation ?? undefined, playerAsset);
     const presentationScale = pixelsPerMeter / BASE_PIXELS_PER_METER;
     const sceneBounds = scenePresentation?.bounds ?? { width: 24, depth: 16 };
     const desired: DesiredSprite[] = [];
@@ -547,6 +590,7 @@ export class WorldRenderer {
       ? projectScenePresentation(scenePresentation, camera)
       : { sprites: [], occluders: [] };
     this.renderFacilityFloor(scenePresentation?.facilityFloor, camera);
+    this.renderReturnStationArchitecture(view.worldId, view.sceneId, camera, !!scenePresentation?.facilityFloor);
     const fogFrame = this.fogLayerModel.project(scene, projectedScene.sprites, frameTimeMs, reduceFogMotion);
     for (const placement of projectedScene.sprites) {
       if (!greyHiveBeaconSpriteVisible(snapshot, placement.id)) continue;
@@ -618,7 +662,8 @@ export class WorldRenderer {
           const [, , width,height]=item.asset.atlasFrame;
           mask.clear().poly(item.cutout.flatMap(([x,y])=>[item.screenX+(x-item.asset.anchorX*width)*item.displayScale,item.screenY+(y-item.asset.anchorY*height)*(item.displayScaleY??item.displayScale)])).fill(0xffffff);
         }
-        record.sprite.zIndex = depthRanks.get(item.key) ?? index;
+        this.applySceneSpriteDepth(view.worldId, view.sceneId, item.key, item.asset.assetId,
+          layerId, record.sprite, depthRanks.get(item.key) ?? index);
         record.sprite.tint = !sharesWorldDepth(item.layer,item.asset.assetId) ? 0xffffff : item.layer === "L2_BACK_PROPS" ? skin.backPropTint
           : item.layer === "L4_DYNAMIC_PROPS" ? skin.dynamicTint
           : item.layer === "L5_FRONT_PROPS" ? skin.frontPropTint : 0xffffff;
@@ -677,6 +722,13 @@ export class WorldRenderer {
     }
     this.renderSoundCue(snapshot, frameTimeMs);
     const surface = this.assertFrameCurrent(sceneKey, renderRevision);
+    const replay = { snapshot, ...(playerPosition ? { playerPosition } : {}),
+      ...(actorPositions ? { actorPositions } : {}), timeMs: frameTimeMs };
+    // An unexpected synchronous resize must never publish stale input geometry.
+    // The enclosing serialized operation will replay before reporting success.
+    if (!this.viewportCurrent(viewportRevision, camera)) {
+      this.committedFrame = null; this.pendingViewportFrame = replay; return;
+    }
     // Do not record readiness (or a replayable frame) until Pixi actually drew it.
     this.committedFrame = null;
     if (!surface.present()) {
@@ -684,11 +736,20 @@ export class WorldRenderer {
       throw new RenderCommitError("E_RENDERER_PRESENT_FAILED");
     }
     if (this.assertFrameCurrent(sceneKey, renderRevision) !== surface) throw new RenderCommitError("E_RENDERER_STALE_FRAME");
-    this.lastFrame = { snapshot, ...(playerPosition ? { playerPosition } : {}),
-      ...(actorPositions ? { actorPositions } : {}), timeMs: frameTimeMs };
+    // A resize callback may run synchronously during the draw itself.
+    if (!this.viewportCurrent(viewportRevision, camera)) {
+      this.pendingViewportFrame = replay; return;
+    }
+    this.lastFrame = replay; this.pendingViewportFrame = null;
     const presentedPlayer = projectWorldPoint(playerPosition ?? view.playerPosition, camera);
-    this.committedFrame = { sceneKey, revision: renderRevision, surface, supportGeometryKey: supportFrame.geometryKey, sentinelGeometryKey: sentinelFrameKey,
+    this.committedFrame = { sceneKey, revision: renderRevision, viewportRevision, surface, supportGeometryKey: supportFrame.geometryKey, sentinelGeometryKey: sentinelFrameKey,
       playerAim: { width: camera.width, height: camera.height, footX: presentedPlayer.x, footY: presentedPlayer.y } };
+  }
+
+  private viewportCurrent(revision: number, frame: {width: number; height: number}): boolean {
+    const host = this.surfaceCanvas?.parentElement ?? this.surfaceCanvas;
+    return revision === this.viewportRevision && frame.width === this.app.screen.width && frame.height === this.app.screen.height &&
+      (!host || (Math.max(1,host.clientWidth) === frame.width && Math.max(1,host.clientHeight) === frame.height));
   }
 
   private renderBaizhiPlaceholder(frame: BaizhiPlaceholderFrame | null): void {
@@ -1371,9 +1432,40 @@ export class WorldRenderer {
 
   // temporary_visual=true: readable authored belt footprint/direction, no gameplay authority.
   private clearFacilityFloor(): void {
+    this.returnStationArchitectureGraphic?.destroy(); this.returnStationArchitectureGraphic = null;
     this.facilityFloorGraphic?.destroy(); this.facilityFloorGraphic = null;
     this.facilityWallGraphic?.destroy(); this.facilityWallGraphic = null;
     if (this.facilityFloorMesh) { const geometry=this.facilityFloorMesh.geometry; this.facilityFloorMesh.destroy(); geometry.destroy(true); this.facilityFloorMesh=null; }
+  }
+
+  private returnStationArchitectureGraphic: Graphics | null = null;
+
+  private applySceneSpriteDepth(worldId: string, sceneId: string, key: string, assetId: string,
+    layer: RenderLayerId, sprite: Sprite, ordinaryDepth: number): void {
+    const rearWall = isReturnStationRearWall(worldId, sceneId, key, assetId, layer);
+    const parent = this.layerContainers.get(rearWall ? "L2_BACK_PROPS" : sharesWorldDepth(layer, assetId) ? "L3_ACTORS" : layer);
+    if (parent && sprite.parent !== parent) parent.addChild(sprite);
+    // Room-only rear wall < ring/support geometry < normal actor/terminal parent.
+    // Keep ordinary shared-world depth unchanged, including all other wall panels.
+    sprite.zIndex = rearWall ? -9000 : ordinaryDepth;
+  }
+
+  private renderReturnStationArchitecture(worldId: string, sceneId: string, camera: CameraFrame, ready: boolean): void {
+    const faces = ready ? returnStationArchitecture(worldId, sceneId) : [];
+    if (!faces.length) {
+      this.returnStationArchitectureGraphic?.destroy(); this.returnStationArchitectureGraphic = null;
+      return;
+    }
+    if (!this.returnStationArchitectureGraphic) {
+      const graphic = new Graphics();
+      graphic.label = "temporary_visual:return-station-architecture";
+      graphic.eventMode = "none";
+      this.layerContainers.get("L2_BACK_PROPS")!.addChild(graphic);
+      this.returnStationArchitectureGraphic = graphic;
+    }
+    const graphic = this.returnStationArchitectureGraphic;
+    graphic.clear(); graphic.zIndex = -8000;
+    for (const face of faces) graphic.poly(projectArchitectureFace(face, camera)).fill(face.color);
   }
 
   private renderFacilityFloor(plan: FacilityFloor | undefined, camera: CameraFrame): void {
@@ -1461,8 +1553,16 @@ export class WorldRenderer {
 
   /** Shared camera-scale path for the rig and every world projection in this frame. */
   private updateCameraFrame(snapshot: WorldSnapshotEnvelope, origin: Vec3, aimX: number, aimZ: number,
-    width: number, height: number, deltaSeconds: number, basePixelsPerMeter = viewportPixelsPerMeter(width, height)):
+    width: number, height: number, deltaSeconds: number, basePixelsPerMeter = viewportPixelsPerMeter(width, height),
+    scene?: ScenePresentationPlan, playerAsset?: RuntimeAsset):
     { camera: CameraFrame; pixelsPerMeter: number } {
+    if (snapshot.protocolVersion === 3 && snapshot.worldId === "return_station" && snapshot.sceneId === "rs_core_room") {
+      if (!scene || !playerAsset) throw new Error("E_RETURN_STATION_ROOM_FIT_NOT_READY");
+      const camera = fitReturnStationRoom(returnStationRoomEnvelope(scene,playerAsset,snapshot),width,height);
+      this.roomFitActive = true;
+      return { camera, pixelsPerMeter: camera.pixelsPerMeter! };
+    }
+    if (this.roomFitActive) { this.cameraRig.reset(); this.bossCameraModel.reset(); this.roomFitActive = false; }
     const pixelsPerMeter = basePixelsPerMeter * this.bossCameraModel.update(snapshot, deltaSeconds);
     const camera = this.cameraRig.update(origin, aimX, aimZ, width, height, deltaSeconds, pixelsPerMeter);
     return { camera, pixelsPerMeter };
@@ -1953,6 +2053,7 @@ export class WorldRenderer {
     this.committedFrame = null;
     this.sceneRequestRevision++;
     this.lastFrame = null;
+    this.pendingViewportFrame = null;
     this.surface?.dispose(); this.surface = null;
     if (typeof window !== "undefined") window.removeEventListener("resize", this.resizeSurface);
     this.surfaceObserver?.disconnect(); this.surfaceObserver = null;
@@ -2003,3 +2104,4 @@ function drawDeathFragments(graphic: Graphics, progress: number): void {
     .lineTo(11 + scatter * 0.3, -20);
   graphic.stroke({ color: 0xff7b83, width: 1.5, alpha: 0.8 });
 }
+
