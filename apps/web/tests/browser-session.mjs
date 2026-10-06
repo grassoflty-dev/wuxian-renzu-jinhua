@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
+import { createHash } from "node:crypto";
 import { createProcessOwnership, commandFlag, sameProcess } from "./support/browser-process-ownership.mjs";
 import { connectCdp, connectOwnedBrowser, waitForPage, closeVite, closeOwnedProcess } from "./support/browser-session.mjs";
 import { cleanupBrowserResources, removeOwnedProfile, withBrowserCleanup } from "./support/browser-cleanup.mjs";
@@ -384,4 +385,76 @@ test("deadline cancellation reaches an in-flight query and cannot later emit rea
   }), { timeoutMs: 10, onReady: () => { ready++; } })), { code: "E_BROWSER_CONNECT_TIMEOUT" });
   assert.equal(cancelled, true); assert.equal(queries, 1); assert.equal(ready, 0);
   assert.equal(FakeSocket.latest.readyState, FakeSocket.CLOSED);
+});
+
+const diagnosticSummary = value => ({
+  state: value === null ? 'null' : value === undefined ? 'missing' : value.length === 0 ? 'empty' : 'present',
+  length: typeof value === 'string' ? value.length : null,
+  sha256: typeof value === 'string' ? createHash('sha256').update(value, 'utf8').digest('hex') : null,
+});
+function checkIdentityDiagnostic(error, stage, expected, actual, changedFields) {
+  assert.equal(error.code, 'E_PROCESS_IDENTITY');
+  assert.ok(error.message.startsWith(stage === 'refresh' ? 'Owned PID was reused or changed' : 'Process changed before termination'));
+  const diagnostic = error.diagnostic;
+  assert.ok(Object.keys(error).includes('diagnostic'));
+  assert.equal(diagnostic.stage, stage);
+  assert.equal(diagnostic.pid, expected.pid);
+  assert.ok(Number.isFinite(Date.parse(diagnostic.utc)) && diagnostic.utc.endsWith('Z'));
+  assert.deepEqual(diagnostic.changedFields, changedFields);
+  for (const [side, row] of [['expected', expected], ['actual', actual]]) {
+    assert.deepEqual(diagnostic[side], { pid: row.pid, parent: row.parent, created: row.created,
+      exe: diagnosticSummary(row.exe), command: diagnosticSummary(row.command) });
+    assert.ok(Object.isFrozen(diagnostic[side]) && Object.isFrozen(diagnostic[side].exe) && Object.isFrozen(diagnostic[side].command));
+  }
+  assert.deepEqual(JSON.parse(error.message.split(' identityDiagnostic=')[1]), diagnostic);
+  for (const privateValue of [profile, binary, expected.command, actual.command, actual.exe]) {
+    if (typeof privateValue === 'string' && privateValue.length) assert.equal(error.message.includes(privateValue), false);
+  }
+  assert.ok(Object.isFrozen(diagnostic) && Object.isFrozen(diagnostic.changedFields));
+  return true;
+}
+
+test('refresh identity diagnostics preserve the registered identity and hard refusal for every field change', async () => {
+  for (const patch of [
+    { created: new Date(start + 1000).toISOString() },
+    { exe: path.resolve('different-edge', 'msedge.exe') }, { exe: null }, { exe: '' }, { exe: undefined },
+    { command: 'edge --type=renderer --private-test=secret' }, { command: null }, { command: '' }, { command: undefined },
+    { parent: 999, exe: null, command: null },
+  ]) {
+    const expected = Object.freeze(processRow(11));
+    const actual = { ...expected, ...patch };
+    const saved = { ...actual };
+    const fixture = ownershipFixture([expected]);
+    await fixture.owner.refresh();
+    fixture.setRows([actual]);
+    const changedFields = ['pid', 'created', 'exe', 'command'].filter(field => expected[field] !== actual[field]);
+    let firstError;
+    await assert.rejects(fixture.owner.terminate(), error => {
+      firstError = error;
+      return checkIdentityDiagnostic(error, 'refresh', expected, saved, changedFields);
+    });
+    assert.deepEqual(actual, saved);
+    assert.deepEqual(fixture.stopped, []);
+    // A second mismatch must still compare against the original registered row.
+    await assert.rejects(fixture.owner.refresh(), error => checkIdentityDiagnostic(error, 'refresh', expected, saved, changedFields));
+    actual.command = 'later mutable query row';
+    assert.deepEqual(firstError.diagnostic.actual.command, diagnosticSummary(saved.command));
+    fixture.setRows([expected]);
+    assert.deepEqual(await fixture.owner.refresh(), [expected]);
+  }
+});
+
+test('pre-stop second query mismatch keeps exact diagnostic and never invokes stop', async () => {
+  for (const patch of [{ created: new Date(start + 999).toISOString() }, { exe: null }, { command: null }, { exe: '', command: '' }]) {
+    const expected = Object.freeze(processRow(11));
+    const actual = { ...expected, ...patch };
+    let queries = 0;
+    const stopped = [];
+    const owner = createProcessOwnership({ profile, binary, port: 12345, startedAt: start, before: [],
+      query: async () => (++queries === 1 ? [expected] : [actual]), stop: async row => stopped.push(row.pid) });
+    await assert.rejects(owner.terminate(), error => checkIdentityDiagnostic(error, 'pre-stop', expected, actual,
+      ['pid', 'created', 'exe', 'command'].filter(field => expected[field] !== actual[field])));
+    assert.equal(queries, 2);
+    assert.deepEqual(stopped, []);
+  }
 });

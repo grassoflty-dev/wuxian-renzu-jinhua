@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { createHash } from "node:crypto";
 import { promisify } from "node:util";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
@@ -14,6 +15,28 @@ export function commandFlag(command, name) {
 }
 export function sameProcess(a, b) {
   return !!a && !!b && a.pid === b.pid && a.created === b.created && a.exe === b.exe && a.command === b.command;
+}
+
+function identityFailure(message, stage, expected, actual) {
+  const error = ownershipError("E_PROCESS_IDENTITY", message);
+  try {
+    const stringSummary = value => Object.freeze({
+      state: value === null ? "null" : value === undefined ? "missing" : typeof value !== "string" ? "invalid" : value.length === 0 ? "empty" : "present",
+      length: typeof value === "string" ? value.length : null,
+      sha256: typeof value === "string" ? createHash("sha256").update(value, "utf8").digest("hex") : null,
+    });
+    const snapshot = row => Object.freeze({ pid: row.pid, parent: row.parent, created: row.created,
+      exe: stringSummary(row.exe), command: stringSummary(row.command) });
+    const diagnostic = Object.freeze({ stage, utc: new Date().toISOString(), pid: expected.pid,
+      changedFields: Object.freeze(["pid", "created", "exe", "command"].filter(field => expected[field] !== actual[field])),
+      expected: snapshot(expected), actual: snapshot(actual) });
+    const summary = JSON.stringify(diagnostic);
+    error.diagnostic = diagnostic;
+    error.message += ` identityDiagnostic=${summary}`;
+  } catch {
+    // Observation must never replace the original refusal if serialization fails.
+  }
+  return error;
 }
 
 export async function windowsProcesses({ timeoutMs = 1000, signal } = {}) {
@@ -67,7 +90,7 @@ export function createProcessOwnership({ profile, binary, port, startedAt, befor
     if (!Array.isArray(rows) || rows.some(p => !Number.isInteger(p.pid) || !Number.isInteger(p.parent) || !Number.isFinite(Date.parse(p.created)))) throw ownershipError("E_PROCESS_QUERY", "Invalid process query result");
     const byPid = new Map(rows.map(p => [p.pid, p]));
     for (const [pid, identity] of known) {
-      if (byPid.has(pid) && !sameProcess(byPid.get(pid), identity)) throw ownershipError("E_PROCESS_IDENTITY", "Owned PID was reused or changed");
+      if (byPid.has(pid) && !sameProcess(byPid.get(pid), identity)) throw identityFailure("Owned PID was reused or changed", "refresh", identity, byPid.get(pid));
     }
     for (const p of rows) {
       if (!newer(p)) continue;
@@ -128,7 +151,7 @@ export function createProcessOwnership({ profile, binary, port, startedAt, befor
         if (Date.now() >= end) throw ownershipError("E_PROCESS_TERMINATE_TIMEOUT", "Owned termination budget exhausted");
         const fresh = (await bounded(query, 1000, "E_PROCESS_QUERY_TIMEOUT")).find(candidate => candidate.pid === p.pid);
         if (!fresh) continue;
-        if (!sameProcess(fresh, p)) throw ownershipError("E_PROCESS_IDENTITY", "Process changed before termination");
+        if (!sameProcess(fresh, p)) throw identityFailure("Process changed before termination", "pre-stop", p, fresh);
         await stop(p);
       }
     },
