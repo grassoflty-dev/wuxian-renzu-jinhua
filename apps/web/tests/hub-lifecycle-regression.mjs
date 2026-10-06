@@ -1,9 +1,7 @@
+import { createBrowserSession, freePort, startHttpServer, withBrowserCleanup } from "./support/browser-session.mjs";
+import { bounded } from "./support/browser-cleanup.mjs";
 import assert from "node:assert/strict";
-import { spawn, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdtemp, rm } from "node:fs/promises";
-import net from "node:net";
-import os from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { test } from "node:test";
@@ -16,57 +14,6 @@ function findEdge() {
   const roots = [process.env["PROGRAMFILES(X86)"], process.env.ProgramFiles].filter(Boolean);
   return roots.map((root) => path.join(root, "Microsoft", "Edge", "Application", "msedge.exe"))
     .find((candidate) => existsSync(candidate));
-}
-
-async function freePort() {
-  const server = net.createServer();
-  await new Promise((resolve, reject) => server.once("error", reject).listen(0, "127.0.0.1", resolve));
-  const { port } = server.address();
-  await new Promise((resolve) => server.close(resolve));
-  return port;
-}
-
-async function waitForPage(port, processHandle) {
-  const end = Date.now() + 15_000;
-  while (Date.now() < end) {
-    if (processHandle.exitCode !== null) throw new Error(`Edge exited with code ${processHandle.exitCode}`);
-    try {
-      const pages = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
-      const page = pages.find((target) => target.type === "page");
-      if (page?.webSocketDebuggerUrl) return page.webSocketDebuggerUrl;
-    } catch {}
-    await delay(100);
-  }
-  throw new Error("Timed out waiting for Edge DevTools");
-}
-
-async function connectCdp(url) {
-  const socket = new WebSocket(url);
-  await new Promise((resolve, reject) => {
-    socket.addEventListener("open", resolve, { once: true });
-    socket.addEventListener("error", reject, { once: true });
-  });
-  let nextId = 0;
-  const pending = new Map();
-  socket.addEventListener("message", ({ data }) => {
-    const message = JSON.parse(data);
-    if (!message.id) return;
-    const callbacks = pending.get(message.id);
-    if (!callbacks) return;
-    pending.delete(message.id);
-    if (message.error) callbacks.reject(new Error(message.error.message));
-    else callbacks.resolve(message.result);
-  });
-  return {
-    send(method, params = {}) {
-      const id = ++nextId;
-      return new Promise((resolve, reject) => {
-        pending.set(id, { resolve, reject });
-        socket.send(JSON.stringify({ id, method, params }));
-      });
-    },
-    close() { socket.close(); },
-  };
 }
 
 function installMockIpc() {
@@ -100,6 +47,7 @@ function installMockIpc() {
         return state.latest;
       }
       if (command === "formal_list_save_slots") return state.saved ? [slot()] : [];
+      if (command === "formal_has_save") return args?.defaultOnly === true ? false : Boolean(state.saved);
       if (command === "formal_new") {
         if (state.newFailures > 0) { state.newFailures--; throw new Error("mock reset rejection"); }
         state.epoch++;
@@ -148,6 +96,29 @@ function installMockIpc() {
   window.__TAURI_INTERNALS__ = bridge;
   window.__hubLifecycleMock = state;
 }
+
+test("hub IPC fixture distinguishes named saves from default automatic saves", async () => {
+  const previousWindow = globalThis.window;
+  globalThis.window = {};
+  try {
+    installMockIpc();
+    const bridge = window.__TAURI_INTERNALS__;
+    assert.equal(await bridge.invoke("formal_has_save", { defaultOnly: true }), false);
+    assert.equal(await bridge.invoke("formal_has_save"), false);
+    await bridge.invoke("formal_snapshot");
+    await bridge.invoke("formal_save_slot", { displayName: "现场记录" });
+    assert.equal(await bridge.invoke("formal_has_save"), true);
+    assert.equal(await bridge.invoke("formal_has_save", { defaultOnly: true }), false);
+    await assert.rejects(bridge.invoke("unknown_command"), /Unexpected mocked IPC command: unknown_command/);
+    assert.deepEqual(window.__hubLifecycleMock.calls.map(call => call.command),
+      ["formal_has_save", "formal_has_save", "formal_snapshot", "formal_save_slot", "formal_has_save", "formal_has_save", "unknown_command"]);
+    assert.deepEqual(window.__hubLifecycleMock.calls[0].args, { defaultOnly: true });
+    assert.deepEqual(window.__hubLifecycleMock.calls[5].args, { defaultOnly: true });
+  } finally {
+    if (previousWindow === undefined) delete globalThis.window;
+    else globalThis.window = previousWindow;
+  }
+});
 
 const rendererMocks = {
   "./assets/RuntimeAssetLoader.js": `export class RuntimeAssetLoader {
@@ -211,9 +182,12 @@ test("hub lifecycle: two new journeys, save, return, continue, and recover after
   const edge = findEdge();
   if (!edge) return t.skip("Microsoft Edge is not installed at its standard Windows path");
 
-  const profile = await mkdtemp(path.join(os.tmpdir(), "hub-lifecycle-regression-"));
-  const [debugPort, vitePort] = await Promise.all([freePort(), freePort()]);
-  const vite = await createServer({
+  const session = await createBrowserSession(edge, "hub-lifecycle");
+  const profile = session.profile;
+  const vitePort = await freePort();
+  let cdp;
+  await withBrowserCleanup(async () => {
+  const vite = await bounded(() => createServer({
     configFile: path.join(webRoot, "vite.config.ts"),
     root: webRoot,
     cacheDir: path.join(profile, "vite-cache"),
@@ -230,15 +204,10 @@ test("hub lifecycle: two new journeys, save, return, continue, and recover after
         return rendererMocks[id.slice("\0hub-lifecycle:".length)];
       },
     }],
-  });
-  const browser = spawn(edge, [
-    "--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check",
-    `--remote-debugging-port=${debugPort}`, `--user-data-dir=${profile}`, "about:blank",
-  ], { stdio: "ignore", windowsHide: true });
-  let cdp;
-  try {
-    await vite.listen();
-    cdp = await connectCdp(await waitForPage(debugPort, browser));
+  }), 15000, "E_VITE_CREATE_TIMEOUT");
+    await session.listenVite(vite, webRoot);
+    await session.start();
+    cdp = await session.connect();
     await cdp.send("Page.enable");
     await cdp.send("Runtime.enable");
     await cdp.send("Page.addScriptToEvaluateOnNewDocument", { source: `(${installMockIpc.toString()})();` });
@@ -256,7 +225,25 @@ test("hub lifecycle: two new journeys, save, return, continue, and recover after
         if (value) return value;
         await delay(40);
       }
-      throw new Error(`Timed out waiting for ${description}`);
+      const timeoutError = new Error(`Timed out waiting for ${description}`);
+      try {
+        const diagnostic = await evalValue(`(() => ({
+          pause: { hidden: document.querySelector('#pause-overlay')?.hidden,
+            title: document.querySelector('#pause-title')?.textContent,
+            detail: document.querySelector('#pause-detail')?.textContent },
+          saveDisabled: document.querySelector('#save-new-slot')?.disabled,
+          continueNote: document.querySelector('#continue-slot-note')?.textContent,
+          saveFeedback: document.querySelector('#save-feedback')?.textContent,
+          feedback: document.querySelector('#feedback')?.textContent,
+          calls: window.__hubLifecycleMock.calls.map(({command,args}) => ({command,args})),
+          hasNamedSave: Boolean(window.__hubLifecycleMock.saved),
+          rendered: window.__hubLifecycleMock.rendered,
+        }))()`);
+        t.diagnostic(`hub lifecycle timeout ${description}: ${JSON.stringify(diagnostic)}`);
+      } catch (diagnosticError) {
+        throw new AggregateError([timeoutError, diagnosticError], "Hub wait and diagnostic both failed", { cause: timeoutError });
+      }
+      throw timeoutError;
     };
     const click = async (selector) => evalValue(`(() => { const e=document.querySelector(${JSON.stringify(selector)}); if(!e) throw new Error("missing ${selector}"); e.click(); return true; })()`);
     const state = async () => evalValue(`(() => ({
@@ -341,24 +328,5 @@ test("hub lifecycle: two new journeys, save, return, continue, and recover after
     assert.equal(calls.filter(command => command === "formal_return").length, 2);
     assert.equal(calls.filter(command => command === "formal_continue_slot").length, 1);
     assert.equal(await evalValue("window.__hubLifecycleMock.saved.worldId"), "grey_hive");
-  } finally {
-    try { await cdp?.send("Browser.close"); } catch {}
-    if (browser.exitCode === null && process.platform === "win32") {
-      spawnSync("taskkill", ["/PID", String(browser.pid), "/T", "/F"], { windowsHide: true, stdio: "ignore" });
-    } else if (browser.exitCode === null) browser.kill();
-    if (browser.exitCode === null) await Promise.race([
-      new Promise((resolve) => browser.once("exit", resolve)), delay(1_000),
-    ]);
-    cdp?.close();
-    await vite.close();
-    for (let attempt = 0; attempt < 5; attempt++) {
-      try {
-        await rm(profile, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
-        break;
-      } catch (error) {
-        if (attempt === 4) throw error;
-        await delay(200);
-      }
-    }
-  }
+  }, () => session.cleanup());
 });

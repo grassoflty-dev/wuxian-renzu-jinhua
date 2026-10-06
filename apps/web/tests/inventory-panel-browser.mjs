@@ -1,11 +1,10 @@
+import { createBrowserSession, freePort, startHttpServer, withBrowserCleanup } from "./support/browser-session.mjs";
+import { bounded } from "./support/browser-cleanup.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
-import { readFile, mkdtemp, rm } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
-import net from "node:net";
-import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
@@ -16,19 +15,6 @@ function browserPath() {
     ...[process.env["PROGRAMFILES(X86)"], process.env.ProgramFiles].filter(Boolean).map(p => path.join(p,"Microsoft","Edge","Application","msedge.exe")),
     // Native acceptance targets Windows Edge. Other browsers are explicit opt-in.
   ].filter(Boolean).find(p => existsSync(p));
-}
-async function freePort() { const s = net.createServer(); await new Promise(r => s.listen(0,"127.0.0.1",r)); const p=s.address().port; await new Promise(r=>s.close(r)); return p; }
-async function connect(port, browser) {
-  let url; const end = Date.now()+15000;
-  while (!url && Date.now()<end) {
-    if ((browser.exitCode !== null || browser.signalCode !== null)) throw new Error(`Browser exited ${browser.exitCode}`);
-    try { const pages=await(await fetch(`http://127.0.0.1:${port}/json/list`, { signal: AbortSignal.timeout(1000) })).json(); url=pages.find(p=>p.type==="page")?.webSocketDebuggerUrl; } catch {}
-    if(!url) await delay(50);
-  }
-  if(!url) throw new Error("E_INVENTORY_BROWSER_TIMEOUT");
-  const socket=new WebSocket(url); await new Promise((r,j)=>{const timer=setTimeout(()=>j(new Error("E_CDP_CONNECT_TIMEOUT")),5000);socket.addEventListener("open",()=>{clearTimeout(timer);r();},{once:true});socket.addEventListener("error",e=>{clearTimeout(timer);j(e);},{once:true});});
-  let next=0;const pending=new Map();socket.addEventListener("message",({data})=>{const m=JSON.parse(data),p=pending.get(m.id);if(p){pending.delete(m.id);m.error?p.reject(new Error(m.error.message)):p.resolve(m.result);}});
-  return { close:()=>socket.close(),send(method,params={}){const id=++next;return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{pending.delete(id);reject(new Error(`E_CDP_TIMEOUT:${method}`));},5000);pending.set(id,{resolve:value=>{clearTimeout(timer);resolve(value);},reject:error=>{clearTimeout(timer);reject(error);}});socket.send(JSON.stringify({id,method,params}));});} };
 }
 const html=`<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/src/style.css"><link rel="stylesheet" href="/src/visual-authority.css">
 <button id="trigger">背包入口</button><section class="core-panel" id="core-panel" hidden role="dialog" aria-modal="true" aria-labelledby="core-panel-title">
@@ -43,9 +29,8 @@ test("real browser Inventory panel preserves authoritative rows, keyboard focus,
     if(!/^\/(dist\/.*\.js|src\/(style|visual-authority)\.css|tests\/fixtures\/inventory-snapshot\.mjs)$/.test(pathname)||pathname.includes("..")){res.writeHead(404);res.end();return;}
     res.setHeader("Content-Type",pathname.endsWith(".css")?"text/css":"text/javascript");res.end(await readFile(path.join(root,pathname.slice(1))));
   }catch{res.writeHead(404);res.end();}});
-  await new Promise(r=>server.listen(0,"127.0.0.1",r));const port=await freePort();const profile=await mkdtemp(path.join(os.tmpdir(),"inventory-browser-"));
-  const browser=spawn(binary,["--headless=new","--disable-gpu","--no-first-run","--no-default-browser-check",...(process.platform==="linux"?["--no-sandbox"]:[]),`--remote-debugging-port=${port}`,`--user-data-dir=${profile}`,"about:blank"],{stdio:["ignore","ignore","pipe"],windowsHide:true});
-  let browserErrors="";browser.stderr.on("data",chunk=>{browserErrors+=chunk;});
+  const session=await createBrowserSession(binary,"inventory");
+  session.setServer(server);
   let cdp;const evaluate=async expression=>{const result=await cdp.send("Runtime.evaluate",{expression,awaitPromise:true,returnByValue:true});if(result.exceptionDetails)throw new Error(result.exceptionDetails.exception?.description||result.exceptionDetails.text);return result.result.value;};
   const waitFor = async (expression, label) => {
     const deadline = Date.now() + 5000;
@@ -57,9 +42,11 @@ test("real browser Inventory panel preserves authoritative rows, keyboard focus,
       await delay(20);
     }
   };
-  try {
+  await withBrowserCleanup(async () => {
+    await startHttpServer(server);
+    await session.start();
     console.log("inventory-browser: spawned");
-    cdp=await connect(port,browser); console.log("inventory-browser: connected");await cdp.send("Page.enable");await cdp.send("Runtime.enable");
+    cdp=await session.connect(); console.log("inventory-browser: connected");await cdp.send("Page.enable");await cdp.send("Runtime.enable");
     await cdp.send("Emulation.setDeviceMetricsOverride",{width:1280,height:720,deviceScaleFactor:1,mobile:false});
     await cdp.send("Page.navigate",{url:`http://127.0.0.1:${server.address().port}/`});
     await waitFor("!!document.querySelector('#core-panel-content')", "panel document");
@@ -123,5 +110,5 @@ test("real browser Inventory panel preserves authoritative rows, keyboard focus,
     await cdp.send("Input.dispatchKeyEvent",{type:"keyUp",key:"Escape",code:"Escape",windowsVirtualKeyCode:27});
     await waitFor("document.querySelector('#core-panel').hidden", "Escape dismissal");
     assert.equal(await evaluate("document.querySelector('#core-panel').hidden"),true);
-  } finally {console.log("inventory-browser: cleanup");if(browserErrors)console.log(browserErrors);cdp?.close();browser.kill();await new Promise(r=>{if((browser.exitCode!==null||browser.signalCode!==null))r();else browser.once("exit",r);});server.closeAllConnections();await new Promise(r=>server.close(r));await rm(profile,{recursive:true,force:true,maxRetries:5,retryDelay:100});}
+  }, () => session.cleanup());
 });

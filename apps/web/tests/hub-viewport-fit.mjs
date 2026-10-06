@@ -1,9 +1,7 @@
+import { createBrowserSession, freePort, startHttpServer, withBrowserCleanup } from "./support/browser-session.mjs";
+import { bounded } from "./support/browser-cleanup.mjs";
 import assert from "node:assert/strict";
-import { spawn, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdtemp, rm } from "node:fs/promises";
-import net from "node:net";
-import os from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { test } from "node:test";
@@ -18,81 +16,18 @@ function findEdge() {
     .find((candidate) => existsSync(candidate));
 }
 
-async function freePort() {
-  const server = net.createServer();
-  await new Promise((resolve, reject) => server.once("error", reject).listen(0, "127.0.0.1", resolve));
-  const { port } = server.address();
-  await new Promise((resolve) => server.close(resolve));
-  return port;
-}
-
-async function waitForPage(port, processHandle) {
-  const end = Date.now() + 15_000;
-  while (Date.now() < end) {
-    if (processHandle.exitCode !== null) throw new Error(`Edge exited with code ${processHandle.exitCode}`);
-    try {
-      const response = await fetch(`http://127.0.0.1:${port}/json/list`);
-      const pages = await response.json();
-      const page = pages.find((target) => target.type === "page");
-      if (page?.webSocketDebuggerUrl) return page.webSocketDebuggerUrl;
-    } catch {}
-    await delay(100);
-  }
-  throw new Error("Timed out waiting for Edge DevTools");
-}
-
-async function connectCdp(url) {
-  const socket = new WebSocket(url);
-  await new Promise((resolve, reject) => {
-    socket.addEventListener("open", resolve, { once: true });
-    socket.addEventListener("error", reject, { once: true });
-  });
-  let nextId = 0;
-  const pending = new Map();
-  socket.addEventListener("message", ({ data }) => {
-    const message = JSON.parse(data);
-    if (!message.id) return;
-    const callbacks = pending.get(message.id);
-    if (!callbacks) return;
-    pending.delete(message.id);
-    if (message.error) callbacks.reject(new Error(message.error.message));
-    else callbacks.resolve(message.result);
-  });
-  return {
-    send(method, params = {}) {
-      const id = ++nextId;
-      return new Promise((resolve, reject) => {
-        pending.set(id, { resolve, reject });
-        socket.send(JSON.stringify({ id, method, params }));
-      });
-    },
-    close() { socket.close(); },
-  };
-}
-
 test("hub menu and save picker fit common viewports and remain reachable in short windows", { timeout: 90_000 }, async (t) => {
   const edge = findEdge();
   if (!edge) return t.skip("Microsoft Edge is not installed at its standard Windows path");
 
-  const profile = await mkdtemp(path.join(os.tmpdir(), "hub-viewport-fit-"));
-  const [port, vitePort] = await Promise.all([freePort(), freePort()]);
-  const vite = spawn(process.execPath, [
-    path.join(webRoot, "node_modules", "vite", "bin", "vite.js"),
-    "--host", "127.0.0.1", "--port", String(vitePort), "--strictPort",
-  ], { cwd: webRoot, stdio: "ignore", windowsHide: true });
-  const browser = spawn(edge, [
-    "--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check",
-    `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, "about:blank",
-  ], { stdio: "ignore", windowsHide: true });
+  const session = await createBrowserSession(edge, "hub-viewport");
+  const vitePort = await freePort();
   let cdp;
+  await withBrowserCleanup(async () => {
   try {
-    const serverDeadline = Date.now() + 15_000;
-    while (Date.now() < serverDeadline) {
-      if (vite.exitCode !== null) throw new Error(`Vite exited with code ${vite.exitCode}`);
-      try { if ((await fetch(`http://127.0.0.1:${vitePort}/`)).ok) break; } catch {}
-      await delay(100);
-    }
-    cdp = await connectCdp(await waitForPage(port, browser));
+    await session.spawnVite(webRoot, vitePort);
+    await session.start();
+    cdp = await session.connect();
     await cdp.send("Page.enable");
     await cdp.send("Runtime.enable");
     await cdp.send("Page.navigate", { url: `http://127.0.0.1:${vitePort}/` });
@@ -202,32 +137,7 @@ test("hub menu and save picker fit common viewports and remain reachable in shor
       }
     }
   } finally {
-    try { await cdp?.send("Browser.close"); } catch {}
-    if (browser.exitCode === null && process.platform === "win32") {
-      spawnSync("taskkill", ["/PID", String(browser.pid), "/T", "/F"], { windowsHide: true, stdio: "ignore" });
-    } else if (browser.exitCode === null) {
-      browser.kill();
-    }
-    if (browser.exitCode === null) {
-      await Promise.race([
-        new Promise((resolve) => browser.once("exit", resolve)),
-        delay(1_000),
-      ]);
-    }
-    cdp?.close();
-    if (vite.exitCode === null && process.platform === "win32") {
-      spawnSync("taskkill", ["/PID", String(vite.pid), "/T", "/F"], { windowsHide: true, stdio: "ignore" });
-    } else if (vite.exitCode === null) {
-      vite.kill();
-    }
-    for (let attempt = 0; attempt < 5; attempt++) {
-      try {
-        await rm(profile, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
-        break;
-      } catch (error) {
-        if (attempt === 4) throw error;
-        await delay(200);
-      }
-    }
+    // Resource cleanup follows through withBrowserCleanup, including body failure.
   }
+  }, () => session.cleanup());
 });
