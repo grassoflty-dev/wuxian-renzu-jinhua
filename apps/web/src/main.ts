@@ -325,7 +325,7 @@ function renderSlotOptions(select: HTMLSelectElement, selectedId?: string): void
     const option = document.createElement("option");
     option.value = slot.slotId;
     const kind = saveSlotAvailabilityLabel(slot);
-    option.textContent = `${slot.displayName} · ${slot.worldId || "未知世界"} · ${kind}`;
+    option.textContent = `${slot.displayName} · ${slot.worldId ? worldDisplayName(slot.worldId) : "未知世界"} · ${kind}`;
     option.disabled = !canContinueSaveSlot(slot);
     select.append(option);
   }
@@ -422,7 +422,7 @@ function slotStatusText(slot: SaveSlotSummary): string {
   if (!canContinueSaveSlot(slot)) return `此存档不可继续：${slot.errorCode || "没有有效的存活状态"}`;
   if (slot.recoverable) return "可从唯一有效事务备份恢复。点击继续后安全提交，原备份与临时文件保留；不能覆盖。";
   if (slot.readOnly) return "这是旧版只读存档。继续时 Rust 会先备份并安全迁移；不能覆盖。";
-  return `将从「${slot.displayName}」恢复 ${slot.worldId || "当前世界"}。`;
+  return `将从「${slot.displayName}」恢复 ${slot.worldId ? worldDisplayName(slot.worldId) : "当前世界"}。`;
 }
 
 function resetDeathControls(): void {
