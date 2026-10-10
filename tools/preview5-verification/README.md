@@ -18,7 +18,21 @@
 
 本修复只替换 Brotli 解码后端，优先使用 Google Brotli Python 包；Windows 不再尝试加载 Linux .so。没有依赖时明确报错，绝不跳过解码或闭包检查。不会自动下载或安装依赖。固定 EXE、源码 ZIP、PUBLIC-NATIVE-EVIDENCE.json、bundle-identity.json 与所有 PE/图标/场景/载荷/身份断言保持原样。
 
-从本公开仓库 tools/preview5-verification/ 获取补充工具。先按 docs/testing/WINDOWS_CODEX_TEST_GUIDE.md 第 0 节核对固定工具 commit 和所有文件 SHA256，再将这 11 个文件复制到本轮独立运行根目录的 verification-windows-fix（不要覆盖旧工具与旧证据）。进入该运行根目录，用之前运行核验的同一 CPython 3.12 Windows x64 解释器执行以下 PowerShell 命令：
+Obtain the supplementary verifier from tools/preview5-verification/ at the immutable source commit b4fec8adbae2a4a47dd1f840005ef38393a92a80. Verify its 11 original files against the SHA256 values below before placing them in a new isolated verification-windows-fix directory. These hashes identify that historical tool snapshot, including its original README; they do not identify this revised documentation. Do not overwrite existing tools or evidence. From the run directory, use the same existing CPython 3.12 Windows x64 interpreter for the following PowerShell commands:
+
+```text
+3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986  LICENSE
+3e73fa781832343ca0f5e63d35252a8a40097528b6d343ad0dc4346e9f22e44d  PUBLIC-NATIVE-EVIDENCE.json
+7855f054ceadc23982938362503f72baedcd7f940308205cec9e26066145d2b0  README.md
+d2c88bb855559bb53aa9ee86143f06d4c002e69a29165d7749d587379dcdea76  brotli_decoder.py
+690c84621d98edef548f73c8f6fa302cf4a523da0b8904c0c02898dbdd049e87  bundle-identity.json
+e1eb4056e66f3e43015df65f045e7e10043cf6a6edeb59aa131f66239cceffed  icon_parser.py
+24bf1914d30cb8c148462034a092b57870778d98b6884eebbd0cdb9446a1aae0  requirements-windows-py312-x64.txt
+cbb32b6cef7923ebb58a9c9c4cdd2a9f84fe58a18e8919fa657b153541347cad  toolchain-supplement.json
+af96caae96bab98d6b403b1f6ab5625e4e4d8d235390a5a543d255fed958d5c2  verify-native.py
+2a112b00bc316bcfa72c8278fbd6fab0018fd718cf68a37d2e101f30236f63aa  verify-source.py
+5737defad4892f141c4ab0a94cbef06a5b0c02412df7d2e03042c95d5649cde0  windows-dependency-coverage.json
+```
 
 ```powershell
 $RunRoot = (Get-Location).Path
@@ -31,10 +45,11 @@ if ($LASTEXITCODE -ne 0) { throw '原生静态核验未通过' }
 
 只向该隔离工具目录安装依赖，不安装到全局 Python；需要网络的只有明确的 pip 安装步骤。如果同一 bundled Python 不带 pip，停止并报告缺失，不下载来历不明的 DLL，不修改系统防护。官方包来源：https://pypi.org/project/Brotli/ （Google Brotli，MIT）；1.2.0 提供 CPython 3.12 Windows x64 wheel；此处 requirements 文件限定该 wheel 的官方 SHA256，其他解释器版本/架构会安全失败。Linux/macOS 已安装系统 Brotli 解码库时可以不安装 Python 包。
 
-该命令仅重新做 W01 的 PE/bundle 静态子项，不启动 EXE，也不能解决 B02 的执行策略拒绝。保持此前 Windows 记录不变，另开记录写新结果。不可把云端 Linux 的正向闭包/单元测试或模拟 win32 后端选择称为 Windows 实机验收。
+This command performs only PE/bundle static verification. It does not start the EXE or establish permission to run it. Preserve previous verification evidence and record any new results separately. Linux validation, unit tests, and simulated Windows backend selection are not Windows gameplay acceptance.
 
 ### 解码与回归测试边界
 
 Python 后端使用 Brotli 1.2.0 流式 API，分块请求小输出缓冲并在累计长度超出声明时立即拒绝；底层可能向上取整缓冲大小，不声称 64 KiB 严格内存上限。Python 后端也拒绝尾随垃圾和不完整流。系统 C API 保持旧版一次性有界缓冲行为，可能接受有效 Brotli 流后的尾随字节；完整 EXE SHA256 与每个压缩载荷 SHA256 仍保持原断言，会拒绝实际输入字节改动。
 
 test_brotli_decoder.py 属于云端 Linux 维护测试，依赖相邻 original/、frozen-preview.5.exe 与 Brotli 包，不是可独立在 Windows 运行的测试套件；公开补充工具目录不包含该测试文件。Windows 用户运行的是上述完整只读核验命令。
+
