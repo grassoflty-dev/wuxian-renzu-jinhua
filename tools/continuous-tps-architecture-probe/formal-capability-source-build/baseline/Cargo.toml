@@ -1,0 +1,24 @@
+# Probe-only source compilation adapter. No formal files or exports are replaced.
+# Excludes the application build.rs/binaries/resource pipeline, not library modules.
+[package]
+name = "wuxian-horror-ch1"
+version = "1.0.0"
+edition = "2021"
+publish = false
+build = false
+autobins = false
+autotests = false
+autoexamples = false
+autobenches = false
+
+[lib]
+path = "../../../../server-rs/src/lib.rs"
+doctest = false
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rand = "0.8"
+sha2 = "=0.10.9"
+rapier3d = "=0.22.0"

@@ -12,8 +12,6 @@ pub const CAP_LOCAL_MAP: &str = "information.local_map_i";
 pub const CAP_REAR_VIEW: &str = "perception.rear_view_i";
 pub const CAP_ENEMY_VITALS: &str = "information.enemy_vitals_basic";
 pub const CAP_REGENERATION: &str = "body.regeneration_i";
-pub const CAP_ACOUSTIC_MAPPING: &str = "perception.acoustic_mapping_i";
-pub const CAP_AIR_STEP: &str = "mobility.air_step_i";
 const FIRST_ENHANCEMENT_CHOICES: [&str; 3] = [CAP_LOCAL_MAP, CAP_REAR_VIEW, CAP_REGENERATION];
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -262,7 +260,7 @@ pub fn choose_first_enhancement(
     capability_id: &str,
     revision: WorldRevision,
 ) -> Result<Vec<WorldEffect>, CapabilityError> {
-    if state.world_id != "return_station" {
+    if state.world_id != "grey_hive" {
         return Err(CapabilityError::WrongWorld);
     }
     if state.first_enhancement_choice.is_some() {
@@ -271,21 +269,20 @@ pub fn choose_first_enhancement(
     if !FIRST_ENHANCEMENT_CHOICES.contains(&capability_id) {
         return Err(CapabilityError::IllegalFirstEnhancement);
     }
+    if state.has_grant(capability_id) {
+        return Err(CapabilityError::DuplicateGrant);
+    }
     if !revision_at_least(revision, state.current_revision) {
         return Err(CapabilityError::StaleRevision);
     }
     let mut candidate = state.clone();
     candidate.current_revision = revision;
     candidate.first_enhancement_choice = Some(capability_id.to_owned());
-    if !candidate.has_grant(capability_id) {
-        candidate.grants.push(CapabilityGrant {
-            capability_id: capability_id.to_owned(),
-            granted_at_revision: revision,
-        });
-    }
-    if !candidate.selected.iter().any(|id| id == capability_id) {
-        candidate.selected.push(capability_id.to_owned());
-    }
+    candidate.grants.push(CapabilityGrant {
+        capability_id: capability_id.to_owned(),
+        granted_at_revision: revision,
+    });
+    candidate.selected = vec![capability_id.to_owned()];
     let mut effects = vec![];
     if capability_id == CAP_REAR_VIEW {
         candidate.rear_view_authorization =
@@ -301,16 +298,6 @@ pub fn choose_first_enhancement(
 pub fn tick_regeneration(
     state: &mut CapabilityState,
     input: CapabilityTickInput<'_>,
-) -> Result<CapabilityTickOutput, CapabilityError> {
-    let authorized = state.has_grant(CAP_REGENERATION);
-    tick_regeneration_authorized(state, input, authorized)
-}
-
-/// Runtime permission comes from resolved sources; the existing saved tuning and clocks remain.
-pub(crate) fn tick_regeneration_authorized(
-    state: &mut CapabilityState,
-    input: CapabilityTickInput<'_>,
-    authorized: bool,
 ) -> Result<CapabilityTickOutput, CapabilityError> {
     state.regeneration.validate()?;
     if input.max_hp == 0 || input.current_hp > input.max_hp {
@@ -338,7 +325,7 @@ pub(crate) fn tick_regeneration_authorized(
         return Err(CapabilityError::StaleRevision);
     }
 
-    let event_activity = input.combat_events.iter().any(crate::continuous_combat::CombatEvent::counts_as_combat_activity);
+    let event_activity = !input.combat_events.is_empty();
     let event_damage = input.combat_events.iter().any(|event| {
         matches!(
             event,
@@ -372,7 +359,7 @@ pub(crate) fn tick_regeneration_authorized(
     candidate.current_revision = input.revision;
 
     let mut effects = Vec::new();
-    if authorized
+    if candidate.has_grant(CAP_REGENERATION)
         && delay_elapsed(
             input.now_ms,
             damage_at,
@@ -438,62 +425,8 @@ pub fn project_capabilities(
             objectives: vec![],
         }
     };
-    let enemy_projection = project_enemy_tiers(&enemy_vitals, state.has_grant(CAP_ENEMY_VITALS));
-    let rear_valid = state.has_grant(CAP_REAR_VIEW)
-        && state.rear_view_authorization.granted
-        && rear_view == state.rear_view_authorization
-        && rear_view.grant_id.as_deref() == Some(CAP_REAR_VIEW);
-    let rear_view = if rear_valid {
-        rear_view
-    } else {
-        RearViewAuthorization::denied()
-    };
-    let items = [
-        CAP_LOCAL_MAP,
-        CAP_REAR_VIEW,
-        CAP_ENEMY_VITALS,
-        CAP_REGENERATION,
-        CAP_ACOUSTIC_MAPPING,
-        CAP_AIR_STEP,
-    ]
-    .into_iter()
-    .map(|id| CapabilityItemProjection {
-        capability_id: id.to_owned(),
-        granted: state.has_grant(id),
-        selected: state.selected.iter().any(|selected| selected == id),
-        cooldown_remaining_ms: 0,
-    })
-    .collect();
-    let mut projection = CapabilityProjection::new(items, explored_map, enemy_projection, rear_view);
-    projection.first_enhancement_choice = state.first_enhancement_choice.clone();
-    projection
-}
-
-/// Preserve acquisition rows and legacy callers while the formal runtime authorizes information
-/// through current resolved rules. Fully qualified rules also support source-inclusion fixtures.
-pub(crate) fn project_capabilities_with_rules(
-    state: &CapabilityState,
-    explored: ExploredMap,
-    enemy_vitals: Vec<EnemyVitals>,
-    rear_view: RearViewAuthorization,
-    rules: &wuxian_horror_ch1::player_rules::EffectivePlayerRules,
-) -> CapabilityProjection {
-    let mut projection = project_capabilities(state, explored, vec![], rear_view);
-    projection.enemy_vitals = project_enemy_tiers(
-        &enemy_vitals,
-        rules
-            .capability_permissions
-            .contains(&wuxian_horror_ch1::effects::CapabilityPermission::EnemyVitalsBasic),
-    );
-    projection
-}
-
-fn project_enemy_tiers(
-    enemy_vitals: &[EnemyVitals],
-    authorized: bool,
-) -> Vec<EnemyVitalProjection> {
     let mut seen = BTreeSet::new();
-    if authorized {
+    let enemy_projection = if state.has_grant(CAP_ENEMY_VITALS) {
         enemy_vitals
             .iter()
             .filter(|v| {
@@ -510,7 +443,31 @@ fn project_enemy_tiers(
             .collect()
     } else {
         vec![]
-    }
+    };
+    let rear_valid = state.has_grant(CAP_REAR_VIEW)
+        && state.rear_view_authorization.granted
+        && rear_view == state.rear_view_authorization
+        && rear_view.grant_id.as_deref() == Some(CAP_REAR_VIEW);
+    let rear_view = if rear_valid {
+        rear_view
+    } else {
+        RearViewAuthorization::denied()
+    };
+    let items = [
+        CAP_LOCAL_MAP,
+        CAP_REAR_VIEW,
+        CAP_ENEMY_VITALS,
+        CAP_REGENERATION,
+    ]
+    .into_iter()
+    .map(|id| CapabilityItemProjection {
+        capability_id: id.to_owned(),
+        granted: state.has_grant(id),
+        selected: state.selected.iter().any(|selected| selected == id),
+        cooldown_remaining_ms: 0,
+    })
+    .collect();
+    CapabilityProjection::new(items, explored_map, enemy_projection, rear_view)
 }
 
 fn validate_map(map: &ExploredMap) -> Result<(), CapabilityError> {
@@ -567,8 +524,6 @@ fn is_canonical(id: &str) -> bool {
         CAP_REAR_VIEW,
         CAP_ENEMY_VITALS,
         CAP_REGENERATION,
-        CAP_ACOUSTIC_MAPPING,
-        CAP_AIR_STEP,
     ]
     .contains(&id)
 }

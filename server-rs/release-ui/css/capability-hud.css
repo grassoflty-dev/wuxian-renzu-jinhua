@@ -1,0 +1,31 @@
+.capability-hud-v3 {
+  position: fixed;
+  inset: 1rem 1rem auto auto;
+  z-index: 20;
+  max-width: min(20rem, 45vw);
+  color: #e8f1f2;
+  font: 500 0.875rem/1.35 system-ui, sans-serif;
+  pointer-events: none;
+}
+
+.capability-vitals {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.capability-vitals li {
+  padding: 0.35rem 0.55rem;
+  border-inline-start: 0.2rem solid #79aeb6;
+  background: rgb(9 18 21 / 78%);
+}
+
+.capability-vitals [data-tier="wounded"] { border-color: #d8b25c; }
+.capability-vitals [data-tier="severelyWounded"] { border-color: #d77a45; }
+.capability-vitals [data-tier="critical"] { border-color: #d34b4b; }
+
+@media (max-width: 800px), (max-height: 500px) {
+  .capability-hud-v3 { max-width: 55vw; font-size: 0.75rem; }
+}

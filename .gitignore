@@ -1,33 +1,71 @@
-# Rebuildable dependencies and output
-node_modules
+# ===== Rust 编译产物 =====
 server-rs/target/
-server-rs/gen/schemas/
 target/
-dist/
 *.pdb
 *.rlib
 *.rmeta
+
+# ===== 本地数据 / 存档 =====
+server-rs/data/*
+!server-rs/data/capability_v1.json
+!server-rs/data/world_progression_v1.json
+data/save.json
+*.db
+
+# ===== 日志 / 临时 =====
+*.log
+tools/artifacts/
+tools/logs/
+# 本次需求恢复的私有会话副本，不发布/上传
+tools/other-session.recovery.jsonl
+tools/other-session.users.json
+
+# ===== 探针运行时依赖缓存 =====
+tools/continuous-tps-architecture-probe/**/cargo-home/
+
+# ===== 素材中间产物（最终素材已部署到 assets/）=====
+tools/design/raw_*/
+tools/design/cutout_*/
+tools/design/qc_*/
+tools/design/audio_*/
+tools/design/*_ol.html
+tools/design/_source_*.txt
+tools/design/prompt*
 *.pyc
 __pycache__/
 
-# Local runtime data: authored server-rs/data/*.json files are source inputs.
-formal-save-*.json
-formal-save-*.json.bak
-slots/
-saves/
-*.log
-*.db
-.cache/
-.env
-.env.*
-*.pem
-*.key
-*.p12
-*.pfx
 
-# Editor and operating-system files
+# ===== 系统 / 编辑器 =====
 .DS_Store
 Thumbs.db
 *.swp
 .idea/
 .vscode/
+
+# ===== 本地私有需求文档（只保存在本地，不上传云端）=====
+docs/REQUIREMENTS.md
+
+# ===== 本地构建、调试和待审媒体（已跟踪文件仍需单独清理历史） =====
+dist/
+tools/shots/
+tools/shots_qc/
+tools/*_raw_responses*/
+server-rs/release-ui/assets/
+server-rs/ui/assets/
+portraits_library/
+
+# ===== 开源发布禁入范围（忽略规则不清理已跟踪文件或历史） =====
+assets-work/
+assets-source/
+**/private-session*/
+**/private-prompts*/
+**/local-model-output*/
+**/saves/
+**/.cache/
+**/cache/
+*.pem
+*.key
+*.p12
+*.pfx
+.env
+.env.*

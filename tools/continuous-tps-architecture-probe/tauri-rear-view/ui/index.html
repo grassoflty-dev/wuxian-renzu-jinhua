@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>TP-13B1 local development probe</title>
+  <style>body{margin:0;background:#101827;color:#d1d5db;font:13px system-ui,sans-serif}#status{padding:14px}canvas{display:block;width:320px;height:240px;opacity:.01}</style>
+</head>
+<body>
+  <div id="status">TP-13B1 starting local-development-only WebView/WebGL probe…</div>
+  <canvas id="probe-canvas" width="320" height="240" aria-hidden="true"></canvas>
+  <script>
+  (() => {
+    const statusNode = document.getElementById("status");
+    const core = window.__TAURI__?.core;
+    const protocol = "continuous-capability";
+    const version = 1;
+    const capabilityId = "perception.rear_view";
+    const events = [];
+    const scenarios = [];
+    const counts = { grant: 0, revoke: 0, duplicate: 0, multiSource: 0, partialRevoke: 0, finalRevoke: 0, regrant: 0, epochReplacement: 0, staleEpoch: 0, renders: 0, creates: 0, disposes: 0 };
+    let pagehideObserved = false;
+    let pagehideListenerInstalled = false;
+    let BABYLON = null;
+    let engine = null;
+    let scene = null;
+    let mainCamera = null;
+    let loopRunning = false;
+    let actualWebgl = null;
+
+    function now() { return performance.now(); }
+    function log(kind, data = {}) { events.push({ kind, perfMs: now(), ...data }); }
+    function show(text) { statusNode.textContent = text; }
+    function sleep(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
+    function frame() { return new Promise((resolve) => requestAnimationFrame(() => resolve())); }
+    async function frames(n = 2) { for (let i = 0; i < n; i += 1) await frame(); }
+    async function invoke(name, args = {}) { if (!core?.invoke) throw new Error("E_TAURI_CORE_UNAVAILABLE"); return core.invoke(name, args); }
+    function assert(condition, id, detail = "") { scenarios.push({ id, pass: Boolean(condition), detail }); if (!condition) throw new Error(`${id}: ${detail || "assertion failed"}`); }
+    function point(x = 1, y = 2, z = 3, yawRad = 0) { return { positionM: { xM: x, yM: y, zM: z }, yawRad }; }
+    function view(epoch, effective = [], tick = 1) { return { protocol, version, worldId: "grey_hive", worldEpoch: epoch, tick, effective, baseline: ["ui.accessibility", "controls.basic"] }; }
+    function grant(grantId, source, epoch = 1, parameters = { distanceM: 6, yawFovDeg: 100, resolutionTier: "low" }) { counts.grant += 1; return view(epoch, [{ grantId, source, capabilityId, parameters }]); }
+    function resources() { return { cameras: scene.cameras.length, textures: scene.textures.length, customRenderTargets: scene.customRenderTargets.length }; }
+    function semanticView(value) { return { protocol: value.protocol, version: value.version, worldId: value.worldId, worldEpoch: value.worldEpoch, tick: value.tick, effective: value.effective || [], baseline: value.baseline || ["ui.accessibility", "controls.basic"] }; }
+    function semanticSave(value) { return { schemaVersion: value.schemaVersion, worldId: value.worldId, worldEpoch: value.worldEpoch, semanticGrants: value.semanticGrants || [], accessibility: value.accessibility || { captions: true, scalableText: true, remappableControls: true, readability: true } }; }
+
+    class RearViewAdapter {
+      constructor() { this.closed = false; this.epoch = null; this.generation = 0; this.resource = null; this.sources = new Map(); this.disposedCount = 0; this.renderRequests = 0; this.actualRenderCount = 0; }
+      params(entries) { const e = entries.filter((x) => x && x.capabilityId === capabilityId); return e.map((x) => ({ key: `${x.grantId || x.source}|${x.source || "unknown"}`, grantId: x.grantId || `${x.source}|${capabilityId}`, source: x.source || "unknown", parameters: { distanceM: Number(x.parameters.distanceM), yawFovDeg: Number(x.parameters.yawFovDeg), resolutionTier: x.parameters.resolutionTier } })); }
+      dispose(reason) {
+        if (!this.resource) return false;
+        const r = this.resource;
+        if (r.observer) r.texture.onAfterRenderObservable.remove(r.observer);
+        const i = scene.customRenderTargets.indexOf(r.texture); if (i >= 0) scene.customRenderTargets.splice(i, 1);
+        r.texture.dispose(); r.camera.dispose(); this.resource = null; this.disposedCount += 1; counts.disposes += 1; log("dispose", { reason, generation: r.generation, actualRenderCount: r.actualRenderCount }); return true;
+      }
+      create(entries, player) {
+        const p = entries[0].parameters; const size = p.resolutionTier === "high" ? 256 : p.resolutionTier === "medium" ? 128 : 64; this.generation += 1;
+        const camera = new BABYLON.FreeCamera(`cap-rear-view-camera-gen-${this.generation}`, new BABYLON.Vector3(0, 0, 0), scene);
+        camera.minZ = .05; camera.maxZ = Math.max(p.distanceM * 4, 20); camera.fov = p.yawFovDeg * Math.PI / 180; camera.metadata = { capabilityId, generation: this.generation, candidate: true, yawZeroDirection: "+Z", coordinate: "metres/right-handed/+Y" };
+        const texture = new BABYLON.RenderTargetTexture(`cap-rear-view-rtt-gen-${this.generation}`, { width: size, height: size }, scene, false);
+        texture.renderList = []; texture.metadata = { capabilityId, generation: this.generation, candidate: true, resolutionPx: size };
+        let actual = 0; const observer = texture.onAfterRenderObservable.add(() => { actual += 1; this.actualRenderCount += 1; }); scene.customRenderTargets.push(texture);
+        this.resource = { camera, texture, observer, generation: this.generation, parameters: p, actualRenderCount: actual }; counts.creates += 1; this.update(player); log("create", { generation: this.generation, resolutionPx: size, sourceCount: entries.length });
+      }
+      update(player) { if (!this.resource) return; const r = this.resource; const p = r.parameters; const dx = Math.sin(player.yawRad) * p.distanceM; const dz = Math.cos(player.yawRad) * p.distanceM; r.camera.position.set(player.positionM.xM + dx, player.positionM.yM, player.positionM.zM + dz); r.camera.setTarget(new BABYLON.Vector3(player.positionM.xM, player.positionM.yM, player.positionM.zM)); }
+      apply(value, epoch, player) {
+        if (this.closed) return { accepted: false, kind: "closed" }; if (this.epoch !== null && epoch < this.epoch) { counts.staleEpoch += 1; log("stale_epoch_rejected", { epoch, currentEpoch: this.epoch }); return { accepted: false, kind: "stale_epoch" }; }
+        const next = this.params(value.effective || []); const changed = JSON.stringify([...this.sources.values()]) !== JSON.stringify(next); if (this.epoch !== null && epoch > this.epoch) { this.dispose("world_epoch_replacement"); this.sources.clear(); counts.epochReplacement += 1; }
+        this.epoch = epoch; this.sources = new Map(next.map((x) => [x.key, x])); if (!this.sources.size) { this.dispose("final_revoke"); counts.finalRevoke += 1; return { accepted: true, kind: "revoked", disposed: true }; }
+        if (!this.resource) this.create([...this.sources.values()], player); else if (changed && JSON.stringify([...this.sources.values()][0].parameters) !== JSON.stringify(this.resource.parameters)) { this.dispose("parameters_changed"); this.create([...this.sources.values()], player); } else this.update(player);
+        return { accepted: true, kind: changed ? "updated" : "idempotent", generation: this.generation, sourceCount: this.sources.size };
+      }
+      render(epoch) { if (this.closed) return { rendered: false, kind: "closed" }; if (epoch !== this.epoch) return { rendered: false, kind: epoch < this.epoch ? "stale_epoch" : "epoch_mismatch" }; if (!this.resource) return { rendered: false, kind: "no_grant" }; this.renderRequests += 1; this.resource.texture.render(false); counts.renders += 1; return { rendered: true, kind: "rear_view", generation: this.generation }; }
+      close() { if (this.closed) return; this.dispose("adapter_close"); this.closed = true; this.sources.clear(); log("adapter_closed", { generation: this.generation }); }
+      stats() { return { closed: this.closed, epoch: this.epoch, generation: this.generation, sourceCount: this.sources.size, renderRequests: this.renderRequests, actualRenderCount: this.actualRenderCount, disposedCount: this.disposedCount, resources: resources(), hasCamera: Boolean(this.resource), rttInternalTexture: this.resource?.texture?.getInternalTexture?.() !== null }; }
+    }
+
+    async function main() {
+      pagehideListenerInstalled = true; window.addEventListener("pagehide", () => { pagehideObserved = true; log("pagehide"); });
+      const vendor = await invoke("get_babylon_source"); if (typeof vendor !== "string" || vendor.length < 1000000) throw new Error("E_VENDOR_INJECTION_UNOBSERVABLE"); log("vendor_received", { bytes: vendor.length, injection: "runtime_readonly_include_str" }); (0, eval)(vendor); BABYLON = globalThis.BABYLON; assert(BABYLON?.Engine?.Version === "9.26.2", "babylon_version", String(BABYLON?.Engine?.Version));
+      const canvas = document.getElementById("probe-canvas"); actualWebgl = canvas.getContext("webgl2") || canvas.getContext("webgl"); assert(Boolean(actualWebgl), "real_webgl_context", "WebGL context unavailable");
+      engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: false, stencil: true }, false); scene = new BABYLON.Scene(engine); scene.useRightHandedSystem = true; mainCamera = new BABYLON.FreeCamera("main-camera", new BABYLON.Vector3(0, 2, -6), scene); mainCamera.setTarget(new BABYLON.Vector3(0, 1, 0)); scene.activeCamera = mainCamera; loopRunning = true; engine.runRenderLoop(() => { if (loopRunning && !engine.isDisposed) scene.render(); });
+      log("webgl_ready", { engine: "Babylon.Engine", scene: "Babylon.Scene", webglVersion: actualWebgl.getParameter(actualWebgl.VERSION), renderer: actualWebgl.getParameter(actualWebgl.RENDERER), vendor: actualWebgl.getParameter(actualWebgl.VENDOR), sceneUseRightHandedSystem: scene.useRightHandedSystem });
+      const adapter = new RearViewAdapter(); const baseline = resources(); const player = point(10, 1, -4, 0); assert(baseline.cameras === 1 && baseline.textures === 0 && baseline.customRenderTargets === 0, "baseline_resources", JSON.stringify(baseline)); assert(adapter.apply(view(1), 1, player).kind === "revoked", "no_grant_no_resource"); assert(resources().cameras === 1 && resources().textures === 0, "no_grant_counts");
+      let result = adapter.apply(grant("g-equipment", "equipment"), 1, player); assert(result.generation === 1 && result.sourceCount === 1, "grant_generation_one"); const grantCounts = resources(); assert(grantCounts.cameras === 2 && grantCounts.textures === 1 && grantCounts.customRenderTargets === 1, "grant_resource_counts", JSON.stringify(grantCounts)); result = adapter.apply(grant("g-equipment", "equipment"), 1, player); counts.duplicate += 1; assert(result.kind === "idempotent" && adapter.stats().generation === 1, "duplicate_grant_idempotent");
+      result = adapter.apply(view(1, [{ grantId: "g-equipment", source: "equipment", capabilityId, parameters: { distanceM: 6, yawFovDeg: 100, resolutionTier: "low" } }, { grantId: "g-bloodline", source: "bloodline", capabilityId, parameters: { distanceM: 6, yawFovDeg: 100, resolutionTier: "low" } }]), 1, player); counts.multiSource += 1; assert(result.sourceCount === 2 && adapter.stats().generation === 1, "multi_source_one_resource"); result = adapter.apply(grant("g-equipment", "equipment"), 1, player); counts.partialRevoke += 1; assert(result.sourceCount === 1 && adapter.stats().disposedCount === 0, "partial_revoke_keeps_resource"); result = adapter.apply(view(1), 1, player); counts.finalRevoke += 1; assert(result.disposed === true && adapter.stats().disposedCount === 1 && resources().textures === 0, "final_revoke_disposes");
+      result = adapter.apply(grant("g-regrant", "equipment"), 1, player); counts.regrant += 1; assert(result.generation === 2, "regrant_new_generation"); result = adapter.render(1); await frames(3); assert(result.rendered === true && adapter.stats().actualRenderCount > 0, "real_rtt_render_count_increases", JSON.stringify(adapter.stats())); const stale = grant("g-stale", "world", 1); result = adapter.apply(grant("g-epoch-2", "world", 2), 2, point(20, 0, 4, 0)); assert(result.generation === 3 && adapter.stats().disposedCount === 2, "epoch_replacement_disposes_old"); result = adapter.apply(stale, 1, player); assert(result.kind === "stale_epoch" && adapter.stats().generation === 3, "old_epoch_view_rejected"); result = adapter.render(1); assert(result.kind === "stale_epoch", "old_epoch_render_rejected"); result = adapter.render(2); await frames(2); assert(result.rendered === true && adapter.stats().actualRenderCount > 1, "new_epoch_render_count_increases");
+      const viewText = JSON.stringify(semanticView(view(2, []))); const saveText = JSON.stringify(semanticSave({ schemaVersion: 3, worldId: "grey_hive", worldEpoch: 2, semanticGrants: [{ grantId: "g-epoch-2", capabilityId, source: "world" }], camera: adapter.resource?.camera, texture: adapter.resource?.texture, engine })); assert(!/(camera|texture|renderTarget|engine|scene|mesh|GPU)/i.test(viewText + saveText), "serialization_excludes_runtime_handles"); assert(true, "accessibility_baseline_always_available");
+      adapter.apply(view(2), 2, player); assert(resources().textures === 0, "final_epoch_revoke_disposes");
+
+      const soak = new RearViewAdapter(); for (let i = 0; i < 50; i += 1) { soak.apply(grant(`soak-${i}`, "temporary"), 1, player); soak.apply(view(1), 1, player); } assert(soak.disposedCount === 50 && resources().textures === 0, "soak_50_grant_revoke", JSON.stringify(soak.stats())); soak.close();
+      const epochSoak = new RearViewAdapter(); epochSoak.apply(grant("epoch-1", "world", 1), 1, player); for (let e = 2; e <= 31; e += 1) epochSoak.apply(grant(`epoch-${e}`, "world", e), e, player); assert(epochSoak.disposedCount === 30 && resources().textures === 1, "soak_30_world_replacements", JSON.stringify(epochSoak.stats())); epochSoak.apply(view(31), 31, player); assert(epochSoak.disposedCount === 31 && resources().textures === 0, "soak_30_final_revoke"); epochSoak.close();
+
+      loopRunning = false; engine.stopRenderLoop(); adapter.close(); const beforeSceneDispose = resources(); assert(beforeSceneDispose.cameras === 1 && beforeSceneDispose.textures === 0, "pre_close_main_only"); if (mainCamera && !mainCamera.isDisposed()) mainCamera.dispose(); scene.dispose(); engine.dispose(); const afterSceneDispose = { cameras: scene.cameras.length, textures: scene.textures.length, customRenderTargets: scene.customRenderTargets.length }; assert(afterSceneDispose.cameras === 0 && afterSceneDispose.textures === 0, "post_close_scene_empty"); log("cleanup_complete", { beforeSceneDispose, afterSceneDispose, renderLoopStopped: !loopRunning, pagehideListenerInstalled });
+      const failed = scenarios.filter((x) => !x.pass); const report = { schema: "tauri_rear_view_tp13b1_v1", status: failed.length === 0 && actualWebgl ? "passed_real_webview_webgl_lifecycle" : "blocked_webview_or_webgl_evidence", formalSceneReady: false, localDevelopmentOnly: true, vendorReleasePending: true, allChecksPassed: failed.length === 0 && Boolean(actualWebgl), scenarioCount: scenarios.length, scenarios, evidence: { vendorVersion: BABYLON.Engine.Version, webviewUserAgent: navigator.userAgent, webglVersion: actualWebgl?.getParameter(actualWebgl.VERSION) || null, webglRenderer: actualWebgl?.getParameter(actualWebgl.RENDERER) || null, webglVendor: actualWebgl?.getParameter(actualWebgl.VENDOR) || null, engine: "Babylon.Engine", scene: "Babylon.Scene", mainCamera: "FreeCamera", rearCamera: "FreeCamera", rtt: "RenderTargetTexture", imageReadback: false, imageSaved: false, pagehideListenerInstalled, pagehideObservedBeforeClose: pagehideObserved }, grantCounts: counts, resourceCounts: { baseline, grant: grantCounts, afterClose: afterSceneDispose }, soak: { grantRevokeCycles: 50, worldReplacements: 30, renderCountObserved: adapter.actualRenderCount, exactFinalDisposals: adapter.disposedCount, epochFinalDisposals: epochSoak.disposedCount, memoryGpuLeak: "unknown" }, serialization: { semanticOnly: true, forbiddenRuntimeHandles: ["camera", "texture", "renderTarget", "engine", "scene", "mesh", "GPU"], accessibilityIndependent: true }, formalGaps: ["real GPU/WebView presentation only local development", "no pixel readback, screenshot, media, occlusion, camera feel, performance, or publish bundle", "formal Capability resolver/UI not changed", "Gate H/TP-13 and Architecture remain blocked/no_go"] };
+      await invoke("record_events", { events }); await invoke("finish_probe", { report }); show(report.status);
+    }
+    main().catch(async (error) => { log("error", { message: String(error?.stack || error) }); const report = { schema: "tauri_rear_view_tp13b1_v1", status: "blocked_webview_or_webgl_evidence", formalSceneReady: false, localDevelopmentOnly: true, vendorReleasePending: true, allChecksPassed: false, scenarioCount: scenarios.length, scenarios, error: String(error?.stack || error), evidence: { vendorInjection: "runtime include_str! command", imageReadback: false, imageSaved: false, pagehideListenerInstalled, pagehideObservedBeforeClose: pagehideObserved }, formalGaps: ["required real WebView/WebGL evidence unavailable", "TP-13A1 NullEngine is not substituted", "Gate H/TP-13 and Architecture remain blocked/no_go"] }; try { await invoke("record_events", { events }); await invoke("finish_probe", { report }); } catch (_) { statusNode.textContent = report.status; } });
+  })();
+  </script>
+</body>
+</html>

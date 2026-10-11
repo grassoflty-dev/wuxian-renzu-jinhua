@@ -1,0 +1,96 @@
+﻿<!DOCTYPE html>
+<!-- sprite_ds.html — SpriteStacking 立绘投影预览(DS 独立通道)
+ * 纯浏览器加载(无需 cargo build/Tauri)：依赖 three.min.js + js/sprite_ds.js。
+ * 暴露 window.__setSprite(name) 供截图脚本 evalJs 重建模型；
+ * 暴露 window.setSpriteView('front'|'side'|'back'|'face') 切换视角。
+ * 后台立绘加载完成置 window.__spriteReady=true(截图脚本据此等待)。 -->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SpriteStacking 立绘投影预览(DS)</title>
+  <style>
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #ffffff; }
+    #host { position: fixed; left: 0; top: 0; right: 0; bottom: 0; width: 100vw; height: 100vh; z-index: 1; background: #ffffff; }
+  </style>
+</head>
+<body>
+  <div id="host"></div>
+
+  <script src="three.min.js"></script>
+  <script src="sprite_ds.js"></script>
+
+  <script>
+    var host = document.getElementById('host');
+    var renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight, true);
+    host.appendChild(renderer.domElement);
+
+    var scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xffffff);
+    var camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 0.1, 300);
+
+    var group = new THREE.Group();
+    scene.add(group);
+
+    // 脚下软阴影圆(视觉贴地；无真阴影)
+    var sh = document.createElement('canvas'); sh.width = sh.height = 256;
+    var sx = sh.getContext('2d');
+    var gg = sx.createRadialGradient(128, 128, 8, 128, 128, 126);
+    gg.addColorStop(0, 'rgba(0,0,0,0.22)'); gg.addColorStop(1, 'rgba(0,0,0,0)');
+    sx.fillStyle = gg; sx.fillRect(0, 0, 256, 256);
+    var shadow = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.8),
+      new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(sh), transparent: true, depthWrite: false, depthTest: false }));
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.position.y = 0.01;
+    shadow.renderOrder = 500;   // 忽略深度,始终压在白色遮断板之上,不被切出矩形
+    scene.add(shadow);
+
+    // 视角表(相机距离/高度/注视点，与体素预览取景风格一致)
+    var CAM = {
+      front:   { pos: [0, 1.35, 5.2], look: [0, 1.15, 0] },
+      side:    { pos: [3.4, 1.5, 3.4], look: [0, 1.15, 0] },   // 40° 前侧斜视：靠切片视差表现体积
+      back:    { pos: [0, 1.35, -5.2], look: [0, 1.15, 0] },
+      face:    { pos: [0, 1.62, 2.55], look: [0, 1.62, 0] },
+      profile: { pos: [5.2, 1.35, 0], look: [0, 1.15, 0] }     // 真侧：验证侧面是否连续轮廓/非百叶窗
+    };
+
+    function resize() {
+      var w = window.innerWidth, h = window.innerHeight;
+      renderer.setSize(w, h, true);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.render(scene, camera);
+    }
+    window.addEventListener('resize', resize);
+
+    window.setSpriteView = function (v) {
+      var c = CAM[v] || CAM.front;
+      camera.position.set(c.pos[0], c.pos[1], c.pos[2]);
+      camera.lookAt(c.look[0], c.look[1], c.look[2]);
+      camera.updateMatrixWorld(true);
+      renderer.render(scene, camera);
+      return 'ok:' + v;
+    };
+
+    window.__setSprite = function (name) {
+      if (!window.SpriteBuilderDS) return 'no SpriteBuilderDS';
+      window.__spriteReady = false;
+      var res = window.SpriteBuilderDS.build(group, {
+        url: '../assets/pc_zhengzha_front.png',
+        sideUrl: '../assets/pc_zhengzha_side.png',
+        backUrl: '../assets/pc_zhengzha_back.png'
+      });
+      renderer.render(scene, camera);
+      return (res || '') + ':zhenghai';
+    };
+
+    function init() {
+      window.__setSprite('zhenghai');
+      window.setSpriteView('front');
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+  </script>
+</body>
+</html>

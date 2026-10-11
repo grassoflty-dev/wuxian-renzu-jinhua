@@ -1,14 +1,27 @@
 #![allow(dead_code)]
+#[path = "../src/capability_v1.rs"]
+mod capability_v1;
+#[path = "../src/continuous_combat.rs"]
+mod continuous_combat;
+#[path = "../src/continuous_input.rs"]
+mod continuous_input;
+#[path = "../src/continuous_kcc.rs"]
+mod continuous_kcc;
+#[path = "../src/fixed_step.rs"]
+mod fixed_step;
+#[path = "../src/sentinel_ai.rs"]
+mod sentinel_ai;
+#[path = "../src/world_v3.rs"]
+mod world_v3;
 
-use wuxian_horror_ch1::capability_v1::{
+use capability_v1::{
     apply_command, apply_command_at_revision, choose_first_enhancement, project_capabilities,
     tick_regeneration, CapabilityCommand, CapabilityError, CapabilityState, CapabilityTickInput,
-    RegenerationConfig, CAP_ACOUSTIC_MAPPING, CAP_AIR_STEP, CAP_ENEMY_VITALS, CAP_LOCAL_MAP,
-    CAP_REAR_VIEW, CAP_REGENERATION,
+    RegenerationConfig, CAP_ENEMY_VITALS, CAP_LOCAL_MAP, CAP_REAR_VIEW, CAP_REGENERATION,
 };
-use wuxian_horror_ch1::continuous_combat::CombatEvent;
-use wuxian_horror_ch1::world_v3::{
-    self, EnemyVitals, ExploredMap, KnownConnection, KnownObjective, RearViewAuthorization, Vec3,
+use continuous_combat::CombatEvent;
+use world_v3::{
+    EnemyVitals, ExploredMap, KnownConnection, KnownObjective, RearViewAuthorization, Vec3,
     VitalTier, WorldEffect, WorldRevision,
 };
 
@@ -134,7 +147,6 @@ fn four_canonical_grants_selects_serde_and_rejections() {
 fn first_grey_hive_enhancement_is_one_atomic_choice() {
     for chosen in [CAP_LOCAL_MAP, CAP_REAR_VIEW, CAP_REGENERATION] {
         let mut s = state(config(2.0, 0.75, 0, 0));
-        s.world_id = "return_station".into();
         let effects = choose_first_enhancement(&mut s, chosen, revision(1)).unwrap();
         assert_eq!(s.first_enhancement_choice.as_deref(), Some(chosen));
         assert_eq!(s.grants.len(), 1);
@@ -361,7 +373,6 @@ fn regeneration_respects_delays_damage_reset_cap_and_fraction() {
     let damage = [CombatEvent::PlayerDamaged {
         source_id: "sentinel".into(),
         damage: 1,
-        contact: None,
     }];
     assert!(tick_regeneration(
         &mut s,
@@ -461,9 +472,7 @@ fn data_config_has_schema_and_canonical_ids() {
             CAP_LOCAL_MAP,
             CAP_REAR_VIEW,
             CAP_ENEMY_VITALS,
-            CAP_REGENERATION,
-            CAP_ACOUSTIC_MAPPING,
-            CAP_AIR_STEP,
+            CAP_REGENERATION
         ]
     );
     config.regeneration.validate().unwrap();

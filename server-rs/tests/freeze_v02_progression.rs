@@ -1,5 +1,18 @@
-use wuxian_horror_ch1::world_progression::*;
-use wuxian_horror_ch1::world_v3::WorldRevision;
+#[path = "../src/continuous_input.rs"]
+mod continuous_input;
+#[path = "../src/continuous_kcc.rs"]
+mod continuous_kcc;
+#[path = "../src/continuous_combat.rs"]
+mod continuous_combat;
+#[path = "../src/sentinel_ai.rs"]
+mod sentinel_ai;
+#[path = "../src/world_v3.rs"]
+mod world_v3;
+#[path = "../src/world_progression.rs"]
+mod world_progression;
+
+use world_progression::*;
+use world_v3::WorldRevision;
 
 fn revision(n: u64) -> WorldRevision {
     WorldRevision::new(1, n, n).expect("valid revision")

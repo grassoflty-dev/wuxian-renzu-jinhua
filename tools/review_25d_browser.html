@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>蜂巢 2.5D 垂直切片审查</title>
+  <style>
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #070b0f; color: #d8e2e8; font: 14px sans-serif; }
+    #worldCanvas { position: fixed; inset: 0; width: 100vw; height: 100vh; }
+    #top { position: fixed; z-index: 4; inset: 0 0 auto; display:flex; justify-content:space-between; padding:12px 18px; background:rgba(6,10,14,.85); border-bottom:1px solid #33414c; }
+    #minimap { position: fixed; z-index: 5; top: 56px; right: 18px; width:184px; height:184px; border:2px solid #3d4e5a; background:#05080b; image-rendering:pixelated; }
+    #task { position:fixed; z-index:5; top:58px; left:18px; width:260px; padding:12px; background:rgba(7,12,16,.84); border:1px solid #40525e; line-height:1.6; }
+    #bigmap { display:none; position:fixed; z-index:8; inset:5vh 15vw; width:70vw; height:90vh; background:#05080b; border:2px solid #708494; }
+    #hint { position:fixed; z-index:5; left:50%; bottom:16px; transform:translateX(-50%); padding:8px 14px; background:rgba(5,8,11,.82); border:1px solid #475865; }
+  </style>
+</head>
+<body>
+  <div id="top"><span>生化危机 · 蜂巢 · F2 实验层 · B区</span><span>WASD 移动 · M 大地图 · E 交互</span></div>
+  <canvas id="worldCanvas"></canvas><canvas id="minimap" width="184" height="184"></canvas><canvas id="bigmap" width="720" height="720"></canvas>
+  <div id="task"><div style="color:#ffd36a">📋 主线任务</div><div>调查 B 区实验层，找到红后终端</div><div style="color:#8fd0a8">2.5D：正交相机 · 薄地板 · 挤出墙体</div></div>
+  <div id="hint">人物 / 敌人 billboard · 红色应急灯 · 冷色环境雾 · 前景墙遮挡淡化</div>
+  <script src="../server-rs/ui/js/world2d_art.js"></script>
+  <script src="../server-rs/ui/js/world2d.js"></script>
+  <script src="../server-rs/ui/vendor/three.min.js"></script>
+  <script>window.WORLD25D_ASSET_ROOT = "../server-rs/ui/assets/img/"; window.WORLD25D_CAPTURE = true;</script>
+  <script src="../server-rs/ui/js/world25d.js"></script>
+  <script>
+    window.World3D = window.World25D || window.World2D;
+    window.getFpsLimit = () => 60;
+    const W = 80, H = 54;
+    const tiles = [];
+    for (let y = 0; y < H; y++) {
+      let row = "";
+      for (let x = 0; x < W; x++) {
+        const outer = x === 0 || y === 0 || x === W - 1 || y === H - 1;
+        const roomWall = (x === 18 && y > 4 && y < 46) || (x === 42 && y > 7 && y < 48) || (y === 20 && x > 8 && x < 70) || (y === 37 && x > 12 && x < 62);
+        row += outer || roomWall ? "#" : ".";
+      }
+      tiles.push(row);
+    }
+    const explored = [];
+    for (let y = 5; y < 30; y++) for (let x = 4; x < 42; x++) explored.push(x + ":" + y);
+    const world = {
+      world_id: "biohazard_ch1", w: W, h: H, floor: 1, floor_name: "F2 实验层 · B区", world_name: "生化危机·蜂巢", tiles,
+      px: 9, py: 10, explored,
+      enemies: [{ id: "e_licker", name: "舔食者", x: 33, y: 28, alive: true }, { id: "e_z1", name: "游荡丧尸", x: 25, y: 14, alive: true }],
+      npcs: [{ id: "n_rain", name: "蕾恩", x: 12, y: 12 }],
+      points: [{ id: "p_redqueen_terminal", name: "红后终端", x: 27, y: 8 }],
+      zones: [{ id: "z_laser", name: "激光通道", x: 56, y: 31 }],
+      portals: [{ id: "pt_vlift_up", x: 6, y: 44, to_floor: 2 }],
+      gates: [{ id: "gate_b_area", name: "B区门禁", x: 42, y: 22, locked: true }],
+      nearby: []
+    };
+    function move(dx, dy) { const nx = Math.max(1, Math.min(W - 2, world.px + dx)); const ny = Math.max(1, Math.min(H - 2, world.py + dy)); if (tiles[ny][nx] === "#") return; world.px = nx; world.py = ny; window.World3D.setPlayer(nx, ny); }
+    window.World3D.init(document.getElementById("worldCanvas"), { onMove: move, onInteract: id => { document.getElementById("hint").textContent = "交互：" + id; }, onWebZip: () => {} });
+    window.World3D.setData(world);
+    async function saveReviewFrame() {
+      const source = document.getElementById("worldCanvas"), mini = document.getElementById("minimap");
+      const out = document.createElement("canvas"); out.width = 1280; out.height = 720;
+      const g = out.getContext("2d");
+      g.drawImage(source, 0, 0, out.width, out.height);
+      g.fillStyle = "rgba(5,9,13,.90)"; g.fillRect(0, 0, 1280, 44);
+      g.strokeStyle = "#33414c"; g.beginPath(); g.moveTo(0, 43.5); g.lineTo(1280, 43.5); g.stroke();
+      g.fillStyle = "#d8e2e8"; g.font = "15px sans-serif"; g.fillText("生化危机 · 蜂巢 · F2 实验层 · B区", 18, 28);
+      g.textAlign = "right"; g.fillText("WASD 移动 · M 大地图 · E 交互", 1262, 28); g.textAlign = "left";
+      g.fillStyle = "rgba(7,12,16,.88)"; g.fillRect(18, 58, 286, 94); g.strokeStyle = "#40525e"; g.strokeRect(18.5, 58.5, 285, 93);
+      g.fillStyle = "#ffd36a"; g.fillText("▣ 主线任务", 32, 86); g.fillStyle = "#d8e2e8"; g.fillText("调查 B 区实验层，找到红后终端", 32, 111);
+      g.fillStyle = "#8fd0a8"; g.fillText("正交伪3D · 立绘角色 · 红色应急灯", 32, 136);
+      g.fillStyle = "rgba(5,8,11,.92)"; g.fillRect(1074, 56, 188, 188); g.strokeStyle = "#526673"; g.strokeRect(1074.5, 56.5, 187, 187); g.drawImage(mini, 1077, 59, 182, 182);
+      const blob = await new Promise(resolve => out.toBlob(resolve, "image/png"));
+      if (blob) await fetch("/__save_review", { method: "POST", body: blob });
+    }
+    setTimeout(saveReviewFrame, 1600);
+    window.addEventListener("keydown", e => { if (e.key.toLowerCase() === "m") { const bm = document.getElementById("bigmap"); bm.style.display = bm.style.display === "block" ? "none" : "block"; if (bm.style.display === "block") window.World3D.drawBigmap(); } });
+  </script>
+</body>
+</html>

@@ -4424,10 +4424,8 @@ name = "wuxian-horror-ch1"
 version = "1.0.0"
 dependencies = [
  "rand",
- "rand_chacha",
  "serde",
  "serde_json",
- "sha2",
  "tauri",
  "tauri-build",
 ]

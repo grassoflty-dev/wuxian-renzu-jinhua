@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<!-- model_probe_ds.html — DS 通道独立建模自检探针（DeepSeek 子代理自己新增的工具页，供 probe_ds.mjs 截图）。
+ * 只加载 three.min.js + voxel_people_ds.js（本通道副本），内联一个观查器，按需取景：
+ *   window.__probe(part)  part: full|torso|legs|head|side|back
+ *   用 box 真实包围盒取景，自动居中，消除模型预览的上偏/左偏取景问题，便于精确对比立绘。
+ * 绝不改动共享的 model_viewer.js / model_preview_ds.html。
+ -->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DS 建模自检探针</title>
+  <style>
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #ffffff; }
+    #host { position: fixed; left: 0; top: 0; right: 0; bottom: 0; z-index: 1; background: #fff; }
+  </style>
+</head>
+<body>
+  <div id="host"></div>
+  <script src="vendor/three.min.js"></script>
+  <script src="js/voxel_people_ds.js"></script>
+  <script>
+  "use strict";
+  (function () {
+    let renderer, scene, camera, group = null;
+    function ensure() {
+      if (renderer) return true;
+      const w = Math.max(320, window.innerWidth || 1600);
+      const h = Math.max(320, window.innerHeight || 900);
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
+      renderer.setPixelRatio(1); renderer.setSize(w, h, true);
+      renderer.setClearColor(0xffffff, 1);
+      renderer.toneMapping = THREE.NoToneMapping;
+      if ('outputColorSpace' in renderer) renderer.outputColorSpace = THREE.SRGBColorSpace;
+      let host = document.getElementById('host');
+      if (!host) { host = document.createElement('div'); host.id='host'; host.style.cssText='position:fixed;left:0;top:0;right:0;bottom:0;z-index:1;background:#fff;'; document.body.appendChild(host); }
+      host.appendChild(renderer.domElement);
+      scene = new THREE.Scene(); scene.background = new THREE.Color(0xffffff);
+      camera = new THREE.PerspectiveCamera(32, w / h, 0.1, 300);
+      scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+      const key = new THREE.DirectionalLight(0xffffff, 1.05); key.position.set(4, 7, 6); scene.add(key);
+      const fill = new THREE.DirectionalLight(0xffffff, 0.40); fill.position.set(-5, 2, 4); scene.add(fill);
+      const rim = new THREE.DirectionalLight(0xffffff, 0.50); rim.position.set(0, 4, -6); scene.add(rim);
+      const sh = document.createElement('canvas'); sh.width = sh.height = 256;
+      const sx = sh.getContext('2d'); const g = sx.createRadialGradient(128,128,8,128,128,126);
+      g.addColorStop(0,'rgba(0,0,0,0.26)'); g.addColorStop(1,'rgba(0,0,0,0)');
+      sx.fillStyle = g; sx.fillRect(0,0,256,256);
+      const shadow = new THREE.Mesh(new THREE.PlaneGeometry(2.8,2.8), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(sh), transparent:true, depthWrite:false }));
+      shadow.rotation.x = -Math.PI/2; shadow.position.y = 0.01; scene.add(shadow);
+      return true;
+    }
+    function disposeGroup(){ if(!group) return; group.traverse(o=>{ if(o.geometry) o.geometry.dispose(); if(o.material){(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{ if(m.map)m.map.dispose(); m.dispose(); });} }); scene.remove(group); group = null; }
+    function build(name){
+      ensure(); disposeGroup();
+      group = new THREE.Group();
+      const nm = name || 'zhenghai';
+      if (window.VoxelPeople && typeof window.VoxelPeople.buildVoxelPlayer === 'function') window.VoxelPeople.buildVoxelPlayer(group, nm);
+      group.position.set(0,0,0); scene.add(group);
+      return 'built:' + nm;
+    }
+    function box(){ group.updateMatrixWorld(true); return new THREE.Box3().setFromObject(group); }
+    function frame(part){
+      ensure(); if(!group) return 'no group';
+      const b = box(); if (b.isEmpty()) return 'empty box';
+      const c = b.getCenter(new THREE.Vector3()); const s = b.getSize(new THREE.Vector3());
+      let cy, D, ey; // 取景中心 / 相机距离 / 相机仰角中心
+      if (part === 'head') { cy = c.y + s.y*0.40; D = Math.max(0.9, s.y*0.42); ey = cy; }
+      else if (part === 'torso') { cy = c.y + s.y*0.18; D = Math.max(1.6, s.y*0.85); ey = cy; }
+      else if (part === 'legs') { cy = c.y - s.y*0.30; D = Math.max(1.8, s.y*0.85); ey = cy; }
+      else { cy = c.y; D = Math.max(2.4, s.y*1.9); ey = c.y; } // full/side/back
+      const front = (part !== 'side' && part !== 'back');
+      if (part === 'side') camera.position.set(D, ey, 0);
+      else if (part === 'back') camera.position.set(0, ey, -D);
+      else camera.position.set(0, ey, D);
+      camera.lookAt(0, cy, 0);
+      camera.updateMatrixWorld(true);
+      renderer.render(scene, camera);
+      return 'ok:' + part + ':cy' + cy.toFixed(2) + ':D' + D.toFixed(2);
+    }
+    window.__probeBuild = build;
+    window.__probe = frame;
+    // 按 URL ?model=zhenghai&view=full,torso,legs,head 初始渲染
+    const q = new URLSearchParams(window.location.search);
+    const m = q.get('model') || 'zhenghai';
+    const views = (q.get('view') || 'full').split(',');
+    if (window.__probeBuild(m)) for (const p of views) window.__probe(p);
+  })();
+  </script>
+</body>
+</html>

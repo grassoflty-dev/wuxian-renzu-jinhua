@@ -1,20 +1,20 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "无限人族进化",
+  "productName": "无限轮回-生化蜂巢",
   "version": "1.0.0",
-  "identifier": "com.wuxian.humanevolution",
+  "identifier": "com.gwl.wuxian-horror-ch1",
   "build": {
-    "beforeBuildCommand": "npm --prefix ../apps/web run build",
-    "frontendDist": "../apps/web/dist"
+    "frontendDist": "./release-ui"
   },
   "app": {
+    "withGlobalTauri": true,
     "windows": [
       {
-        "title": "无限人族进化",
+        "title": "无限轮回 · 第一章 生化蜂巢",
         "width": 1280,
-        "height": 720,
-        "minWidth": 1280,
-        "minHeight": 720,
+        "height": 820,
+        "minWidth": 900,
+        "minHeight": 600,
         "resizable": true,
         "center": true
       }
@@ -24,8 +24,7 @@
     }
   },
   "bundle": {
-    "active": true,
-    "targets": ["nsis"],
+    "active": false,
     "icon": ["icons/icon.ico"]
   }
 }

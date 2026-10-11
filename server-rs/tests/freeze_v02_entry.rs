@@ -1,21 +1,16 @@
-#[path = "support/entry_readiness.rs"]
-mod entry_readiness;
-use entry_readiness::acknowledge_ready;
-
 use serde_json::Value;
 use wuxian_horror_ch1::formal_runtime::FormalRuntime;
 
 const TAURI_CONFIG: &str = include_str!("../tauri.conf.json");
 const MAIN_RS: &str = include_str!("../src/main.rs");
-const ENTRY_HTML: &str = include_str!("../../apps/web/index.html");
-const ENTRY_BRIDGE: &str = include_str!("../../apps/web/src/bridge/tauri-client.ts");
-const WEB_PACKAGE: &str = include_str!("../../apps/web/package.json");
-const PIXI_MANIFEST: &str = include_str!("../../governance/dependencies/pixijs.json");
+const ENTRY_HTML: &str = include_str!("../release-ui/index.html");
+const ENTRY_APP: &str = include_str!("../release-ui/js/app.js");
+const BABYLON_MANIFEST: &str = include_str!("../../governance/dependencies/babylonjs.json");
 
 #[test]
-fn tauri_uses_only_the_formal_pixi_frontend() {
+fn tauri_uses_only_the_formal_babylon_frontend() {
     let config: Value = serde_json::from_str(TAURI_CONFIG).unwrap();
-    assert_eq!(config["build"]["frontendDist"], "../apps/web/dist");
+    assert_eq!(config["build"]["frontendDist"], "./release-ui");
 
     let start = MAIN_RS
         .find(".invoke_handler(tauri::generate_handler![")
@@ -32,8 +27,6 @@ fn tauri_uses_only_the_formal_pixi_frontend() {
         "formal_snapshot",
         "formal_new",
         "formal_submit_input",
-        "formal_submit_action",
-        "formal_presentation_events",
         "formal_interact",
         "formal_capability_command",
         "formal_choose_first_enhancement",
@@ -64,24 +57,27 @@ fn tauri_uses_only_the_formal_pixi_frontend() {
 }
 
 #[test]
-fn formal_page_uses_the_vite_pixi_entry() {
-    assert!(ENTRY_HTML.contains("<script type=\"module\" src=\"/src/main.ts\"></script>"));
-    let package: Value = serde_json::from_str(WEB_PACKAGE).unwrap();
-    assert_eq!(package["dependencies"]["pixi.js"], "8.21.0");
-    assert!(package["scripts"]["build"].as_str().unwrap().contains("vite build"));
-    for legacy in [
-        "three.min.js",
+fn formal_page_loads_only_the_fixed_babylon_and_view_modules() {
+    let expected = [
         "vendor/babylon.js",
         "js/tps-renderer.js",
-        "js/renderer.js",
-        "js/hive-side2d.js",
-    ] {
-        assert!(!ENTRY_HTML.contains(legacy));
+        "js/capability-hud.js",
+        "js/presentation-v3.js",
+        "js/renderer-boot.js",
+        "js/app.js",
+    ];
+    let positions: Vec<_> = expected
+        .iter()
+        .map(|path| ENTRY_HTML.find(&format!("src=\"{path}\"")).expect(path))
+        .collect();
+    assert!(positions.windows(2).all(|pair| pair[0] < pair[1]));
+    for legacy in ["three.min.js", "js/renderer.js", "js/hive-side2d.js"] {
+        assert!(!ENTRY_HTML.contains(&format!("src=\"{legacy}\"")));
     }
 }
 
 #[test]
-fn formal_bridge_uses_only_formal_ipc() {
+fn formal_app_has_no_legacy_ipc_or_network_fallback() {
     for command in [
         "campaign_view",
         "campaign_action",
@@ -92,33 +88,42 @@ fn formal_bridge_uses_only_formal_ipc() {
         "api_zone_action",
     ] {
         assert!(
-            !ENTRY_BRIDGE.contains(command),
+            !ENTRY_APP.contains(command),
             "legacy IPC reference remains: {command}"
+        );
+    }
+    for fallback in ["fetch(", "XMLHttpRequest", "window.location"] {
+        assert!(
+            !ENTRY_APP.contains(fallback),
+            "fallback path remains: {fallback}"
         );
     }
     for command in [
         "formal_snapshot",
         "formal_new",
         "formal_submit_input",
-        "formal_submit_action",
-        "formal_presentation_events",
-        "formal_has_save",
+        "formal_interact",
+        "formal_save",
         "formal_continue",
-        "formal_return",
+        "formal_has_save",
     ] {
         assert!(
-            ENTRY_BRIDGE.contains(command),
+            ENTRY_APP.contains(command),
             "formal IPC reference missing: {command}"
         );
     }
-    assert!(ENTRY_BRIDGE.contains("assertSnapshotV3"));
+    assert!(ENTRY_APP.contains("入口失败关闭"));
+    assert!(ENTRY_APP.contains("formal_has_save"));
+    assert!(ENTRY_APP.contains("formal_continue"));
+    assert!(ENTRY_APP.contains("formal_save"));
+    assert!(ENTRY_APP.contains("旧版 Grid 存档不会被读取"));
 }
 
 #[test]
 fn new_game_resets_formal_runtime_with_a_fresh_epoch() {
     let runtime = FormalRuntime::new().unwrap();
     let before = runtime.snapshot().unwrap();
-    let after = acknowledge_ready(&runtime, runtime.reset_new().unwrap());
+    let after = runtime.reset_new().unwrap();
 
     assert_eq!(after.world_id, "grey_hive");
     assert_eq!(after.world_epoch, before.world_epoch + 1);
@@ -128,9 +133,14 @@ fn new_game_resets_formal_runtime_with_a_fresh_epoch() {
 }
 
 #[test]
-fn vendor_manifest_pins_pixi_package_and_license() {
-    let manifest: Value = serde_json::from_str(PIXI_MANIFEST).unwrap();
-    assert_eq!(manifest["package"], "pixi.js");
-    assert_eq!(manifest["version"], "8.21.0");
-    assert_eq!(manifest["license"], "MIT");
+fn vendor_manifest_pins_exact_official_package_and_license() {
+    let manifest: Value = serde_json::from_str(BABYLON_MANIFEST).unwrap();
+    assert_eq!(manifest["name"], "babylonjs");
+    assert_eq!(manifest["version"], "9.26.2");
+    assert_eq!(manifest["license"], "Apache-2.0");
+    assert_eq!(manifest["sourceTag"], "9.26.2");
+    assert_eq!(
+        manifest["integrity"],
+        "sha512-UPvVLHT/6lus8j3gqrghhImfKXG2IPBaqBlmOJYWj6oTqVb/yZ/8MYh3+yHdX6Gl7oNvJvcyRrenm2K6xzOT2g=="
+    );
 }

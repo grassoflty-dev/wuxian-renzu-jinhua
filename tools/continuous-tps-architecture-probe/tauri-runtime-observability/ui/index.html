@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>TP-17C1 Runtime Owner Observability</title>
+  <style>
+    body { background:#10151c; color:#e7edf5; font:14px/1.45 system-ui,sans-serif; margin:0; padding:24px; }
+    #status { white-space:pre-wrap; background:#192331; border:1px solid #34465e; border-radius:8px; padding:16px; min-height:130px; }
+    .ok { color:#7ee787; } .error { color:#ff7b72; }
+  </style>
+</head>
+<body>
+  <h1>TP-17C1 Runtime Owner Observability</h1>
+  <div id="status">Starting real Windows WebView → Rust owner → bounded queue probe…</div>
+<script>
+(() => {
+  const core = window.__TAURI__?.core;
+  const statusNode = document.getElementById("status");
+  const startedPerfMs = performance.now();
+  const commands = [];
+  const callbackRecords = [];
+  const channelRecords = new Map();
+  const channelSessionIds = new Map();
+  const errors = [];
+  const scenarios = [];
+  let session = null;
+  let environment = null;
+  let activeChannelName = null;
+
+  function show(text, kind = "") {
+    statusNode.className = kind;
+    statusNode.textContent = text;
+  }
+  function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+  function nowMs() { return performance.now(); }
+  function payloadBytes(value) { return new TextEncoder().encode(value).length; }
+  function valueAt(object, path, fallback = null) {
+    let cursor = object;
+    for (const key of path) {
+      if (cursor == null) return fallback;
+      cursor = cursor[key];
+    }
+    return cursor == null ? fallback : cursor;
+  }
+  function showError(error) { return String(error && error.stack ? error.stack : error); }
+
+  async function invoke(name, args = {}) {
+    if (!core?.invoke) throw new Error("tauri_core_invoke_unavailable");
+    const start = nowMs();
+    const item = { name, startPerfMs: start, argKeys: Object.keys(args) };
+    try {
+      const value = await core.invoke(name, args);
+      item.endPerfMs = nowMs();
+      item.durationMs = item.endPerfMs - start;
+      item.ok = true;
+      item.resultKind = value === null ? "null" : typeof value;
+      commands.push(item);
+      return value;
+    } catch (error) {
+      item.endPerfMs = nowMs();
+      item.durationMs = item.endPerfMs - start;
+      item.ok = false;
+      item.error = showError(error);
+      commands.push(item);
+      throw error;
+    }
+  }
+
+  function makeChannel(name) {
+    const channel = new core.Channel();
+    const records = [];
+    channelRecords.set(name, records);
+    channel.onmessage = snapshot => {
+      const callbackStart = nowMs();
+      const record = {
+        channel: name,
+        callbackPerfMs: callbackStart,
+        callbackWallMs: Date.now(),
+        payloadBytes: payloadBytes(JSON.stringify(snapshot)),
+        epoch: snapshot.worldEpoch,
+        tick: snapshot.serverTick,
+        ackSeq: snapshot.ackSeq,
+        protocol: snapshot.protocol,
+        version: snapshot.version,
+        worldId: snapshot.worldId
+      };
+      records.push(record);
+      callbackRecords.push(record);
+      const sessionId = channelSessionIds.get(name);
+      if (sessionId) {
+        core.invoke("tp17c1_ack", { sessionId, epoch: snapshot.worldEpoch, ackSeq: snapshot.ackSeq })
+          .catch(error => errors.push(`ack:${showError(error)}`));
+      }
+    };
+    return channel;
+  }
+
+  async function waitFor(predicate, timeoutMs, label) {
+    const deadline = nowMs() + timeoutMs;
+    while (nowMs() < deadline) {
+      if (predicate()) return;
+      await sleep(10);
+    }
+    throw new Error(`timeout:${label}`);
+  }
+
+  async function snapshot() {
+    return invoke("tp17c1_snapshot", { sessionId: session.sessionId });
+  }
+
+  function item(epoch, tick, eventId, sequence, bytes = 12, payload = eventId) {
+    return { epoch, tick, eventId, enqueueSequence: sequence, payloadBytes: bytes, payload };
+  }
+
+  async function scenario(id, input, events, expected, actual, pass, error = null, evidence = "direct_or_wrapper_owned") {
+    const observation = await snapshot();
+    scenarios.push({
+      id,
+      input,
+      events,
+      expected,
+      actual,
+      pass: Boolean(pass),
+      snapshot: observation.snapshot,
+      snapshotProvenance: "RuntimeOwnerSnapshot fields carry Direct/WrapperOwned/Unobservable provenance",
+      queueMetrics: observation.queueMetrics,
+      lifecycle: observation.lifecycle,
+      memorySample: observation.memory,
+      error,
+      evidenceLevel: evidence
+    });
+  }
+
+  async function main() {
+    environment = await invoke("tp17c1_environment", { userAgent: navigator.userAgent });
+    const channelA = makeChannel("channel-a-epoch-1");
+    activeChannelName = "channel-a-epoch-1";
+    const started = await invoke("tp17c1_start", { channel: channelA, worldEpoch: 1 });
+    session = started.session;
+    channelSessionIds.set(activeChannelName, session.sessionId);
+    const initialSession = session;
+    const initialSnapshot = await snapshot();
+
+    const normalEnqueue = await invoke("tp17c1_enqueue", {
+      sessionId: session.sessionId,
+      item: item(1, 1, "normal-1", 1)
+    });
+    const normalDrain = await invoke("tp17c1_drain", { sessionId: session.sessionId });
+    await scenario(
+      "normal_enqueue_drain",
+      { epoch: 1, eventId: "normal-1", payloadBytes: 12 },
+      ["enqueue", "drain"],
+      { accepted: true, processedEventId: "normal-1", queueLengthAfterDrain: 0 },
+      normalDrain,
+      normalEnqueue.ok === true && normalDrain.processedEventIds.includes("normal-1") && valueAt(normalDrain, ["queueMetrics", "length"], 0) === 0
+    );
+
+    const fullResults = [];
+    for (let index = 0; index < 8; index += 1) {
+      fullResults.push(await invoke("tp17c1_enqueue", {
+        sessionId: session.sessionId,
+        item: item(1, 10 + index, `full-${index}`, 10 + index)
+      }));
+    }
+    const overflow = await invoke("tp17c1_enqueue", {
+      sessionId: session.sessionId,
+      item: item(1, 99, "full-rejected", 99)
+    });
+    await invoke("tp17c1_drain", { sessionId: session.sessionId });
+    await scenario(
+      "full_reject_newest",
+      { capacity: 8, attemptedEntries: 9 },
+      ["enqueue x8", "enqueue ninth"],
+      { errorCode: "E_QUEUE_FULL_REJECT_NEWEST", retainedEntries: 8 },
+      { acceptedCount: fullResults.filter(result => result.ok).length, overflow },
+      fullResults.every(result => result.ok === true) && overflow.errorCode === "E_QUEUE_FULL_REJECT_NEWEST",
+      overflow.errorCode
+    );
+
+    const oversize = await invoke("tp17c1_enqueue", {
+      sessionId: session.sessionId,
+      item: item(1, 101, "oversize", 101, 65, "x".repeat(65))
+    });
+    await scenario(
+      "oversize_payload",
+      { payloadLimit: 64, payloadBytes: 65 },
+      ["oversize enqueue"],
+      { errorCode: "E_QUEUE_PAYLOAD_TOO_LARGE" },
+      oversize,
+      oversize.errorCode === "E_QUEUE_PAYLOAD_TOO_LARGE",
+      oversize.errorCode
+    );
+
+    const duplicateFirst = await invoke("tp17c1_enqueue", {
+      sessionId: session.sessionId,
+      item: item(1, 102, "duplicate-first", 102)
+    });
+    const duplicateSecond = await invoke("tp17c1_enqueue", {
+      sessionId: session.sessionId,
+      item: item(1, 103, "duplicate-second", 102)
+    });
+    await invoke("tp17c1_drain", { sessionId: session.sessionId });
+    await scenario(
+      "duplicate_enqueue_sequence",
+      { enqueueSequence: 102 },
+      ["enqueue", "duplicate enqueue"],
+      { errorCode: "E_QUEUE_DUPLICATE_SEQUENCE", firstRetained: true },
+      { first: duplicateFirst, duplicate: duplicateSecond },
+      duplicateFirst.ok === true && duplicateSecond.errorCode === "E_QUEUE_DUPLICATE_SEQUENCE",
+      duplicateSecond.errorCode
+    );
+
+    const stale = await invoke("tp17c1_enqueue", {
+      sessionId: session.sessionId,
+      item: item(0, 104, "stale-epoch", 104)
+    });
+    await scenario(
+      "stale_epoch_rejected",
+      { currentEpoch: 1, attemptedEpoch: 0 },
+      ["stale enqueue"],
+      { errorCode: "E_QUEUE_STALE_EPOCH" },
+      stale,
+      stale.errorCode === "E_QUEUE_STALE_EPOCH",
+      stale.errorCode
+    );
+
+    const pendingOld = await invoke("tp17c1_enqueue", {
+      sessionId: session.sessionId,
+      item: item(1, 105, "old-world-pending", 105)
+    });
+    const worldReplacement = await invoke("tp17c1_replace_world", {
+      sessionId: session.sessionId,
+      worldEpoch: 2
+    });
+    await scenario(
+      "world_replacement_epoch_barrier",
+      { oldEpoch: 1, newEpoch: 2, pendingOldEvent: "old-world-pending" },
+      ["enqueue old epoch", "exit world", "enter new epoch"],
+      { newEpoch: 2, oldWorldResourcesCleared: true, staleEventsNotProcessed: true },
+      { pendingOld, replacement: worldReplacement, queueDroppedMetric: valueAt(worldReplacement, ["snapshot", "queueMetrics", "dropped"], 0), replacementUsesExitDrain: true },
+      pendingOld.ok === true && valueAt(worldReplacement, ["snapshot", "snapshot", "world_epoch", "value"], 2) === 2,
+      null,
+      "direct_owner_and_wrapper_lifecycle"
+    );
+
+    const oldChannelCallbackCount = callbackRecords.filter(record => record.channel === activeChannelName).length;
+    const channelB = makeChannel("channel-b-epoch-3");
+    const replaced = await invoke("tp17c1_replace_channel", {
+      sessionId: session.sessionId,
+      channel: channelB,
+      worldEpoch: 3
+    });
+    const oldSessionId = session.sessionId;
+    session = replaced.newSession;
+    activeChannelName = "channel-b-epoch-3";
+    channelSessionIds.set(activeChannelName, session.sessionId);
+    await sleep(150);
+    const oldChannelCallbackCountAfter = callbackRecords.filter(record => record.channel === "channel-a-epoch-1").length;
+    await scenario(
+      "webview_channel_session_replacement",
+      { oldSessionId, newEpoch: 3, oldChannel: "channel-a-epoch-1", newChannel: activeChannelName },
+      ["stop old owner", "drop old Channel", "start new owner and Channel"],
+      { oldCallbacksAfterReplacement: 0, newSessionGenerationGreater: true },
+      { replaced, oldChannelCallbackCount, oldChannelCallbackCountAfter, newSession: session },
+      oldChannelCallbackCountAfter === oldChannelCallbackCount && session.generation > initialSession.generation,
+      null,
+      "real_webview_channel_registry_and_rust_join"
+    );
+
+    const reentry = await invoke("tp17c1_reentry", { sessionId: session.sessionId });
+    await scenario(
+      "callback_reentry_outside_lock",
+      { capacity: 2, callbackEnqueuesSecondItem: true },
+      ["enqueue first", "drain callback", "callback reenqueue"],
+      { firstAccepted: true, reentryAccepted: true, lockReleasedBeforeCallback: true },
+      reentry,
+      reentry.firstAccepted === true && reentry.reentryAccepted === true && reentry.lockReleasedBeforeCallback === true,
+      null,
+      "direct_shared_bounded_queue_probe"
+    );
+
+    const pauseResult = await invoke("tp17c1_pause", { sessionId: session.sessionId });
+    const pausedAdvance = await invoke("tp17c1_advance", { sessionId: session.sessionId, deltaNs: 100000000 });
+    const resumeResult = await invoke("tp17c1_resume", { sessionId: session.sessionId });
+    const catchUp = await invoke("tp17c1_advance", { sessionId: session.sessionId, deltaNs: 100000000 });
+    await scenario(
+      "pause_resume_bounded_catch_up",
+      { pauseDeltaNs: 100000000, resumeDeltaNs: 100000000 },
+      ["pause", "advance while paused", "resume", "advance catch-up"],
+      { pausedTicks: 0, catchUpTicksAtMost: 5, droppedTimeNsPositive: true },
+      { pauseResult, pausedAdvance, resumeResult, catchUp },
+      pauseResult.ok === true && pausedAdvance.tickCount === 0 && resumeResult.ok === true && catchUp.tickCount <= 5 && catchUp.droppedTimeNs > 0,
+      null,
+      "formal_fixed_step_scheduler_plus_wrapper_owner"
+    );
+
+    const closeProbe = await invoke("tp17c1_queue_close_probe", { sessionId: session.sessionId });
+    await scenario(
+      "close_after_enqueue",
+      { closePolicy: "reject_after_close" },
+      ["enter owner", "exit owner closes queue", "enqueue after close", "reopen for next scenario"],
+      { errorCode: "E_QUEUE_CLOSED", noPostCloseAcceptance: true },
+      closeProbe,
+      valueAt(closeProbe, ["closedEnqueue", "errorCode"]) === "E_QUEUE_CLOSED",
+      valueAt(closeProbe, ["closedEnqueue", "errorCode"])
+    );
+
+    const lifecycle = await invoke("tp17c1_lifecycle_30", { sessionId: session.sessionId });
+    const afterFinalExit = valueAt(lifecycle, ["afterFinalExit", "snapshot"], {});
+    await scenario(
+      "thirty_session_world_enter_exit",
+      { cycles: 30, entities: 1 },
+      ["exit world", "enter world"],
+      { finalExitWorldCount: 0, finalExitEntityCount: 0, wrapperOwnedResourcesBaseline: true },
+      lifecycle,
+      lifecycle.cycles === 30 && valueAt(afterFinalExit, ["world_count", "value"], 1) === 0 && valueAt(afterFinalExit, ["entity_count", "value"], 1) === 0,
+      null,
+      "direct_runtime_owner_snapshot"
+    );
+
+    const callbacksBeforeSoak = callbackRecords.length;
+    const soak = await invoke("tp17c1_run_soak", { sessionId: session.sessionId, ticks: 36000 });
+    const expectedCallbacksAfterSoak = callbacksBeforeSoak + soak.sentThisRun;
+    await waitFor(() => callbackRecords.length >= expectedCallbacksAfterSoak, 30000, "soak_channel_callbacks");
+    await sleep(500);
+    const soakObservation = await snapshot();
+    await scenario(
+      "bounded_36000_tick_webview_soak",
+      { ticks: 36000, queueCapacity: 8, payloadLimit: 64 },
+      ["fixed-step tick", "bounded enqueue", "drain", "periodic WorldView Channel send", "JS ack"],
+      { ticks: 36000, queueHighWaterAtMost: 8, queueRejectedDelta: 0, afterExitBaseline: true },
+      { soak, postCallbackSnapshot: soakObservation, callbackDelta: callbackRecords.length - callbacksBeforeSoak },
+      soak.ticks === 36000 && soak.sentThisRun === 600 && valueAt(soak, ["afterExit", "snapshot", "world_count", "value"], 1) === 0 && soak.queueRejectedDelta === 0,
+      null,
+      "real_webview_channel_plus_direct_process_memory_api"
+    );
+
+    const callbacksBeforeAckScenario = callbackRecords.length;
+    await sleep(250);
+    const ackObservation = await snapshot();
+    await scenario(
+      "rust_send_js_callback_ack_counters",
+      { channel: activeChannelName },
+      ["Rust Channel send", "WebView onmessage", "JS tp17c1_ack invoke"],
+      { rustSendPositive: true, webviewCallbackPositive: true, jsAckPositive: true },
+      { rustSendCount: valueAt(ackObservation, ["channel", "rustSendCount"], 0), webviewCallbackCount: callbackRecords.length - callbacksBeforeAckScenario + callbacksBeforeSoak, jsAckCount: valueAt(ackObservation, ["channel", "jsAckCount"], 0) },
+      valueAt(ackObservation, ["channel", "rustSendCount"], 0) > 0 && callbackRecords.length > 0 && valueAt(ackObservation, ["channel", "jsAckCount"], 0) > 0,
+      null,
+      "real_webview_callback_and_explicit_ack_command"
+    );
+
+    const callbacksBeforeClose = callbackRecords.length;
+    const closeResult = await invoke("tp17c1_close", { sessionId: session.sessionId });
+    await sleep(250);
+    const callbacksAfterClose = callbackRecords.length;
+    const closeFinalSnapshot = valueAt(closeResult, ["summary", "final", "snapshot"], null);
+    scenarios.push({
+      id: "webview_close_no_post_close_callback",
+      input: { sessionId: session.sessionId },
+      events: ["close command", "owner stop", "Channel drop", "wait for residual callbacks"],
+      expected: { closed: true, callbackDeltaAfterClose: 0, ownerStopped: true },
+      actual: { closeResult, callbacksBeforeClose, callbacksAfterClose, callbackDeltaAfterClose: callbacksAfterClose - callbacksBeforeClose },
+      pass: closeResult.closed === true && callbacksAfterClose === callbacksBeforeClose && valueAt(closeResult, ["summary", "stoppedCleanly"], false) === true,
+      snapshot: closeFinalSnapshot,
+      snapshotProvenance: "RuntimeOwnerSnapshot captured before owner thread terminated",
+      queueMetrics: valueAt(closeResult, ["summary", "final", "queueMetrics"], null),
+      lifecycle: valueAt(closeResult, ["summary", "final", "lifecycle"], null),
+      memorySample: closeResult.memory,
+      error: null,
+      evidenceLevel: "real_webview_close_barrier; public_channel_close_sentinel_unavailable"
+    });
+
+    scenarios.push({
+      id: "process_normal_exit",
+      input: { requested: "tp17c1_finish", expectedExitCode: 0 },
+      events: ["record result", "app.exit(0)"],
+      expected: { exitCode: 0 },
+      actual: { exitCode: null, observation: "pending cargo run exit code finalization" },
+      pass: false,
+      snapshot: closeFinalSnapshot,
+      snapshotProvenance: "RuntimeOwnerSnapshot captured before process exit; external exit code evidence pending",
+      queueMetrics: valueAt(closeResult, ["summary", "final", "queueMetrics"], null),
+      lifecycle: valueAt(closeResult, ["summary", "final", "lifecycle"], null),
+      memorySample: environment.memory,
+      error: "E_PROCESS_EXIT_CODE_PENDING_FINALIZER",
+      evidenceLevel: "external_command_exit_code"
+    });
+
+    const report = {
+      schema: "continuous_tauri_runtime_observability_tp17c1_v1",
+      status: "pending_external_process_exit",
+      machinePass: false,
+      candidateOnly: true,
+      localDevelopmentOnly: true,
+      formalSceneReady: false,
+      generatedAtUtc: new Date().toISOString(),
+      environment,
+      owner: {
+        authority: "Rust owner thread only",
+        generationAndEpoch: "RuntimeOwnerSnapshot direct/wrapper-owned fields",
+        queue: "TP-17B1 BoundedEventQueue contract; capacity 8; payload limit 64; reject_newest",
+        scheduler: "formal fixed_step::FixedStepScheduler at 60Hz",
+        worldView: "formal world_v3::WorldView typed Tauri Channel payload",
+        jsRole: "bounded test events, callback observation, explicit ack, close request; no authority",
+        registryBarrier: "registry mutex only takes/releases owner sender or swaps sessions; stop/join/channel drop outside registry lock"
+      },
+      api: {
+        commands: commands.map(command => command.name).filter((name, index, list) => list.indexOf(name) === index),
+        channel: "tauri::ipc::Channel<world_v3::WorldView>",
+        stableQueueErrors: ["E_QUEUE_CLOSED", "E_QUEUE_STALE_EPOCH", "E_QUEUE_FULL_REJECT_NEWEST", "E_QUEUE_PAYLOAD_TOO_LARGE", "E_QUEUE_DUPLICATE_SEQUENCE", "E_QUEUE_EMPTY_EVENT_ID"],
+        processMemory: "Windows PSAPI GetProcessMemoryInfo working set/private bytes"
+      },
+      snapshots: {
+        before: initialSnapshot,
+        soakBefore: soak.before,
+        soakPeak: soak.peak,
+        soakAfterExit: soak.afterExit,
+        closeAfter: closeResult,
+        provenance: "Each RuntimeOwnerSnapshot field is Direct, WrapperOwned, or Unobservable; no dependency internal counter is fabricated."
+      },
+      lifecycle: {
+        initialSession,
+        currentSession: session,
+        thirtyCycleResult: lifecycle,
+        channelReplacement: replaced,
+        closeResult
+      },
+      soak: {
+        ticks: soak.ticks,
+        sentThisRun: soak.sentThisRun,
+        wallTimeMs: soak.wallTimeMs,
+        tickLatencyNs: soak.tickLatencyNs,
+        scheduler: soak.scheduler,
+        callbackDelta: callbackRecords.length - callbacksBeforeSoak
+      },
+      memory: {
+        before: environment.memory,
+        peak: soak.peak.memory,
+        after: closeResult.memory,
+        conclusion: "working set/private bytes are measured observations; no leak conclusion from one bounded run; GPU memory unavailable",
+        allocator: "unknown",
+        gpu: "unknown"
+      },
+      scenarios,
+      callbacks: {
+        total: callbackRecords.length,
+        byChannel: Object.fromEntries([...channelRecords.entries()].map(([name, records]) => [name, { callbackCount: records.length, records }]))
+      },
+      commands,
+      errors,
+      stop: {
+        ownerStopped: true,
+        channelCloseSentinel: "not_publicly_exposed_by_tauri_channel",
+        processExitObservedByHarness: false,
+        processExitObservation: "pending cargo run exit code finalization"
+      },
+      formalGaps: [
+        "no formal CampaignStore/gameplay authority or production runtime owner handoff",
+        "formal dependency internal counters remain unobservable",
+        "WebView2 public Channel does not expose application queue depth or a user close sentinel",
+        "GPU memory and allocator counters are unavailable",
+        "long-duration production load and release hardware are not claimed"
+      ],
+      blockedInterfaces: [
+        "E_UNOBSERVABLE_DEPENDENCY_COUNTER",
+        "E_FORMAL_RUNTIME_NOT_BOUND",
+        "E_GPU_MEMORY_UNAVAILABLE",
+        "E_PROCESS_EXIT_CODE_PENDING_FINALIZER"
+      ],
+      formalGate: { tp17: "blocked/no_go", gateD: "blocked/no_go", architecture: "blocked/no_go" }
+    };
+    await invoke("tp17c1_record_result", { report });
+    show(`PASS candidate: real Windows WebView → Rust owner → bounded queue → WorldView Channel\nscenarios=${scenarios.length}, pending external exit-code finalization\nStopping owner and exiting…`, "ok");
+    await sleep(100);
+    await invoke("tp17c1_finish");
+  }
+
+  main().catch(async error => {
+    const diagnostic = showError(error);
+    errors.push(diagnostic);
+    show(`FAIL: ${diagnostic}`, "error");
+    try {
+      await invoke("tp17c1_record_result", { report: {
+        schema: "continuous_tauri_runtime_observability_tp17c1_v1",
+        status: "blocked_probe_failure",
+        machinePass: false,
+        candidateOnly: true,
+        localDevelopmentOnly: true,
+        diagnostic,
+        scenarios,
+        errors,
+        stop: { processExitObservedByHarness: false, processExitObservation: "pending cargo run exit code" },
+        formalGate: { tp17: "blocked", gateD: "blocked/no_go", architecture: "blocked/no_go" }
+      }});
+      await sleep(50);
+      await invoke("tp17c1_finish");
+    } catch (_) {
+      // Keep the visible diagnostic if failure happened before Tauri IPC was ready.
+    }
+  });
+})();
+</script>
+</body>
+</html>

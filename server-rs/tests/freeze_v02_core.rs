@@ -1,9 +1,21 @@
-use wuxian_horror_ch1::continuous_combat::{CombatEvent, CombatIntent};
-use wuxian_horror_ch1::continuous_input::InputSample;
-use wuxian_horror_ch1::continuous_kcc::{Aabb, StaticKccWorld};
-use wuxian_horror_ch1::fixed_step;
-use wuxian_horror_ch1::sentinel_ai::{Sentinel, SentinelState};
-use wuxian_horror_ch1::world_v3::{step_world, CwStepInput, Vec3, WorldStateV3};
+#[path = "../src/continuous_combat.rs"]
+mod continuous_combat;
+#[path = "../src/continuous_input.rs"]
+mod continuous_input;
+#[path = "../src/continuous_kcc.rs"]
+mod continuous_kcc;
+#[path = "../src/fixed_step.rs"]
+mod fixed_step;
+#[path = "../src/sentinel_ai.rs"]
+mod sentinel_ai;
+#[path = "../src/world_v3.rs"]
+mod world_v3;
+
+use continuous_combat::{CombatEvent, CombatIntent};
+use continuous_input::InputSample;
+use continuous_kcc::{Aabb, StaticKccWorld};
+use sentinel_ai::{Sentinel, SentinelState};
+use world_v3::{step_world, CwStepInput, Vec3, WorldStateV3};
 
 fn arena() -> StaticKccWorld {
     StaticKccWorld::new(

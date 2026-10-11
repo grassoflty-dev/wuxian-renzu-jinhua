@@ -1,0 +1,23 @@
+Workspace source snapshot
+
+This source snapshot retains the on-disk relative paths of the Desktop game
+workspace. Current and historical game source are included; an old engine or
+prototype being present does not make it part of the current build.
+
+Original project code remains under the repository's GNU GPL version 3 license.
+Third-party code keeps its own license and copyright notices:
+- Three.js r150: Copyright 2010-2023 Three.js Authors, MIT. Full license text
+  accompanies each retained three.min.js copy.
+- Babylon.js and its loaders: Apache License 2.0. Copyright 2023 The Babylon.js
+  team. Retained license copies and the local dependency provenance are included.
+  Loader version identity is not newly independently verified by this snapshot.
+
+Real player saves, dependency/build caches, private conversations and internal
+agent records are not source deliverables. Media whose redistribution rights
+have not been established, including the male02 reference model, are excluded.
+Personal home-directory names and the maintainer's private email are redacted
+only in the published copy. Original local files are unchanged.
+
+This is a file-content source snapshot, not a successful build, playable-game
+verification, save/Continue test, native acceptance or a release.
+

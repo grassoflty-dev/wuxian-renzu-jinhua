@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>AG-29 child diagnostic</title></head>
+<body><div id="status">AG-29 child starting…</div>
+<script>
+  async function main() {
+    const core = window.__TAURI__?.core;
+    if (!core?.invoke || !core?.Channel) throw new Error("child Tauri core unavailable");
+    const label = await core.invoke("current_window_label");
+    const config = await core.invoke("ag29_case_config");
+    const ready = await core.invoke("ag29_child_page_ready", { label });
+    if (!ready || ready.case !== config.case) throw new Error("child ready handshake mismatch");
+    if (config.channelRequired) {
+      const channel = new core.Channel();
+      let resolveMessage;
+      const received = new Promise((resolve) => { resolveMessage = resolve; });
+      channel.onmessage = async (snapshot) => {
+        const marker = {
+          label,
+          case: config.case,
+          phase: config.phase,
+          worldId: snapshot.worldId,
+          worldEpoch: snapshot.worldEpoch,
+          ackSeq: snapshot.ackSeq,
+          edgeIds: (snapshot.edgeEvents || []).map((event) => event.id),
+          receivedPerfMs: performance.now()
+        };
+        await core.invoke("ag29_child_channel_callback", { result: marker });
+        resolveMessage(marker);
+      };
+      await core.invoke("ag29_child_channel_probe", { onWorldView: channel });
+      await Promise.race([
+        received,
+        new Promise((_, reject) => setTimeout(() => reject(new Error("child Channel ack timeout")), 1200))
+      ]);
+    }
+    document.getElementById("status").textContent = "AG-29 child ready";
+  }
+  main().catch(async (error) => {
+    document.getElementById("status").textContent = "AG-29 child failed: " + String(error);
+    try { await window.__TAURI__.core.invoke("ag29_child_channel_callback", { result: { status: "failure", diagnostic: String(error) } }); } catch (_) {}
+  });
+</script>
+</body>
+</html>

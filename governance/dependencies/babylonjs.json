@@ -1,0 +1,27 @@
+{
+  "name": "babylonjs",
+  "version": "9.26.2",
+  "license": "Apache-2.0",
+  "registryMetadata": "https://registry.npmjs.org/babylonjs/9.26.2",
+  "tarball": "https://registry.npmjs.org/babylonjs/-/babylonjs-9.26.2.tgz",
+  "integrity": "sha512-UPvVLHT/6lus8j3gqrghhImfKXG2IPBaqBlmOJYWj6oTqVb/yZ/8MYh3+yHdX6Gl7oNvJvcyRrenm2K6xzOT2g==",
+  "tarballSha256": "7be91e2a1917235ac213c6d0f66d2ff1b1f43e87f2eb613d44470caccd4ab213",
+  "repository": "https://github.com/BabylonJS/Babylon.js",
+  "sourceTag": "9.26.2",
+  "files": {
+    "server-rs/release-ui/vendor/babylon.js": {
+      "packagePath": "package/babylon.js",
+      "sha256": "3429f86e7742d69f1841c468030f08031a6ea953ecc82d75f12bd98a399280d6"
+    },
+    "server-rs/release-ui/vendor/BABYLON-LICENSE.txt": {
+      "packagePath": "package/license.md",
+      "sha256": "9362ea9ea17cb221a20cbbd63f404710834cc273d2a9a7b60314fd68ab702cd6"
+    },
+    "upstreamNotice": {
+      "packagePath": "package/NOTICE.md",
+      "sha256": "225463efd81558f120a6e0cdd7f4c1007ed486006d1228c4849fee0c49715823"
+    }
+  },
+  "verifiedFromOfficialRegistryAt": "2026-09-23",
+  "rebuild": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/open-source/babylon-vendor/vendor.ps1"
+}

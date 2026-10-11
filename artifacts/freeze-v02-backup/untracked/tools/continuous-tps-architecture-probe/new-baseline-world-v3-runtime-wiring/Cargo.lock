@@ -1,0 +1,6 @@
+# This candidate has no external dependencies.
+version = 3
+
+[[package]]
+name = "world-v3-runtime-wiring-candidate"
+version = "0.1.0"

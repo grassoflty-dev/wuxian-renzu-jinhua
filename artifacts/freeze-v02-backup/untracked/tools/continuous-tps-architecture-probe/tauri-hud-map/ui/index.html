@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>TP-15B1 HUD/map probe</title>
+  <style>
+    :root { color-scheme: dark; font-family: Segoe UI, sans-serif; }
+    body { margin: 0; padding: 18px; background: #111722; color: #eaf1ff; }
+    main { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    section { border: 1px solid #3b4a67; border-radius: 8px; padding: 10px; min-height: 74px; }
+    h1 { margin: 0 0 14px; font-size: 20px; }
+    h2 { margin: 0 0 6px; font-size: 13px; color: #9fb7e8; }
+    p { margin: 4px 0; font-size: 13px; white-space: pre-wrap; }
+    #lifecycle { grid-column: 1 / -1; }
+  </style>
+</head>
+<body>
+  <h1 id="title">TP-15B1 / 实时 HUD 与地图桥接探针</h1>
+  <main>
+    <section><h2>连接</h2><p id="connection">初始化中</p></section>
+    <section><h2>HUD</h2><p id="hud">初始化中</p></section>
+    <section><h2>目标与选择</h2><p id="objective">初始化中</p></section>
+    <section><h2>地图</h2><p id="map">初始化中</p></section>
+    <section><h2>能力与无障碍</h2><p id="capability">初始化中</p><p id="accessibility">初始化中</p></section>
+    <section id="lifecycle"><h2>生命周期</h2><p id="lifecycleText">初始化中</p></section>
+  </main>
+  <script>
+    (() => {
+      const $ = (id) => document.getElementById(id);
+      const state = {
+        adapter: null,
+        viewModel: null,
+        closed: false,
+        callbackRecords: [],
+        renderCount: 0,
+        renderTimes: [],
+        lifecycle: { pagehideObserved: false, closeCommandObserved: false, errors: [] },
+        startedAt: performance.now(),
+        lastCallbackAt: null,
+      };
+      window.addEventListener('pagehide', () => { state.lifecycle.pagehideObserved = true; });
+      window.addEventListener('error', (event) => { state.lifecycle.errors.push(String(event.message || 'window error')); });
+      window.addEventListener('unhandledrejection', (event) => { state.lifecycle.errors.push(String(event.reason || 'unhandled rejection')); });
+
+      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+      const attr = (node, name, value) => node.setAttribute(name, String(value));
+      const updateDom = (vm, caseName) => {
+        const connection = vm.connection || {};
+        const hud = vm.hud || {};
+        const objective = vm.objective || {};
+        const map = vm.map || {};
+        const capability = vm.capabilities || {};
+        const accessibility = vm.accessibility || {};
+        $('connection').textContent = `${connection.status || 'unknown'} / ${connection.detail || ''}`;
+        attr($('connection'), 'data-status', connection.status || 'unknown');
+        const player = vm.player || {};
+        const position = player.positionM ? `${player.positionM.xM.toFixed(2)},${player.positionM.zM.toFixed(2)}` : '?';
+        $('hud').textContent = `HP ${hud.hp || '?'} | pos ${position} | ${hud.subtitle || ''}`;
+        $('objective').textContent = `${objective.choiceState || ''} / ${objective.gatePrompt ? objective.gatePrompt.text : ''}`;
+        $('map').textContent = `${map.status || 'unknown'} / ${(map.diagnostic && map.diagnostic.code) || ''} / ${map.textFallback ? '文本后备' : ''}`;
+        attr($('map'), 'data-candidate-only', map.candidateOnly === true);
+        $('capability').textContent = `rear_view=${capability.availability && capability.availability['perception.rear_view'] === true} / ${(capability.errors || []).map((item) => item.code || '').join(',')}`;
+        $('accessibility').textContent = `contrast=${accessibility.contrast || ''} / fontScale=${accessibility.fontScale || ''} / subtitles=${accessibility.subtitles === true}`;
+        $('lifecycleText').textContent = `${caseName} / callbacks=${state.callbackRecords.length} / renders=${state.renderCount}`;
+        attr($('lifecycleText'), 'data-case', caseName);
+      };
+      const domSummary = () => ({
+        connectionText: $('connection').textContent,
+        connectionStatus: $('connection').getAttribute('data-status'),
+        hudText: $('hud').textContent,
+        objectiveText: $('objective').textContent,
+        mapText: $('map').textContent,
+        mapCandidateOnly: $('map').getAttribute('data-candidate-only'),
+        capabilityText: $('capability').textContent,
+        accessibilityText: $('accessibility').textContent,
+        lifecycleText: $('lifecycleText').textContent,
+      });
+      const render = (receivedAt) => {
+        if (!state.adapter || state.closed || !state.viewModel) return;
+        const rendered = state.adapter.render(receivedAt);
+        state.renderCount += 1;
+        state.renderTimes.push(performance.now());
+        updateDom(rendered, 'render-loop');
+      };
+      const frame = (time) => {
+        render(time);
+        if (!state.closed) requestAnimationFrame(frame);
+      };
+      const recordSnapshot = (snapshot) => {
+        const receivedAt = performance.now();
+        const payloadBytes = new TextEncoder().encode(JSON.stringify(snapshot)).length;
+        const vm = state.adapter.accept({ worldView: snapshot.worldView, capabilityView: snapshot.capabilityView, sceneMetadata: snapshot.sceneMetadata, uiPreferences: snapshot.uiPreferences, receivedAtMs: receivedAt });
+        state.viewModel = vm;
+        state.lastCallbackAt = receivedAt;
+        updateDom(vm, snapshot.caseName);
+        state.callbackRecords.push({
+          sessionId: snapshot.sessionId,
+          caseName: snapshot.caseName,
+          epoch: snapshot.worldView.worldEpoch,
+          tick: snapshot.worldView.serverTick,
+          ack: snapshot.worldView.ackSeq,
+          payloadBytes,
+          callbackAtMs: Math.round(receivedAt - state.startedAt),
+          diagnostic: vm.connection && vm.connection.diagnostic,
+          connectionStatus: vm.connection && vm.connection.status,
+          rearView: vm.capabilities && vm.capabilities.availability && vm.capabilities.availability['perception.rear_view'] === true,
+          dom: domSummary(),
+          frozen: Object.isFrozen(vm),
+        });
+      };
+      const run = async () => {
+        try {
+          const bootstrap = await window.__TAURI__.core.invoke('tp15b1_bootstrap');
+          const sourceUrl = `data:text/javascript;charset=utf-8,${encodeURIComponent(bootstrap.adapterSource)}`;
+          const adapterModule = await import(sourceUrl);
+          state.adapter = adapterModule.createViewModelAdapter({ allowExtrapolation: false, horizonMs: 50 });
+          const channel = new window.__TAURI__.core.Channel();
+          channel.onmessage = recordSnapshot;
+          const started = await window.__TAURI__.core.invoke('tp15b1_start', { channel });
+          $('connection').textContent = `channel / ${started.sessionId}`;
+          attr($('connection'), 'data-status', 'channel');
+          requestAnimationFrame(frame);
+          await sleep(900);
+          window.__tp15b1Ready = true;
+          $('lifecycleText').textContent = `real-webview-ready / callbacks=${state.callbackRecords.length} / renders=${state.renderCount}`;
+          await sleep(5000);
+          state.closed = true;
+          const beforeCloseRenders = state.renderCount;
+          const closeResult = await window.__TAURI__.core.invoke('tp15b1_close');
+          state.lifecycle.closeCommandObserved = closeResult.closed === true;
+          await sleep(140);
+          const afterCloseRenders = state.renderCount;
+          state.lifecycle.renderCountBeforeClose = beforeCloseRenders;
+          state.lifecycle.renderCountAfterClose = afterCloseRenders;
+          state.lifecycle.stoppedAfterClose = beforeCloseRenders === afterCloseRenders;
+          state.lifecycle.lastCallbackAtMs = state.lastCallbackAt == null ? null : Math.round(state.lastCallbackAt - state.startedAt);
+          const evidence = {
+            browser: { userAgent: navigator.userAgent, realDom: true, textOnly: true },
+            adapter: { sourceBytes: bootstrap.adapterSourceBytes, sha256: bootstrap.adapterSha256, moduleLoaded: true },
+            callbackRecords: state.callbackRecords,
+            lifecycle: state.lifecycle,
+            render: { count: state.renderCount, firstAtMs: state.renderTimes.length ? Math.round(state.renderTimes[0] - state.startedAt) : null, lastAtMs: state.renderTimes.length ? Math.round(state.renderTimes[state.renderTimes.length - 1] - state.startedAt) : null },
+            finalDom: domSummary(),
+            noPixelsOrMedia: true,
+          };
+          await window.__TAURI__.core.invoke('tp15b1_finish', { payload: evidence });
+        } catch (error) {
+          state.lifecycle.errors.push(String(error && error.stack || error));
+          $('connection').textContent = `blocked / ${state.lifecycle.errors[state.lifecycle.errors.length - 1]}`;
+          attr($('connection'), 'data-status', 'blocked');
+        }
+      };
+      run();
+    })();
+  </script>
+</body>
+</html>

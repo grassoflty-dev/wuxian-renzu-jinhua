@@ -1,0 +1,29 @@
+[package]
+name = "formal-capability-source-build"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+wuxian-horror-ch1 = { path = "baseline" }
+serde_json = "1"
+
+[features]
+missing-api-expectation = []
+
+[[bin]]
+name = "expect-formal-owner"
+path = "src/expect_formal_owner.rs"
+required-features = ["missing-api-expectation"]
+
+[profile.dev]
+opt-level = 0
+debug = 0
+incremental = false
+
+[profile.test]
+opt-level = 0
+debug = 0
+incremental = false

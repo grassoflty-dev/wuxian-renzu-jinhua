@@ -4,9 +4,7 @@
     "information.local_map_i",
     "perception.rear_view_i",
     "information.enemy_vitals_basic",
-    "body.regeneration_i",
-    "perception.acoustic_mapping_i",
-    "mobility.air_step_i"
+    "body.regeneration_i"
   ],
   "regeneration": {
     "delayAfterDamageMs": 1500,

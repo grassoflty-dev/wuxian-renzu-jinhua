@@ -14,9 +14,22 @@
 *.mp4 binary
 *.webm binary
 *.zip binary
-*.gz binary
-*.crate binary
+*.7z binary
 *.pdf binary
-# These design inputs carry exact hashes used by source/asset validation.
-docs/*_SOURCE.md -text -eol
-docs/source/deep-research-report.md -text -eol
+*.glb binary
+*.blend binary
+# Preserve source receipts and vendored package bytes exactly for recorded SHA-256 checks.
+design/user-source/*.txt -text -eol
+server-rs/release-ui/vendor/BABYLON*.txt -text -eol
+server-rs/release-ui/vendor/babylonjs.loaders.min.js -text -eol
+artifacts/freeze-v02-backup/ export-ignore
+assets-work/ export-ignore
+assets-source/ export-ignore
+tools/shots/ export-ignore
+tools/shots_qc/ export-ignore
+tools/*_raw_responses*/ export-ignore
+portraits_library/ export-ignore
+docs/REQUIREMENTS.md export-ignore
+tools/other-session.recovery.jsonl export-ignore
+tools/other-session.users.json export-ignore
+chatgptimage/game_design_and_assets_handoff_2026-09-25.zip filter=lfs diff=lfs merge=lfs -text
