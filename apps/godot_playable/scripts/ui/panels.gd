@@ -266,17 +266,31 @@ func _inventory() -> void:
 			_button('卸下' if item.equipped else '装备','build_item',item.itemId,connected)
 	_button('返回','back')
 func _capability() -> void:
-	if snapshot.is_empty():
+	if not P.snapshot(snapshot):
 		_text('能力状态尚未同步')
 	else:
-		_text('从普通人到超越限制 · 只显示实际授予能力；树关系与成本未提供')
+		var use_text = {
+			'information.local_map_i':'M / 地图：只显示权威允许的已探索信息。',
+			'information.enemy_vitals_basic':'生命信息：只显示健康、受伤、重伤、濒危四档，不显示精确生命数值。',
+			'perception.rear_view_i':'后方视野：显示来自当前权威授权的信息。',
+			'perception.acoustic_mapping_i':'声学映射：雾港声源方向与距离来自权威投影。',
+			'body.regeneration_i':'再生：由权威自动处理，受伤与战斗后的恢复不由本页触发。',
+			'mobility.air_step_i':'空中踏步：靠近场景穿越起点后按空格；权威验证位置、能力与冷却。'}
+		var known = false
 		for c in P.capability_items(snapshot):
 			if not CAPS.has(c.capabilityId):
 				continue
+			if not known:
+				_text('只显示永久能力状态；树关系与成本未提供')
+				known = true
 			_text(CAPS[c.capabilityId]+' · '+('已选中' if c.selected else '已获得' if c.granted else '未获得'))
+			_text(use_text[c.capabilityId])
 			if c.granted:
 				_button('取消选择' if c.selected else '选择','capability_select',c.capabilityId,connected)
-				_button('激活','capability_activate',c.capabilityId,connected and c.get('cooldownRemainingMs',0)==0)
+				if c.capabilityId=='perception.rear_view_i':
+					_button('确认后方视野','capability_activate',c.capabilityId,connected and c.get('cooldownRemainingMs',0)==0)
+		if not known:
+			_text('当前能力状态未确认')
 	_button('返回','back')
 func _mission() -> void:
 	if snapshot.is_empty():
