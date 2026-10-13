@@ -174,6 +174,7 @@ func _rebuild() -> void:
 				for c in P.capability_items(snapshot):
 					if c.granted and CAPS.has(c.capabilityId):
 						_text(CAPS[c.capabilityId]+(' · 已选中' if c.selected else ' · 已获得'))
+			_exploration_resume()
 			_button('返回','back')
 		'capability': _capability()
 		'enhancement':
@@ -190,6 +191,7 @@ func _rebuild() -> void:
 				map.text_scale = font_scale
 				box.add_child(map)
 				map.set_snapshot(snapshot)
+			_exploration_resume()
 			_button('返回','back')
 		'baizhi':
 			_text('隔离室里的白芷等待你的回应。对白不会授予 Gate B 的钥匙。')
@@ -256,6 +258,9 @@ func _settings() -> void:
 		if page_owner==captured:
 			intent.emit('apply_preferences',staged.duplicate(true),captured))
 	_button('返回（放弃未应用修改）','back')
+func _exploration_resume() -> void:
+	if P.snapshot(snapshot):
+		_button('继续探索','resume',null,connected and snapshot.player.currentHp>0)
 func _inventory() -> void:
 	if snapshot.is_empty() or not P.build(snapshot.get('build')):
 		_text('尚无有效权威背包投影；不创建物品或预设。')
@@ -264,6 +269,7 @@ func _inventory() -> void:
 		for item in snapshot.build.items:
 			_text(item.label+' ×'+str(item.quantity)+'\n'+item.description+'\n槽位：'+item.slotId+(' · 已装备' if item.equipped else ''))
 			_button('卸下' if item.equipped else '装备','build_item',item.itemId,connected)
+	_exploration_resume()
 	_button('返回','back')
 func _capability() -> void:
 	if not P.snapshot(snapshot):
@@ -369,6 +375,7 @@ func _archive() -> void:
 					shown = true
 		if not shown:
 			_text('尚无已确认档案')
+	_exploration_resume()
 	_button('返回','back')
 func _save() -> void:
 	_text('保存由权威 SaveV6 / 槽位事务完成；客户端不读取或写入存档。')
