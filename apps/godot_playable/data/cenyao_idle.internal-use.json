@@ -1,0 +1,96 @@
+{
+  "approval": "INTERNAL_REGISTERED_SOURCE_REUSE",
+  "source": {
+    "sha256": "1915e77897a4facea0bfee4c529daf5cd4961998fe4887efc4a340f253424801",
+    "sourceCommit": "030eb9bf8194ad5534dc77315567ff339cd2c625",
+    "relative": "assets/source/approved/batch01/01_runtime2d.actor.cenyao.base.v1.png"
+  },
+  "registeredSourceReuse": true,
+  "nominalCanvasHeight": 104,
+  "assetId": "runtime2d.actor.cenyao.base.v1",
+  "canvas": [
+    336,
+    560
+  ],
+  "footAnchor": [
+    168,
+    551
+  ],
+  "publicRelease": "NOT_ESTABLISHED",
+  "referencePpm": 48,
+  "GodotDisplay": "NOT_RUN",
+  "registry": {
+    "masterMetadataRelative": "assets/metadata/cenyao-runtime-master-v1/cenyao-runtime-master-v1.json",
+    "sha256": "081bebad5eede90e6ed50f2f7cacb930a67f2295961d405f58141d23874ec414",
+    "adoption": "ADOPT",
+    "masterMetadataSha256": "80a810ec6fdbcda50a0daeebcf53cd2173c0a411f043861e869187061cb59f61",
+    "relative": "governance/assets/RUNTIME_ASSET_MANIFEST.json"
+  },
+  "schema": "wuxian.cenyao-idle.internal-use/v1",
+  "frames": {
+    "south_west": {
+      "sourceRelative": "assets/derived/cenyao-runtime-master-v1/png/cenyao_idle_south_west.png",
+      "frameCount": 1,
+      "sha256": "3d3e34d0a5d388de522fd6a94fd2769efbf8137aea1ae7c0b69881c5416520be",
+      "state": "idle",
+      "bytes": 158163,
+      "path": "res://assets/characters/cenyao/idle/cenyao_idle_south_west.png"
+    },
+    "east": {
+      "sourceRelative": "assets/derived/cenyao-runtime-master-v1/png/cenyao_idle_east.png",
+      "frameCount": 1,
+      "sha256": "fd38db1daec829c0a7c2adffcdfd5c605f54b3611bb515599cd8deeea1f47402",
+      "state": "idle",
+      "bytes": 109177,
+      "path": "res://assets/characters/cenyao/idle/cenyao_idle_east.png"
+    },
+    "west": {
+      "sourceRelative": "assets/derived/cenyao-runtime-master-v1/png/cenyao_idle_west.png",
+      "frameCount": 1,
+      "sha256": "fc8e0b132c48f594a49a20bd39955d731f02077502e33131499608cc3bd7a70c",
+      "state": "idle",
+      "bytes": 121863,
+      "path": "res://assets/characters/cenyao/idle/cenyao_idle_west.png"
+    },
+    "south": {
+      "sourceRelative": "assets/derived/cenyao-runtime-master-v1/png/cenyao_idle_south.png",
+      "frameCount": 1,
+      "sha256": "b6cff22dabb303f0a9c95ba24a41fb3c2f5159ff191adefacf0c6dad38ffe875",
+      "state": "idle",
+      "bytes": 158435,
+      "path": "res://assets/characters/cenyao/idle/cenyao_idle_south.png"
+    },
+    "north_east": {
+      "sourceRelative": "assets/derived/cenyao-runtime-master-v1/png/cenyao_idle_north_east.png",
+      "frameCount": 1,
+      "sha256": "19b8e318bf5216d6075f64ac986ef7c3c3299241816b472843aac24bbf4a7676",
+      "state": "idle",
+      "bytes": 144761,
+      "path": "res://assets/characters/cenyao/idle/cenyao_idle_north_east.png"
+    },
+    "south_east": {
+      "sourceRelative": "assets/derived/cenyao-runtime-master-v1/png/cenyao_idle_south_east.png",
+      "frameCount": 1,
+      "sha256": "bfe0107fe1efdcd73b90d57b01283a22658960b5847bb5e88b401dae9857be56",
+      "state": "idle",
+      "bytes": 158547,
+      "path": "res://assets/characters/cenyao/idle/cenyao_idle_south_east.png"
+    },
+    "north": {
+      "sourceRelative": "assets/derived/cenyao-runtime-master-v1/png/cenyao_idle_north.png",
+      "frameCount": 1,
+      "sha256": "6608ed34685f28f3380849d7fe5e5319078e8feb1fbd66cbcd4cb3782a1a8221",
+      "state": "idle",
+      "bytes": 151244,
+      "path": "res://assets/characters/cenyao/idle/cenyao_idle_north.png"
+    },
+    "north_west": {
+      "sourceRelative": "assets/derived/cenyao-runtime-master-v1/png/cenyao_idle_north_west.png",
+      "frameCount": 1,
+      "sha256": "8dc527b975b1da5ed7b36a54cf4ad260cdcd9d7d3ccba24660308cf971c3164e",
+      "state": "idle",
+      "bytes": 143105,
+      "path": "res://assets/characters/cenyao/idle/cenyao_idle_north_west.png"
+    }
+  }
+}

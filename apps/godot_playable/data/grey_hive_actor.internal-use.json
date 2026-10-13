@@ -1,0 +1,100 @@
+{
+  "publicRelease": "NOT_ESTABLISHED",
+  "registeredSourceReuse": true,
+  "assets": {
+    "sentinel": {
+      "absoluteFoot": [
+        205,
+        531
+      ],
+      "path": "res://assets/enemies/grey_hive/sentinel_sheet.png",
+      "source": {
+        "sha256": "f7ced75a0fcf35afacf796f23630a40c309682c86ef67af79de5414a8a16fbe2",
+        "relative": "batch02/05_runtime2d.enemy.sentinel.base.v1.png",
+        "runtimeStatus": "ADOPT",
+        "admission": "release_approved",
+        "bytes": 2199446
+      },
+      "sha256": "c490ace4eb8ec9bf27e176359aefb8c3cd36c55a0651452be39ef25e4864df1d",
+      "derivedRelative": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.sentinel.base.v1.png",
+      "bytes": 2160789,
+      "rect": [
+        10,
+        0,
+        386,
+        541
+      ],
+      "assetId": "runtime2d.enemy.sentinel.base.v1",
+      "temporary_static_actor": true,
+      "canvas": [
+        1442,
+        1072
+      ],
+      "visualHeightM": 2.6
+    },
+    "security": {
+      "absoluteFoot": [
+        190,
+        537
+      ],
+      "path": "res://assets/enemies/grey_hive/security_sheet.png",
+      "source": {
+        "sha256": "7bd9d4cf19f36d189cdf81530c3dee48450179696a7dbceb24eaf375714de4e4",
+        "relative": "batch02/04_runtime2d.enemy.infected_security.v1.png",
+        "runtimeStatus": "ADOPT",
+        "admission": "release_approved",
+        "bytes": 1866882
+      },
+      "sha256": "cee3c171a14d82317e98ef00f39c3341a16364931dd8d56ec0ced330bcbecf66",
+      "derivedRelative": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.infected_security.v1.png",
+      "bytes": 1827592,
+      "rect": [
+        14,
+        0,
+        332,
+        542
+      ],
+      "assetId": "runtime2d.enemy.infected_security.v1",
+      "temporary_static_actor": true,
+      "canvas": [
+        1407,
+        1072
+      ],
+      "visualHeightM": 1.72
+    },
+    "maintenance": {
+      "absoluteFoot": [
+        266,
+        511
+      ],
+      "path": "res://assets/enemies/grey_hive/maintenance_sheet.png",
+      "source": {
+        "sha256": "6b7055df24acfa58edfdf0342c67efb60f9fac892c80110d449700bf7021477d",
+        "relative": "batch02/03_runtime2d.enemy.infected_maintenance_worker.v1.png",
+        "runtimeStatus": "ADOPT",
+        "admission": "release_approved",
+        "bytes": 1910307
+      },
+      "sha256": "f7ee9460d18be46a8aea81fda2e566b29e5ac7b80d9ad2b20fd58f2f7e7a8168",
+      "derivedRelative": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.infected_maintenance_worker.v1.png",
+      "bytes": 1870188,
+      "rect": [
+        17,
+        3,
+        428,
+        522
+      ],
+      "assetId": "runtime2d.enemy.infected_maintenance_worker.v1",
+      "temporary_static_actor": true,
+      "canvas": [
+        1447,
+        1086
+      ],
+      "visualHeightM": 1.72
+    }
+  },
+  "frameReference": "ActorFrameLayout.TEMPORARY_ACTOR_CROPS",
+  "approval": "INTERNAL_REGISTERED_SOURCE_REUSE",
+  "GodotDisplay": "NOT_RUN",
+  "schema": "wuxian.grey-hive-actor.internal-use/v1"
+}

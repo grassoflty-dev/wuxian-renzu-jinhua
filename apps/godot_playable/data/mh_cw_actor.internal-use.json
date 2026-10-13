@@ -1,0 +1,84 @@
+{
+  "GodotDisplay": "NOT_RUN",
+  "approval": "INTERNAL_REGISTERED_SOURCE_REUSE",
+  "registeredSourceReuse": true,
+  "schema": "wuxian.mh-cw-actor.internal-use/v1",
+  "publicRelease": "NOT_ESTABLISHED",
+  "assets": {
+    "drowned": {
+      "assetId": "runtime2d.enemy.mistharbor.drowned.v2",
+      "path": "res://assets/enemies/mist_harbor/drowned.png",
+      "canvas": [
+        1221,
+        1254
+      ],
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sha256": "752ac830587fc957d5695cd7714c57e584f40ec1a8f511f324ee491adaee7f2d",
+      "source": {
+        "relative": "batch07/03_runtime2d.enemy.mistharbor.drowned.v2.png",
+        "admission": "release_approved",
+        "bytes": 1157176,
+        "sha256": "1b57a57c4fc7dc1d853b82cc1c6a3525e97af5853006ad17a8e25d0de6ca993e",
+        "runtimeStatus": "ADOPT",
+        "assetId": "runtime2d.enemy.mistharbor.drowned.v2"
+      },
+      "derivedRelative": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.mistharbor.drowned.v2.png",
+      "visualHeightM": 1.72,
+      "bytes": 1128162,
+      "temporary_static_actor": true
+    },
+    "forged_guard": {
+      "assetId": "runtime2d.enemy.clockworks.forged_guard.v2",
+      "path": "res://assets/enemies/clockworks/forged_guard.png",
+      "canvas": [
+        1226,
+        1254
+      ],
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sha256": "b41cdc83c587805d0beee9d48668a9328001882595e0ab97fa69347d9bcf8cb4",
+      "source": {
+        "relative": "batch07/08_runtime2d.enemy.clockworks.forged_guard.v2.png",
+        "admission": "release_approved",
+        "bytes": 1330037,
+        "sha256": "5c542927516e2e393eccada493e5ca4e20d4bc5d75db8431d57f306910c5d0c0",
+        "runtimeStatus": "ADOPT",
+        "assetId": "runtime2d.enemy.clockworks.forged_guard.v2"
+      },
+      "derivedRelative": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.clockworks.forged_guard.v2.png",
+      "visualHeightM": 1.72,
+      "bytes": 1300721,
+      "temporary_static_actor": true
+    },
+    "signal_wraith": {
+      "assetId": "runtime2d.enemy.mistharbor.signal_wraith.v2",
+      "path": "res://assets/enemies/mist_harbor/signal_wraith.png",
+      "canvas": [
+        1236,
+        1254
+      ],
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sha256": "942a294e86076bfa91762113cd9bb14c81db329baabf5804ba9138942cc7166b",
+      "source": {
+        "relative": "batch07/04_runtime2d.enemy.mistharbor.signal_wraith.v2.png",
+        "admission": "release_approved",
+        "bytes": 1470333,
+        "sha256": "fcaad0d40dc3a9dca4c24d147c656d4c751b6a729d265ae3f60d421fe69dd055",
+        "runtimeStatus": "ADOPT",
+        "assetId": "runtime2d.enemy.mistharbor.signal_wraith.v2"
+      },
+      "derivedRelative": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.mistharbor.signal_wraith.v2.png",
+      "visualHeightM": 1.72,
+      "bytes": 1440594,
+      "temporary_static_actor": true
+    }
+  }
+}

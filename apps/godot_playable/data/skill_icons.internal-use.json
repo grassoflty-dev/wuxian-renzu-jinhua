@@ -1,0 +1,46 @@
+{
+  "guard": {
+    "approval": "INTERNAL_SOURCE_ONLY",
+    "upstreamRuntimeAdmission": "NOT_ADMITTED",
+    "sourceCommit": "d92ce1184851d28f1b48aed3b323726d827fd28e",
+    "runtimeAdmission": "NOT_VALIDATED",
+    "releaseEligible": false,
+    "path": "res://assets/ui/skills/guard/icon_128.png",
+    "sourceRevision": "r8",
+    "sha256": "b7d6397f891893bac5f83ae47231c63e9de229a791b4e3c85df313463fe22dd8",
+    "admitted": true
+  },
+  "pulse": {
+    "approval": "INTERNAL_SOURCE_ONLY",
+    "upstreamRuntimeAdmission": "NOT_ADMITTED",
+    "sourceCommit": "cc2b78dfeb79286c1cb08db3398b26edc52df093",
+    "runtimeAdmission": "NOT_VALIDATED",
+    "releaseEligible": false,
+    "path": "res://assets/ui/skills/pulse/icon_128.png",
+    "sourceRevision": "r7",
+    "sha256": "08c9188c6acb8e147ef30ea3030aca58506cf67018b45e849619f4709a6f19ac",
+    "admitted": true
+  },
+  "pierce": {
+    "approval": "INTERNAL_SOURCE_ONLY",
+    "upstreamRuntimeAdmission": "NOT_ADMITTED",
+    "sourceCommit": "22f9ebcf267dafd2fcf18af0d384b5556fc3c917",
+    "runtimeAdmission": "NOT_VALIDATED",
+    "releaseEligible": false,
+    "path": "res://assets/ui/skills/pierce/icon_128.png",
+    "sourceRevision": "r9",
+    "sha256": "85bb04f8b285381a6fc1510c8770749972e9c1df64932db7d3a97c2c3b45118b",
+    "admitted": true
+  },
+  "dash": {
+    "approval": "INTERNAL_SOURCE_ONLY",
+    "upstreamRuntimeAdmission": "NOT_ADMITTED",
+    "sourceCommit": "a5e114a8593379f050992743a90f95b00a9fbbbc",
+    "runtimeAdmission": "NOT_VALIDATED",
+    "releaseEligible": false,
+    "path": "res://assets/ui/skills/dash/icon_128.png",
+    "sourceRevision": "r10",
+    "sha256": "8e53f8d30b7dc202944e048e8a9f3fcdd22d8a7254c39541e88569a9c8881064",
+    "admitted": true
+  }
+}

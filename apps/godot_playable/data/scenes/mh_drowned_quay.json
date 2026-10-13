@@ -1,0 +1,546 @@
+{
+  "boundsM": {
+    "depth": 16.0,
+    "width": 24.0,
+    "x": 0,
+    "z": 0
+  },
+  "cameraZones": [],
+  "checkpoints": [
+    {
+      "id": "mh_drowned_quay_checkpoint",
+      "navNode": "mh_drowned_quay_spawn_nav",
+      "position": [
+        4.0,
+        0.0,
+        8.0
+      ]
+    }
+  ],
+  "collision": [
+    {
+      "id": "quay_wall_north",
+      "polygon": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          0.0,
+          0.5
+        ]
+      ]
+    },
+    {
+      "id": "quay_wall_south",
+      "polygon": [
+        [
+          0.0,
+          15.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          24.0,
+          16.0
+        ],
+        [
+          0.0,
+          16.0
+        ]
+      ]
+    },
+    {
+      "id": "quay_wall_west_north",
+      "polygon": [
+        [
+          0.0,
+          0.5
+        ],
+        [
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ]
+      ]
+    },
+    {
+      "id": "quay_wall_west_south",
+      "polygon": [
+        [
+          0.0,
+          9.5
+        ],
+        [
+          0.5,
+          9.5
+        ],
+        [
+          0.5,
+          15.5
+        ],
+        [
+          0.0,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "quay_wall_east_north",
+      "polygon": [
+        [
+          23.5,
+          0.5
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          24.0,
+          6.0
+        ],
+        [
+          23.5,
+          6.0
+        ]
+      ]
+    },
+    {
+      "id": "quay_wall_east_south",
+      "polygon": [
+        [
+          23.5,
+          9.5
+        ],
+        [
+          24.0,
+          9.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          23.5,
+          15.5
+        ]
+      ]
+    }
+  ],
+  "doors": [],
+  "explorationRegions": [
+    {
+      "id": "mh_dq_west_quay",
+      "polygon": [
+        [
+          0.5,
+          0.5
+        ],
+        [
+          13.0,
+          0.5
+        ],
+        [
+          13.0,
+          15.5
+        ],
+        [
+          0.5,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "mh_dq_flooded_channel",
+      "polygon": [
+        [
+          13.0,
+          0.5
+        ],
+        [
+          19.0,
+          0.5
+        ],
+        [
+          19.0,
+          15.5
+        ],
+        [
+          13.0,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "mh_dq_east_quay",
+      "polygon": [
+        [
+          19.0,
+          0.5
+        ],
+        [
+          23.5,
+          0.5
+        ],
+        [
+          23.5,
+          15.5
+        ],
+        [
+          19.0,
+          15.5
+        ]
+      ]
+    }
+  ],
+  "hazards": [
+    {
+      "id": "mh_water_depth_region",
+      "kind": "water_depth_slowdown",
+      "polygon": [
+        [
+          13.0,
+          5.0
+        ],
+        [
+          19.0,
+          5.0
+        ],
+        [
+          19.0,
+          11.0
+        ],
+        [
+          13.0,
+          11.0
+        ]
+      ],
+      "terrainTag": "terrain.water_shallow"
+    }
+  ],
+  "interactions": [
+    {
+      "event": null,
+      "id": "mh_water_depth_slowdown_marker",
+      "kind": "water_depth_slowdown_marker",
+      "position": [
+        15.0,
+        0.0,
+        8.0
+      ]
+    }
+  ],
+  "logic": {
+    "traversal": []
+  },
+  "navigation": {
+    "links": [
+      {
+        "from": "mh_drowned_quay_spawn_nav",
+        "to": "mh_drowned_quay_center_nav"
+      },
+      {
+        "from": "mh_drowned_quay_center_nav",
+        "to": "mh_water_depth_nav"
+      },
+      {
+        "from": "mh_water_depth_nav",
+        "to": "mh_drowned_quay_east_nav"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "mh_drowned_quay_spawn_nav",
+        "position": [
+          3.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "mh_drowned_quay_center_nav",
+        "position": [
+          10.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "mh_water_depth_nav",
+        "position": [
+          15.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "mh_drowned_quay_east_nav",
+        "position": [
+          21.0,
+          0.0,
+          8.0
+        ]
+      }
+    ]
+  },
+  "objectives": [],
+  "occluders": [],
+  "presentation": {
+    "cameraProfile": "oblique_default",
+    "layers": [
+      {
+        "id": "visual.floor",
+        "zGroup": 0
+      },
+      {
+        "id": "visual.props_back",
+        "zGroup": 10
+      },
+      {
+        "id": "visual.props_dynamic",
+        "zGroup": 20
+      },
+      {
+        "id": "visual.vfx_markers",
+        "zGroup": 30
+      }
+    ],
+    "sprites": [
+      {
+        "assetId": "runtime2d.world.mistharbor.water_edge_stone.v1",
+        "id": "approved_submerged_stone_path",
+        "layer": "visual.floor",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.mistharbor.water_edge.v1",
+        "id": "quay_open_waterline",
+        "layer": "visual.props_back",
+        "position": [
+          12.0,
+          0.0,
+          14.5
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.mistharbor.fog_bank.v1",
+        "id": "quay_north_fog_bank",
+        "layer": "visual.props_back",
+        "position": [
+          19.0,
+          0.0,
+          3.0
+        ]
+      }
+    ]
+  },
+  "sceneId": "mh_drowned_quay",
+  "schemaVersion": 1,
+  "spawns": [
+    {
+      "entityType": null,
+      "id": "mh_drowned_quay_spawn",
+      "kind": "player",
+      "navNode": "mh_drowned_quay_spawn_nav",
+      "position": [
+        3.0,
+        0.0,
+        8.0
+      ]
+    },
+    {
+      "entityType": "enemy.mist_harbor.drowned",
+      "id": "mh_drowned_quay_drowned_01",
+      "kind": "enemy",
+      "navNode": "mh_drowned_quay_center_nav",
+      "position": [
+        8.0,
+        0.0,
+        10.0
+      ]
+    },
+    {
+      "entityType": "enemy.mist_harbor.drowned",
+      "id": "mh_drowned_quay_drowned_02",
+      "kind": "enemy",
+      "navNode": "mh_drowned_quay_center_nav",
+      "position": [
+        12.0,
+        0.0,
+        7.0
+      ]
+    },
+    {
+      "entityType": "enemy.mist_harbor.drowned",
+      "id": "mh_drowned_quay_drowned_03",
+      "kind": "enemy",
+      "navNode": "mh_water_depth_nav",
+      "position": [
+        16.0,
+        0.0,
+        11.0
+      ]
+    },
+    {
+      "entityType": "enemy.mist_harbor.drowned",
+      "id": "mh_drowned_quay_drowned_04",
+      "kind": "enemy",
+      "navNode": "mh_drowned_quay_east_nav",
+      "position": [
+        20.0,
+        0.0,
+        6.0
+      ]
+    },
+    {
+      "entityType": "enemy.mist_harbor.tidebound",
+      "id": "mh_drowned_quay_tidebound_01",
+      "kind": "enemy",
+      "navNode": "mh_water_depth_nav",
+      "position": [
+        16.0,
+        0.0,
+        8.0
+      ]
+    }
+  ],
+  "terrainRegions": [
+    {
+      "id": "mh_water_depth_region",
+      "polygon": [
+        [
+          13.0,
+          5.0
+        ],
+        [
+          19.0,
+          5.0
+        ],
+        [
+          19.0,
+          11.0
+        ],
+        [
+          13.0,
+          11.0
+        ]
+      ],
+      "tag": "terrain.water_shallow"
+    }
+  ],
+  "transitions": [
+    {
+      "id": "mh_drowned_quay_to_signal_yard",
+      "polygon": [
+        [
+          0.0,
+          6.5
+        ],
+        [
+          2.0,
+          6.5
+        ],
+        [
+          2.0,
+          9.5
+        ],
+        [
+          0.0,
+          9.5
+        ]
+      ],
+      "spawnId": "mh_signal_yard_spawn",
+      "toSceneId": "mh_signal_yard"
+    },
+    {
+      "id": "mh_drowned_quay_to_breakwater",
+      "polygon": [
+        [
+          22.0,
+          6.5
+        ],
+        [
+          24.0,
+          6.5
+        ],
+        [
+          24.0,
+          9.5
+        ],
+        [
+          22.0,
+          9.5
+        ]
+      ],
+      "spawnId": "mh_breakwater_spawn",
+      "toSceneId": "mh_breakwater"
+    }
+  ],
+  "triggers": [],
+  "vfxMarkers": [
+    {
+      "assetId": "runtime2d.world.mistharbor.fog_vfx.v1",
+      "id": "quay_ambient_fog_01",
+      "position": [
+        7.0,
+        0.0,
+        4.0
+      ]
+    },
+    {
+      "assetId": "runtime2d.world.mistharbor.fog_vfx.v1",
+      "id": "quay_ambient_fog_02",
+      "position": [
+        19.0,
+        0.0,
+        10.0
+      ]
+    }
+  ],
+  "walkablePolygons": [
+    {
+      "id": "mh_drowned_quay_walkable_area",
+      "polygon": [
+        [
+          0.5,
+          0.5
+        ],
+        [
+          23.5,
+          0.5
+        ],
+        [
+          23.5,
+          15.5
+        ],
+        [
+          0.5,
+          15.5
+        ]
+      ]
+    }
+  ],
+  "worldId": "mist_harbor"
+}

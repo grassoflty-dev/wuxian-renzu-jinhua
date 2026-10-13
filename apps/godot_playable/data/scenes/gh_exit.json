@@ -1,0 +1,349 @@
+{
+  "boundsM": {
+    "depth": 16.0,
+    "width": 24.0,
+    "x": 0,
+    "z": 0
+  },
+  "cameraZones": [],
+  "checkpoints": [
+    {
+      "id": "gh_exit_checkpoint",
+      "navNode": "gh_exit_console_nav",
+      "position": [
+        8.0,
+        0.0,
+        8.0
+      ]
+    }
+  ],
+  "collision": [
+    {
+      "id": "exit_wall_north",
+      "polygon": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          0.0,
+          0.5
+        ]
+      ]
+    },
+    {
+      "id": "exit_wall_south",
+      "polygon": [
+        [
+          0.0,
+          15.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          24.0,
+          16.0
+        ],
+        [
+          0.0,
+          16.0
+        ]
+      ]
+    },
+    {
+      "id": "exit_wall_west_north",
+      "polygon": [
+        [
+          0.0,
+          0.5
+        ],
+        [
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          6.5
+        ],
+        [
+          0.0,
+          6.5
+        ]
+      ]
+    },
+    {
+      "id": "exit_wall_west_south",
+      "polygon": [
+        [
+          0.0,
+          9.5
+        ],
+        [
+          0.5,
+          9.5
+        ],
+        [
+          0.5,
+          15.5
+        ],
+        [
+          0.0,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "exit_wall_east_north",
+      "polygon": [
+        [
+          23.5,
+          0.5
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          24.0,
+          6.5
+        ],
+        [
+          23.5,
+          6.5
+        ]
+      ]
+    },
+    {
+      "id": "exit_wall_east_south",
+      "polygon": [
+        [
+          23.5,
+          9.5
+        ],
+        [
+          24.0,
+          9.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          23.5,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "exit_sealed_extraction_barrier",
+      "polygon": [
+        [
+          21.5,
+          0.5
+        ],
+        [
+          22.5,
+          0.5
+        ],
+        [
+          22.5,
+          15.5
+        ],
+        [
+          21.5,
+          15.5
+        ]
+      ],
+      "requiresEvent": "hive_extraction"
+    }
+  ],
+  "doors": [],
+  "hazards": [],
+  "interactions": [
+    {
+      "event": "hive_extraction",
+      "id": "gh_exit_extraction_console",
+      "kind": "extraction_console",
+      "position": [
+        8.0,
+        0.0,
+        8.0
+      ]
+    }
+  ],
+  "logic": {
+    "traversal": []
+  },
+  "navigation": {
+    "links": [
+      {
+        "from": "gh_exit_spawn_nav",
+        "to": "gh_exit_console_nav"
+      },
+      {
+        "from": "gh_exit_console_nav",
+        "to": "gh_exit_seal_nav"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "gh_exit_spawn_nav",
+        "position": [
+          2.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "gh_exit_console_nav",
+        "position": [
+          8.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "gh_exit_seal_nav",
+        "position": [
+          20.0,
+          0.0,
+          8.0
+        ]
+      }
+    ]
+  },
+  "objectives": [],
+  "occluders": [],
+  "presentation": {
+    "cameraProfile": "oblique_default",
+    "layers": [
+      {
+        "id": "visual.floor",
+        "zGroup": 0
+      },
+      {
+        "id": "visual.props_back",
+        "zGroup": 10
+      },
+      {
+        "id": "visual.props_dynamic",
+        "zGroup": 20
+      }
+    ],
+    "sprites": [
+      {
+        "assetId": "runtime2d.grey_hive.floor_tiles.v1",
+        "id": "exit_approved_floor",
+        "layer": "visual.floor",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.wall_tiles.v1",
+        "id": "exit_wall_tiles",
+        "layer": "visual.props_back",
+        "position": [
+          12.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.pipes_cables.v1",
+        "id": "exit_service_pipes",
+        "layer": "visual.props_back",
+        "position": [
+          9.0,
+          0.0,
+          3.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.clutter.v1",
+        "id": "exit_approved_clutter",
+        "layer": "visual.props_back",
+        "position": [
+          5.0,
+          0.0,
+          11.5
+        ]
+      },
+      {
+        "assetId": "runtime2d.prop.supply_crates.v1",
+        "id": "exit_console_crates",
+        "layer": "visual.props_back",
+        "position": [
+          18.0,
+          0.0,
+          11.5
+        ]
+      },
+      {
+        "assetId": "runtime2d.prop.lockdown_terminal.v1",
+        "id": "exit_extraction_console_approved",
+        "layer": "visual.props_dynamic",
+        "position": [
+          8.0,
+          0.0,
+          8.0
+        ]
+      }
+    ]
+  },
+  "sceneId": "gh_exit",
+  "schemaVersion": 1,
+  "spawns": [
+    {
+      "entityType": null,
+      "id": "gh_exit_spawn",
+      "kind": "player",
+      "navNode": "gh_exit_spawn_nav",
+      "position": [
+        2.0,
+        0.0,
+        8.0
+      ]
+    }
+  ],
+  "transitions": [
+    {
+      "id": "gh_exit_to_beacon",
+      "polygon": [
+        [
+          0.5,
+          7.0
+        ],
+        [
+          2.5,
+          7.0
+        ],
+        [
+          2.5,
+          9.0
+        ],
+        [
+          0.5,
+          9.0
+        ]
+      ],
+      "spawnId": "gh_beacon_spawn",
+      "toSceneId": "gh_beacon"
+    }
+  ],
+  "triggers": [],
+  "vfxMarkers": [],
+  "worldId": "grey_hive"
+}

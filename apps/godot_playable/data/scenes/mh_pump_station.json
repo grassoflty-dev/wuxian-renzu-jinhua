@@ -1,0 +1,491 @@
+{
+  "boundsM": {
+    "depth": 16.0,
+    "width": 24.0,
+    "x": 0,
+    "z": 0
+  },
+  "cameraZones": [],
+  "checkpoints": [
+    {
+      "id": "mh_pump_station_checkpoint",
+      "navNode": "mh_pump_station_spawn_nav",
+      "position": [
+        4.0,
+        0.0,
+        8.0
+      ]
+    }
+  ],
+  "collision": [
+    {
+      "id": "pump_wall_north",
+      "polygon": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          0.0,
+          0.5
+        ]
+      ]
+    },
+    {
+      "id": "pump_wall_south",
+      "polygon": [
+        [
+          0.0,
+          15.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          24.0,
+          16.0
+        ],
+        [
+          0.0,
+          16.0
+        ]
+      ]
+    },
+    {
+      "id": "pump_wall_west_north",
+      "polygon": [
+        [
+          0.0,
+          0.5
+        ],
+        [
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ]
+      ]
+    },
+    {
+      "id": "pump_wall_west_south",
+      "polygon": [
+        [
+          0.0,
+          9.5
+        ],
+        [
+          0.5,
+          9.5
+        ],
+        [
+          0.5,
+          15.5
+        ],
+        [
+          0.0,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "pump_wall_east_north",
+      "polygon": [
+        [
+          23.5,
+          0.5
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          24.0,
+          6.0
+        ],
+        [
+          23.5,
+          6.0
+        ]
+      ]
+    },
+    {
+      "id": "pump_wall_east_south",
+      "polygon": [
+        [
+          23.5,
+          9.5
+        ],
+        [
+          24.0,
+          9.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          23.5,
+          15.5
+        ]
+      ]
+    }
+  ],
+  "doors": [],
+  "explorationRegions": [
+    {
+      "id": "mh_ps_intake",
+      "polygon": [
+        [
+          0.5,
+          0.5
+        ],
+        [
+          10.5,
+          0.5
+        ],
+        [
+          10.5,
+          15.5
+        ],
+        [
+          0.5,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "mh_ps_control_hall",
+      "polygon": [
+        [
+          10.5,
+          0.5
+        ],
+        [
+          18.0,
+          0.5
+        ],
+        [
+          18.0,
+          15.5
+        ],
+        [
+          10.5,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "mh_ps_east_channel",
+      "polygon": [
+        [
+          18.0,
+          0.5
+        ],
+        [
+          23.5,
+          0.5
+        ],
+        [
+          23.5,
+          15.5
+        ],
+        [
+          18.0,
+          15.5
+        ]
+      ]
+    }
+  ],
+  "hazards": [],
+  "interactions": [
+    {
+      "event": null,
+      "id": "mh_pump_control_primary",
+      "kind": "pump_control",
+      "position": [
+        17.0,
+        0.0,
+        7.0
+      ]
+    }
+  ],
+  "logic": {
+    "traversal": []
+  },
+  "navigation": {
+    "links": [
+      {
+        "from": "mh_pump_station_spawn_nav",
+        "to": "mh_pump_station_center_nav"
+      },
+      {
+        "from": "mh_pump_station_center_nav",
+        "to": "mh_pump_controls_nav"
+      },
+      {
+        "from": "mh_pump_controls_nav",
+        "to": "mh_pump_station_east_nav"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "mh_pump_station_spawn_nav",
+        "position": [
+          3.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "mh_pump_station_center_nav",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "mh_pump_controls_nav",
+        "position": [
+          17.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "mh_pump_station_east_nav",
+        "position": [
+          21.0,
+          0.0,
+          8.0
+        ]
+      }
+    ]
+  },
+  "objectives": [],
+  "occluders": [],
+  "presentation": {
+    "cameraProfile": "oblique_default",
+    "layers": [
+      {
+        "id": "visual.floor",
+        "zGroup": 0
+      },
+      {
+        "id": "visual.props_back",
+        "zGroup": 10
+      },
+      {
+        "id": "visual.props_dynamic",
+        "zGroup": 20
+      },
+      {
+        "id": "visual.vfx_markers",
+        "zGroup": 30
+      }
+    ],
+    "sprites": [
+      {
+        "assetId": "runtime2d.world.mistharbor.water_edge_stone.v1",
+        "id": "approved_pump_station_stone_water_module",
+        "layer": "visual.floor",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.mistharbor.water_edge.v1",
+        "id": "pump_station_water_edge",
+        "layer": "visual.props_back",
+        "position": [
+          12.0,
+          0.0,
+          14.5
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.mistharbor.fog_bank.v1",
+        "id": "pump_station_fog_bank",
+        "layer": "visual.props_back",
+        "position": [
+          18.0,
+          0.0,
+          3.0
+        ]
+      }
+    ]
+  },
+  "sceneId": "mh_pump_station",
+  "schemaVersion": 1,
+  "spawns": [
+    {
+      "entityType": null,
+      "id": "mh_pump_station_spawn",
+      "kind": "player",
+      "navNode": "mh_pump_station_spawn_nav",
+      "position": [
+        3.0,
+        0.0,
+        8.0
+      ]
+    },
+    {
+      "entityType": "enemy.mist_harbor.drowned",
+      "id": "mh_pump_station_drowned_01",
+      "kind": "enemy",
+      "navNode": "mh_pump_station_center_nav",
+      "position": [
+        10.0,
+        0.0,
+        9.0
+      ]
+    },
+    {
+      "entityType": "enemy.mist_harbor.drowned",
+      "id": "mh_pump_station_drowned_02",
+      "kind": "enemy",
+      "navNode": "mh_pump_controls_nav",
+      "position": [
+        15.0,
+        0.0,
+        11.0
+      ]
+    },
+    {
+      "entityType": "enemy.mist_harbor.drowned",
+      "id": "mh_pump_station_drowned_03",
+      "kind": "enemy",
+      "navNode": "mh_pump_controls_nav",
+      "position": [
+        19.0,
+        0.0,
+        6.0
+      ]
+    }
+  ],
+  "terrainRegions": [
+    {
+      "id": "mh_pump_east_channel_water",
+      "polygon": [
+        [
+          18.0,
+          5.5
+        ],
+        [
+          23.5,
+          5.5
+        ],
+        [
+          23.5,
+          10.5
+        ],
+        [
+          18.0,
+          10.5
+        ]
+      ],
+      "tag": "terrain.water_deep"
+    }
+  ],
+  "transitions": [
+    {
+      "id": "mh_pump_station_to_breakwater",
+      "polygon": [
+        [
+          0.0,
+          6.5
+        ],
+        [
+          2.0,
+          6.5
+        ],
+        [
+          2.0,
+          9.5
+        ],
+        [
+          0.0,
+          9.5
+        ]
+      ],
+      "spawnId": "mh_breakwater_spawn",
+      "toSceneId": "mh_breakwater"
+    },
+    {
+      "id": "mh_pump_station_to_tower",
+      "polygon": [
+        [
+          22.0,
+          6.5
+        ],
+        [
+          24.0,
+          6.5
+        ],
+        [
+          24.0,
+          9.5
+        ],
+        [
+          22.0,
+          9.5
+        ]
+      ],
+      "spawnId": "mh_resonance_tower_spawn",
+      "toSceneId": "mh_resonance_tower"
+    }
+  ],
+  "triggers": [],
+  "vfxMarkers": [
+    {
+      "assetId": "runtime2d.world.mistharbor.fog_vfx.v1",
+      "id": "pump_station_ambient_fog",
+      "position": [
+        8.0,
+        0.0,
+        4.5
+      ]
+    }
+  ],
+  "walkablePolygons": [
+    {
+      "id": "mh_pump_station_walkable_area",
+      "polygon": [
+        [
+          0.5,
+          0.5
+        ],
+        [
+          23.5,
+          0.5
+        ],
+        [
+          23.5,
+          15.5
+        ],
+        [
+          0.5,
+          15.5
+        ]
+      ]
+    }
+  ],
+  "worldId": "mist_harbor"
+}

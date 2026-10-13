@@ -1,0 +1,963 @@
+extends Node2D
+const Content = preload('res://scripts/ui/content_model.gd')
+const ThemeModel = preload('res://scripts/ui/theme_model.gd')
+const P = preload('res://scripts/bridge/protocol.gd')
+const Rpc = preload('res://scripts/bridge/rpc_client.gd')
+const Catalog = preload('res://scripts/world/scene_catalog.gd')
+const Renderer = preload('res://scripts/world/renderer.gd')
+const EventView = preload('res://scripts/world/event_view.gd')
+const Hud = preload('res://scripts/ui/game_hud.gd')
+const NativeAudio = preload('res://scripts/audio/native_audio.gd')
+const Panels = preload('res://scripts/ui/panels.gd')
+const ACTION_KEYS = {KEY_J:'primaryAttack',KEY_SHIFT:'dash',KEY_SPACE:'contextTraversal',KEY_Q:'pulse',KEY_E:'guardStart',KEY_R:'pierce'}
+const SCENE_RPC = {'scene_transition':'formal_scene_transition','scene_checkpoint':'formal_scene_checkpoint','scene_trigger':'formal_scene_trigger','environment_control':'formal_environment_control','world_gate':'formal_world_gate','mission_terminal':'formal_mission_terminal_status','capability_terminal':'formal_capability_terminal_status','save_rest_terminal':'formal_save_rest_terminal'}
+const INTERACT_KINDS = ['power_console','door_panel','terminal','lockdown_terminal','facility_log','bio_log_terminal','gate_b_panel','extraction_console','beacon','pump_control','valve_control','beacon_collect','beacon_mount','coolant_valve','static_dialogue_marker']
+var audio
+var rpc
+var catalog = Catalog.new()
+var renderer
+var event_view = EventView.new()
+var hud
+var panels
+var snapshot: Dictionary = {}
+var status: Dictionary = {}
+var generation = 0
+var panel_generation = 0
+var request_sequence = 0
+var input_sequence = 0
+var action_sequence = 0
+var lifecycle_sequence = 0
+var journey_started = false
+var focused = true
+var guard_active = false
+var blocked_keys = {}
+var critical = ''
+var uncertain = false
+var connection_text = '未连接'
+var poll_accumulator = 0.0
+var input_accumulator = 0.0
+var last_snapshot_at = 0
+var ready_pending: Dictionary = {}
+var ready_sent = {}
+var frame_key = ''
+var pause_owned: Dictionary = {}
+var ticket: Dictionary = {}
+var enhancement_pending: Dictionary = {}
+var last_feedback = ''
+var preferences = {'scale':1.0,'fullscreen':false,'color':false,'reduced':false,'muted':false,'volume':0.35}
+var pointer_seen = false
+var pending_actions: Array = []
+var guard_blocked = false
+var last_status_at = 0
+var last_input_packet_at = -1000
+var neutral_pending = false
+func _ready() -> void:
+	name = 'V1Main'
+	audio = NativeAudio.new()
+	audio.name = 'Audio'
+	add_child(audio)
+	get_tree().auto_accept_quit = false
+	get_window().min_size = Vector2i(720,480)
+	renderer = Renderer.new()
+	renderer.name = 'World'
+	add_child(renderer)
+	renderer.frame_committed.connect(_scene_frame_committed)
+	var ui = CanvasLayer.new()
+	ui.name = 'UI'
+	add_child(ui)
+	hud = Hud.new()
+	hud.name = 'GameHUD'
+	ui.add_child(hud)
+	hud.intent.connect(func(kind,value): _ui_intent(kind,value,panels.page_owner.duplicate(true)))
+	panels = Panels.new()
+	panels.name = 'Panels'
+	ui.add_child(panels)
+	panels.intent.connect(_ui_intent)
+	rpc = Rpc.new()
+	rpc.name = 'Bridge'
+	add_child(rpc)
+	rpc.response.connect(_response)
+	rpc.failed.connect(_failed)
+	rpc.connection_changed.connect(_connection)
+	_show('start')
+	rpc.start_from_arguments()
+func _context() -> Dictionary:
+	return {} if snapshot.is_empty() else {'worldId':snapshot.worldId,'sceneId':snapshot.sceneId,'worldEpoch':snapshot.worldEpoch}
+func _owner() -> Dictionary:
+	return {'generation':generation,'panelGeneration':panel_generation,'context':_context()}
+func _assoc(extra: Dictionary = {}) -> Dictionary:
+	var a = {'generation':generation,'context':_context()}
+	a.merge(extra,true)
+	return a
+func _current(a: Dictionary, transition: bool = false) -> bool:
+	return a.get('generation')==generation and (transition or a.get('context',{}).is_empty() or P.same(a.context,_context()))
+func _request(method: String, params: Dictionary, purpose: String = '', extra: Dictionary = {}, block: bool = false) -> int:
+	if block:
+		if not critical.is_empty() or uncertain:
+			_feedback('当前请求尚未完成')
+			return 0
+		_release()
+		critical = method
+	extra['purpose'] = purpose
+	var id = rpc.request(method,params,_assoc(extra))
+	if id==0 and block:
+		critical = ''
+		_feedback('链路暂不可用')
+	return id
+func _id(prefix: String) -> String:
+	request_sequence += 1
+	return prefix+'-'+str(generation)+'-'+str(request_sequence)
+func _connection(connected: bool, code: String) -> void:
+	connection_text = '已连接' if connected else '未连接 / '+_localized(code)
+	if not connected:
+		_release()
+		status.clear()
+		if journey_started:
+			uncertain = true
+			_show('error')
+			panels.set_message('连接中断；未确认操作保持结果未知',true)
+		else:
+			_show('start')
+	else:
+		_show('start')
+		_request('formal_has_save',{'defaultOnly':true},'has_save')
+		_request('formal_list_save_slots',{},'slots')
+func _eligible() -> bool:
+	return journey_started and rpc.authenticated and focused and not uncertain and critical.is_empty() and not panels.visible and not snapshot.is_empty() and not status.is_empty() and P.same(status,snapshot) and not status.paused and status.get('entryToken')==null and snapshot.get('entryToken')==null and ready_pending.is_empty() and snapshot.player.currentHp>0 and Time.get_ticks_msec()-last_snapshot_at<1000 and Time.get_ticks_msec()-last_status_at<1000
+func _process(delta: float) -> void:
+	poll_accumulator += delta
+	input_accumulator += delta
+	if rpc.authenticated and poll_accumulator>=0.05:
+		poll_accumulator = 0
+		_request('formal_snapshot',{},'poll')
+		_request('bridge_session_status',{},'status')
+		if journey_started and not snapshot.is_empty():
+			_request('formal_presentation_events',{'worldEpoch':snapshot.worldEpoch,'afterEventId':event_view.cursor},'events')
+			_request('formal_sound_cues',{'worldEpoch':snapshot.worldEpoch,'afterEventId':event_view.sound_cursor},'sound')
+	var eligible = _eligible()
+	audio.update(snapshot,catalog.current,generation,eligible,focused)
+	if input_accumulator>=0.05:
+		input_accumulator = 0
+		if eligible:
+			if _sample(false):
+				var queued = pending_actions.duplicate(true)
+				pending_actions.clear()
+				for edge in queued:
+					_send_action(edge.kind,edge.time)
+		elif neutral_pending and critical.is_empty():
+			_sample(true)
+	if guard_active and (not eligible or not Input.is_physical_key_pressed(KEY_E)):
+		_end_guard()
+	for key in blocked_keys.keys():
+		if not Input.is_physical_key_pressed(key):
+			blocked_keys.erase(key)
+	if not snapshot.is_empty():
+		renderer.events = event_view.project(snapshot,renderer,eligible)
+		renderer.sound = event_view.sound
+	var nearest = _nearest()
+	var hint = audio.status_text if audio.failed else last_feedback
+	if eligible and not nearest.is_empty():
+		hint = '[F] '+_interaction_label(nearest)+' · '+last_feedback
+	hud.update_view(snapshot,connection_text,eligible,hint,preferences.scale)
+func _sample(neutral: bool) -> bool:
+	if snapshot.is_empty() or not rpc.authenticated:
+		return false
+	if snapshot.get('entryToken')!=null or not ready_pending.is_empty() or not status.is_empty() and P.same(status,snapshot) and status.paused:
+		neutral_pending = false
+		return false
+	var now = Time.get_ticks_msec()
+	if now-last_input_packet_at<50:
+		if neutral:
+			neutral_pending = true
+		return false
+	input_sequence += 1
+	if input_sequence>=9007199254740991:
+		if not uncertain:
+			_hold('E_COUNTER_EXHAUSTED')
+		return false
+	var right = Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT)
+	var left = Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT)
+	var down = Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN)
+	var up = Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP)
+	var sx = int(right)-int(left)
+	var sy = int(down)-int(up)
+	var move = Vector2(sy+0.5*sx,sy-0.5*sx).normalized() if not neutral else Vector2.ZERO
+	var aim = Vector2.ZERO
+	if pointer_seen and not neutral:
+		var player = P.vector(snapshot.player.transform.positionM)
+		var mouse_world = renderer.camera.inverse(get_viewport().get_mouse_position(),player.y)
+		aim = Vector2(mouse_world.x-player.x,mouse_world.z-player.z).normalized()
+	var sample = {'protocol':'continuous-input','protocolVersion':2,'worldEpoch':snapshot.worldEpoch,'seq':input_sequence,'clientTimeMs':Time.get_ticks_msec(),'moveX':move.x,'moveZ':move.y,'aimX':aim.x,'aimZ':aim.y}
+	var submitted = _request('formal_submit_input',{'sample':sample,'combat':[]},'input',{'neutral':neutral})
+	if submitted>0:
+		last_input_packet_at = now
+		neutral_pending = false
+		return true
+	return false
+func _action(kind: String, release: bool = false) -> void:
+	if not release and not _eligible():
+		_feedback('当前状态不能执行动作')
+		return
+	if snapshot.is_empty() or not rpc.authenticated or not kind in ['primaryAttack','dash','pulse','guardStart','guardEnd','pierce','contextTraversal']:
+		return
+	if kind=='guardStart' and guard_blocked:
+		_feedback('请松开 E 后重新防御')
+		return
+	if not release:
+		if pending_actions.size()>=32:
+			_hold('E_ACTION_QUEUE_LIMIT')
+			return
+		pending_actions.append({'kind':kind,'time':Time.get_ticks_msec()})
+		return
+	_send_action(kind,Time.get_ticks_msec())
+func _send_action(kind: String, _event_time: int) -> void:
+	action_sequence += 1
+	if action_sequence>=9007199254740991:
+		_hold('E_COUNTER_EXHAUSTED')
+		return
+	var action = {'protocolVersion':2,'worldEpoch':snapshot.worldEpoch,'requestId':action_sequence,'clientTimeMs':Time.get_ticks_msec(),'kind':kind}
+	if _request('formal_submit_action',{'action':action},'action',{'actionKind':kind})>0 and kind=='guardStart':
+		guard_active = true
+func _end_guard() -> void:
+	pending_actions = pending_actions.filter(func(edge): return edge.kind!='guardStart')
+	if guard_active:
+		guard_active = false
+		_action('guardEnd',true)
+func _release() -> void:
+	if is_instance_valid(audio):
+		audio.suspend_world()
+	if guard_active or Input.is_physical_key_pressed(KEY_E) or pending_actions.any(func(edge): return edge.kind=='guardStart'):
+		guard_blocked = true
+	pending_actions.clear()
+	_end_guard()
+	_sample(true)
+	for key in ACTION_KEYS:
+		if Input.is_physical_key_pressed(key):
+			blocked_keys[key] = true
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion:
+		pointer_seen = true
+	if event is InputEventKey:
+		var key = event.physical_keycode
+		if not event.pressed:
+			blocked_keys.erase(key)
+			if key==KEY_E:
+				_end_guard()
+			return
+		if event.echo:
+			return
+		if key==KEY_ESCAPE:
+			_escape()
+			get_viewport().set_input_as_handled()
+			return
+		if not _eligible() or blocked_keys.has(key):
+			return
+		if key==KEY_F:
+			_interact()
+		elif key==KEY_T:
+			_open_paused('mission')
+		elif key==KEY_M:
+			_open_paused('map')
+		elif ACTION_KEYS.has(key):
+			_action(ACTION_KEYS[key])
+	if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT and event.pressed and _eligible() and get_viewport().gui_get_hovered_control()==null:
+		pointer_seen = true
+		_action('primaryAttack')
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode==KEY_ESCAPE:
+		_escape()
+		get_viewport().set_input_as_handled()
+	# Release is observed even when a native control consumed the key-up.
+	if event is InputEventKey and not event.pressed and event.physical_keycode==KEY_E:
+		blocked_keys.erase(KEY_E)
+		guard_blocked = false
+		_end_guard()
+func _notification(what: int) -> void:
+	if not is_instance_valid(rpc):
+		return
+	if what==NOTIFICATION_APPLICATION_FOCUS_OUT:
+		guard_blocked = true
+		_release()
+		if _eligible():
+			_open_paused('pause')
+		focused = false
+		audio.stop_all()
+	elif what==NOTIFICATION_APPLICATION_FOCUS_IN:
+		focused = true
+		_release()
+	elif what==NOTIFICATION_WM_CLOSE_REQUEST:
+		if not critical.is_empty() or not ready_pending.is_empty() or not ticket.is_empty():
+			_feedback('请先等待当前确认或关闭对白')
+			return
+		if journey_started and rpc.authenticated and not uncertain and critical.is_empty():
+			_open_paused('exit_confirm')
+		else:
+			_show('error' if uncertain else 'start')
+			panels.set_message('当前没有已确认保存；退出客户端不证明服务已关闭')
+func _escape() -> void:
+	if not focused or uncertain or not critical.is_empty() or not ready_pending.is_empty() or snapshot.get('entryToken')!=null:
+		return
+	if panels.visible:
+		if panels.mode=='pause':
+			_resume()
+		elif panels.mode in ['settings','inventory','character','capability','mission','archive','save','slots','map','new_confirm','exit_confirm']:
+			_back()
+		return
+	if _eligible():
+		_open_paused('pause')
+func _show(page: String, extra: Dictionary = {}, blocked: bool = false) -> void:
+	panel_generation += 1
+	var o = _owner()
+	o.merge(extra,true)
+	panels.preferences = preferences.duplicate(true)
+	panels.font_scale = preferences.scale
+	panels.show_page(page,o,snapshot,rpc.authenticated if is_instance_valid(rpc) else false,blocked)
+func _open_paused(page: String, page_data: Dictionary = {}) -> void:
+	if not journey_started or not snapshot.is_empty() and snapshot.player.currentHp<=0 and page in ['slots','new_confirm','settings']:
+		_show(page,page_data)
+		return
+	if snapshot.is_empty() or status.is_empty() or not P.same(status,snapshot) or not focused or uncertain or not critical.is_empty() or snapshot.get('entryToken')!=null or status.get('entryToken')!=null or snapshot.player.currentHp<=0:
+		_feedback('当前不能打开此面板')
+		return
+	_release()
+	if status.paused:
+		_show(page,page_data)
+	else:
+		if not _advance_lifecycle():
+			return
+		var sequence = lifecycle_sequence
+		if _request('formal_pause',{'context':_context(),'commandSequence':sequence},'open_page',{'page':page,'pageData':page_data,'sequence':sequence},true)>0:
+			_show('waiting',{},true)
+func _resume() -> void:
+	if not journey_started or uncertain or not critical.is_empty() or status.is_empty() or not status.paused or not P.same(status,snapshot) or not P.same(pause_owned,_context()) or not ticket.is_empty():
+		_feedback('暂停归属未确认；不能恢复')
+		return
+	if not _advance_lifecycle():
+		return
+	_request('formal_resume',{'context':_context(),'commandSequence':lifecycle_sequence},'resume',{'sequence':lifecycle_sequence},true)
+	panels.set_message('等待恢复确认',true)
+func _back() -> void:
+	if not ticket.is_empty():
+		_close_baizhi()
+	elif journey_started:
+		if not snapshot.is_empty() and snapshot.player.currentHp<=0:
+			_show('death')
+			return
+		if panels.mode=='enhancement':
+			enhancement_pending.clear()
+		_show('pause')
+	else:
+		_show('start')
+func _ui_intent(kind: String, value, owner: Dictionary) -> void:
+	if panels.visible and owner!=panels.page_owner:
+		return
+	if not owner.is_empty() and (owner.get('generation')!=generation or not owner.get('context',{}).is_empty() and not P.same(owner.context,_context())):
+		return
+	if kind=='settings_defaults':
+		audio.ui_cue('confirm',focused)
+	if kind in ['settings_defaults','settings_apply','slot_create_prepare']:
+		return
+	if kind=='apply_preferences':
+		if value is Dictionary and value.get('scale') in [1.0,1.25,1.5] and typeof(value.get('fullscreen'))==TYPE_BOOL and typeof(value.get('color'))==TYPE_BOOL and typeof(value.get('reduced'))==TYPE_BOOL and typeof(value.get('muted'))==TYPE_BOOL and P.number(value.get('volume'),0,1) and value.size()==6:
+			preferences = value.duplicate(true)
+			audio.configure(preferences.muted,preferences.volume)
+			audio.ui_cue('confirm',focused)
+			renderer.text_scale = preferences.scale
+			renderer.color_assistance = preferences.color
+			renderer.reduced_motion = preferences.reduced
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if preferences.fullscreen else DisplayServer.WINDOW_MODE_WINDOWED)
+			panels.preferences = preferences.duplicate(true)
+			panels.font_scale = preferences.scale
+			_show('settings')
+			panels.set_message('已应用 · 仅当前会话 · '+audio.status_text)
+		return
+	if not critical.is_empty() or uncertain:
+		if kind=='close_client':
+			get_tree().quit()
+		return
+	if kind in ['back','resume','start','dialogue_close','baizhi_page']:
+		audio.ui_cue('cancel',focused)
+	elif kind in ['settings','inventory','character','capability','mission','archive','map','pause']:
+		audio.ui_cue('tab',focused)
+	elif kind in ['new_confirm','exit_confirm','save','new','continue_default','continue_slot','slots','slots_refresh','save_default','save_slot','save_exit','build_item','capability_select','capability_activate','enhancement_choose','baizhi_confirm','baizhi_commit','return','close_client']:
+		audio.ui_cue('confirm',focused)
+	match kind:
+		'new_confirm','settings','inventory','character','capability','mission','archive','save','map','pause','exit_confirm': _open_paused(kind)
+		'back': _back()
+		'resume': _resume()
+		'start': _show('start')
+		'new': _begin_journey('formal_new',{})
+		'continue_default': _begin_journey('formal_continue',{})
+		'continue_slot': _begin_journey('formal_continue_slot',{'slotId':value})
+		'slots':
+			_open_paused('slots')
+			_request('formal_list_save_slots',{},'slots')
+		'slots_refresh': _request('formal_list_save_slots',{},'slots')
+		'save_default': _save_request('formal_save',{},false)
+		'save_exit': _save_request('formal_save',{},true)
+		'save_slot': _save_request('formal_save_slot',value,false)
+		'return_slot':
+			if journey_started:
+				_request('formal_return_slot',value,'return',{},true)
+		'save_slot_new': _save_request('formal_save_slot',{'slotId':'v1-'+str(Time.get_ticks_msec())+'-'+str(request_sequence+1),'displayName':value,'create':true},false)
+		'return':
+			if journey_started:
+				_request('formal_return',{},'return',{},true)
+		'build_item': _build_item(value)
+		'capability_select': _capability_select(value)
+		'capability_activate':
+			if P.granted(snapshot,value):
+				if action_sequence>=9007199254740990:
+					_hold('E_COUNTER_EXHAUSTED')
+					return
+				action_sequence += 1
+				_request('formal_capability_command',{'command':{'kind':'activate','capabilityId':value,'requestId':action_sequence}},'capability',{},true)
+		'enhancement_choose': _choose_enhancement(value)
+		'baizhi_confirm':
+			if not ticket.is_empty() and value in ['taken','left']:
+				_show('baizhi_confirm',{'choice':value})
+		'baizhi_page': _show('baizhi')
+		'baizhi_commit': _commit_baizhi(value)
+		'baizhi_unresolved':
+			if not ticket.is_empty():
+				_show('dialogue',{'text':'那就先别打开那扇门。'})
+		'baizhi_close': _close_baizhi()
+		'dialogue_close':
+			if not ticket.is_empty():
+				_close_baizhi()
+			else:
+				_back()
+		'close_client':
+			if rpc.authenticated:
+				_request('session_close',{},'close',{},true)
+			else:
+				get_tree().quit()
+func _begin_journey(method: String, params: Dictionary) -> void:
+	if not rpc.authenticated or uncertain or not critical.is_empty() or not ticket.is_empty():
+		return
+	_release()
+	generation += 1
+	journey_started = false
+	pause_owned.clear()
+	enhancement_pending.clear()
+	ready_pending.clear()
+	ready_sent.clear()
+	status.clear()
+	lifecycle_sequence = 0
+	if _request(method,params,'journey',{},true)>0:
+		_show('waiting',{},true)
+func _save_request(method: String, params: Dictionary, exit_after: bool) -> void:
+	if not journey_started or snapshot.is_empty() or not ticket.is_empty() or snapshot.get('entryToken')!=null:
+		return
+	if _request(method,params,'save',{'exitAfter':exit_after},true)>0:
+		panels.set_message('保存中 · 等待实际回执',true)
+func _build_item(id: String) -> void:
+	if not P.build(snapshot.get('build')):
+		return
+	for item in snapshot.build.items:
+		if item.itemId!=id:
+			continue
+		var expected = null
+		for e in snapshot.build.equipment:
+			if e.slotId==item.slotId:
+				expected = e.itemId
+		var action = {'kind':'unequip','slotId':item.slotId,'expectedItemId':id} if item.equipped else {'kind':'equip','itemId':id,'expectedItemId':expected}
+		var rid = _id('build')
+		_request('formal_build_command',{'command':{'requestId':rid,'worldEpoch':snapshot.worldEpoch,'expectedBuildRevision':snapshot.build.revision,'action':action}},'build',{'expectedCommand':'build:'+rid,'buildRevision':snapshot.build.revision,'buildAction':action},true)
+func _capability_select(id: String) -> void:
+	var selected: Array = []
+	var found = false
+	for c in P.capability_items(snapshot):
+		if not c.granted:
+			continue
+		if c.capabilityId==id:
+			found = true
+			if not c.selected:
+				selected.append(id)
+		elif c.selected:
+			selected.append(c.capabilityId)
+	if found:
+		_request('formal_capability_command',{'command':{'kind':'select','capabilityIds':selected}},'capability',{},true)
+func _choose_enhancement(id: String) -> void:
+	if not id in ['information.local_map_i','perception.rear_view_i','body.regeneration_i'] or enhancement_pending.is_empty() or status.is_empty() or not status.paused or not P.same(status,snapshot):
+		return
+	var actual = status.get('enhancementTerminalContext')
+	if not actual is Dictionary or actual.size()!=4 or not P.counter(actual.get('worldEpoch')) or not P.counter(actual.get('pauseCommandSequence'),1) or actual.get('id')!='rs_capability_terminal_marker' or actual.get('requestId')!=enhancement_pending.requestId or actual.get('worldEpoch')!=snapshot.worldEpoch or actual.get('pauseCommandSequence')!=enhancement_pending.sequence:
+		_hold('E_ENHANCEMENT_CONTEXT')
+		return
+	_request('formal_choose_first_enhancement',{'capabilityId':id,'context':actual.duplicate(true)},'enhancement',{'capabilityId':id},true)
+func _nearest() -> Dictionary:
+	if snapshot.is_empty():
+		return {}
+	var player = P.vector(snapshot.player.transform.positionM)
+	var rows: Array = []
+	for i in snapshot.interactables:
+		if player.distance_to(P.vector(i.transform.positionM))<=2.5 and renderer.visible_point(P.vector(i.transform.positionM)):
+			rows.append(i)
+	rows.sort_custom(func(a,b):
+		if a.active!=b.active:
+			return a.active
+		var ad = player.distance_to(P.vector(a.transform.positionM))
+		var bd = player.distance_to(P.vector(b.transform.positionM))
+		return a.entityId<b.entityId if is_equal_approx(ad,bd) else ad<bd)
+	return {} if rows.is_empty() else rows[0]
+func _interaction_label(i: Dictionary) -> String:
+	return {'world_gate':'世界入口','mission_terminal':'任务终端','capability_terminal':'能力终端','save_rest_terminal':'休息 / 保存','npc_dialogue':'与白芷交谈','scene_transition':'前往下一场景','scene_checkpoint':'检查点','scene_trigger':'场景装置','environment_control':'环境控制','power_console':'恢复电力','door_panel':'门控制','lockdown_terminal':'隔离协议','facility_log':'设施记录','bio_log_terminal':'生物记录','gate_b_panel':'Gate B 控制','extraction_console':'撤离控制','beacon_collect':'收取信标','beacon_mount':'部署信标','beacon':'信标','pump_control':'泵站控制','valve_control':'阀门','coolant_valve':'冷却阀','static_dialogue_marker':'查看炉心状态','terminal':'终端'}.get(i.kind,'未知交互（不可执行）')
+func _interact() -> void:
+	var i = _nearest()
+	if not _eligible() or i.is_empty():
+		_feedback('没有范围内可交互对象')
+		return
+	if not i.active:
+		_feedback('目标已锁定或当前不可用；未发送命令')
+		return
+	var kind: String = i.kind
+	var id: String = i.entityId
+	if kind=='npc_dialogue':
+		if id!='gh_bz_first_contact' or snapshot.worldId!='grey_hive' or snapshot.sceneId!='gh_bio_isolation' or snapshot.get('baizhi',{}).get('canInteract')!=true:
+			_feedback('当前对白不可用')
+			return
+		_begin_baizhi()
+		return
+	if kind=='world_gate' and id in ['rs_world_gate_marker','rs_mh_world_gate_marker','rs_cw_world_gate_marker']:
+		if snapshot.worldId!='return_station' or snapshot.sceneId!='rs_core_room':
+			_feedback('入口来源不匹配')
+			return
+		id = {'rs_world_gate_marker':'rs_world_gate_to_gh','rs_mh_world_gate_marker':'rs_world_gate_to_mh','rs_cw_world_gate_marker':'rs_world_gate_to_cw'}[id]
+	if id=='cw_shutdown_return_to_rs' and (snapshot.worldId!='clockworks' or snapshot.sceneId!='cw_shutdown_exit') or id=='mh_extraction_return_to_rs' and (snapshot.worldId!='mist_harbor' or snapshot.sceneId!='mh_extraction'):
+		_feedback('返回入口来源不匹配')
+		return
+	if kind in ['beacon_collect','beacon_mount'] and (snapshot.worldId!='grey_hive' or snapshot.sceneId!='gh_beacon' or i.entityId!=('gh_beacon_deploy_marker' if kind=='beacon_collect' else 'gh_beacon_storage_mount_marker')):
+		_feedback('信标来源不匹配')
+		return
+	if kind=='coolant_valve' and (id!='cw_regulator_valve_furnace_link_staged' or snapshot.worldId!='clockworks' or snapshot.sceneId!='cw_regulator_core'):
+		_feedback('冷却阀来源不匹配')
+		return
+	if kind=='static_dialogue_marker' and (id!='cw_cy_heat_01_static_dialogue_marker' or snapshot.worldId!='clockworks' or snapshot.sceneId!='cw_furnace_heart'):
+		_feedback('未知对白来源')
+		return
+	var rid = _id('scene')
+	var method = SCENE_RPC.get(kind,'formal_interact' if kind in INTERACT_KINDS else '')
+	if method.is_empty():
+		_feedback('未知交互类型；未发送命令')
+		return
+	var params = {'id':id,'requestId':rid,'worldEpoch':snapshot.worldEpoch}
+	if method=='formal_interact':
+		params.erase('id')
+		params['actorId'] = id
+	_request(method,params,'interaction',{'expectedCommand':rid,'target':i.duplicate(true),'before':snapshot.duplicate(true)},true)
+func _begin_baizhi() -> void:
+	if status.is_empty() or not P.same(status,snapshot):
+		return
+	if not _advance_lifecycle():
+		return
+	var owner_id = 'v1-godot-'+str(generation)+'-'+str(panel_generation+1)
+	var request = {'context':_context(),'entityId':'gh_bz_whitezhi_v1','interactionId':'gh_bz_first_contact','ownerId':owner_id,'generation':panel_generation+1,'commandSequence':lifecycle_sequence}
+	_request('formal_baizhi_begin',{'request':request},'baizhi_begin',{'ticketOwner':owner_id,'ticketGeneration':panel_generation+1,'sequence':lifecycle_sequence},true)
+	_show('waiting',{},true)
+func _commit_baizhi(choice: String) -> void:
+	if ticket.is_empty() or not P.ticket(ticket,_context()) or not choice in ['taken','left']:
+		return
+	var rid = _id('baizhi')
+	_request('formal_baizhi_commit',{'ticket':ticket.duplicate(true),'requestId':rid,'choice':choice},'baizhi_commit',{'expectedCommand':rid,'choice':choice},true)
+	panels.set_message('等待白芷选择确认',true)
+func _close_baizhi() -> void:
+	if ticket.is_empty() or not P.ticket(ticket,_context()):
+		return
+	_request('formal_baizhi_close',{'ticket':ticket.duplicate(true)},'baizhi_close',{'expectedCommand':'baizhi-close:'+ticket.ownerId+':'+str(int(ticket.generation))},true)
+	panels.set_message('等待对白关闭确认',true)
+func _response(_rpc_id: int, method: String, result, association: Dictionary) -> void:
+	var purpose: String = association.get('purpose','')
+	var transition = purpose in ['journey','return','interaction']
+	if not _current(association,transition):
+		return
+	if purpose=='poll':
+		if not P.snapshot(result):
+			_hold('E_REQUIRED_SNAPSHOT')
+			return
+		_accept_snapshot(result)
+		return
+	if purpose=='status':
+		if not P.status(result):
+			status.clear()
+			if journey_started:
+				_hold('E_SESSION_STATUS')
+			return
+		if snapshot.is_empty() or not P.same(result,snapshot):
+			return
+		if result.lastLifecycleCommandSequence<lifecycle_sequence:
+			return
+		status = result
+		if not _eligible():
+			audio.suspend_world()
+		last_status_at = Time.get_ticks_msec()
+		lifecycle_sequence = maxi(lifecycle_sequence,int(status.lastLifecycleCommandSequence))
+		var t = result.get('entryToken')
+		if t!=null:
+			if not P.same(t,snapshot):
+				_hold('E_ENTRY_STATUS_IDENTITY')
+				return
+			_prepare_entry(t)
+		if not enhancement_pending.is_empty() and status.paused and not enhancement_pending.get('shown',false):
+			var e = status.get('enhancementTerminalContext')
+			if e is Dictionary and e.get('id')=='rs_capability_terminal_marker' and e.get('requestId')==enhancement_pending.requestId and e.get('worldEpoch')==snapshot.worldEpoch and e.get('pauseCommandSequence')==enhancement_pending.sequence:
+				enhancement_pending['shown'] = true
+				_show('enhancement')
+		return
+	if purpose=='events':
+		if not snapshot.is_empty():
+			event_view.accept(result,snapshot,renderer)
+			audio.accept_events(result,snapshot,generation,_eligible())
+		return
+	if purpose=='sound':
+		if not snapshot.is_empty():
+			event_view.accept_sound(result,snapshot)
+		return
+	if purpose=='has_save':
+		if typeof(result)!=TYPE_BOOL:
+			_feedback('默认存档状态未确认')
+		else:
+			_feedback('默认存档可继续' if result else '尚无默认存档')
+		return
+	if purpose=='slots':
+		if not _valid_slots(result):
+			_feedback('存档列表无效；未提供继续操作')
+			return
+		panels.slots = result
+		if panels.mode in ['slots','save']:
+			_show(panels.mode)
+		return
+	if purpose=='close':
+		if result is Dictionary and typeof(result.get('closing'))==TYPE_BOOL and result.closing:
+			get_tree().quit()
+		else:
+			_hold('E_CLOSE_RESPONSE')
+		return
+	var r = result.get('receipt') if result is Dictionary and result.has('receipt') else result
+	if not P.receipt(r):
+		_hold('E_RECEIPT_INVALID')
+		return
+	if association.has('expectedCommand') and r.commandId!=association.expectedCommand:
+		_hold('E_RECEIPT_REQUEST_MISMATCH')
+		return
+	if method=='formal_interact' and (not result is Dictionary or result.get('applied')!=r.applied or result.get('alreadyApplied')!=r.alreadyApplied or result.get('errorCode')!=r.get('errorCode')):
+		_hold('E_INTERACTION_RESPONSE')
+		return
+	if purpose in ['open_page','resume','enhancement_pause']:
+		if r.commandId!=('resume' if purpose=='resume' else 'pause') or not P.same(r.snapshot,association.context):
+			_hold('E_LIFECYCLE_CONTEXT')
+			return
+	if purpose=='ready':
+		var t: Dictionary = association.token
+		if r.commandId!='scene-ready:'+str(int(t.generation)) or not P.same(r.snapshot,t) or r.snapshot.get('entryToken')!=null:
+			_hold('E_SCENE_READY_RECEIPT')
+			return
+	if purpose in ['input','action','build','capability','enhancement','save','baizhi_begin','baizhi_commit','baizhi_close'] and not association.context.is_empty() and not P.same(r.snapshot,association.context):
+		_hold('E_RECEIPT_STALE_CONTEXT')
+		return
+	if purpose=='build' and P.success(r):
+		if not P.build(r.snapshot.get('build')) or r.snapshot.build.revision<=association.buildRevision:
+			_hold('E_BUILD_POSTCONDITION')
+			return
+		var action: Dictionary = association.buildAction
+		var slot = action.get('slotId','')
+		if action.kind=='equip':
+			for i in r.snapshot.build.items:
+				if i.itemId==action.itemId:
+					slot = i.slotId
+		var equipped = ''
+		for e in r.snapshot.build.equipment:
+			if e.slotId==slot:
+				equipped = e.itemId
+		if slot.is_empty() or action.kind=='equip' and equipped!=action.itemId or action.kind=='unequip' and not equipped.is_empty():
+			_hold('E_BUILD_POSTCONDITION')
+			return
+	if critical==method:
+		critical = ''
+	if not P.success(r):
+		if purpose=='ready':
+			_hold('E_SCENE_READY_REJECTED')
+			return
+		_accept_snapshot(r.snapshot)
+		audio.ui_cue('error',focused)
+		_feedback(_localized(str(r.get('errorCode','E_COMMAND_REJECTED'))))
+		if purpose=='open_page':
+			panels.close_page()
+			return
+		if panels.visible:
+			var page = 'exit_confirm' if association.get('exitAfter',false) else 'start' if purpose=='journey' else 'pause' if purpose=='resume' else panels.mode
+			_show(page)
+			panels.set_message(last_feedback)
+		return
+	if purpose=='journey':
+		if r.commandId!=('new' if method=='formal_new' else 'continue') and method!='formal_continue_slot':
+			_hold('E_JOURNEY_RECEIPT')
+			return
+		journey_started = true
+		panels.close_page()
+	if not _accept_snapshot(r.snapshot,transition):
+		return
+	match purpose:
+		'open_page','enhancement_pause':
+			pause_owned = _context()
+			status = _context()
+			status.merge({'paused':true,'lastLifecycleCommandSequence':association.sequence,'entryToken':null,'enhancementTerminalContext':null})
+			if purpose=='enhancement_pause':
+				enhancement_pending.sequence = association.sequence
+				_show('waiting',{},true)
+				_request('bridge_session_status',{},'status')
+			else:
+				_show(association.page,association.get('pageData',{}))
+		'resume':
+			pause_owned.clear()
+			status = _context()
+			status.merge({'paused':false,'lastLifecycleCommandSequence':association.sequence,'entryToken':null,'enhancementTerminalContext':null})
+			panels.close_page()
+			_release()
+		'ready':
+			ready_pending.clear()
+			status.clear()
+			_request('bridge_session_status',{},'status')
+			if association.get('remainPaused',false):
+				pause_owned = _context()
+				_show('pause')
+		'save':
+			_feedback('已收到保存成功回执；不代表断电耐久性验收')
+			if association.get('exitAfter',false):
+				_request('session_close',{},'close',{},true)
+				_show('waiting',{},true)
+			else:
+				_show('save')
+				panels.set_message('保存成功')
+				_request('formal_list_save_slots',{},'slots')
+		'build': _show('inventory')
+		'capability': _show('capability')
+		'enhancement':
+			if snapshot.capabilities.get('firstEnhancementChoice')!=association.capabilityId:
+				_hold('E_ENHANCEMENT_POSTCONDITION')
+				return
+			enhancement_pending.clear()
+			_show('pause')
+			_feedback('首通选择已确认')
+		'baizhi_begin':
+			var t = result.get('ticket')
+			if not P.ticket(t,_context()) or t.ownerId!=association.ticketOwner or t.generation!=association.ticketGeneration or t.pauseCommandSequence!=association.sequence or r.commandId!='baizhi-begin:'+t.ownerId+':'+str(int(t.generation)) or typeof(result.get('resumed'))!=TYPE_BOOL or result.resumed:
+				_hold('E_BAIZHI_TICKET')
+				return
+			ticket = t
+			pause_owned = _context()
+			status = _context()
+			status.merge({'paused':true,'lastLifecycleCommandSequence':association.sequence,'entryToken':null,'enhancementTerminalContext':null})
+			_show('baizhi')
+		'baizhi_commit':
+			if typeof(result.get('resumed'))!=TYPE_BOOL or result.resumed or snapshot.get('baizhi',{}).get('choice')!=association.choice or not P.ticket(result.get('ticket'),_context()) or result.ticket!=ticket:
+				_hold('E_BAIZHI_POSTCONDITION')
+				return
+			_show('dialogue',{'text':'好，我会等你找到安全的出口。' if association.choice=='taken' else '我明白。'})
+		'baizhi_close':
+			if typeof(result.get('resumed'))!=TYPE_BOOL or not result.resumed:
+				_hold('E_BAIZHI_CLOSE_UNCONFIRMED')
+				return
+			ticket.clear()
+			pause_owned.clear()
+			status.clear()
+			panels.close_page()
+			_request('bridge_session_status',{},'status')
+		'interaction': _interaction_result(association,r)
+func _accept_snapshot(s: Dictionary, permit_transition: bool = false) -> bool:
+	if not P.snapshot(s) or not catalog.manifest.has(s.sceneId):
+		_hold('E_REQUIRED_SNAPSHOT')
+		return false
+	var changed = snapshot.is_empty() or not P.same(snapshot,s)
+	if not snapshot.is_empty():
+		if snapshot.player.currentHp<=0 and not permit_transition:
+			if P.same(snapshot,s) and s.player.currentHp>0:
+				_hold('E_DEAD_REVIVAL')
+			return false
+		if s.worldEpoch<snapshot.worldEpoch:
+			return false
+		if not changed and (s.serverTick<snapshot.serverTick or s.authorityRevision<snapshot.authorityRevision or s.ackSeq<snapshot.ackSeq):
+			return false
+		if changed and not permit_transition and s.get('entryToken')==null:
+			_hold('E_UNASSOCIATED_EPOCH')
+			return false
+	if changed:
+		audio.suspend_world()
+		# The core transition already neutralized the old epoch. Do not send stale input.
+		guard_active = false
+		guard_blocked = Input.is_physical_key_pressed(KEY_E)
+		pending_actions.clear()
+		neutral_pending = false
+		for key in ACTION_KEYS:
+			if Input.is_physical_key_pressed(key):
+				blocked_keys[key] = true
+		if not catalog.build(s.worldId,s.sceneId):
+			_hold('E_SCENE_RESOURCE')
+			return false
+		ThemeModel.apply(hud,s.worldId)
+		ThemeModel.apply(panels,s.worldId)
+		status.clear()
+		pause_owned.clear()
+		ticket.clear()
+		enhancement_pending.clear()
+		ready_pending.clear()
+		frame_key = ''
+		event_view.reset(int(s.worldEpoch))
+		if journey_started:
+			panels.close_page()
+	if not catalog.contains(P.vector(s.player.transform.positionM)):
+		_hold('E_PLAYER_PROJECTION_BOUNDS')
+		return false
+	snapshot = s
+	last_snapshot_at = Time.get_ticks_msec()
+	renderer.commit(s,catalog.current,catalog.source_hash)
+	if journey_started and s.get('entryToken')!=null:
+		_prepare_entry(s.entryToken)
+	if journey_started and s.player.currentHp<=0 and critical.is_empty():
+		_release()
+		if panels.mode!='death':
+			_show('death')
+	return true
+func _prepare_entry(t: Dictionary) -> void:
+	if not journey_started or not P.token(t) or not P.same(t,snapshot) or not critical.is_empty() or uncertain:
+		return
+	var key = snapshot.worldId+':'+snapshot.sceneId+':'+str(snapshot.worldEpoch)
+	var token_key = str([t.generation,t.worldId,t.sceneId,t.worldEpoch])
+	if ready_sent.has(token_key):
+		return
+	ready_pending = t.duplicate(true)
+	_release()
+	if frame_key==key:
+		_scene_frame_committed(key)
+func _scene_frame_committed(key: String) -> void:
+	frame_key = key
+	if ready_pending.is_empty() or not P.same(ready_pending,snapshot) or uncertain or not critical.is_empty():
+		return
+	var expected = snapshot.worldId+':'+snapshot.sceneId+':'+str(snapshot.worldEpoch)
+	if key!=expected or catalog.current.get('sceneId')!=snapshot.sceneId or catalog.current.get('worldId')!=snapshot.worldId:
+		return
+	var t = ready_pending.duplicate(true)
+	var token_key = str([t.generation,t.worldId,t.sceneId,t.worldEpoch])
+	if ready_sent.has(token_key):
+		return
+	var remain_paused = not focused
+	if _request('formal_scene_ready',{'token':t,'remainPaused':remain_paused},'ready',{'token':t,'remainPaused':remain_paused},true)>0:
+		ready_sent[token_key] = true
+func _interaction_result(a: Dictionary, r: Dictionary) -> void:
+	var target: Dictionary = a.target
+	var before: Dictionary = a.before
+	var kind: String = target.kind
+	var narrative = Content.narrative(before,target,r)
+	_feedback(narrative if not narrative.is_empty() else '交互已确认')
+	if kind=='mission_terminal':
+		_open_paused('mission')
+	elif kind=='save_rest_terminal':
+		_open_paused('save')
+		_request('formal_list_save_slots',{},'slots')
+	elif kind=='capability_terminal':
+		var clear = false
+		for row in snapshot.progression.get('worlds',[]):
+			if row is Dictionary and row.get('worldId')=='grey_hive' and row.get('completed')==true:
+				clear = true
+		if clear and snapshot.capabilities.get('firstEnhancementChoice')==null and snapshot.worldId=='return_station' and snapshot.sceneId=='rs_core_room':
+			if status.is_empty() or not P.same(status,snapshot):
+				_feedback('终端已确认；等待当前生命周期状态后再交互')
+				return
+			enhancement_pending = {'requestId':a.expectedCommand,'sequence':0}
+			if not _advance_lifecycle():
+				return
+			_request('formal_pause',{'context':_context(),'commandSequence':lifecycle_sequence},'enhancement_pause',{'sequence':lifecycle_sequence},true)
+		else:
+			_open_paused('capability')
+	elif kind=='static_dialogue_marker' and target.entityId=='cw_cy_heat_01_static_dialogue_marker' and r.applied and not r.alreadyApplied and P.same(before,snapshot) and snapshot.authorityRevision>before.authorityRevision:
+		_open_paused('dialogue',{'text':'炉心不是失控——它被维持在过载边缘。'})
+	elif target.entityId=='cw_master_shutdown_staged' and r.applied and not r.alreadyApplied and _clockworks_completed(snapshot) and not _clockworks_completed(before):
+		_feedback('原来门一直不止三扇。')
+
+func _clockworks_completed(s: Dictionary) -> bool:
+	if not P.granted(s,'mobility.air_step_i'):
+		return false
+	var matches: Array = []
+	for row in s.progression.get('worlds',[]):
+		if row is Dictionary and row.get('worldId')=='clockworks':
+			matches.append(row)
+	if matches.size()!=1:
+		return false
+	var row: Dictionary = matches[0]
+	return row.get('completed')==true and row.get('firstCompletion')==true and P.counter(row.get('revisitCount'),0,4) and row.get('visitId')==row.revisitCount+1 and row.get('completedEvents') is Array and row.completedEvents.size()==3 and 'clockworks_valves' in row.completedEvents and 'clockworks_core' in row.completedEvents and 'clockworks_shutdown' in row.completedEvents
+func _valid_slots(value) -> bool:
+	if not P.rows(value,128) or not P.unique(value,'slotId'):
+		return false
+	for slot in value:
+		if typeof(slot.get('displayName'))!=TYPE_STRING or slot.displayName.length()>256 or not P.counter(slot.get('updatedAtMs')) or typeof(slot.get('readOnly'))!=TYPE_BOOL or typeof(slot.get('valid'))!=TYPE_BOOL or typeof(slot.get('recoverable',false))!=TYPE_BOOL or not P.rows(slot.get('completedEvents'),64) or slot.get('errorCode')!=null and typeof(slot.errorCode)!=TYPE_STRING:
+			return false
+	return true
+func _failed(_id_value: int, method: String, code: String, association: Dictionary) -> void:
+	if not _current(association,association.get('purpose') in ['journey','return','interaction']):
+		return
+	audio.ui_cue('error',focused)
+	if method=='formal_presentation_events':
+		audio.suspend_world()
+	if method=='bridge_session_status':
+		status.clear()
+		_release()
+	if method in ['formal_snapshot','bridge_session_status','formal_presentation_events','formal_sound_cues','formal_has_save','formal_list_save_slots']:
+		_feedback(_localized(code))
+		return
+	if code=='UNKNOWN_MUTATION':
+		uncertain = true
+		critical = ''
+		_release()
+		_show('error')
+		panels.set_message('响应丢失：操作结果未知。未重复提交。')
+		return
+	if critical==method:
+		critical = ''
+	_feedback(_localized(code))
+	if panels.visible:
+		_show(panels.mode)
+		panels.set_message(last_feedback)
+func _hold(code: String) -> void:
+	audio.ui_cue('error',focused)
+	uncertain = true
+	critical = ''
+	_release()
+	_show('error')
+	panels.set_message(_localized(code))
+func _feedback(text: String) -> void:
+	last_feedback = text
+func _localized(code: String) -> String:
+	if code=='UNKNOWN_MUTATION':
+		return '操作结果未知'
+	if 'OUT_OF_RANGE' in code or 'RANGE' in code:
+		return '距离不足；请靠近当前目标'
+	if 'LOCKED' in code or 'PROGRESSION' in code or 'PREREQUISITE' in code:
+		return '条件尚未满足 / 入口锁定'
+	if 'STALE' in code or 'EPOCH' in code or 'CONTEXT' in code:
+		return '状态已变化；旧请求未应用'
+	if 'COOLDOWN' in code:
+		return '动作仍在冷却'
+	if 'ENERGY' in code:
+		return '能量不足'
+	if 'DEAD' in code:
+		return '角色已死亡'
+	if 'SAVE' in code:
+		return '存档操作未确认；请保留当前会话'
+	if code.is_empty():
+		return ''
+	return '当前操作不可用 / 状态未确认'
+
+func _advance_lifecycle() -> bool:
+	if status.is_empty() or not P.counter(status.get('lastLifecycleCommandSequence')):
+		_feedback('生命周期序号尚未确认')
+		return false
+	var previous = maxi(lifecycle_sequence,int(status.lastLifecycleCommandSequence))
+	if previous>=9007199254740991:
+		_hold('E_COUNTER_EXHAUSTED')
+		return false
+	lifecycle_sequence = previous+1
+	return true
+
+func _exit_tree() -> void:
+	if is_instance_valid(audio):
+		audio.stop_all()

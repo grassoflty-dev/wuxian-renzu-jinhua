@@ -1,0 +1,513 @@
+{
+  "boundsM": {
+    "depth": 16.0,
+    "width": 24.0,
+    "x": 0,
+    "z": 0
+  },
+  "cameraZones": [],
+  "checkpoints": [
+    {
+      "id": "mh_signal_yard_checkpoint",
+      "navNode": "mh_signal_yard_spawn_nav",
+      "position": [
+        4.0,
+        0.0,
+        8.0
+      ]
+    }
+  ],
+  "collision": [
+    {
+      "id": "yard_wall_north",
+      "polygon": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          0.0,
+          0.5
+        ]
+      ]
+    },
+    {
+      "id": "yard_wall_south",
+      "polygon": [
+        [
+          0.0,
+          15.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          24.0,
+          16.0
+        ],
+        [
+          0.0,
+          16.0
+        ]
+      ]
+    },
+    {
+      "id": "yard_wall_west_north",
+      "polygon": [
+        [
+          0.0,
+          0.5
+        ],
+        [
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          6.0
+        ],
+        [
+          0.0,
+          6.0
+        ]
+      ]
+    },
+    {
+      "id": "yard_wall_west_south",
+      "polygon": [
+        [
+          0.0,
+          9.5
+        ],
+        [
+          0.5,
+          9.5
+        ],
+        [
+          0.5,
+          15.5
+        ],
+        [
+          0.0,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "yard_wall_east_north",
+      "polygon": [
+        [
+          23.5,
+          0.5
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          24.0,
+          6.0
+        ],
+        [
+          23.5,
+          6.0
+        ]
+      ]
+    },
+    {
+      "id": "yard_wall_east_south",
+      "polygon": [
+        [
+          23.5,
+          9.5
+        ],
+        [
+          24.0,
+          9.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          23.5,
+          15.5
+        ]
+      ]
+    }
+  ],
+  "doors": [],
+  "explorationRegions": [
+    {
+      "id": "mh_sy_west_yard",
+      "polygon": [
+        [
+          0.5,
+          0.5
+        ],
+        [
+          13.0,
+          0.5
+        ],
+        [
+          13.0,
+          15.5
+        ],
+        [
+          0.5,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "mh_sy_interference_field",
+      "polygon": [
+        [
+          13.0,
+          0.5
+        ],
+        [
+          19.0,
+          0.5
+        ],
+        [
+          19.0,
+          15.5
+        ],
+        [
+          13.0,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "mh_sy_quay_approach",
+      "polygon": [
+        [
+          19.0,
+          0.5
+        ],
+        [
+          23.5,
+          0.5
+        ],
+        [
+          23.5,
+          15.5
+        ],
+        [
+          19.0,
+          15.5
+        ]
+      ]
+    }
+  ],
+  "hazards": [
+    {
+      "id": "mh_signal_interference_region",
+      "kind": "signal_interference_zone",
+      "polygon": [
+        [
+          13.0,
+          5.0
+        ],
+        [
+          19.0,
+          5.0
+        ],
+        [
+          19.0,
+          10.0
+        ],
+        [
+          13.0,
+          10.0
+        ]
+      ]
+    }
+  ],
+  "interactions": [
+    {
+      "event": null,
+      "id": "mh_signal_interference_marker",
+      "kind": "signal_interference_hint_marker",
+      "position": [
+        15.0,
+        0.0,
+        8.0
+      ]
+    },
+    {
+      "event": null,
+      "id": "mh_cy_signal_01_static_marker",
+      "kind": "dialogue_content_marker",
+      "position": [
+        15.0,
+        0.0,
+        7.0
+      ]
+    }
+  ],
+  "logic": {
+    "traversal": []
+  },
+  "navigation": {
+    "links": [
+      {
+        "from": "mh_signal_yard_spawn_nav",
+        "to": "mh_signal_yard_center_nav"
+      },
+      {
+        "from": "mh_signal_yard_center_nav",
+        "to": "mh_signal_interference_nav"
+      },
+      {
+        "from": "mh_signal_yard_center_nav",
+        "to": "mh_signal_yard_quay_nav"
+      },
+      {
+        "from": "mh_signal_interference_nav",
+        "to": "mh_signal_yard_quay_nav"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "mh_signal_yard_spawn_nav",
+        "position": [
+          3.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "mh_signal_yard_center_nav",
+        "position": [
+          10.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "mh_signal_interference_nav",
+        "position": [
+          15.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "mh_signal_yard_quay_nav",
+        "position": [
+          21.0,
+          0.0,
+          8.0
+        ]
+      }
+    ]
+  },
+  "objectives": [],
+  "occluders": [],
+  "presentation": {
+    "cameraProfile": "oblique_default",
+    "layers": [
+      {
+        "id": "visual.floor",
+        "zGroup": 0
+      },
+      {
+        "id": "visual.props_back",
+        "zGroup": 10
+      },
+      {
+        "id": "visual.props_dynamic",
+        "zGroup": 20
+      },
+      {
+        "id": "visual.vfx_markers",
+        "zGroup": 30
+      }
+    ],
+    "sprites": [
+      {
+        "assetId": "runtime2d.world.mistharbor.water_edge_stone.v1",
+        "id": "approved_stone_water_surface",
+        "layer": "visual.floor",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.mistharbor.fog_bank.v1",
+        "id": "yard_north_fog_bank",
+        "layer": "visual.props_back",
+        "position": [
+          8.0,
+          0.0,
+          3.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.mistharbor.water_edge.v1",
+        "id": "yard_south_water_edge",
+        "layer": "visual.props_back",
+        "position": [
+          12.0,
+          0.0,
+          14.5
+        ]
+      }
+    ]
+  },
+  "sceneId": "mh_signal_yard",
+  "schemaVersion": 1,
+  "spawns": [
+    {
+      "entityType": null,
+      "id": "mh_signal_yard_spawn",
+      "kind": "player",
+      "navNode": "mh_signal_yard_spawn_nav",
+      "position": [
+        3.0,
+        0.0,
+        8.0
+      ]
+    },
+    {
+      "entityType": "enemy.mist_harbor.signal_wraith",
+      "id": "mh_signal_yard_signal_wraith_01",
+      "kind": "enemy",
+      "navNode": "mh_signal_yard_center_nav",
+      "position": [
+        10.0,
+        0.0,
+        6.0
+      ]
+    },
+    {
+      "entityType": "enemy.mist_harbor.signal_wraith",
+      "id": "mh_signal_yard_signal_wraith_02",
+      "kind": "enemy",
+      "navNode": "mh_signal_interference_nav",
+      "position": [
+        15.0,
+        0.0,
+        9.0
+      ]
+    },
+    {
+      "entityType": "enemy.mist_harbor.signal_wraith",
+      "id": "mh_signal_yard_signal_wraith_03",
+      "kind": "enemy",
+      "navNode": "mh_signal_yard_quay_nav",
+      "position": [
+        19.0,
+        0.0,
+        5.0
+      ]
+    }
+  ],
+  "transitions": [
+    {
+      "id": "mh_signal_yard_to_warehouse",
+      "polygon": [
+        [
+          0.0,
+          6.5
+        ],
+        [
+          2.0,
+          6.5
+        ],
+        [
+          2.0,
+          9.5
+        ],
+        [
+          0.0,
+          9.5
+        ]
+      ],
+      "spawnId": "mh_warehouse_spawn",
+      "toSceneId": "mh_tidal_warehouse"
+    },
+    {
+      "id": "mh_signal_yard_to_quay",
+      "polygon": [
+        [
+          22.0,
+          6.5
+        ],
+        [
+          24.0,
+          6.5
+        ],
+        [
+          24.0,
+          9.5
+        ],
+        [
+          22.0,
+          9.5
+        ]
+      ],
+      "spawnId": "mh_drowned_quay_spawn",
+      "toSceneId": "mh_drowned_quay"
+    }
+  ],
+  "triggers": [],
+  "vfxMarkers": [
+    {
+      "assetId": "runtime2d.world.mistharbor.fog_vfx.v1",
+      "id": "yard_ambient_fog_01",
+      "position": [
+        7.0,
+        0.0,
+        5.0
+      ]
+    },
+    {
+      "assetId": "runtime2d.world.mistharbor.fog_vfx.v1",
+      "id": "yard_ambient_fog_02",
+      "position": [
+        18.0,
+        0.0,
+        11.0
+      ]
+    }
+  ],
+  "walkablePolygons": [
+    {
+      "id": "mh_signal_yard_walkable_area",
+      "polygon": [
+        [
+          0.5,
+          0.5
+        ],
+        [
+          23.5,
+          0.5
+        ],
+        [
+          23.5,
+          15.5
+        ],
+        [
+          0.5,
+          15.5
+        ]
+      ]
+    }
+  ],
+  "worldId": "mist_harbor"
+}

@@ -1,0 +1,117 @@
+{
+  "GodotDisplay": "NOT_RUN",
+  "publicRelease": "NOT_ESTABLISHED",
+  "registeredSourceReuse": true,
+  "approval": "INTERNAL_REGISTERED_SOURCE_REUSE",
+  "assets": {
+    "gate_a": {
+      "sourceBytes": 1429841,
+      "canvas": [
+        1407,
+        1039
+      ],
+      "sourceSha256": "7d4b352063775818773e3bbda6ae1296645e09a84f2a2940ae17075be8c00fed",
+      "assetId": "runtime2d.prop.gate_a.closed_open.v1",
+      "path": "res://assets/props/grey_hive/gate_a_sheet.png",
+      "registeredSourceReuse": true,
+      "sourceId": "runtime2d.prop.gate_a.closed_open.v1",
+      "runtimeStatus": "ADOPT",
+      "anchor": [
+        0.5,
+        1
+      ],
+      "heightM": 2.6,
+      "sha256": "0fa3981a0abfa5a1f7a5d4b75033f392e46f1b91f901605dcacf415c796e1b7b",
+      "format": "RGBA8",
+      "derived": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.gate_a.closed_open.v1.png",
+      "source": "batch01/07_runtime2d.prop.gate_a.closed_open.v1.png",
+      "bytes": 1386982,
+      "admission": "release_approved",
+      "states": {
+        "closed": [
+          0,
+          216,
+          690,
+          625
+        ],
+        "open": [
+          724,
+          216,
+          683,
+          625
+        ]
+      }
+    },
+    "gate_b": {
+      "sourceBytes": 2442085,
+      "canvas": [
+        1448,
+        1073
+      ],
+      "sourceSha256": "433a56c7960d19e09fb77ea55aa1787197e4a2eecc12face0ab29d5eaac39450",
+      "assetId": "runtime2d.prop.gate_b.v1",
+      "path": "res://assets/props/grey_hive/gate_b.png",
+      "registeredSourceReuse": true,
+      "sourceId": "runtime2d.prop.gate_b.v1",
+      "runtimeStatus": "ADOPT",
+      "anchor": [
+        0.5,
+        1
+      ],
+      "heightM": 2.6,
+      "sha256": "fdad9675bb90b37bc3c452773934536918fa56f4bef2b6f95c10a9823e2a67f6",
+      "format": "RGBA8",
+      "derived": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.gate_b.v1.png",
+      "source": "batch02/07_runtime2d.prop.gate_b.v1.png",
+      "bytes": 2397332,
+      "admission": "release_approved",
+      "states": {
+        "closed": [
+          0,
+          0,
+          1448,
+          1073
+        ]
+      }
+    },
+    "power_console": {
+      "sourceBytes": 2348980,
+      "canvas": [
+        1448,
+        1018
+      ],
+      "sourceSha256": "4cc2443664940a54e776e4cfd8d682b8477a1848dc420b2df4990d8d398f9961",
+      "assetId": "runtime2d.prop.power_console.off_on.v1",
+      "path": "res://assets/props/grey_hive/power_console_sheet.png",
+      "registeredSourceReuse": true,
+      "sourceId": "runtime2d.prop.power_console.off_on.v1",
+      "runtimeStatus": "ADOPT",
+      "anchor": [
+        0.5,
+        1
+      ],
+      "heightM": 1.45,
+      "sha256": "740eaaf0d0b9c0b1ba3b9f2c6650ffc3e270e70e15d0d979f2637df4092f048c",
+      "format": "RGBA8",
+      "derived": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.power_console.off_on.v1.png",
+      "source": "batch01/06_runtime2d.prop.power_console.off_on.v1.png",
+      "bytes": 2311441,
+      "admission": "release_approved",
+      "states": {
+        "off": [
+          24,
+          2,
+          718,
+          918
+        ],
+        "on": [
+          752,
+          2,
+          696,
+          918
+        ]
+      }
+    }
+  },
+  "schema": "wuxian.grey-hive-state-props.internal-use/v1"
+}

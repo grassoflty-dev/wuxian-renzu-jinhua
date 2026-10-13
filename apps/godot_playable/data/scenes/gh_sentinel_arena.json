@@ -1,0 +1,500 @@
+{
+  "boundsM": {
+    "depth": 16.0,
+    "width": 24.0,
+    "x": 0,
+    "z": 0
+  },
+  "cameraZones": [],
+  "checkpoints": [],
+  "collision": [
+    {
+      "id": "sentinel_arena_wall_north",
+      "polygon": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          0.0,
+          0.5
+        ]
+      ]
+    },
+    {
+      "id": "sentinel_arena_wall_south",
+      "polygon": [
+        [
+          0.0,
+          15.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          24.0,
+          16.0
+        ],
+        [
+          0.0,
+          16.0
+        ]
+      ]
+    },
+    {
+      "id": "sentinel_arena_wall_west_north",
+      "polygon": [
+        [
+          0.0,
+          0.5
+        ],
+        [
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          6.5
+        ],
+        [
+          0.0,
+          6.5
+        ]
+      ]
+    },
+    {
+      "id": "sentinel_arena_wall_west_south",
+      "polygon": [
+        [
+          0.0,
+          9.5
+        ],
+        [
+          0.5,
+          9.5
+        ],
+        [
+          0.5,
+          15.5
+        ],
+        [
+          0.0,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "sentinel_arena_wall_east_north",
+      "polygon": [
+        [
+          23.5,
+          0.5
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          24.0,
+          6.5
+        ],
+        [
+          23.5,
+          6.5
+        ]
+      ]
+    },
+    {
+      "id": "sentinel_arena_wall_east_south",
+      "polygon": [
+        [
+          23.5,
+          9.5
+        ],
+        [
+          24.0,
+          9.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          23.5,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "sentinel_arena_pylon_collision_left",
+      "polygon": [
+        [
+          7.0,
+          5.0
+        ],
+        [
+          8.0,
+          5.0
+        ],
+        [
+          8.0,
+          7.0
+        ],
+        [
+          7.0,
+          7.0
+        ]
+      ]
+    },
+    {
+      "id": "sentinel_arena_pylon_collision_right",
+      "polygon": [
+        [
+          16.0,
+          5.0
+        ],
+        [
+          17.0,
+          5.0
+        ],
+        [
+          17.0,
+          7.0
+        ],
+        [
+          16.0,
+          7.0
+        ]
+      ]
+    }
+  ],
+  "doors": [],
+  "hazards": [],
+  "interactions": [
+    {
+      "event": null,
+      "id": "gh_sys_sentinel_01",
+      "kind": "facility_log",
+      "position": [
+        6.0,
+        0.0,
+        3.5
+      ]
+    }
+  ],
+  "logic": {
+    "traversal": []
+  },
+  "navigation": {
+    "links": [
+      {
+        "from": "gh_sentinel_spawn_nav",
+        "to": "gh_sentinel_arena_mid_nav"
+      },
+      {
+        "from": "gh_sentinel_arena_mid_nav",
+        "to": "gh_sentinel_approach_nav"
+      },
+      {
+        "from": "gh_sentinel_approach_nav",
+        "to": "gh_sentinel_exit_nav"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "gh_sentinel_spawn_nav",
+        "position": [
+          2.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "gh_sentinel_arena_mid_nav",
+        "position": [
+          8.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "gh_sentinel_approach_nav",
+        "position": [
+          15.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "gh_sentinel_exit_nav",
+        "position": [
+          22.0,
+          0.0,
+          8.0
+        ]
+      }
+    ]
+  },
+  "objectives": [],
+  "occluders": [
+    {
+      "fadeTo": 0.25,
+      "id": "sentinel_arena_occluder_pylon_left",
+      "polygon": [
+        [
+          7.0,
+          4.5
+        ],
+        [
+          10.0,
+          4.5
+        ],
+        [
+          10.0,
+          5.5
+        ],
+        [
+          7.0,
+          5.5
+        ]
+      ]
+    },
+    {
+      "fadeTo": 0.25,
+      "id": "sentinel_arena_occluder_pylon_right",
+      "polygon": [
+        [
+          16.0,
+          4.5
+        ],
+        [
+          19.0,
+          4.5
+        ],
+        [
+          19.0,
+          5.5
+        ],
+        [
+          16.0,
+          5.5
+        ]
+      ]
+    },
+    {
+      "fadeTo": 0.2,
+      "id": "sentinel_arena_occluder_beam",
+      "polygon": [
+        [
+          10.0,
+          2.5
+        ],
+        [
+          15.0,
+          2.5
+        ],
+        [
+          15.0,
+          3.25
+        ],
+        [
+          10.0,
+          3.25
+        ]
+      ]
+    }
+  ],
+  "presentation": {
+    "cameraProfile": "oblique_default",
+    "layers": [
+      {
+        "id": "visual.background",
+        "zGroup": 0
+      },
+      {
+        "id": "visual.floor",
+        "zGroup": 10
+      },
+      {
+        "id": "visual.props_back",
+        "zGroup": 20
+      },
+      {
+        "id": "visual.props_dynamic",
+        "zGroup": 30
+      },
+      {
+        "id": "visual.occluders",
+        "zGroup": 40
+      }
+    ],
+    "sprites": [
+      {
+        "assetId": "runtime2d.world.grey_hive.sentinel_arena.v1.attempt",
+        "id": "sentinel_arena_approved_background",
+        "layer": "visual.background",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.floor_tiles.v1",
+        "id": "sentinel_arena_floor",
+        "layer": "visual.floor",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.wall_tiles.v1",
+        "id": "sentinel_arena_rear_wall",
+        "layer": "visual.props_back",
+        "position": [
+          12.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.pipes_cables.v1",
+        "id": "sentinel_arena_cabling",
+        "layer": "visual.props_back",
+        "position": [
+          9.0,
+          0.0,
+          3.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.clutter.v1",
+        "id": "sentinel_arena_pylon_left",
+        "layer": "visual.props_back",
+        "position": [
+          8.0,
+          0.0,
+          5.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.clutter.v1",
+        "id": "sentinel_arena_pylon_right",
+        "layer": "visual.props_back",
+        "position": [
+          17.0,
+          0.0,
+          5.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.pipes_cables.v1",
+        "id": "sentinel_arena_shutter_left",
+        "layer": "visual.props_back",
+        "position": [
+          4.0,
+          0.0,
+          11.5
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.pipes_cables.v1",
+        "id": "sentinel_arena_shutter_right",
+        "layer": "visual.props_back",
+        "position": [
+          20.0,
+          0.0,
+          11.5
+        ]
+      }
+    ]
+  },
+  "sceneId": "gh_sentinel_arena",
+  "schemaVersion": 1,
+  "spawns": [
+    {
+      "entityType": null,
+      "id": "gh_sentinel_arena_spawn",
+      "kind": "player",
+      "navNode": "gh_sentinel_spawn_nav",
+      "position": [
+        2.0,
+        0.0,
+        8.0
+      ]
+    },
+    {
+      "entityType": "enemy.grey_hive.sentinel",
+      "id": "gh_sentinel_arena_sentinel_01",
+      "kind": "enemy",
+      "navNode": null,
+      "position": [
+        15.0,
+        0.0,
+        7.0
+      ]
+    }
+  ],
+  "transitions": [
+    {
+      "id": "gh_sentinel_arena_return_to_deep_decon",
+      "polygon": [
+        [
+          0.0,
+          7.0
+        ],
+        [
+          2.0,
+          7.0
+        ],
+        [
+          2.0,
+          9.0
+        ],
+        [
+          0.0,
+          9.0
+        ]
+      ],
+      "spawnId": "gh_deep_decon_spawn",
+      "toSceneId": "gh_deep_decon"
+    },
+    {
+      "id": "gh_sentinel_arena_to_beacon",
+      "polygon": [
+        [
+          22.0,
+          7.0
+        ],
+        [
+          24.0,
+          7.0
+        ],
+        [
+          24.0,
+          9.0
+        ],
+        [
+          22.0,
+          9.0
+        ]
+      ],
+      "spawnId": "gh_beacon_spawn",
+      "toSceneId": "gh_beacon"
+    }
+  ],
+  "triggers": [],
+  "vfxMarkers": [],
+  "worldId": "grey_hive"
+}

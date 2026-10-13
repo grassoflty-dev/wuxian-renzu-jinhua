@@ -1,0 +1,80 @@
+{
+  "assets": {
+    "rs_terminal": {
+      "sourceApproval": "release_approved",
+      "assetId": "runtime2d.world.returnstation.terminal.v1",
+      "referencePpm": 48,
+      "path": "res://assets/props/rs_terminal.png",
+      "derivedRelative": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.returnstation.terminal.v1.png",
+      "registryStatus": "ADOPT",
+      "canvas": [
+        1071,
+        1218
+      ],
+      "sha256": "a9bdd20187d6944f5e485291fe8c8d36e2464daca2a6a1487ad0bbabdd37221a",
+      "bytes": 1036337,
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "sourceSha256": "f6a5fc8855d2080ce081a51d1ed2d136c9075a104c1eadca1467eedf2bdf406d",
+      "sourceRelative": "batch07/09_runtime2d.world.returnstation.terminal.v1.png",
+      "nominalHeight": 72
+    },
+    "beacon_deployed": {
+      "sourceApproval": "release_approved",
+      "assetId": "runtime2d.prop.beacon.deployed.v1",
+      "referencePpm": 48,
+      "path": "res://assets/props/beacon_deployed.png",
+      "derivedRelative": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.beacon.deployed.v1.png",
+      "registryStatus": "ADOPT",
+      "canvas": [
+        1333,
+        1054
+      ],
+      "sha256": "2b2fe4729122f66740dcb1a00c2ea0cb7cd18bfbc3816822a5be4294f8c7d1e4",
+      "bytes": 710102,
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "sourceSha256": "1bb59407d43b218a56f04ba5b0451844e0328549e8f448c48975aae165b36e6b",
+      "sourceRelative": "batch02/09_runtime2d.prop.beacon.deployed.v1.png",
+      "nominalHeight": 72
+    },
+    "beacon_folded": {
+      "sourceApproval": "release_approved",
+      "assetId": "runtime2d.prop.beacon.folded.v1",
+      "referencePpm": 48,
+      "path": "res://assets/props/beacon_folded.png",
+      "derivedRelative": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.beacon.folded.v1.png",
+      "registryStatus": "ADOPT",
+      "canvas": [
+        1226,
+        1005
+      ],
+      "sha256": "e31b18c233f03f39cdbfd51aeaf3541dd7141550d17c4c2c65bfbae043d7f080",
+      "bytes": 1350329,
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "sourceSha256": "335b4658d533d501b8758070742ca3a7fff8ca30acbfa69703ec1519265c79d1",
+      "sourceRelative": "batch02/08_runtime2d.prop.beacon.folded.v1.png",
+      "nominalHeight": 36
+    }
+  },
+  "registeredSourceReuse": true,
+  "approvalManifest": {
+    "relative": "governance/assets/AI_ASSET_RELEASE_MANIFEST.json",
+    "sha256": "c644b5953e9265d45796dfb8a6dad1c0fd8abfbffb3eb4ace84987d8238cee2d"
+  },
+  "schema": "wuxian.registered-props.internal-use/v1",
+  "approval": "INTERNAL_REGISTERED_SOURCE_REUSE",
+  "registry": {
+    "relative": "governance/assets/RUNTIME_ASSET_MANIFEST.json",
+    "sha256": "081bebad5eede90e6ed50f2f7cacb930a67f2295961d405f58141d23874ec414"
+  },
+  "publicRelease": "NOT_ESTABLISHED",
+  "GodotDisplay": "NOT_RUN"
+}

@@ -1,0 +1,19 @@
+config_version=5
+
+[application]
+config/use_custom_user_dir=true
+config/custom_user_dir_name="WuxianV1Campaign141"
+config/name="Wuxian Canonical V1 Campaign 139"
+run/main_scene="res://scenes/main.tscn"
+
+[display]
+window/size/viewport_width=1280
+window/size/viewport_height=800
+window/size/window_width_override=1280
+window/size/window_height_override=800
+window/stretch/mode="canvas_items"
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/default_filters/use_nearest_mipmap_filter=false

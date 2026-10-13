@@ -1,0 +1,594 @@
+{
+  "boundsM": {
+    "depth": 16.0,
+    "width": 24.0,
+    "x": 0,
+    "z": 0
+  },
+  "cameraZones": [],
+  "checkpoints": [
+    {
+      "id": "gh_shaft_checkpoint",
+      "navNode": "gh_shaft_exit_nav",
+      "position": [
+        21.5,
+        0.0,
+        8.0
+      ]
+    }
+  ],
+  "collision": [
+    {
+      "id": "shaft_wall_north",
+      "polygon": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          0.0,
+          0.5
+        ]
+      ]
+    },
+    {
+      "id": "shaft_wall_south",
+      "polygon": [
+        [
+          0.0,
+          15.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          24.0,
+          16.0
+        ],
+        [
+          0.0,
+          16.0
+        ]
+      ]
+    },
+    {
+      "id": "shaft_wall_west_north",
+      "polygon": [
+        [
+          0.0,
+          0.5
+        ],
+        [
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          6.5
+        ],
+        [
+          0.0,
+          6.5
+        ]
+      ]
+    },
+    {
+      "id": "shaft_wall_west_south",
+      "polygon": [
+        [
+          0.0,
+          9.5
+        ],
+        [
+          0.5,
+          9.5
+        ],
+        [
+          0.5,
+          15.5
+        ],
+        [
+          0.0,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "shaft_wall_east_north",
+      "polygon": [
+        [
+          23.5,
+          0.5
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          24.0,
+          6.5
+        ],
+        [
+          23.5,
+          6.5
+        ]
+      ]
+    },
+    {
+      "id": "shaft_wall_east_south",
+      "polygon": [
+        [
+          23.5,
+          9.5
+        ],
+        [
+          24.0,
+          9.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          23.5,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "shaft_support_column_a",
+      "polygon": [
+        [
+          8.0,
+          5.0
+        ],
+        [
+          9.0,
+          5.0
+        ],
+        [
+          9.0,
+          7.0
+        ],
+        [
+          8.0,
+          7.0
+        ]
+      ]
+    },
+    {
+      "id": "shaft_support_column_b",
+      "polygon": [
+        [
+          15.0,
+          9.0
+        ],
+        [
+          16.0,
+          9.0
+        ],
+        [
+          16.0,
+          11.0
+        ],
+        [
+          15.0,
+          11.0
+        ]
+      ]
+    }
+  ],
+  "doors": [],
+  "hazards": [],
+  "interactions": [
+    {
+      "event": null,
+      "id": "gh_log_shaft_01",
+      "kind": "facility_log",
+      "position": [
+        3.0,
+        0.0,
+        8.0
+      ]
+    }
+  ],
+  "logic": {
+    "traversal": []
+  },
+  "navigation": {
+    "links": [
+      {
+        "from": "gh_shaft_entry_nav",
+        "to": "gh_shaft_log_nav"
+      },
+      {
+        "from": "gh_shaft_log_nav",
+        "to": "gh_shaft_mid_bridge_nav"
+      },
+      {
+        "from": "gh_shaft_mid_bridge_nav",
+        "to": "gh_shaft_exit_nav"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "gh_shaft_entry_nav",
+        "position": [
+          2.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "gh_shaft_log_nav",
+        "position": [
+          3.5,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "gh_shaft_mid_bridge_nav",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "gh_shaft_exit_nav",
+        "position": [
+          21.5,
+          0.0,
+          8.0
+        ]
+      }
+    ]
+  },
+  "objectives": [],
+  "occluders": [
+    {
+      "fadeTo": 0.2,
+      "id": "gh_shaft_occlusion_bridge_beam",
+      "polygon": [
+        [
+          11.0,
+          6.5
+        ],
+        [
+          18.0,
+          6.5
+        ],
+        [
+          18.0,
+          7.5
+        ],
+        [
+          11.0,
+          7.5
+        ]
+      ]
+    },
+    {
+      "fadeTo": 0.3,
+      "id": "gh_shaft_occlusion_lift_beam",
+      "polygon": [
+        [
+          6.0,
+          4.0
+        ],
+        [
+          9.0,
+          4.0
+        ],
+        [
+          9.0,
+          4.75
+        ],
+        [
+          6.0,
+          4.75
+        ]
+      ]
+    }
+  ],
+  "presentation": {
+    "cameraProfile": "oblique_default",
+    "layers": [
+      {
+        "id": "visual.floor",
+        "zGroup": 0
+      },
+      {
+        "id": "visual.props_back",
+        "zGroup": 10
+      },
+      {
+        "id": "visual.props_dynamic",
+        "zGroup": 20
+      },
+      {
+        "id": "visual.foreground",
+        "zGroup": 30
+      },
+      {
+        "id": "visual.occluders",
+        "zGroup": 40
+      }
+    ],
+    "sprites": [
+      {
+        "assetId": "runtime2d.grey_hive.floor_tiles.v1",
+        "id": "shaft_approved_floor",
+        "layer": "visual.floor",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.wall_tiles.v1",
+        "id": "shaft_back_wall",
+        "layer": "visual.props_back",
+        "position": [
+          12.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.pipes_cables.v1",
+        "id": "shaft_cable_risers",
+        "layer": "visual.props_back",
+        "position": [
+          10.0,
+          0.0,
+          3.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.clutter.v1",
+        "id": "shaft_lift_machine_generic",
+        "layer": "visual.props_back",
+        "position": [
+          6.0,
+          0.0,
+          5.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.clutter.v1",
+        "id": "shaft_lower_bridge_generic",
+        "layer": "visual.props_back",
+        "position": [
+          12.0,
+          0.0,
+          5.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.clutter.v1",
+        "id": "shaft_upper_bridge_generic",
+        "layer": "visual.props_back",
+        "position": [
+          18.0,
+          0.0,
+          3.5
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.pipes_cables.v1",
+        "id": "shaft_catwalk_rails_generic",
+        "layer": "visual.props_back",
+        "position": [
+          18.0,
+          0.0,
+          10.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.pipes_cables.v1",
+        "id": "shaft_hanging_cables",
+        "layer": "visual.props_back",
+        "position": [
+          14.0,
+          0.0,
+          2.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.enemy.infected_maintenance_worker.v1",
+        "id": "shaft_worker_01_visual",
+        "layer": "visual.props_dynamic",
+        "position": [
+          5.0,
+          0.0,
+          11.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.enemy.infected_maintenance_worker.v1",
+        "id": "shaft_worker_02_visual",
+        "layer": "visual.props_dynamic",
+        "position": [
+          11.0,
+          0.0,
+          4.5
+        ]
+      },
+      {
+        "assetId": "runtime2d.enemy.infected_maintenance_worker.v1",
+        "id": "shaft_worker_03_visual",
+        "layer": "visual.props_dynamic",
+        "position": [
+          17.0,
+          0.0,
+          11.5
+        ]
+      },
+      {
+        "assetId": "runtime2d.enemy.infected_security.v1",
+        "id": "shaft_security_01_visual",
+        "layer": "visual.props_dynamic",
+        "position": [
+          8.0,
+          0.0,
+          3.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.enemy.infected_security.v1",
+        "id": "shaft_security_02_visual",
+        "layer": "visual.props_dynamic",
+        "position": [
+          20.0,
+          0.0,
+          5.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.pipes_cables.v1",
+        "id": "shaft_foreground_rail",
+        "layer": "visual.foreground",
+        "position": [
+          17.0,
+          0.0,
+          13.5
+        ]
+      }
+    ]
+  },
+  "sceneId": "gh_central_shaft",
+  "schemaVersion": 1,
+  "spawns": [
+    {
+      "entityType": null,
+      "id": "gh_shaft_spawn",
+      "kind": "player",
+      "navNode": "gh_shaft_entry_nav",
+      "position": [
+        2.0,
+        0.0,
+        8.0
+      ]
+    },
+    {
+      "entityType": "grey_hive.infected_maintenance_worker",
+      "id": "gh_shaft_worker_01",
+      "kind": "enemy",
+      "navNode": "gh_shaft_log_nav",
+      "position": [
+        5.0,
+        0.0,
+        11.0
+      ]
+    },
+    {
+      "entityType": "grey_hive.infected_maintenance_worker",
+      "id": "gh_shaft_worker_02",
+      "kind": "enemy",
+      "navNode": "gh_shaft_mid_bridge_nav",
+      "position": [
+        11.0,
+        0.0,
+        4.5
+      ]
+    },
+    {
+      "entityType": "grey_hive.infected_maintenance_worker",
+      "id": "gh_shaft_worker_03",
+      "kind": "enemy",
+      "navNode": "gh_shaft_exit_nav",
+      "position": [
+        17.0,
+        0.0,
+        11.5
+      ]
+    },
+    {
+      "entityType": "grey_hive.infected_security",
+      "id": "gh_shaft_security_01",
+      "kind": "enemy",
+      "navNode": "gh_shaft_mid_bridge_nav",
+      "position": [
+        8.0,
+        0.0,
+        3.0
+      ]
+    },
+    {
+      "entityType": "grey_hive.infected_security",
+      "id": "gh_shaft_security_02",
+      "kind": "enemy",
+      "navNode": "gh_shaft_exit_nav",
+      "position": [
+        20.0,
+        0.0,
+        5.0
+      ]
+    }
+  ],
+  "transitions": [
+    {
+      "id": "gh_shaft_return_to_gate_a",
+      "polygon": [
+        [
+          0.0,
+          7.0
+        ],
+        [
+          1.5,
+          7.0
+        ],
+        [
+          1.5,
+          9.0
+        ],
+        [
+          0.0,
+          9.0
+        ]
+      ],
+      "requiresEvent": "hive_power",
+      "spawnId": "gh_gate_a_spawn",
+      "toSceneId": "gh_gate_a"
+    },
+    {
+      "id": "gh_shaft_to_lockdown",
+      "polygon": [
+        [
+          22.5,
+          7.0
+        ],
+        [
+          24.0,
+          7.0
+        ],
+        [
+          24.0,
+          9.0
+        ],
+        [
+          22.5,
+          9.0
+        ]
+      ],
+      "requiresEvent": "hive_power",
+      "spawnId": "gh_lockdown_spawn",
+      "toSceneId": "gh_lockdown"
+    }
+  ],
+  "triggers": [],
+  "vfxMarkers": [],
+  "worldId": "grey_hive"
+}
