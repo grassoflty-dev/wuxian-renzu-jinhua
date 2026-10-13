@@ -1189,6 +1189,7 @@ func _interaction_result(a: Dictionary, r: Dictionary) -> void:
 		_open_paused('dialogue',{'text':'炉心不是失控——它被维持在过载边缘。'})
 	elif target.entityId=='cw_master_shutdown_staged' and r.applied and not r.alreadyApplied and _clockworks_completed(snapshot) and not _clockworks_completed(before):
 		_feedback('原来门一直不止三扇。')
+		_open_paused('dialogue',{'text':'原来门一直不止三扇。'})
 
 func _clockworks_completed(s: Dictionary) -> bool:
 	if not P.granted(s,'mobility.air_step_i'):
