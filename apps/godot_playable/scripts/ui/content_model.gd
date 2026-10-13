@@ -75,6 +75,13 @@ static func narrative(before: Dictionary, target: Dictionary, receipt: Dictionar
 		if before.worldId=='grey_hive':
 			var lines = {'gh_beacon:gh_beacon_deploy_marker:beacon_collect':'这就是信号源。带回去，也许能解释这里为什么还在呼叫。','gh_entry_maintenance:gh_entry_checkpoint:scene_checkpoint':'B-17 链路仅保持最低功率。','gh_power_room:gh_power_console:power_console':'主电还活着，只是被人为切断。','gh_lockdown:gh_lockdown_terminal:lockdown_terminal':'隔离协议已被局部覆盖。','gh_sentinel_arena:gh_sys_sentinel_01:facility_log':'自动防卫单元已接管本区。','gh_entry_maintenance:gh_entry_tutorial_terminal:terminal':'维护终端：WASD / 方向键移动，鼠标指向瞄准；J / 左键攻击，Shift 冲刺。Q 脉冲，按住 E 防御，R 穿刺；F 交互，Space 情境穿越。T 任务，M 地图，Esc 暂停；动作与地图信息以当前状态和权限为准。'}
 			return lines.get(before.sceneId+':'+id+':'+kind,'')
+		if P.snapshot(before) and P.snapshot(after) and before.worldId=='mist_harbor' and before.sceneId=='mh_pump_station' and typeof(target.get('entityId'))==TYPE_STRING and typeof(target.get('kind'))==TYPE_STRING and id=='mh_pump_control_primary' and kind=='pump_control':
+			var pump_before = before.get('mistHarborPump')
+			var pump_after = after.get('mistHarborPump')
+			if pump_before is Dictionary and pump_before.size()==1 and typeof(pump_before.get('state'))==TYPE_STRING and pump_before.state=='ready' and pump_after is Dictionary and pump_after.size()==1 and typeof(pump_after.get('state'))==TYPE_STRING and pump_after.state=='draining':
+				var pump_rows = before.interactables.filter(func(row): return row.entityId==id and row.kind==kind)
+				if pump_rows.size()==1 and typeof(pump_rows[0].get('active'))==TYPE_BOOL and pump_rows[0].active and P.transform(pump_rows[0].get('transform')):
+					return '泵站：排水已开始。'
 		if before.worldId=='mist_harbor':
 			var prior = progress(before,'mist_harbor')
 			var current = progress(after,'mist_harbor')
