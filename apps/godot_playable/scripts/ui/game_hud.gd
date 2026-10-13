@@ -8,6 +8,9 @@ const CheckpointStatus = preload('res://scripts/ui/checkpoint_status_model.gd')
 signal intent(kind, value)
 var portrait: Label
 var button_nodes: Array = []
+var traverse_button: Button
+var traverse_association: Dictionary = {}
+var traverse_press: Dictionary = {}
 var interact_button: Button
 var interact_association: Dictionary = {}
 var interact_press: Dictionary = {}
@@ -115,6 +118,25 @@ func _ready() -> void:
 		intent.emit('interact_current',captured))
 	buttons.add_child(interact_button)
 	button_nodes.append(interact_button)
+	traverse_button = Button.new()
+	traverse_button.visible = false
+	traverse_button.disabled = true
+	traverse_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	traverse_button.button_down.connect(func():
+		traverse_press.clear()
+		if not traverse_button.disabled and _interaction_association_valid(traverse_association):
+			traverse_press = traverse_association.duplicate(true))
+	traverse_button.pressed.connect(func():
+		if traverse_button.disabled or not _interaction_association_valid(traverse_press) or not _interaction_association_valid(traverse_association) or not _interaction_identity_same(traverse_press,traverse_association):
+			traverse_press.clear()
+			return
+		var captured = traverse_press.duplicate(true)
+		traverse_press.clear()
+		traverse_association.clear()
+		traverse_button.disabled = true
+		intent.emit('traverse_current',captured))
+	buttons.add_child(traverse_button)
+	button_nodes.append(traverse_button)
 	call_deferred('_load_internal_icons')
 	resized.connect(_queue_bottom_layout)
 	bottom.resized.connect(_queue_bottom_layout)
@@ -156,7 +178,7 @@ func _interaction_association_valid(value) -> bool:
 	return value is Dictionary and value.size()==5 and value.has_all(['generation','context','entityId','kind','label']) and P.counter(value.generation) and P.context(value.context) and P.ident(value.entityId) and typeof(value.kind)==TYPE_STRING and typeof(value.label)==TYPE_STRING
 func _interaction_identity_same(a: Dictionary, b: Dictionary) -> bool:
 	return not a.is_empty() and not b.is_empty() and a.generation==b.generation and P.same(a.context,b.context) and a.entityId==b.entityId and a.kind==b.kind
-func update_view(s: Dictionary, connection: String, eligible: bool, interaction: String, scale: float, target = {}) -> void:
+func update_view(s: Dictionary, connection: String, eligible: bool, interaction: String, scale: float, target = {}, traversal = {}) -> void:
 	var desired: Dictionary = {}
 	if eligible and P.snapshot(s) and _interaction_association_valid(target) and P.same(target.context,s):
 		desired = target.duplicate(true)
@@ -173,6 +195,22 @@ func update_view(s: Dictionary, connection: String, eligible: bool, interaction:
 			interact_button.visible = true
 		if interact_button.disabled:
 			interact_button.disabled = false
+	var traverse_desired: Dictionary = {}
+	if eligible and P.snapshot(s) and _interaction_association_valid(traversal) and traversal.kind=='contextTraversal' and P.same(traversal.context,s):
+		traverse_desired = traversal.duplicate(true)
+	if traverse_desired.is_empty() or not _interaction_identity_same(traverse_desired,traverse_association):
+		traverse_press.clear()
+		traverse_association.clear()
+	if traverse_desired.is_empty():
+		traverse_button.disabled = true
+		traverse_button.visible = false
+	else:
+		traverse_association = traverse_desired
+		traverse_button.text = '穿越 · '+traverse_desired.label
+		if not traverse_button.visible:
+			traverse_button.visible = true
+		if traverse_button.disabled:
+			traverse_button.disabled = false
 	status_label.text = connection if s.is_empty() else {'return_station':'归航站','grey_hive':'灰巢设施','mist_harbor':'雾港余烬','clockworks':'钟骨工厂'}.get(s.worldId,s.worldId)+' · '+Content.SCENE_NAMES.get(s.sceneId,'当前场景')+' · '+connection
 	meters.text = '' if s.is_empty() else '岑遥 · 生命 %d / %d    能量 %d / %d'%[s.player.currentHp,s.player.maxHp,s.player.currentEnergy,s.player.maxEnergy]
 	var display = PlayStatus.project(s,eligible)

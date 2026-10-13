@@ -9,6 +9,10 @@ const EventView = preload('res://scripts/world/event_view.gd')
 const Hud = preload('res://scripts/ui/game_hud.gd')
 const NativeAudio = preload('res://scripts/audio/native_audio.gd')
 const Panels = preload('res://scripts/ui/panels.gd')
+const FREE_TRAVERSAL_STARTS = {
+	'cw_conveyor_bridge':{'row':{'id':'cw_conveyor_context_vault','from':[8.0,0.0,8.0],'to':[10.0,0.0,8.0],'rangeM':1.2,'cooldownMs':350,'requiredCapabilities':[]},'band':[0.0,0.1],'label':'输送桥短跨'},
+	'cw_gear_shaft':{'row':{'id':'cw_gear_upper_gap','from':[17.8,2.0,8.0],'to':[20.2,2.0,8.0],'rangeM':1.2,'cooldownMs':350,'requiredCapabilities':[],'fromHeightRangeM':[1.9,2.1]},'band':[1.9,2.1],'label':'上层间隙'}
+}
 const ACTION_KEYS = {KEY_J:'primaryAttack',KEY_SHIFT:'dash',KEY_SPACE:'contextTraversal',KEY_Q:'pulse',KEY_E:'guardStart',KEY_R:'pierce'}
 const SCENE_RPC = {'scene_transition':'formal_scene_transition','scene_checkpoint':'formal_scene_checkpoint','scene_trigger':'formal_scene_trigger','environment_control':'formal_environment_control','world_gate':'formal_world_gate','mission_terminal':'formal_mission_terminal_status','capability_terminal':'formal_capability_terminal_status','save_rest_terminal':'formal_save_rest_terminal'}
 const INTERACT_KINDS = ['power_console','door_panel','terminal','lockdown_terminal','facility_log','bio_log_terminal','gate_b_panel','extraction_console','beacon','pump_control','valve_control','beacon_collect','beacon_mount','coolant_valve','static_dialogue_marker']
@@ -89,7 +93,7 @@ func _ready() -> void:
 	hud = Hud.new()
 	hud.name = 'GameHUD'
 	ui.add_child(hud)
-	hud.intent.connect(func(kind,value): _ui_intent(kind,value,_owner() if kind=='interact_current' else panels.page_owner.duplicate(true)))
+	hud.intent.connect(func(kind,value): _ui_intent(kind,value,_owner() if kind in ['interact_current','traverse_current'] else panels.page_owner.duplicate(true)))
 	panels = Panels.new()
 	panels.name = 'Panels'
 	ui.add_child(panels)
@@ -194,7 +198,7 @@ func _process(delta: float) -> void:
 	var hint = audio.status_text if audio.failed else last_feedback
 	if eligible and not nearest.is_empty():
 		hint = _interaction_prompt(nearest)+' · '+hint
-	hud.update_view(snapshot,connection_text,eligible,hint,preferences.scale,_current_hud_interaction())
+	hud.update_view(snapshot,connection_text,eligible,hint,preferences.scale,_current_hud_interaction(),_current_hud_traversal())
 func _sample(neutral: bool) -> bool:
 	if close_attempted:
 		return false
@@ -473,6 +477,13 @@ func _ui_intent(kind: String, value, owner: Dictionary) -> void:
 	elif kind in ['new_confirm','exit_confirm','save','new','continue_default','continue_slot','slots','slots_refresh','save_default','save_slot','save_exit','build_item','capability_select','capability_activate','enhancement_choose','baizhi_confirm','baizhi_commit','return','close_client']:
 		audio.ui_cue('confirm',focused)
 	match kind:
+		'traverse_current':
+			if not value is Dictionary or value.size()!=5 or not value.has_all(['generation','context','entityId','kind','label']) or not P.counter(value.generation) or value.generation!=generation or not P.context(value.context) or not P.same(value.context,_context()) or not P.ident(value.entityId) or typeof(value.kind)!=TYPE_STRING or value.kind!='contextTraversal' or typeof(value.label)!=TYPE_STRING or not value.entityId in ['cw_conveyor_context_vault','cw_gear_upper_gap']:
+				return
+			var current = _current_hud_traversal()
+			if current.is_empty() or current.generation!=value.generation or not P.same(current.context,value.context) or current.entityId!=value.entityId or current.kind!=value.kind:
+				return
+			_action('contextTraversal')
 		'interact_current':
 			if not value is Dictionary or value.size()!=5 or not value.has_all(['generation','context','entityId','kind','label']) or not P.counter(value.generation) or value.generation!=generation or not P.context(value.context) or not P.same(value.context,_context()) or not P.ident(value.entityId) or typeof(value.kind)!=TYPE_STRING or typeof(value.label)!=TYPE_STRING:
 				return
@@ -1341,3 +1352,40 @@ func _trace_write(kind: String, stage: String, tag: String, elapsed: int, event:
 		return
 	trace_records += 1
 	print('WUXIAN_INPUT_TRACE:'+encoded)
+
+func _free_traversal_row_valid(row, expected: Dictionary) -> bool:
+	if not row is Dictionary or row.size()!=expected.size() or not row.has_all(expected.keys()) or typeof(row.get('id'))!=TYPE_STRING or row.id!=expected.id or not P.number(row.get('rangeM'),1.2,1.2) or not P.counter(row.get('cooldownMs'),350,350) or not row.get('requiredCapabilities') is Array or not row.requiredCapabilities.is_empty():
+		return false
+	for field in ['from','to','fromHeightRangeM']:
+		if not expected.has(field):
+			continue
+		var values = row.get(field)
+		if not values is Array or values.size()!=expected[field].size():
+			return false
+		for index in range(values.size()):
+			if not P.number(values[index],expected[field][index],expected[field][index]):
+				return false
+	return true
+func _current_hud_traversal() -> Dictionary:
+	if not P.snapshot(snapshot) or not P.context(_context()) or not _eligible() or snapshot.worldId!='clockworks' or not FREE_TRAVERSAL_STARTS.has(snapshot.sceneId):
+		return {}
+	if catalog.current.get('worldId')!=snapshot.worldId or catalog.current.get('sceneId')!=snapshot.sceneId:
+		return {}
+	var logic = catalog.current.get('logic')
+	if not logic is Dictionary:
+		return {}
+	var rows = logic.get('traversal')
+	if not P.rows(rows,128) or not P.unique(rows,'id'):
+		return {}
+	var start: Dictionary = FREE_TRAVERSAL_STARTS[snapshot.sceneId]
+	var matches = rows.filter(func(row): return row.id==start.row.id)
+	if matches.size()!=1 or not _free_traversal_row_valid(matches[0],start.row):
+		return {}
+	var position = snapshot.player.transform.positionM
+	if not P.point(position) or position.yM<start.band[0] or position.yM>start.band[1]:
+		return {}
+	var dx = position.xM-start.row['from'][0]
+	var dz = position.zM-start.row['from'][2]
+	if dx*dx+dz*dz>1.2*1.2:
+		return {}
+	return {'generation':generation,'context':_context().duplicate(true),'entityId':start.row.id,'kind':'contextTraversal','label':start.label}
