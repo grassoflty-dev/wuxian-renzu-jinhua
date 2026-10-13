@@ -24,6 +24,8 @@ static func project(s: Dictionary, eligible) -> Array:
 		if not pump is Dictionary or pump.size()!=1 or typeof(pump.get('state'))!=TYPE_STRING or not pump.state in ['ready','draining','drained']:
 			return ['泵站：状态未确认']
 		return ['泵站：'+{'ready':'就绪','draining':'排水中','drained':'排水完成'}[pump.state]]
+	if s.worldId=='clockworks' and s.sceneId in ['cw_conveyor_bridge','cw_gear_shaft']:
+		return local_traversal(s)
 	if s.worldId=='clockworks' and s.sceneId in ['cw_boiler_chamber','cw_furnace_heart']:
 		return local_environment(s)
 	if s.worldId=='clockworks' and s.sceneId=='cw_pressure_hall':
@@ -91,3 +93,23 @@ static func in_polygon(point: Dictionary, polygon: Array) -> bool:
 		if (a[1]>z)!=(b[1]>z) and x<(b[0]-a[0])*(z-a[1])/(b[1]-a[1])+a[0]:
 			inside = not inside
 	return inside
+static func local_traversal(s: Dictionary) -> Array:
+	if not P.snapshot(s):
+		return []
+	var point: Dictionary = s.player.transform.positionM
+	var start_x = 8.0
+	var minimum_y = 0.0
+	var maximum_y = 0.1
+	var label = 'Space：输送桥短跨起点'
+	if s.sceneId=='cw_gear_shaft':
+		start_x = 17.8
+		minimum_y = 1.9
+		maximum_y = 2.1
+		label = 'Space：上层间隙起点'
+	if not P.point(point) or not P.number(point.yM,minimum_y,maximum_y):
+		return []
+	var dx: float = float(point.xM)-start_x
+	var dz: float = float(point.zM)-8.0
+	if dx*dx+dz*dz>1.2*1.2:
+		return []
+	return [label]
