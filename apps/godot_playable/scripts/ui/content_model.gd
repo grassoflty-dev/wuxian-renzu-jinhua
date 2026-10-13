@@ -82,6 +82,22 @@ static func narrative(before: Dictionary, target: Dictionary, receipt: Dictionar
 				var pump_rows = before.interactables.filter(func(row): return row.entityId==id and row.kind==kind)
 				if pump_rows.size()==1 and typeof(pump_rows[0].get('active'))==TYPE_BOOL and pump_rows[0].active and P.transform(pump_rows[0].get('transform')):
 					return '泵站：排水已开始。'
+		if P.snapshot(before) and P.snapshot(after) and before.worldId=='mist_harbor' and typeof(target.get('entityId'))==TYPE_STRING and typeof(target.get('kind'))==TYPE_STRING and kind=='beacon':
+			var beacon_event = 'mist_beacon_west' if before.sceneId=='mh_tidal_warehouse' and id=='mh_west_beacon' else 'mist_beacon_east' if before.sceneId=='mh_breakwater' and id=='mh_east_beacon' else ''
+			if not beacon_event.is_empty() and before.progression.currentWorldId=='mist_harbor' and after.progression.currentWorldId=='mist_harbor':
+				var beacon_rows = before.interactables.filter(func(row): return row.entityId==id and row.kind==kind)
+				var beacon_prior = progress(before,'mist_harbor')
+				var beacon_current = progress(after,'mist_harbor')
+				if beacon_rows.size()==1 and typeof(beacon_rows[0].get('active'))==TYPE_BOOL and beacon_rows[0].active and P.transform(beacon_rows[0].get('transform')) and not beacon_prior.is_empty() and not beacon_current.is_empty() and beacon_prior.worldId=='mist_harbor' and beacon_current.worldId=='mist_harbor' and beacon_prior.visitId==beacon_current.visitId and beacon_prior.cycleId==beacon_current.cycleId and beacon_prior.revisitCount==beacon_current.revisitCount and after.progression.eventSeq==before.progression.eventSeq+1 and not beacon_event in beacon_prior.completedEvents and beacon_event in beacon_current.completedEvents and beacon_current.completedEvents.size()==beacon_prior.completedEvents.size()+1:
+					var beacon_retained = true
+					for event in beacon_prior.completedEvents:
+						if not event in beacon_current.completedEvents:
+							beacon_retained = false
+					if beacon_retained:
+						var beacon_text = EVENT_LABELS[beacon_event]+'事件已记录。'
+						if 'mist_beacon_west' in beacon_current.completedEvents and 'mist_beacon_east' in beacon_current.completedEvents:
+							beacon_text += ' 双基准建立，中心干扰源可定位。'
+						return beacon_text
 		if before.worldId=='mist_harbor':
 			var prior = progress(before,'mist_harbor')
 			var current = progress(after,'mist_harbor')
