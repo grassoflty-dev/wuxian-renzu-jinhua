@@ -15,22 +15,47 @@ static func project(s: Dictionary, eligible) -> Array:
 	if s.worldId=='grey_hive':
 		var beacon = s.get('greyHiveBeacon')
 		if not beacon is Dictionary or beacon.size()!=2 or typeof(beacon.get('state'))!=TYPE_STRING or not beacon.state in ['uncollected','carried','mounted'] or typeof(beacon.get('legacyCompletedWithoutReceipt'))!=TYPE_BOOL or beacon.legacyCompletedWithoutReceipt and beacon.state!='uncollected':
-			return ['信标：状态未确认']
+			return ['信标：状态未确认']+extraction_controls(s)
 		if beacon.legacyCompletedWithoutReceipt:
-			return ['信标：收取回执未确认']
-		return ['信标：'+{'uncollected':'尚未收取','carried':'已携带','mounted':'已部署'}[beacon.state]]
+			return ['信标：收取回执未确认']+extraction_controls(s)
+		return ['信标：'+{'uncollected':'尚未收取','carried':'已携带','mounted':'已部署'}[beacon.state]]+extraction_controls(s)
 	if s.worldId=='mist_harbor':
 		var pump = s.get('mistHarborPump')
 		if not pump is Dictionary or pump.size()!=1 or typeof(pump.get('state'))!=TYPE_STRING or not pump.state in ['ready','draining','drained']:
-			return ['泵站：状态未确认']
-		return ['泵站：'+{'ready':'就绪','draining':'排水中','drained':'排水完成'}[pump.state]]
+			return ['泵站：状态未确认']+extraction_controls(s)
+		return ['泵站：'+{'ready':'就绪','draining':'排水中','drained':'排水完成'}[pump.state]]+extraction_controls(s)
 	if s.worldId=='clockworks' and s.sceneId in ['cw_conveyor_bridge','cw_gear_shaft']:
 		return local_traversal(s)
 	if s.worldId=='clockworks' and s.sceneId in ['cw_boiler_chamber','cw_furnace_heart']:
 		return local_environment(s)
 	if s.worldId=='clockworks' and s.sceneId=='cw_pressure_hall':
 		return valves(s.get('interactables'))
+	if s.worldId=='clockworks' and s.sceneId=='cw_shutdown_exit':
+		return extraction_controls(s)
 	return []
+static func extraction_controls(s: Dictionary) -> Array:
+	if not P.context(s) or s.get('entryToken')!=null:
+		return []
+	var specs: Array = []
+	if s.worldId=='grey_hive' and s.sceneId=='gh_exit':
+		specs = [['gh_exit_extraction_console','extraction_console','撤离控制'],['gh_extraction_return_to_rs','world_gate','归航门']]
+	elif s.worldId=='mist_harbor' and s.sceneId=='mh_extraction':
+		specs = [['mh_extraction_return_to_rs','world_gate','归航门']]
+	elif s.worldId=='clockworks' and s.sceneId=='cw_shutdown_exit':
+		specs = [['cw_master_shutdown_staged','terminal','停机控制'],['cw_shutdown_return_to_rs','world_gate','归航门']]
+	else:
+		return []
+	var lines: Array = []
+	var rows = s.get('interactables')
+	var valid_rows = P.snapshot(s) and P.rows(rows,2048) and P.unique(rows,'entityId')
+	for spec in specs:
+		var state = '状态未确认'
+		if valid_rows:
+			var matches = rows.filter(func(row): return row.entityId==spec[0])
+			if matches.size()==1 and typeof(matches[0].get('kind'))==TYPE_STRING and matches[0].kind==spec[1] and typeof(matches[0].get('active'))==TYPE_BOOL and P.transform(matches[0].get('transform')):
+				state = '当前启用' if matches[0].active else '当前未启用'
+		lines.append(spec[2]+'：'+state)
+	return lines
 static func valves(rows) -> Array:
 	var neutral: Array = ['压力阀门：状态未确认']
 	if not P.rows(rows,2048) or not P.unique(rows,'entityId'):
