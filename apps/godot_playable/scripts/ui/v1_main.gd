@@ -685,6 +685,20 @@ func _interaction_label(i: Dictionary) -> String:
 	var destination = _destination_label(i)
 	if not destination.is_empty():
 		return destination
+	if P.snapshot(snapshot) and snapshot.worldId=='clockworks' and snapshot.sceneId=='cw_pressure_hall' and catalog.current.get('worldId')==snapshot.worldId and catalog.current.get('sceneId')==snapshot.sceneId and typeof(i.get('entityId'))==TYPE_STRING and typeof(i.get('kind'))==TYPE_STRING and i.kind=='valve_control' and typeof(i.get('active'))==TYPE_BOOL and P.transform(i.get('transform')):
+		var valve_labels = {'cw_pressure_valve_01_staged':'阀门 1','cw_pressure_valve_02_staged':'阀门 2','cw_pressure_valve_03_staged':'阀门 3'}
+		var authored = catalog.current.get('interactions')
+		if valve_labels.has(i.entityId) and P.rows(authored,2048) and P.unique(authored,'id'):
+			var native_matches = 0
+			for row in snapshot.interactables:
+				if row.entityId==i.entityId and row.kind==i.kind and typeof(row.get('active'))==TYPE_BOOL and P.transform(row.get('transform')) and row.active==i.active and row.transform==i.transform:
+					native_matches += 1
+			var authored_matches = 0
+			for row in authored:
+				if row.id==i.entityId and typeof(row.get('kind'))==TYPE_STRING and row.kind=='valve_control':
+					authored_matches += 1
+			if native_matches==1 and authored_matches==1:
+				return valve_labels[i.entityId]
 	return {'world_gate':'世界入口','mission_terminal':'任务终端','capability_terminal':'能力终端','save_rest_terminal':'休息 / 保存','npc_dialogue':'与白芷交谈','scene_transition':'前往下一场景','scene_checkpoint':'检查点','scene_trigger':'场景装置','environment_control':'环境控制','power_console':'恢复电力','door_panel':'门控制','lockdown_terminal':'隔离协议','facility_log':'设施记录','bio_log_terminal':'生物记录','gate_b_panel':'Gate B 控制','extraction_console':'撤离控制','beacon_collect':'收取信标','beacon_mount':'部署信标','beacon':'信标','pump_control':'泵站控制','valve_control':'阀门','coolant_valve':'冷却阀','static_dialogue_marker':'查看炉心状态','terminal':'终端'}.get(i.kind,'未知交互（不可执行）')
 func _interact() -> void:
 	var i = _nearest()
