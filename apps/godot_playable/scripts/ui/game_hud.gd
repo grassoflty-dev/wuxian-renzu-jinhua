@@ -8,6 +8,9 @@ const CheckpointStatus = preload('res://scripts/ui/checkpoint_status_model.gd')
 const PLAYER_ACTION_LABELS = {'primaryAttack':'攻击','dash':'冲刺','pulse':'脉冲','pierce':'穿刺'}
 var player_action_states: Dictionary = {}
 signal intent(kind, value)
+var guard_button: Button
+var guard_association: Dictionary = {}
+var guard_capture: Dictionary = {}
 var portrait: Label
 var button_nodes: Array = []
 var traverse_button: Button
@@ -141,6 +144,21 @@ func _ready() -> void:
 	button_nodes.append(traverse_button)
 	for action_id in PLAYER_ACTION_LABELS:
 		_add_player_action(buttons,action_id)
+	guard_button = Button.new()
+	guard_button.text = '防御'
+	guard_button.tooltip_text = '按住尝试防御；松开或取消时结束鼠标防御。'
+	guard_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	guard_button.focus_mode = Control.FOCUS_NONE
+	guard_button.visible = false
+	guard_button.disabled = true
+	guard_button.button_down.connect(func():
+		if not guard_capture.is_empty() or guard_button.disabled or not _guard_association_valid(guard_association):
+			return
+		guard_capture = guard_association.duplicate(true)
+		intent.emit('guard_current_begin',guard_capture.duplicate(true)))
+	guard_button.button_up.connect(_cancel_guard_capture)
+	buttons.add_child(guard_button)
+	button_nodes.append(guard_button)
 	call_deferred('_load_internal_icons')
 	resized.connect(_queue_bottom_layout)
 	bottom.resized.connect(_queue_bottom_layout)
@@ -234,7 +252,31 @@ func _update_player_actions(s: Dictionary, eligible: bool, actions) -> void:
 				state.button.visible = true
 			if state.button.disabled:
 				state.button.disabled = false
-func update_view(s: Dictionary, connection: String, eligible: bool, interaction: String, scale: float, target = {}, traversal = {}, actions = []) -> void:
+func _guard_association_valid(value) -> bool:
+	return _interaction_association_valid(value) and typeof(value.entityId)==TYPE_STRING and value.entityId=='guard' and value.kind=='player_guard' and value.label=='防御'
+func _cancel_guard_capture() -> void:
+	if guard_capture.is_empty():
+		return
+	var captured = guard_capture.duplicate(true)
+	guard_capture.clear()
+	intent.emit('guard_current_end',captured)
+func _update_guard(s: Dictionary, eligible: bool, value) -> void:
+	var desired: Dictionary = {}
+	if eligible and P.snapshot(s) and _guard_association_valid(value) and P.same(value.context,s):
+		desired = value.duplicate(true)
+	if desired.is_empty() or not _interaction_identity_same(desired,guard_association):
+		_cancel_guard_capture()
+		guard_association.clear()
+	if desired.is_empty():
+		guard_button.disabled = true
+		guard_button.visible = false
+	else:
+		guard_association = desired
+		if not guard_button.visible:
+			guard_button.visible = true
+		if guard_button.disabled:
+			guard_button.disabled = false
+func update_view(s: Dictionary, connection: String, eligible: bool, interaction: String, scale: float, target = {}, traversal = {}, actions = [], guard = {}) -> void:
 	var desired: Dictionary = {}
 	if eligible and P.snapshot(s) and _interaction_association_valid(target) and P.same(target.context,s):
 		desired = target.duplicate(true)
@@ -268,6 +310,7 @@ func update_view(s: Dictionary, connection: String, eligible: bool, interaction:
 		if traverse_button.disabled:
 			traverse_button.disabled = false
 	_update_player_actions(s,eligible,actions)
+	_update_guard(s,eligible,guard)
 	status_label.text = connection if s.is_empty() else {'return_station':'归航站','grey_hive':'灰巢设施','mist_harbor':'雾港余烬','clockworks':'钟骨工厂'}.get(s.worldId,s.worldId)+' · '+Content.SCENE_NAMES.get(s.sceneId,'当前场景')+' · '+connection
 	meters.text = '' if s.is_empty() else '岑遥 · 生命 %d / %d    能量 %d / %d'%[s.player.currentHp,s.player.maxHp,s.player.currentEnergy,s.player.maxEnergy]
 	var display = PlayStatus.project(s,eligible)
