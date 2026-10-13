@@ -2,6 +2,15 @@ extends RefCounted
 const P = preload('res://scripts/bridge/protocol.gd')
 const Content = preload('res://scripts/ui/content_model.gd')
 const CHECKPOINTS = {
+	'return_station:rs_core_room':{'rs_core_checkpoint':''},
+	'grey_hive:gh_entry_maintenance':{'gh_entry_checkpoint':''},
+	'grey_hive:gh_power_room':{'gh_power_checkpoint':''},
+	'grey_hive:gh_gate_a':{'gh_gate_a_checkpoint':''},
+	'grey_hive:gh_central_shaft':{'gh_shaft_checkpoint':''},
+	'grey_hive:gh_lockdown':{'gh_lockdown_checkpoint':''},
+	'grey_hive:gh_deep_decon':{'gh_decon_safety_alcove_checkpoint':''},
+	'grey_hive:gh_beacon':{'gh_beacon_checkpoint':''},
+	'grey_hive:gh_exit':{'gh_exit_checkpoint':''},
 	'clockworks:cw_boiler_chamber':{'cw_boiler_chamber_checkpoint':''},
 	'clockworks:cw_conveyor_bridge':{'cw_conveyor_bridge_checkpoint':''},
 	'clockworks:cw_entry_foundry':{'cw_entry_foundry_checkpoint':''},
