@@ -30,6 +30,22 @@ const GH_STORY_PLACEMENTS = {
 	'lockdown_terminal_visual':{'key':'lockdown_terminal','scene':'gh_lockdown','asset':'runtime2d.prop.lockdown_terminal.v1','position':Vector3(4,0,8)}
 }
 var gh_bio_lockdown_visual
+const CwPressureValveVisual = preload('res://scripts/world/cw_pressure_valve_visual.gd')
+const CW_PRESSURE_VALVES = {
+	'cw_pressure_valve_visual_01':Vector3(8,0,7),
+	'cw_pressure_valve_visual_02':Vector3(12,0,7),
+	'cw_pressure_valve_visual_03':Vector3(16,0,7)
+}
+var cw_pressure_valve_visual
+const CwFurnaceVisual = preload('res://scripts/world/cw_furnace_visual.gd')
+const CW_FURNACES = {
+	'cw_entry_furnace':['cw_entry_foundry','furnace_v2','runtime2d.world.clockworks.furnace.v2','visual.props_back',Vector3(19,0,6)],
+	'cw_boiler_furnace':['cw_boiler_chamber','furnace_v2','runtime2d.world.clockworks.furnace.v2','visual.props_back',Vector3(16,0,6)],
+	'cw_boiler_furnace_variant':['cw_boiler_chamber','furnace_v1','runtime2d.world.clockworks.furnace.v1','visual.props_dynamic',Vector3(18,0,10)],
+	'cw_heart_furnace_v1':['cw_furnace_heart','furnace_v1','runtime2d.world.clockworks.furnace.v1','visual.props_back',Vector3(12,0,5)],
+	'cw_heart_furnace_v2':['cw_furnace_heart','furnace_v2','runtime2d.world.clockworks.furnace.v2','visual.props_dynamic',Vector3(16,0,8)]
+}
+var cw_furnace_visual
 var camera = Camera.new()
 var cenyao_idle = CenYaoIdle.new()
 var registered_props = RegisteredProps.new()
@@ -56,6 +72,8 @@ var occluder_alpha = {}
 var viewport_rect = Rect2()
 func _ready() -> void:
 	baizhi_placeholder_visual = BaizhiPlaceholderVisual.new()
+	cw_furnace_visual = CwFurnaceVisual.new()
+	cw_pressure_valve_visual = CwPressureValveVisual.new()
 	gh_supply_crate_visual = GhSupplyCrateVisual.new()
 	grey_hive_state_props = GreyHiveStateProps.new()
 	gh_bio_lockdown_visual = GhBioLockdownVisual.new()
@@ -247,6 +265,11 @@ func _draw_object(o: Dictionary) -> void:
 				draw_rect(Rect2(at-Vector2(16,24)*scale,Vector2(32,24)*scale),Color('#65716d'))
 		'prop':
 			if _gh_crate_selected(o.data) and gh_supply_crate_visual!=null and gh_supply_crate_visual.draw_body(self,at,camera.ppm):
+				return
+			var furnace_key = _cw_furnace_key(o.data)
+			if furnace_key!='' and cw_furnace_visual!=null and cw_furnace_visual.draw_body(self,furnace_key,at,camera.ppm):
+				return
+			if _cw_pressure_valve_selected(o.data) and cw_pressure_valve_visual!=null and cw_pressure_valve_visual.draw_body(self,at,camera.ppm):
 				return
 			if o.data.get('assetId')=='runtime2d.prop.power_console.off_on.v1':
 				var powered = false
@@ -774,3 +797,26 @@ func _gh_door_body(d: Dictionary) -> Dictionary:
 	if key=='gate_b' and d.open:
 		return {}
 	return {'key':key,'state':'open' if d.open else 'closed'}
+
+func _cw_pressure_valve_selected(prop: Dictionary) -> bool:
+	if snapshot.get('worldId')!='clockworks' or snapshot.get('sceneId')!='cw_pressure_hall' or scene.get('worldId')!=snapshot.get('worldId') or scene.get('sceneId')!=snapshot.get('sceneId') or not CW_PRESSURE_VALVES.has(prop.get('id')):
+		return false
+	if prop.get('assetId')!='runtime2d.world.clockworks.pressure_pipe_valve.v1' or prop.get('layer')!='visual.props_dynamic' or not _gh_authored_position(prop.get('position'),CW_PRESSURE_VALVES[prop.id]):
+		return false
+	var sprites = scene.get('presentation',{}).get('sprites')
+	if not P.rows(sprites,2048):
+		return false
+	var same_id: Array = sprites.filter(func(row): return row is Dictionary and row.get('id')==prop.id)
+	return same_id.size()==1 and same_id[0]==prop
+
+func _cw_furnace_key(prop: Dictionary) -> String:
+	if snapshot.get('worldId')!='clockworks' or scene.get('worldId')!=snapshot.get('worldId') or scene.get('sceneId')!=snapshot.get('sceneId') or not CW_FURNACES.has(prop.get('id')):
+		return ''
+	var selected: Array = CW_FURNACES[prop.id]
+	if snapshot.sceneId!=selected[0] or prop.get('assetId')!=selected[2] or prop.get('layer')!=selected[3] or not _gh_authored_position(prop.get('position'),selected[4]):
+		return ''
+	var sprites = scene.get('presentation',{}).get('sprites')
+	if not P.rows(sprites,2048):
+		return ''
+	var same_id: Array = sprites.filter(func(row): return row is Dictionary and row.get('id')==prop.id)
+	return selected[1] if same_id.size()==1 and same_id[0]==prop else ''
