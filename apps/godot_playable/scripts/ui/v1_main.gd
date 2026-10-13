@@ -51,6 +51,13 @@ var guard_blocked = false
 var last_status_at = 0
 var last_input_packet_at = -1000
 var neutral_pending = false
+var save_read_sequence = 0
+var save_reads: Dictionary = {}
+var default_save_state = 'unknown'
+var slot_list_state = 'unknown'
+var current_slots: Array = []
+var save_projection_generation = -1
+var save_projection_connection = -1
 func _ready() -> void:
 	name = 'V1Main'
 	audio = NativeAudio.new()
@@ -108,6 +115,7 @@ func _id(prefix: String) -> String:
 	request_sequence += 1
 	return prefix+'-'+str(generation)+'-'+str(request_sequence)
 func _connection(connected: bool, code: String) -> void:
+	_invalidate_saves()
 	connection_text = '已连接' if connected else '未连接 / '+_localized(code)
 	if not connected:
 		_release()
@@ -120,8 +128,7 @@ func _connection(connected: bool, code: String) -> void:
 			_show('start')
 	else:
 		_show('start')
-		_request('formal_has_save',{'defaultOnly':true},'has_save')
-		_request('formal_list_save_slots',{},'slots')
+		_refresh_saves()
 func _eligible() -> bool:
 	return journey_started and rpc.authenticated and focused and not uncertain and critical.is_empty() and not panels.visible and not snapshot.is_empty() and not status.is_empty() and P.same(status,snapshot) and not status.paused and status.get('entryToken')==null and snapshot.get('entryToken')==null and ready_pending.is_empty() and snapshot.player.currentHp>0 and Time.get_ticks_msec()-last_snapshot_at<1000 and Time.get_ticks_msec()-last_status_at<1000
 func _process(delta: float) -> void:
@@ -305,13 +312,16 @@ func _escape() -> void:
 		return
 	if _eligible():
 		_open_paused('pause')
-func _show(page: String, extra: Dictionary = {}, blocked: bool = false) -> void:
+func _show(page: String, extra: Dictionary = {}, blocked: bool = false, refresh_saves: bool = true) -> void:
 	panel_generation += 1
 	var o = _owner()
 	o.merge(extra,true)
 	panels.preferences = preferences.duplicate(true)
 	panels.font_scale = preferences.scale
+	_publish_saves(false)
 	panels.show_page(page,o,snapshot,rpc.authenticated if is_instance_valid(rpc) else false,blocked)
+	if refresh_saves and page in ['slots','save'] and not blocked:
+		_refresh_saves()
 func _open_paused(page: String, page_data: Dictionary = {}) -> void:
 	if not journey_started or not snapshot.is_empty() and snapshot.player.currentHp<=0 and page in ['slots','new_confirm','settings']:
 		_show(page,page_data)
@@ -391,13 +401,12 @@ func _ui_intent(kind: String, value, owner: Dictionary) -> void:
 		'continue_slot': _begin_journey('formal_continue_slot',{'slotId':value})
 		'slots':
 			_open_paused('slots')
-			_request('formal_list_save_slots',{},'slots')
-		'slots_refresh': _request('formal_list_save_slots',{},'slots')
+		'slots_refresh': _refresh_saves()
 		'save_default': _save_request('formal_save',{},false)
 		'save_exit': _save_request('formal_save',{},true)
 		'save_slot': _save_request('formal_save_slot',value,false)
 		'return_slot':
-			if journey_started:
+			if journey_started and _writable_slot_params(value):
 				_request('formal_return_slot',value,'return',{},true)
 		'save_slot_new': _save_request('formal_save_slot',{'slotId':'v1-'+str(Time.get_ticks_msec())+'-'+str(request_sequence+1),'displayName':value,'create':true},false)
 		'return':
@@ -435,8 +444,12 @@ func _ui_intent(kind: String, value, owner: Dictionary) -> void:
 func _begin_journey(method: String, params: Dictionary) -> void:
 	if not rpc.authenticated or uncertain or not critical.is_empty() or not ticket.is_empty():
 		return
+	if method=='formal_continue' and not _default_continue_available() or method=='formal_continue_slot' and not _slot_available(params.get('slotId')):
+		_feedback('存档可用性尚未确认；未发送继续请求')
+		return
 	_release()
 	generation += 1
+	_invalidate_saves()
 	journey_started = false
 	pause_owned.clear()
 	enhancement_pending.clear()
@@ -448,6 +461,8 @@ func _begin_journey(method: String, params: Dictionary) -> void:
 		_show('waiting',{},true)
 func _save_request(method: String, params: Dictionary, exit_after: bool) -> void:
 	if not journey_started or snapshot.is_empty() or not ticket.is_empty() or snapshot.get('entryToken')!=null:
+		return
+	if method=='formal_save_slot' and params.get('create')!=true and not _writable_slot_params(params):
 		return
 	if _request(method,params,'save',{'exitAfter':exit_after},true)>0:
 		panels.set_message('保存中 · 等待实际回执',true)
@@ -567,6 +582,9 @@ func _close_baizhi() -> void:
 	_request('formal_baizhi_close',{'ticket':ticket.duplicate(true)},'baizhi_close',{'expectedCommand':'baizhi-close:'+ticket.ownerId+':'+str(int(ticket.generation))},true)
 	panels.set_message('等待对白关闭确认',true)
 func _response(_rpc_id: int, method: String, result, association: Dictionary) -> void:
+	if method in ['formal_has_save','formal_list_save_slots']:
+		_save_read_response(_rpc_id,method,result,association)
+		return
 	var purpose: String = association.get('purpose','')
 	var transition = purpose in ['journey','return','interaction']
 	if not _current(association,transition):
@@ -612,20 +630,6 @@ func _response(_rpc_id: int, method: String, result, association: Dictionary) ->
 	if purpose=='sound':
 		if not snapshot.is_empty():
 			event_view.accept_sound(result,snapshot)
-		return
-	if purpose=='has_save':
-		if typeof(result)!=TYPE_BOOL:
-			_feedback('默认存档状态未确认')
-		else:
-			_feedback('默认存档可继续' if result else '尚无默认存档')
-		return
-	if purpose=='slots':
-		if not _valid_slots(result):
-			_feedback('存档列表无效；未提供继续操作')
-			return
-		panels.slots = result
-		if panels.mode in ['slots','save']:
-			_show(panels.mode)
 		return
 	if purpose=='close':
 		if result is Dictionary and typeof(result.get('closing'))==TYPE_BOOL and result.closing:
@@ -729,7 +733,6 @@ func _response(_rpc_id: int, method: String, result, association: Dictionary) ->
 			else:
 				_show('save')
 				panels.set_message('保存成功')
-				_request('formal_list_save_slots',{},'slots')
 		'build': _show('inventory')
 		'capability': _show('capability')
 		'enhancement':
@@ -853,7 +856,6 @@ func _interaction_result(a: Dictionary, r: Dictionary) -> void:
 		_open_paused('mission')
 	elif kind=='save_rest_terminal':
 		_open_paused('save')
-		_request('formal_list_save_slots',{},'slots')
 	elif kind=='capability_terminal':
 		var clear = false
 		for row in snapshot.progression.get('worlds',[]):
@@ -885,6 +887,95 @@ func _clockworks_completed(s: Dictionary) -> bool:
 		return false
 	var row: Dictionary = matches[0]
 	return row.get('completed')==true and row.get('firstCompletion')==true and P.counter(row.get('revisitCount'),0,4) and row.get('visitId')==row.revisitCount+1 and row.get('completedEvents') is Array and row.completedEvents.size()==3 and 'clockworks_valves' in row.completedEvents and 'clockworks_core' in row.completedEvents and 'clockworks_shutdown' in row.completedEvents
+func _invalidate_saves() -> void:
+	save_reads.clear()
+	default_save_state = 'unknown'
+	slot_list_state = 'unknown'
+	current_slots.clear()
+	save_projection_generation = generation
+	save_projection_connection = rpc.connection_generation if is_instance_valid(rpc) else -1
+	_publish_saves(false)
+func _save_scope_current() -> bool:
+	return is_instance_valid(rpc) and rpc.authenticated and save_projection_generation==generation and save_projection_connection==rpc.connection_generation
+func _default_continue_available() -> bool:
+	return _save_scope_current() and default_save_state=='available'
+func _slot_available(id, writable: bool = false) -> bool:
+	if not _save_scope_current() or slot_list_state!='list' or not P.ident(id):
+		return false
+	for row in current_slots:
+		if row.slotId==id:
+			return row.valid and (not writable or not row.readOnly)
+	return false
+func _writable_slot_params(value) -> bool:
+	if not value is Dictionary or value.get('create')!=false or not _slot_available(value.get('slotId'),true):
+		return false
+	for row in current_slots:
+		if row.slotId==value.slotId:
+			return value.get('displayName')==row.displayName
+	return false
+func _publish_saves(rebuild: bool = true) -> void:
+	if not is_instance_valid(panels):
+		return
+	var current = _save_scope_current()
+	panels.set_save_availability(default_save_state if current else 'unknown',slot_list_state if current else 'unknown',current_slots if current else [])
+	if rebuild and panels.visible and panels.mode in ['slots','save'] and critical.is_empty() and not uncertain and not panels.pending:
+		var page: String = panels.mode
+		var text = panels.status.text if is_instance_valid(panels.status) else ''
+		_show(page,{},false,false)
+		panels.set_message(text)
+func _set_save_read_state(method: String, state: String) -> void:
+	if method=='formal_has_save':
+		default_save_state = state
+	else:
+		slot_list_state = state
+		current_slots.clear()
+func _refresh_saves() -> void:
+	_save_read('formal_has_save',{'defaultOnly':true})
+	_save_read('formal_list_save_slots',{})
+func _save_read(method: String, params: Dictionary) -> void:
+	if not rpc.authenticated:
+		return
+	var owned = save_reads.get(method,{})
+	if not owned.is_empty() and _save_read_current(owned.id,method,owned) and rpc.pending.has(owned.id):
+		# The transport will coalesce this read; retain its sole response token.
+		return
+	save_reads.erase(method)
+	if save_read_sequence>=9007199254740991:
+		_set_save_read_state(method,'error')
+		_publish_saves()
+		return
+	save_read_sequence += 1
+	var a = _assoc({'purpose':'save_availability','readSequence':save_read_sequence,'connectionGeneration':rpc.connection_generation,'method':method})
+	var id = rpc.request(method,params,a)
+	# request may synchronously drop the connection and invalidate all projections.
+	if not rpc.authenticated or a.connectionGeneration!=rpc.connection_generation or a.generation!=generation:
+		return
+	save_projection_generation = generation
+	save_projection_connection = rpc.connection_generation
+	if id<=0:
+		_set_save_read_state(method,'unknown')
+	else:
+		a['id'] = id
+		save_reads[method] = a.duplicate(true)
+		_set_save_read_state(method,'pending')
+	_publish_saves()
+func _save_read_current(id: int, method: String, a: Dictionary) -> bool:
+	var owned = save_reads.get(method,{})
+	return rpc.authenticated and not owned.is_empty() and owned.id==id and owned.method==method and a.get('method')==method and a.get('readSequence')==owned.readSequence and a.get('connectionGeneration')==rpc.connection_generation and owned.connectionGeneration==rpc.connection_generation and _current(a) and _current(owned)
+func _save_read_response(id: int, method: String, result, a: Dictionary) -> void:
+	if not _save_read_current(id,method,a):
+		return
+	save_reads.erase(method)
+	if method=='formal_has_save':
+		default_save_state = ('available' if result else 'unavailable') if typeof(result)==TYPE_BOOL else 'invalid'
+	else:
+		current_slots.clear()
+		if _valid_slots(result):
+			current_slots = result.duplicate(true)
+			slot_list_state = 'empty' if current_slots.is_empty() else 'list'
+		else:
+			slot_list_state = 'invalid'
+	_publish_saves()
 func _valid_slots(value) -> bool:
 	if not P.rows(value,128) or not P.unique(value,'slotId'):
 		return false
@@ -893,6 +984,13 @@ func _valid_slots(value) -> bool:
 			return false
 	return true
 func _failed(_id_value: int, method: String, code: String, association: Dictionary) -> void:
+	if method in ['formal_has_save','formal_list_save_slots']:
+		if not _save_read_current(_id_value,method,association):
+			return
+		save_reads.erase(method)
+		_set_save_read_state(method,'error')
+		_publish_saves()
+		return
 	if not _current(association,association.get('purpose') in ['journey','return','interaction']):
 		return
 	audio.ui_cue('error',focused)

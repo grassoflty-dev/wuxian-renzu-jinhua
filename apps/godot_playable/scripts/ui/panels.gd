@@ -12,6 +12,8 @@ var title: Label
 var status: Label
 var snapshot: Dictionary = {}
 var slots: Array = []
+var default_save_state = 'unknown'
+var slot_list_state = 'unknown'
 var connected = false
 var pending = false
 var preferences = {'scale':1.0,'fullscreen':false,'color':false,'reduced':false,'muted':false,'volume':0.35}
@@ -62,6 +64,13 @@ func close_page() -> void:
 	visible = false
 	mode = ''
 	page_owner.clear()
+func set_save_availability(default_state: String, list_state: String, rows: Array) -> void:
+	default_save_state = default_state
+	slot_list_state = list_state
+	slots = rows.duplicate(true) if list_state=='list' else []
+func _save_availability_text() -> void:
+	_text({'unknown':'默认存档状态未确认','pending':'正在确认默认存档','available':'默认存档可继续','unavailable':'尚无默认存档','invalid':'默认存档响应无效；请刷新','error':'默认存档读取失败；请刷新'}.get(default_save_state,'默认存档状态未确认'))
+	_text({'unknown':'存档列表未确认','pending':'正在读取存档列表','empty':'当前没有命名存档','list':'当前存档列表已确认','invalid':'存档列表响应无效；请刷新','error':'存档列表读取失败；请刷新'}.get(slot_list_state,'存档列表未确认'))
 func set_message(text: String, blocked: bool = false) -> void:
 	pending = blocked
 	if is_instance_valid(status):
@@ -275,6 +284,7 @@ func _archive() -> void:
 	_button('返回','back')
 func _save() -> void:
 	_text('保存由权威 SaveV6 / 槽位事务完成；客户端不读取或写入存档。')
+	_save_availability_text()
 	_button('保存当前默认存档','save_default',null,connected)
 	_button('保存并退出','exit_confirm',null,connected)
 	_button('返回归航站并保存','return',null,connected)
@@ -292,10 +302,12 @@ func _save() -> void:
 	create.pressed.connect(func():
 		if page_owner==captured and not entry.text.strip_edges().is_empty():
 			intent.emit('save_slot_new',entry.text.strip_edges(),captured))
+	_button('刷新列表','slots_refresh',null,connected)
 	_button('返回','back')
 func _slots() -> void:
 	_text('只继续服务报告的有效存档；缺失、只读和错误状态保留。')
-	_button('继续默认存档','continue_default',null,connected)
+	_save_availability_text()
+	_button('继续默认存档','continue_default',null,connected and default_save_state=='available')
 	for slot in slots:
 		_text(slot.displayName+' · '+('有效' if slot.valid else '不可用')+(' · 只读' if slot.readOnly else '')+(' · 可恢复' if slot.get('recoverable',false) else ''))
 		_button('继续：'+slot.displayName,'continue_slot',slot.slotId,connected and slot.valid)
