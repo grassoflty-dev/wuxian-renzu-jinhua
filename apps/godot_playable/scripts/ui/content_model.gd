@@ -55,6 +55,23 @@ static func narrative(before: Dictionary, target: Dictionary, receipt: Dictionar
 			var key = before.worldId+':'+before.sceneId+':'+id
 			if checkpoints.has(key) and SCENE_NAMES.has(before.sceneId):
 				return '检查点已确认：'+SCENE_NAMES[before.sceneId]+checkpoints[key]+'。需要保留旅程时，请使用保存。'
+		if P.snapshot(before) and P.snapshot(after) and typeof(target.get('entityId'))==TYPE_STRING and typeof(target.get('kind'))==TYPE_STRING and kind=='scene_checkpoint' and typeof(after.get('checkpointId'))==TYPE_STRING and after.checkpointId==id and SCENE_NAMES.has(before.sceneId):
+			var station_hive_checkpoints = {
+				'return_station:rs_core_room:rs_core_checkpoint':true,
+				'grey_hive:gh_entry_maintenance:gh_entry_checkpoint':true,
+				'grey_hive:gh_power_room:gh_power_checkpoint':true,
+				'grey_hive:gh_gate_a:gh_gate_a_checkpoint':true,
+				'grey_hive:gh_central_shaft:gh_shaft_checkpoint':true,
+				'grey_hive:gh_lockdown:gh_lockdown_checkpoint':true,
+				'grey_hive:gh_deep_decon:gh_decon_safety_alcove_checkpoint':true,
+				'grey_hive:gh_beacon:gh_beacon_checkpoint':true,
+				'grey_hive:gh_exit:gh_exit_checkpoint':true}
+			var checkpoint_key = before.worldId+':'+before.sceneId+':'+id
+			if station_hive_checkpoints.has(checkpoint_key):
+				var checkpoint_rows = before.interactables.filter(func(row): return row.entityId==id and row.kind==kind)
+				if checkpoint_rows.size()==1 and typeof(checkpoint_rows[0].get('active'))==TYPE_BOOL and checkpoint_rows[0].active and P.transform(checkpoint_rows[0].get('transform')):
+					var checkpoint_text = '检查点已确认：'+SCENE_NAMES[before.sceneId]+'。需要保留旅程时，请使用保存。'
+					return ('B-17 链路仅保持最低功率。 ' if checkpoint_key=='grey_hive:gh_entry_maintenance:gh_entry_checkpoint' else '')+checkpoint_text
 		if before.worldId=='grey_hive':
 			var lines = {'gh_beacon:gh_beacon_deploy_marker:beacon_collect':'这就是信号源。带回去，也许能解释这里为什么还在呼叫。','gh_entry_maintenance:gh_entry_checkpoint:scene_checkpoint':'B-17 链路仅保持最低功率。','gh_power_room:gh_power_console:power_console':'主电还活着，只是被人为切断。','gh_lockdown:gh_lockdown_terminal:lockdown_terminal':'隔离协议已被局部覆盖。','gh_sentinel_arena:gh_sys_sentinel_01:facility_log':'自动防卫单元已接管本区。','gh_entry_maintenance:gh_entry_tutorial_terminal:terminal':'维护终端：WASD / 方向键移动，鼠标指向瞄准；J / 左键攻击，Shift 冲刺。Q 脉冲，按住 E 防御，R 穿刺；F 交互，Space 情境穿越。T 任务，M 地图，Esc 暂停；动作与地图信息以当前状态和权限为准。'}
 			return lines.get(before.sceneId+':'+id+':'+kind,'')
