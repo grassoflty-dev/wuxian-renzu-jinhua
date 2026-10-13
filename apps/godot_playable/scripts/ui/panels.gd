@@ -278,20 +278,28 @@ func _capability() -> void:
 func _mission() -> void:
 	if snapshot.is_empty():
 		_text('尚未收到当前旅程')
+	elif not P.snapshot(snapshot):
+		_text('当前旅程状态未确认')
 	else:
-		_text('当前世界：'+WORLDS.get(snapshot.worldId,snapshot.worldId))
+		_text('当前世界：'+WORLDS.get(snapshot.worldId,'世界名称未确认'))
+		_text('当前场景：'+Content.SCENE_NAMES.get(snapshot.sceneId,'场景名称未确认'))
 		for o in snapshot.objectives:
 			_text(Content.objective(o))
 		for world in ['grey_hive','mist_harbor','clockworks']:
 			var row = Content.progress(snapshot,world)
-			if not row.is_empty():
+			if row.is_empty():
+				_text(WORLDS[world]+' · 进度未确认')
+			else:
 				_text(WORLDS[world]+' · '+('已完成' if row.completed else '尚未完成')+' · 复访 '+str(int(row.revisitCount)))
-				for event in row.completedEvents:
-					_text('✓ '+Content.EVENT_LABELS[event])
-		for pair in [['rs_world_gate_marker','灰巢入口'],['rs_mh_world_gate_marker','雾港入口'],['rs_cw_world_gate_marker','钟骨入口']]:
-			for i in snapshot.interactables:
-				if i.entityId==pair[0] and i.kind=='world_gate':
-					_text(pair[1]+' · '+('可用' if i.active else '锁定 / 当前不可用'))
+				_text('事件记录 %d / 3'%row.completedEvents.size())
+				for event in Content.EVENTS[world]:
+					var recorded = event in row.completedEvents
+					_text(('✓ ' if recorded else '○ ')+Content.EVENT_LABELS[event]+(' · 已记录' if recorded else ' · 尚未记录'))
+		if snapshot.worldId=='return_station' and snapshot.sceneId=='rs_core_room':
+			for pair in [['rs_world_gate_marker','灰巢入口'],['rs_mh_world_gate_marker','雾港入口'],['rs_cw_world_gate_marker','钟骨入口']]:
+				for i in snapshot.interactables:
+					if i.entityId==pair[0] and i.kind=='world_gate':
+						_text(pair[1]+' · '+('可用' if i.active else '锁定 / 当前不可用'))
 		var beacon = snapshot.get('greyHiveBeacon')
 		if snapshot.worldId=='grey_hive' and beacon is Dictionary and beacon.get('state') in ['uncollected','carried','mounted'] and typeof(beacon.get('legacyCompletedWithoutReceipt'))==TYPE_BOOL and (not beacon.legacyCompletedWithoutReceipt or beacon.state=='uncollected'):
 			_text('信标：'+{'uncollected':'尚未收取','carried':'已携带','mounted':'已部署'}[beacon.state])
