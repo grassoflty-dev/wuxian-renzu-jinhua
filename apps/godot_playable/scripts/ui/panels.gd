@@ -357,7 +357,10 @@ func _mission_route_guidance() -> Array:
 			return ['任务参考：恢复场景后，靠近雾港入口查看当前交互。']
 		if not rows.clockworks.completed:
 			return ['任务参考：恢复场景后，靠近钟骨入口查看当前交互。']
-		return ['三处世界进度均已记录为完成。可查看当前保存与复访选项。']
+		var completed_summary: Array = ['三处世界进度均已记录为完成。可查看当前保存与复访选项。']
+		if rows.clockworks.firstCompletion==true and rows.clockworks.completedEvents.size()==3 and P.granted(snapshot,'mobility.air_step_i'):
+			completed_summary.append('三处坐标不是孤立事件。网络中仍存在未识别节点。')
+		return completed_summary
 	if snapshot.progression.get('currentWorldId')!=world:
 		return neutral
 	var current: Dictionary = rows[world]
@@ -473,6 +476,7 @@ func _archive() -> void:
 					shown = true
 				elif world=='clockworks' and P.granted(snapshot,'mobility.air_step_i'):
 					_text('钟骨：归航记录\n三处坐标不是孤立事件。网络中仍存在未识别节点。')
+					_text('钟骨：尾声记录\n原来门一直不止三扇。')
 					shown = true
 		if not shown:
 			_text('尚无已确认档案')
