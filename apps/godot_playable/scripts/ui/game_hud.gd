@@ -10,6 +10,7 @@ var portrait: Label
 var button_nodes: Array = []
 var interact_button: Button
 var interact_association: Dictionary = {}
+var interact_press: Dictionary = {}
 var status_label: Label
 var meters: Label
 var objectives: Label
@@ -99,12 +100,18 @@ func _ready() -> void:
 	interact_button.visible = false
 	interact_button.disabled = true
 	interact_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	interact_button.button_down.connect(func():
+		interact_press.clear()
+		if not interact_button.disabled and _interaction_association_valid(interact_association):
+			interact_press = interact_association.duplicate(true))
 	interact_button.pressed.connect(func():
-		if interact_button.disabled or interact_association.is_empty():
+		if interact_button.disabled or not _interaction_association_valid(interact_press) or not _interaction_association_valid(interact_association) or not _interaction_identity_same(interact_press,interact_association):
+			interact_press.clear()
 			return
-		var captured = interact_association.duplicate(true)
-		interact_button.disabled = true
+		var captured = interact_press.duplicate(true)
+		interact_press.clear()
 		interact_association.clear()
+		interact_button.disabled = true
 		intent.emit('interact_current',captured))
 	buttons.add_child(interact_button)
 	button_nodes.append(interact_button)
@@ -145,15 +152,27 @@ func _load_internal_icons() -> void:
 	file.close()
 	if mapping is Dictionary:
 		icons.apply_admitted_mapping(mapping)
+func _interaction_association_valid(value) -> bool:
+	return value is Dictionary and value.size()==5 and value.has_all(['generation','context','entityId','kind','label']) and P.counter(value.generation) and P.context(value.context) and P.ident(value.entityId) and typeof(value.kind)==TYPE_STRING and typeof(value.label)==TYPE_STRING
+func _interaction_identity_same(a: Dictionary, b: Dictionary) -> bool:
+	return not a.is_empty() and not b.is_empty() and a.generation==b.generation and P.same(a.context,b.context) and a.entityId==b.entityId and a.kind==b.kind
 func update_view(s: Dictionary, connection: String, eligible: bool, interaction: String, scale: float, target = {}) -> void:
-	interact_association.clear()
-	interact_button.disabled = true
-	interact_button.visible = false
-	if eligible and P.snapshot(s) and target is Dictionary and target.size()==5 and target.has_all(['generation','context','entityId','kind','label']) and P.counter(target.generation) and P.context(target.context) and P.same(target.context,s) and P.ident(target.entityId) and typeof(target.kind)==TYPE_STRING and typeof(target.label)==TYPE_STRING:
-		interact_association = target.duplicate(true)
-		interact_button.text = '交互 · '+target.label
-		interact_button.visible = true
-		interact_button.disabled = false
+	var desired: Dictionary = {}
+	if eligible and P.snapshot(s) and _interaction_association_valid(target) and P.same(target.context,s):
+		desired = target.duplicate(true)
+	if desired.is_empty() or not _interaction_identity_same(desired,interact_association):
+		interact_press.clear()
+		interact_association.clear()
+	if desired.is_empty():
+		interact_button.disabled = true
+		interact_button.visible = false
+	else:
+		interact_association = desired
+		interact_button.text = '交互 · '+desired.label
+		if not interact_button.visible:
+			interact_button.visible = true
+		if interact_button.disabled:
+			interact_button.disabled = false
 	status_label.text = connection if s.is_empty() else {'return_station':'归航站','grey_hive':'灰巢设施','mist_harbor':'雾港余烬','clockworks':'钟骨工厂'}.get(s.worldId,s.worldId)+' · '+Content.SCENE_NAMES.get(s.sceneId,'当前场景')+' · '+connection
 	meters.text = '' if s.is_empty() else '岑遥 · 生命 %d / %d    能量 %d / %d'%[s.player.currentHp,s.player.maxHp,s.player.currentEnergy,s.player.maxEnergy]
 	var display = PlayStatus.project(s,eligible)
