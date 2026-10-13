@@ -1,5 +1,6 @@
 extends RefCounted
 const P = preload('res://scripts/bridge/protocol.gd')
+const Presentation = preload('res://scripts/world/presentation.gd')
 const Content = preload('res://scripts/ui/content_model.gd')
 const VALVES = ['cw_pressure_valve_01_staged','cw_pressure_valve_02_staged','cw_pressure_valve_03_staged']
 static func project(s: Dictionary, eligible) -> Array:
@@ -23,6 +24,8 @@ static func project(s: Dictionary, eligible) -> Array:
 		if not pump is Dictionary or pump.size()!=1 or typeof(pump.get('state'))!=TYPE_STRING or not pump.state in ['ready','draining','drained']:
 			return ['泵站：状态未确认']
 		return ['泵站：'+{'ready':'就绪','draining':'排水中','drained':'排水完成'}[pump.state]]
+	if s.worldId=='clockworks' and s.sceneId in ['cw_boiler_chamber','cw_furnace_heart']:
+		return local_environment(s)
 	if s.worldId=='clockworks' and s.sceneId=='cw_pressure_hall':
 		return valves(s.get('interactables'))
 	return []
@@ -42,3 +45,49 @@ static func valves(rows) -> Array:
 	for n in range(3):
 		lines.append('阀门 '+str(n+1)+'：'+('可交互' if selected[VALVES[n]] else '当前不可交互'))
 	return lines
+static func local_environment(s: Dictionary) -> Array:
+	if not P.snapshot(s) or not P.point(s.player.transform.positionM) or not P.number(s.player.transform.positionM.yM,0,0.1):
+		return []
+	var specs: Array = []
+	if s.sceneId=='cw_boiler_chamber':
+		specs = [['cw_heat_accumulation_staged','heat_zone','heat','热区',[[11,2],[17,2],[17,6],[11,6]]],['cw_boiler_vent_staged','steam_jet','pressure','蒸汽口',[[11,10],[13,10],[13,13],[11,13]]]]
+	elif s.sceneId=='cw_furnace_heart':
+		specs = [['cw_heat_accumulation_staged','heat_zone','heat','热区',[[8,2],[14,2],[14,6],[8,6]]]]
+	else:
+		return []
+	var hazards = s.get('hazards')
+	if not P.rows(hazards,2048) or not P.unique(hazards,'entityId'):
+		return ['环境状态未确认']
+	var selected = {}
+	for h in hazards:
+		selected[h.entityId] = h
+	var lines: Array = []
+	for spec in specs:
+		var h = selected.get(spec[0])
+		if not h is Dictionary or h.get('kind')!=spec[1] or typeof(h.get('active'))!=TYPE_BOOL or typeof(h.get('phaseActive'))!=TYPE_BOOL or not P.transform(h.get('transform')):
+			lines.append(spec[3]+'：状态未确认')
+			continue
+		var e = Presentation.environment(h)
+		if e.is_empty() or e.tag!=spec[2] or h.polygonM!=spec[4]:
+			lines.append(spec[3]+'：状态未确认')
+			continue
+		if not in_polygon(s.player.transform.positionM,h.polygonM) and not (e.tag=='heat' and e.exposureBps>0):
+			continue
+		var line: String = spec[3]+'：'+{'warning':'预警','active':'生效','recovery':'恢复','suppressed':'抑制'}[e.phase]+' · 当前阶段余时 '+str(int(e.remainingMs))+'ms'
+		if e.tag=='heat':
+			line += ' · 热暴露 '+str(float(e.exposureBps)/100.0)+'%'
+		lines.append(line)
+	return lines
+static func in_polygon(point: Dictionary, polygon: Array) -> bool:
+	var inside = false
+	var x: float = point.xM
+	var z: float = point.zM
+	for n in range(polygon.size()):
+		var a: Array = polygon[n]
+		var b: Array = polygon[(n+1)%polygon.size()]
+		var cross = (x-a[0])*(b[1]-a[1])-(z-a[1])*(b[0]-a[0])
+		if cross==0 and x>=minf(a[0],b[0]) and x<=maxf(a[0],b[0]) and z>=minf(a[1],b[1]) and z<=maxf(a[1],b[1]):
+			return true
+		if (a[1]>z)!=(b[1]>z) and x<(b[0]-a[0])*(z-a[1])/(b[1]-a[1])+a[0]:
+			inside = not inside
+	return inside
