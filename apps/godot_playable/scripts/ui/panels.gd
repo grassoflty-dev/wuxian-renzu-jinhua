@@ -194,14 +194,12 @@ func _rebuild() -> void:
 			_exploration_resume()
 			_button('返回','back')
 		'baizhi':
-			_text('隔离室里的白芷等待你的回应。对白不会授予 Gate B 的钥匙。')
-			_button('我会帮你离开这里。','baizhi_confirm','taken')
-			_button('我不能带你走。','baizhi_confirm','left')
-			_button('我还需要确认一些事情。','baizhi_unresolved')
+			_baizhi_page()
 		'baizhi_confirm':
 			_text('确认后由权威保存当前选择；未知响应不会重复提交。')
-			_button('确认','baizhi_commit',page_owner.get('choice'))
+			_button('确认','baizhi_commit',page_owner.get('choice'),_baizhi_choice_state()=='unresolved' and typeof(page_owner.get('choice'))==TYPE_STRING and page_owner.choice in ['taken','left'])
 			_button('返回对白','baizhi_page')
+			_button('结束对白','baizhi_close',null,_baizhi_page_context_ready())
 		'dialogue':
 			_text(str(page_owner.get('text','')))
 			_button('关闭','dialogue_close')
@@ -214,6 +212,29 @@ func _rebuild() -> void:
 			_button('返回状态','start')
 			_button('退出客户端','close_client')
 		'waiting': _text('正在等待当前请求的真实回执。')
+func _baizhi_page_context_ready() -> bool:
+	return connected and not pending and P.snapshot(snapshot) and snapshot.get('entryToken')==null and snapshot.worldId=='grey_hive' and snapshot.sceneId=='gh_bio_isolation' and P.context(page_owner.get('context')) and P.same(page_owner.context,snapshot)
+func _baizhi_choice_state() -> String:
+	if not _baizhi_page_context_ready() or snapshot.player.currentHp<=0:
+		return 'unknown'
+	var b = snapshot.get('baizhi')
+	if not b is Dictionary or b.size()!=4 or not b.has_all(['schemaVersion','choice','available','canInteract']) or not P.counter(b.schemaVersion,1,1) or typeof(b.choice)!=TYPE_STRING or not b.choice in ['unresolved','taken','left'] or typeof(b.available)!=TYPE_BOOL or not b.available or typeof(b.canInteract)!=TYPE_BOOL:
+		return 'unknown'
+	return b.choice
+func _baizhi_page() -> void:
+	match _baizhi_choice_state():
+		'unresolved':
+			_text('隔离室里的白芷等待你的回应。对白不会授予 Gate B 的钥匙。')
+			_button('我会帮你离开这里。','baizhi_confirm','taken')
+			_button('我不能带你走。','baizhi_confirm','left')
+			_button('我还需要确认一些事情。','baizhi_unresolved')
+		'taken':
+			_text('已记录的白芷选择：我会帮你离开这里。')
+		'left':
+			_text('已记录的白芷选择：我不能带你走。')
+		_:
+			_text('白芷选择状态未确认；不能提交新选择。')
+	_button('结束对白','baizhi_close',null,_baizhi_page_context_ready())
 func _settings() -> void:
 	_text('仅当前会话；不会写入偏好文件。文字大小保持所选比例，小窗口可以滚动。临时原生合成音频；实际输出尚未验证。静音和音量仅当前会话。')
 	var size_pick = OptionButton.new()
