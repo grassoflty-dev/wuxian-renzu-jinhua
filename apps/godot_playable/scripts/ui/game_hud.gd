@@ -8,6 +8,8 @@ const CheckpointStatus = preload('res://scripts/ui/checkpoint_status_model.gd')
 const PLAYER_ACTION_LABELS = {'primaryAttack':'攻击','dash':'冲刺','pulse':'脉冲','pierce':'穿刺'}
 var player_action_states: Dictionary = {}
 signal intent(kind, value)
+const MOVEMENT_LABELS = {'move_up':'上移','move_down':'下移','move_left':'左移','move_right':'右移'}
+var movement_states: Dictionary = {}
 var guard_button: Button
 var guard_association: Dictionary = {}
 var guard_capture: Dictionary = {}
@@ -159,6 +161,8 @@ func _ready() -> void:
 	guard_button.button_up.connect(_cancel_guard_capture)
 	buttons.add_child(guard_button)
 	button_nodes.append(guard_button)
+	for direction_id in MOVEMENT_LABELS:
+		_add_movement_button(buttons,direction_id)
 	call_deferred('_load_internal_icons')
 	resized.connect(_queue_bottom_layout)
 	bottom.resized.connect(_queue_bottom_layout)
@@ -276,7 +280,61 @@ func _update_guard(s: Dictionary, eligible: bool, value) -> void:
 			guard_button.visible = true
 		if guard_button.disabled:
 			guard_button.disabled = false
-func update_view(s: Dictionary, connection: String, eligible: bool, interaction: String, scale: float, target = {}, traversal = {}, actions = [], guard = {}) -> void:
+func _movement_association_valid(value) -> bool:
+	return _interaction_association_valid(value) and typeof(value.entityId)==TYPE_STRING and MOVEMENT_LABELS.has(value.entityId) and value.kind=='player_move' and value.label==MOVEMENT_LABELS[value.entityId]
+func _cancel_movement_capture(state: Dictionary) -> void:
+	if state.capture.is_empty():
+		return
+	var captured = state.capture.duplicate(true)
+	state.capture.clear()
+	intent.emit('movement_current_end',captured)
+func _clear_movement_captures() -> void:
+	for state in movement_states.values():
+		_cancel_movement_capture(state)
+func _add_movement_button(buttons: HFlowContainer, direction_id: String) -> void:
+	var button = Button.new()
+	var state = {'button':button,'display':{},'capture':{}}
+	movement_states[direction_id] = state
+	button.text = MOVEMENT_LABELS[direction_id]
+	button.tooltip_text = '按住沿屏幕方向移动；松开或取消时停止鼠标移动。'
+	button.mouse_filter = Control.MOUSE_FILTER_STOP
+	button.focus_mode = Control.FOCUS_NONE
+	button.disabled = true
+	button.visible = false
+	button.button_down.connect(func():
+		if button.disabled or not state.capture.is_empty() or not _movement_association_valid(state.display):
+			return
+		state.capture = state.display.duplicate(true)
+		intent.emit('movement_current_begin',state.capture.duplicate(true)))
+	button.button_up.connect(func(): _cancel_movement_capture(state))
+	buttons.add_child(button)
+	button_nodes.append(button)
+func _update_movements(s: Dictionary, eligible: bool, movements) -> void:
+	var selected: Dictionary = {}
+	var common_generation = -1
+	if eligible and P.snapshot(s) and movements is Array and movements.size()==4:
+		for row in movements:
+			if not _movement_association_valid(row) or not P.same(row.context,s) or selected.has(row.entityId) or common_generation!=-1 and common_generation!=row.generation:
+				selected.clear()
+				break
+			common_generation = row.generation
+			selected[row.entityId] = row.duplicate(true)
+	for direction_id in MOVEMENT_LABELS:
+		var state = movement_states[direction_id]
+		var desired: Dictionary = selected.get(direction_id,{})
+		if desired.is_empty() or not _interaction_identity_same(desired,state.display):
+			_cancel_movement_capture(state)
+			state.display.clear()
+		if desired.is_empty():
+			state.button.disabled = true
+			state.button.visible = false
+		else:
+			state.display = desired
+			if not state.button.visible:
+				state.button.visible = true
+			if state.button.disabled:
+				state.button.disabled = false
+func update_view(s: Dictionary, connection: String, eligible: bool, interaction: String, scale: float, target = {}, traversal = {}, actions = [], guard = {}, movements = []) -> void:
 	var desired: Dictionary = {}
 	if eligible and P.snapshot(s) and _interaction_association_valid(target) and P.same(target.context,s):
 		desired = target.duplicate(true)
@@ -311,6 +369,7 @@ func update_view(s: Dictionary, connection: String, eligible: bool, interaction:
 			traverse_button.disabled = false
 	_update_player_actions(s,eligible,actions)
 	_update_guard(s,eligible,guard)
+	_update_movements(s,eligible,movements)
 	status_label.text = connection if s.is_empty() else {'return_station':'归航站','grey_hive':'灰巢设施','mist_harbor':'雾港余烬','clockworks':'钟骨工厂'}.get(s.worldId,s.worldId)+' · '+Content.SCENE_NAMES.get(s.sceneId,'当前场景')+' · '+connection
 	meters.text = '' if s.is_empty() else '岑遥 · 生命 %d / %d    能量 %d / %d'%[s.player.currentHp,s.player.maxHp,s.player.currentEnergy,s.player.maxEnergy]
 	var display = PlayStatus.project(s,eligible)

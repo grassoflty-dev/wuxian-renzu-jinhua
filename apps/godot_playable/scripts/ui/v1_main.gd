@@ -34,6 +34,8 @@ var action_sequence = 0
 var lifecycle_sequence = 0
 var journey_started = false
 var focused = true
+var mouse_move_owner: Dictionary = {}
+var mouse_move_rearm = false
 var mouse_guard_owner: Dictionary = {}
 var mouse_guard_rearm = false
 var guard_active = false
@@ -96,7 +98,7 @@ func _ready() -> void:
 	hud = Hud.new()
 	hud.name = 'GameHUD'
 	ui.add_child(hud)
-	hud.intent.connect(func(kind,value): _ui_intent(kind,value,_owner() if kind in ['interact_current','traverse_current','player_action_current','guard_current_begin','guard_current_end'] else panels.page_owner.duplicate(true)))
+	hud.intent.connect(func(kind,value): _ui_intent(kind,value,_owner() if kind in ['interact_current','traverse_current','player_action_current','guard_current_begin','guard_current_end','movement_current_begin','movement_current_end'] else panels.page_owner.duplicate(true)))
 	panels = Panels.new()
 	panels.name = 'Panels'
 	ui.add_child(panels)
@@ -165,6 +167,7 @@ func _connection(connected: bool, code: String) -> void:
 func _eligible() -> bool:
 	return not close_attempted and journey_started and rpc.authenticated and focused and not uncertain and critical.is_empty() and not panels.visible and not snapshot.is_empty() and not status.is_empty() and P.same(status,snapshot) and not status.paused and status.get('entryToken')==null and snapshot.get('entryToken')==null and ready_pending.is_empty() and snapshot.player.currentHp>0 and Time.get_ticks_msec()-last_snapshot_at<1000 and Time.get_ticks_msec()-last_status_at<1000
 func _process(delta: float) -> void:
+	_observe_mouse_movement()
 	_observe_mouse_guard()
 	_trace_tick()
 	if close_confirmed:
@@ -202,7 +205,7 @@ func _process(delta: float) -> void:
 	var hint = audio.status_text if audio.failed else last_feedback
 	if eligible and not nearest.is_empty():
 		hint = _interaction_prompt(nearest)+' · '+hint
-	hud.update_view(snapshot,connection_text,eligible,hint,preferences.scale,_current_hud_interaction(),_current_hud_traversal(),_current_hud_actions(),_current_hud_guard())
+	hud.update_view(snapshot,connection_text,eligible,hint,preferences.scale,_current_hud_interaction(),_current_hud_traversal(),_current_hud_actions(),_current_hud_guard(),_current_hud_movements())
 func _sample(neutral: bool) -> bool:
 	if close_attempted:
 		return false
@@ -221,10 +224,11 @@ func _sample(neutral: bool) -> bool:
 		if not uncertain:
 			_hold('E_COUNTER_EXHAUSTED')
 		return false
-	var right = _key_held(KEY_D) or _key_held(KEY_RIGHT)
-	var left = _key_held(KEY_A) or _key_held(KEY_LEFT)
-	var down = _key_held(KEY_S) or _key_held(KEY_DOWN)
-	var up = _key_held(KEY_W) or _key_held(KEY_UP)
+	var mouse_direction = mouse_move_owner.entityId if not neutral and _mouse_movement_valid() else ''
+	var right = _key_held(KEY_D) or _key_held(KEY_RIGHT) or mouse_direction=='move_right'
+	var left = _key_held(KEY_A) or _key_held(KEY_LEFT) or mouse_direction=='move_left'
+	var down = _key_held(KEY_S) or _key_held(KEY_DOWN) or mouse_direction=='move_down'
+	var up = _key_held(KEY_W) or _key_held(KEY_UP) or mouse_direction=='move_up'
 	var sx = int(right)-int(left)
 	var sy = int(down)-int(up)
 	var move = Vector2(sy+0.5*sx,sy-0.5*sx).normalized() if not neutral else Vector2.ZERO
@@ -282,6 +286,7 @@ func _end_guard() -> void:
 		guard_active = false
 		_action('guardEnd',true)
 func _release() -> void:
+	_clear_mouse_movement()
 	_clear_mouse_guard()
 	if is_instance_valid(audio):
 		audio.suspend_world()
@@ -342,6 +347,8 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT and not event.pressed:
 		_end_mouse_guard()
 		mouse_guard_rearm = false
+		_clear_mouse_movement()
+		mouse_move_rearm = false
 	if not event is InputEventKey:
 		return
 	var key = _event_key(event)
@@ -457,6 +464,10 @@ func _back() -> void:
 	else:
 		_show('start')
 func _ui_intent(kind: String, value, owner: Dictionary) -> void:
+	if kind=='movement_current_end':
+		if _movement_identity_same(value,mouse_move_owner):
+			_clear_mouse_movement()
+		return
 	if kind=='guard_current_end':
 		if _guard_association_valid(value) and _guard_identity_same(value,mouse_guard_owner):
 			_end_mouse_guard()
@@ -499,8 +510,15 @@ func _ui_intent(kind: String, value, owner: Dictionary) -> void:
 	elif kind in ['new_confirm','exit_confirm','save','new','continue_default','continue_slot','slots','slots_refresh','save_default','save_slot','save_exit','build_item','capability_select','capability_activate','enhancement_choose','baizhi_confirm','baizhi_commit','return','close_client']:
 		audio.ui_cue('confirm',focused)
 	match kind:
+		'movement_current_begin':
+			if not _movement_association_valid(value) or value.generation!=generation or not P.same(value.context,_context()) or not mouse_move_owner.is_empty() or mouse_move_rearm or not mouse_guard_owner.is_empty() or not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+				return
+			for current in _current_hud_movements():
+				if _movement_identity_same(value,current):
+					mouse_move_owner = value.duplicate(true)
+					return
 		'guard_current_begin':
-			if not _guard_association_valid(value) or value.generation!=generation or not P.same(value.context,_context()) or not mouse_guard_owner.is_empty() or mouse_guard_rearm or not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+			if not _guard_association_valid(value) or value.generation!=generation or not P.same(value.context,_context()) or not mouse_guard_owner.is_empty() or not mouse_move_owner.is_empty() or mouse_guard_rearm or not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 				return
 			var current = _current_hud_guard()
 			if current.is_empty() or not _guard_identity_same(value,current) or guard_blocked and _key_held(KEY_E):
@@ -709,6 +727,36 @@ func _destination_label(i: Dictionary) -> String:
 			return '前往'+Content.SCENE_NAMES[destination]
 	return ''
 const PLAYER_ACTION_LABELS = {'primaryAttack':'攻击','dash':'冲刺','pulse':'脉冲','pierce':'穿刺'}
+const MOVEMENT_LABELS = {'move_up':'上移','move_down':'下移','move_left':'左移','move_right':'右移'}
+func _movement_association_valid(value) -> bool:
+	return value is Dictionary and value.size()==5 and value.has_all(['generation','context','entityId','kind','label']) and P.counter(value.generation) and P.context(value.context) and typeof(value.entityId)==TYPE_STRING and MOVEMENT_LABELS.has(value.entityId) and typeof(value.kind)==TYPE_STRING and value.kind=='player_move' and typeof(value.label)==TYPE_STRING and value.label==MOVEMENT_LABELS[value.entityId]
+func _movement_identity_same(a, b) -> bool:
+	return _movement_association_valid(a) and _movement_association_valid(b) and a.generation==b.generation and P.same(a.context,b.context) and a.entityId==b.entityId and a.kind==b.kind and a.label==b.label
+func _current_hud_movements() -> Array:
+	if not P.snapshot(snapshot) or not P.context(_context()) or not _eligible() or mouse_move_rearm:
+		return []
+	var result: Array = []
+	for direction_id in MOVEMENT_LABELS:
+		result.append({'generation':generation,'context':_context().duplicate(true),'entityId':direction_id,'kind':'player_move','label':MOVEMENT_LABELS[direction_id]})
+	return result
+func _mouse_movement_valid() -> bool:
+	if mouse_move_owner.is_empty() or mouse_move_rearm or not mouse_guard_owner.is_empty() or not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		return false
+	for current in _current_hud_movements():
+		if _movement_identity_same(mouse_move_owner,current):
+			return true
+	return false
+func _clear_mouse_movement() -> void:
+	mouse_move_owner.clear()
+	mouse_move_rearm = Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
+	if is_instance_valid(hud):
+		hud._clear_movement_captures()
+func _observe_mouse_movement() -> void:
+	if not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		_clear_mouse_movement()
+		mouse_move_rearm = false
+	elif not mouse_move_owner.is_empty() and not _mouse_movement_valid():
+		_clear_mouse_movement()
 func _guard_association_valid(value) -> bool:
 	return value is Dictionary and value.size()==5 and value.has_all(['generation','context','entityId','kind','label']) and P.counter(value.generation) and P.context(value.context) and typeof(value.entityId)==TYPE_STRING and value.entityId=='guard' and typeof(value.kind)==TYPE_STRING and value.kind=='player_guard' and typeof(value.label)==TYPE_STRING and value.label=='防御'
 func _guard_identity_same(a: Dictionary, b: Dictionary) -> bool:
