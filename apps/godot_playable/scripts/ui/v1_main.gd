@@ -94,7 +94,7 @@ func _ready() -> void:
 	hud = Hud.new()
 	hud.name = 'GameHUD'
 	ui.add_child(hud)
-	hud.intent.connect(func(kind,value): _ui_intent(kind,value,_owner() if kind in ['interact_current','traverse_current'] else panels.page_owner.duplicate(true)))
+	hud.intent.connect(func(kind,value): _ui_intent(kind,value,_owner() if kind in ['interact_current','traverse_current','player_action_current'] else panels.page_owner.duplicate(true)))
 	panels = Panels.new()
 	panels.name = 'Panels'
 	ui.add_child(panels)
@@ -199,7 +199,7 @@ func _process(delta: float) -> void:
 	var hint = audio.status_text if audio.failed else last_feedback
 	if eligible and not nearest.is_empty():
 		hint = _interaction_prompt(nearest)+' · '+hint
-	hud.update_view(snapshot,connection_text,eligible,hint,preferences.scale,_current_hud_interaction(),_current_hud_traversal())
+	hud.update_view(snapshot,connection_text,eligible,hint,preferences.scale,_current_hud_interaction(),_current_hud_traversal(),_current_hud_actions())
 func _sample(neutral: bool) -> bool:
 	if close_attempted:
 		return false
@@ -227,9 +227,13 @@ func _sample(neutral: bool) -> bool:
 	var move = Vector2(sy+0.5*sx,sy-0.5*sx).normalized() if not neutral else Vector2.ZERO
 	var aim = Vector2.ZERO
 	if pointer_seen and not neutral:
-		var player = P.vector(snapshot.player.transform.positionM)
-		var mouse_world = renderer.camera.inverse(get_viewport().get_mouse_position(),player.y)
-		aim = Vector2(mouse_world.x-player.x,mouse_world.z-player.z).normalized()
+		if get_viewport().gui_get_hovered_control()!=null:
+			if P.snapshot(snapshot):
+				aim = Vector2(snapshot.player.aimX,snapshot.player.aimZ)
+		else:
+			var player = P.vector(snapshot.player.transform.positionM)
+			var mouse_world = renderer.camera.inverse(get_viewport().get_mouse_position(),player.y)
+			aim = Vector2(mouse_world.x-player.x,mouse_world.z-player.z).normalized()
 	var sample = {'protocol':'continuous-input','protocolVersion':2,'worldEpoch':snapshot.worldEpoch,'seq':input_sequence,'clientTimeMs':Time.get_ticks_msec(),'moveX':move.x,'moveZ':move.y,'aimX':aim.x,'aimZ':aim.y}
 	var submitted = _request('formal_submit_input',{'sample':sample,'combat':[]},'input',{'neutral':neutral})
 	if submitted>0:
@@ -478,6 +482,13 @@ func _ui_intent(kind: String, value, owner: Dictionary) -> void:
 	elif kind in ['new_confirm','exit_confirm','save','new','continue_default','continue_slot','slots','slots_refresh','save_default','save_slot','save_exit','build_item','capability_select','capability_activate','enhancement_choose','baizhi_confirm','baizhi_commit','return','close_client']:
 		audio.ui_cue('confirm',focused)
 	match kind:
+		'player_action_current':
+			if not value is Dictionary or value.size()!=5 or not value.has_all(['generation','context','entityId','kind','label']) or not P.counter(value.generation) or value.generation!=generation or not P.context(value.context) or not P.same(value.context,_context()) or typeof(value.entityId)!=TYPE_STRING or typeof(value.kind)!=TYPE_STRING or value.kind!='player_action' or typeof(value.label)!=TYPE_STRING or not PLAYER_ACTION_LABELS.has(value.entityId) or value.label!=PLAYER_ACTION_LABELS[value.entityId]:
+				return
+			for current in _current_hud_actions():
+				if current.generation==value.generation and P.same(current.context,value.context) and current.entityId==value.entityId and current.kind==value.kind and current.label==value.label:
+					_action(value.entityId)
+					return
 		'traverse_current':
 			if not value is Dictionary or value.size()!=5 or not value.has_all(['generation','context','entityId','kind','label']) or not P.counter(value.generation) or value.generation!=generation or not P.context(value.context) or not P.same(value.context,_context()) or not P.ident(value.entityId) or typeof(value.kind)!=TYPE_STRING or value.kind!='contextTraversal' or typeof(value.label)!=TYPE_STRING or not value.entityId in ['cw_conveyor_context_vault','cw_gear_upper_gap','cw_gear_earned_air_step']:
 				return
@@ -669,6 +680,14 @@ func _destination_label(i: Dictionary) -> String:
 		if pin is Dictionary and typeof(pin.get('path'))==TYPE_STRING and pin.path=='res://data/scenes/'+destination+'.json':
 			return '前往'+Content.SCENE_NAMES[destination]
 	return ''
+const PLAYER_ACTION_LABELS = {'primaryAttack':'攻击','dash':'冲刺','pulse':'脉冲','pierce':'穿刺'}
+func _current_hud_actions() -> Array:
+	if not P.snapshot(snapshot) or not P.context(_context()) or not _eligible():
+		return []
+	var result: Array = []
+	for action_id in PLAYER_ACTION_LABELS:
+		result.append({'generation':generation,'context':_context().duplicate(true),'entityId':action_id,'kind':'player_action','label':PLAYER_ACTION_LABELS[action_id]})
+	return result
 func _current_hud_interaction() -> Dictionary:
 	if not P.snapshot(snapshot) or not P.context(_context()) or not _eligible():
 		return {}

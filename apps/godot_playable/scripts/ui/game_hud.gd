@@ -5,6 +5,8 @@ const Icons = preload('res://scripts/ui/skill_icon_row.gd')
 const PlayStatus = preload('res://scripts/ui/play_status_model.gd')
 const WorldMechanism = preload('res://scripts/ui/world_mechanism_model.gd')
 const CheckpointStatus = preload('res://scripts/ui/checkpoint_status_model.gd')
+const PLAYER_ACTION_LABELS = {'primaryAttack':'攻击','dash':'冲刺','pulse':'脉冲','pierce':'穿刺'}
+var player_action_states: Dictionary = {}
 signal intent(kind, value)
 var portrait: Label
 var button_nodes: Array = []
@@ -137,6 +139,8 @@ func _ready() -> void:
 		intent.emit('traverse_current',captured))
 	buttons.add_child(traverse_button)
 	button_nodes.append(traverse_button)
+	for action_id in PLAYER_ACTION_LABELS:
+		_add_player_action(buttons,action_id)
 	call_deferred('_load_internal_icons')
 	resized.connect(_queue_bottom_layout)
 	bottom.resized.connect(_queue_bottom_layout)
@@ -178,7 +182,59 @@ func _interaction_association_valid(value) -> bool:
 	return value is Dictionary and value.size()==5 and value.has_all(['generation','context','entityId','kind','label']) and P.counter(value.generation) and P.context(value.context) and P.ident(value.entityId) and typeof(value.kind)==TYPE_STRING and typeof(value.label)==TYPE_STRING
 func _interaction_identity_same(a: Dictionary, b: Dictionary) -> bool:
 	return not a.is_empty() and not b.is_empty() and a.generation==b.generation and P.same(a.context,b.context) and a.entityId==b.entityId and a.kind==b.kind
-func update_view(s: Dictionary, connection: String, eligible: bool, interaction: String, scale: float, target = {}, traversal = {}) -> void:
+func _player_action_valid(value) -> bool:
+	return _interaction_association_valid(value) and value.kind=='player_action' and PLAYER_ACTION_LABELS.has(value.entityId) and value.label==PLAYER_ACTION_LABELS[value.entityId]
+func _add_player_action(buttons: HFlowContainer, action_id: String) -> void:
+	var button = Button.new()
+	var state = {'button':button,'display':{},'press':{}}
+	player_action_states[action_id] = state
+	button.text = PLAYER_ACTION_LABELS[action_id]
+	button.tooltip_text = '尝试'+button.text+'；使用当前瞄准方向。'
+	button.mouse_filter = Control.MOUSE_FILTER_STOP
+	button.focus_mode = Control.FOCUS_NONE
+	button.visible = false
+	button.disabled = true
+	button.button_down.connect(func():
+		state.press.clear()
+		if not button.disabled and _player_action_valid(state.display):
+			state.press = state.display.duplicate(true))
+	button.pressed.connect(func():
+		if button.disabled or not _player_action_valid(state.press) or not _player_action_valid(state.display) or not _interaction_identity_same(state.press,state.display):
+			state.press.clear()
+			return
+		var captured = state.press.duplicate(true)
+		state.press.clear()
+		state.display.clear()
+		button.disabled = true
+		intent.emit('player_action_current',captured))
+	buttons.add_child(button)
+	button_nodes.append(button)
+func _update_player_actions(s: Dictionary, eligible: bool, actions) -> void:
+	var selected: Dictionary = {}
+	var common_generation = -1
+	if eligible and P.snapshot(s) and actions is Array and actions.size()==4:
+		for row in actions:
+			if not _player_action_valid(row) or not P.same(row.context,s) or selected.has(row.entityId) or common_generation!=-1 and common_generation!=row.generation:
+				selected.clear()
+				break
+			common_generation = row.generation
+			selected[row.entityId] = row.duplicate(true)
+	for action_id in PLAYER_ACTION_LABELS:
+		var state = player_action_states[action_id]
+		var desired: Dictionary = selected.get(action_id,{})
+		if desired.is_empty() or not _interaction_identity_same(desired,state.display):
+			state.press.clear()
+			state.display.clear()
+		if desired.is_empty():
+			state.button.disabled = true
+			state.button.visible = false
+		else:
+			state.display = desired
+			if not state.button.visible:
+				state.button.visible = true
+			if state.button.disabled:
+				state.button.disabled = false
+func update_view(s: Dictionary, connection: String, eligible: bool, interaction: String, scale: float, target = {}, traversal = {}, actions = []) -> void:
 	var desired: Dictionary = {}
 	if eligible and P.snapshot(s) and _interaction_association_valid(target) and P.same(target.context,s):
 		desired = target.duplicate(true)
@@ -211,6 +267,7 @@ func update_view(s: Dictionary, connection: String, eligible: bool, interaction:
 			traverse_button.visible = true
 		if traverse_button.disabled:
 			traverse_button.disabled = false
+	_update_player_actions(s,eligible,actions)
 	status_label.text = connection if s.is_empty() else {'return_station':'归航站','grey_hive':'灰巢设施','mist_harbor':'雾港余烬','clockworks':'钟骨工厂'}.get(s.worldId,s.worldId)+' · '+Content.SCENE_NAMES.get(s.sceneId,'当前场景')+' · '+connection
 	meters.text = '' if s.is_empty() else '岑遥 · 生命 %d / %d    能量 %d / %d'%[s.player.currentHp,s.player.maxHp,s.player.currentEnergy,s.player.maxEnergy]
 	var display = PlayStatus.project(s,eligible)
