@@ -3,6 +3,7 @@ const Content = preload('res://scripts/ui/content_model.gd')
 const P = preload('res://scripts/bridge/protocol.gd')
 const Icons = preload('res://scripts/ui/skill_icon_row.gd')
 const PlayStatus = preload('res://scripts/ui/play_status_model.gd')
+const WorldMechanism = preload('res://scripts/ui/world_mechanism_model.gd')
 signal intent(kind, value)
 var portrait: Label
 var button_nodes: Array = []
@@ -10,6 +11,7 @@ var status_label: Label
 var meters: Label
 var objectives: Label
 var hint: Label
+var mechanism: Label
 var icons
 var bottom: ScrollContainer
 func _ready() -> void:
@@ -58,6 +60,11 @@ func _ready() -> void:
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	side.add_child(hint)
+	mechanism = Label.new()
+	mechanism.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	mechanism.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mechanism.visible = false
+	side.add_child(mechanism)
 	var buttons = HBoxContainer.new()
 	side.add_child(buttons)
 	for item in [['mission','任务'],['inventory','背包'],['character','角色'],['capability','能力'],['map','地图'],['pause','菜单']]:
@@ -91,7 +98,9 @@ func update_view(s: Dictionary, connection: String, eligible: bool, interaction:
 	hint.text = interaction+'\nWASD / 方向键移动 · J / 鼠标左键攻击 · 空格：场景穿越 · F：交互'
 	if not display.action.is_empty() and display.action.kind=='primaryAttack':
 		hint.text += '\n'+display.action.text
-	for label in [portrait,status_label,meters,objectives,hint]:
+	mechanism.text = '\n'.join(PackedStringArray(WorldMechanism.project(s,eligible)))
+	mechanism.visible = not mechanism.text.is_empty()
+	for label in [portrait,status_label,meters,objectives,hint,mechanism]:
 		label.add_theme_font_size_override('font_size',int(16*scale))
 	for button in button_nodes:
 		button.add_theme_font_size_override('font_size',int(16*scale))
