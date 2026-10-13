@@ -486,14 +486,15 @@ func _occlusion() -> void:
 		var alpha = occluder_alpha.get(o.get('id'),0.25 if covered else 1.0)
 		_poly(o.polygon,0,Color(0.3,0.38,0.4,clampf(alpha,0,1)),true)
 func _world_ui() -> void:
-	if P.granted(snapshot,'information.enemy_vitals_basic'):
-		var tiers = snapshot.capabilities.get('enemyVitals',[])
+	if P.snapshot(snapshot) and snapshot.get('entryToken')==null and Content.WORLD_NAMES.has(snapshot.worldId) and Content.SCENE_NAMES.has(snapshot.sceneId) and scene.get('worldId')==snapshot.worldId and scene.get('sceneId')==snapshot.sceneId and current_key==snapshot.worldId+':'+snapshot.sceneId+':'+str(snapshot.worldEpoch):
+		var tiers = snapshot.capabilities.get('enemyVitals')
 		if P.rows(tiers,512) and P.unique(tiers,'entityId'):
 			for v in tiers:
-				if not v.get('tier') in ['healthy','wounded','severelyWounded','critical'] or not displayed.has(v.entityId) or not actor_visible(v.entityId):
+				if typeof(v.get('tier'))!=TYPE_STRING or not v.tier in ['healthy','wounded','severelyWounded','critical'] or not displayed.has(v.entityId) or not actor_visible(v.entityId):
 					continue
 				for a in snapshot.actors:
-					if a.entityId==v.entityId and a.active:
+					var enemy = a.actorKind=='enemy' or a.actorKind=='sentinel' and a.entityType=='enemy.grey_hive.sentinel' and a.entityId=='gh_sys_sentinel_01' and snapshot.worldId=='grey_hive' and snapshot.sceneId=='gh_sentinel_arena'
+					if a.entityId==v.entityId and a.active and enemy and P.transform(a.transform):
 						_label(camera.project(P.vector(a.transform.positionM))-Vector2(0,55*text_scale),{'healthy':'健康','wounded':'受伤','severelyWounded':'重伤','critical':'濒危'}[v.tier])
 	if not sound.is_empty() and V.mapping(snapshot):
 		var dir = Vector2(sin(sound.directionRad)-cos(sound.directionRad),sin(sound.directionRad)+cos(sound.directionRad)).normalized()
