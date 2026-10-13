@@ -323,6 +323,10 @@ func _mission() -> void:
 		var pump = snapshot.get('mistHarborPump')
 		if snapshot.worldId=='mist_harbor' and pump is Dictionary and pump.get('state') in ['ready','draining','drained']:
 			_text('泵站：'+{'ready':'就绪','draining':'排水中','drained':'排水完成'}[pump.state])
+		_text('目标交互需在场景恢复后进行。')
+		if snapshot.worldId=='return_station' and snapshot.sceneId=='rs_core_room':
+			_text('返回场景、靠近世界门，再查看当前交互提示。')
+		_button('继续探索','resume',null,connected and P.snapshot(snapshot) and snapshot.player.currentHp>0)
 	_button('档案','archive')
 	_button('能力','capability')
 	_button('系统','settings')
