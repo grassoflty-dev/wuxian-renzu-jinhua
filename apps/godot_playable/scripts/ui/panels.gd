@@ -299,6 +299,84 @@ func _capability() -> void:
 			_text('当前能力状态未确认')
 		_button('继续探索','resume',null,connected and P.snapshot(snapshot) and snapshot.player.currentHp>0)
 	_button('返回','back')
+func _mission_route_guidance() -> Array:
+	var neutral = ['任务参考：当前路线状态未确认。']
+	if not connected or pending or not P.snapshot(snapshot) or snapshot.player.currentHp<=0 or snapshot.get('entryToken')!=null:
+		return []
+	if not P.context(page_owner.get('context')) or not P.same(page_owner.context,snapshot):
+		return neutral
+	var world: String = snapshot.worldId
+	var scene: String = snapshot.sceneId
+	if not Content.WORLD_NAMES.has(world) or not Content.SCENE_NAMES.has(scene):
+		return neutral
+	if world=='return_station':
+		if scene!='rs_core_room':
+			return neutral
+	elif not scene.begins_with({'grey_hive':'gh_','mist_harbor':'mh_','clockworks':'cw_'}[world]):
+		return neutral
+	var rows = {}
+	for id in ['grey_hive','mist_harbor','clockworks'] if world=='return_station' else [world]:
+		var row: Dictionary = Content.progress(snapshot,id)
+		if row.is_empty():
+			return neutral
+		var events: Array = row.completedEvents
+		var canonical: Array = Content.EVENTS[id]
+		if id=='mist_harbor':
+			if canonical[2] in events and (not canonical[0] in events or not canonical[1] in events):
+				return neutral
+		elif (canonical[1] in events and not canonical[0] in events) or (canonical[2] in events and (not canonical[0] in events or not canonical[1] in events)):
+			return neutral
+		rows[id] = row
+	if world=='return_station':
+		if (rows.mist_harbor.completed and not rows.grey_hive.completed) or (rows.clockworks.completed and (not rows.grey_hive.completed or not rows.mist_harbor.completed)):
+			return neutral
+		if not rows.grey_hive.completed:
+			return ['任务参考：恢复场景后，靠近灰巢入口查看当前交互。']
+		if not rows.mist_harbor.completed:
+			return ['任务参考：恢复场景后，靠近雾港入口查看当前交互。']
+		if not rows.clockworks.completed:
+			return ['任务参考：恢复场景后，靠近钟骨入口查看当前交互。']
+		return ['三处世界进度均已记录为完成。可查看当前保存与复访选项。']
+	if snapshot.progression.get('currentWorldId')!=world:
+		return neutral
+	var current: Dictionary = rows[world]
+	if current.revisitCount>0 or current.visitId>1:
+		return ['复访任务参考：以当前事件、门和交互提示为准；首通奖励不重复。']
+	if current.visitId!=1 or current.revisitCount!=0:
+		return neutral
+	var events: Array = current.completedEvents
+	var canonical: Array = Content.EVENTS[world]
+	if world=='grey_hive':
+		if not canonical[0] in events:
+			return ['任务参考：沿当前合法通路前往主电室，查看恢复主电的交互。']
+		if not canonical[1] in events:
+			return ['任务参考：沿当前合法通路前往隔离封锁，查看隔离协议交互。']
+		if canonical[2] in events:
+			return ['任务参考：灰巢撤离事件已记录；查看灰巢撤离区的当前归航交互。']
+		var beacon = snapshot.get('greyHiveBeacon')
+		if not beacon is Dictionary or beacon.size()!=2 or not beacon.has_all(['state','legacyCompletedWithoutReceipt']) or typeof(beacon.state)!=TYPE_STRING or not beacon.state in ['uncollected','carried','mounted'] or typeof(beacon.legacyCompletedWithoutReceipt)!=TYPE_BOOL or beacon.legacyCompletedWithoutReceipt:
+			return ['任务参考：信标收取状态未确认；查看当前信标交互提示。']
+		if beacon.state=='uncollected':
+			return ['任务参考：前往信标室查看收取信标的交互；部署为可选。']
+		return ['任务参考：前往灰巢撤离区查看撤离控制；具体条件以当前交互为准。']
+	if world=='mist_harbor':
+		if not canonical[0] in events or not canonical[1] in events:
+			var lines = ['任务参考：两处航标可以按任意顺序确认。']
+			if not canonical[0] in events:
+				lines.append('潮汐仓库：查看西侧航标交互。')
+			if not canonical[1] in events:
+				lines.append('防波堤：查看东侧航标交互。')
+			return lines
+		if not canonical[2] in events:
+			return ['任务参考：沿当前合法通路前往共鸣塔，查看信号终端。']
+		return ['任务参考：处理守望者区域的战斗后，前往雾港撤离区查看当前归航交互。']
+	if not canonical[0] in events:
+		return ['任务参考：前往压力大厅查看三处压力阀门；具体条件以当前交互为准。']
+	if not canonical[1] in events:
+		return ['任务参考：沿当前合法通路前往调节者核心，处理当前战斗与终端。']
+	if not canonical[2] in events:
+		return ['任务参考：前往停机出口查看停机终端。']
+	return ['任务参考：停机事件已记录；查看停机出口的当前归航交互。']
 func _mission() -> void:
 	if snapshot.is_empty():
 		_text('尚未收到当前旅程')
@@ -307,6 +385,8 @@ func _mission() -> void:
 	else:
 		_text('当前世界：'+WORLDS.get(snapshot.worldId,'世界名称未确认'))
 		_text('当前场景：'+Content.SCENE_NAMES.get(snapshot.sceneId,'场景名称未确认'))
+		for line in _mission_route_guidance():
+			_text(line)
 		for o in snapshot.objectives:
 			_text(Content.objective(o))
 		for world in ['grey_hive','mist_harbor','clockworks']:
