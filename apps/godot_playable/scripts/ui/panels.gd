@@ -7,6 +7,8 @@ const WORLDS = {'return_station':'归航站','grey_hive':'灰巢设施','mist_ha
 signal intent(kind, value, page_owner)
 var mode = ''
 var page_owner: Dictionary = {}
+var enhancement_preview = ''
+var enhancement_preview_owner: Dictionary = {}
 var box: VBoxContainer
 var title: Label
 var status: Label
@@ -80,6 +82,7 @@ func _layout_content() -> void:
 		box.custom_minimum_size.x = width
 	layout_busy = false
 func show_page(kind: String, association: Dictionary, s: Dictionary, is_connected: bool, blocked: bool = false) -> void:
+	_clear_enhancement_preview()
 	mode = kind
 	page_owner = association.duplicate(true)
 	snapshot = s
@@ -91,6 +94,7 @@ func show_page(kind: String, association: Dictionary, s: Dictionary, is_connecte
 	_rebuild()
 	_layout_content()
 func close_page() -> void:
+	_clear_enhancement_preview()
 	visible = false
 	mode = ''
 	page_owner.clear()
@@ -127,6 +131,8 @@ func _button(text: String, action: String, value = null, enabled: bool = true) -
 	button.add_theme_font_size_override('font_size',int(18*font_scale))
 	var captured = page_owner.duplicate(true)
 	button.pressed.connect(func():
+		if action=='enhancement_choose' and (not _enhancement_ready(captured) or enhancement_preview_owner!=captured or value!=enhancement_preview):
+			return
 		if page_owner==captured and visible and not pending:
 			intent.emit(action,value,captured))
 	box.add_child(button)
@@ -171,10 +177,7 @@ func _rebuild() -> void:
 			_button('返回','back')
 		'capability': _capability()
 		'enhancement':
-			_text('灰巢首次撤离后的真实能力终端选择。一次确认，无法从此界面授予其他能力。')
-			for id in ['information.local_map_i','perception.rear_view_i','body.regeneration_i']:
-				_button(CAPS[id],'enhancement_choose',id,connected)
-			_button('返回','back')
+			_enhancement()
 		'mission': _mission()
 		'archive': _archive()
 		'save': _save()
@@ -378,4 +381,65 @@ func _slots() -> void:
 		_text(slot.displayName+' · '+('有效' if slot.valid else '不可用')+(' · 只读' if slot.readOnly else '')+(' · 可恢复' if slot.get('recoverable',false) else ''))
 		_button('继续：'+slot.displayName,'continue_slot',slot.slotId,connected and slot.valid)
 	_button('刷新列表','slots_refresh',null,connected)
+	_button('返回','back')
+
+func _clear_enhancement_preview() -> void:
+	enhancement_preview = ''
+	enhancement_preview_owner.clear()
+func _enhancement_state() -> String:
+	if mode!='enhancement' or not connected or pending or not P.snapshot(snapshot) or snapshot.worldId!='return_station' or snapshot.sceneId!='rs_core_room' or snapshot.get('entryToken')!=null:
+		return 'unknown'
+	var context = page_owner.get('context')
+	if not P.context(context) or not P.same(context,snapshot):
+		return 'unknown'
+	var progress = Content.progress(snapshot,'grey_hive')
+	if progress.is_empty() or not progress.completed or not snapshot.capabilities.has('firstEnhancementChoice'):
+		return 'unknown'
+	var choice = snapshot.capabilities.firstEnhancementChoice
+	if choice==null:
+		return 'available'
+	if typeof(choice)==TYPE_STRING and choice in ['information.local_map_i','perception.rear_view_i','body.regeneration_i'] and P.granted(snapshot,choice):
+		return choice
+	return 'unknown'
+func _enhancement_ready(owner: Dictionary) -> bool:
+	return visible and page_owner==owner and _enhancement_state()=='available'
+func _enhancement_local_button(text: String, choice: String) -> void:
+	var button = Button.new()
+	button.text = text
+	button.tooltip_text = text
+	button.clip_text = true
+	button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	button.disabled = not _enhancement_ready(page_owner)
+	button.custom_minimum_size.y = 38*font_scale
+	button.add_theme_font_size_override('font_size',int(18*font_scale))
+	var captured = page_owner.duplicate(true)
+	button.pressed.connect(func():
+		if not _enhancement_ready(captured):
+			return
+		if choice.is_empty():
+			_clear_enhancement_preview()
+		elif choice in ['information.local_map_i','perception.rear_view_i','body.regeneration_i']:
+			enhancement_preview = choice
+			enhancement_preview_owner = captured.duplicate(true)
+		else:
+			return
+		_rebuild()
+		_layout_content())
+	box.add_child(button)
+func _enhancement() -> void:
+	_text('灰巢首次撤离后的真实能力终端选择。一次确认，无法从此界面授予其他能力。')
+	var state = _enhancement_state()
+	if state=='unknown':
+		_text('首次进化状态未确认')
+		_button('确认选择','enhancement_choose',null,false)
+	elif state!='available':
+		_text('首次进化已记录：'+CAPS[state])
+	elif enhancement_preview_owner==page_owner and enhancement_preview in ['information.local_map_i','perception.rear_view_i','body.regeneration_i']:
+		_text('选择：'+CAPS[enhancement_preview])
+		_text('首次进化只能确认一次。确认后将记录在当前旅程。')
+		_button('确认选择','enhancement_choose',enhancement_preview,true)
+		_enhancement_local_button('返回选择','')
+	else:
+		for id in ['information.local_map_i','perception.rear_view_i','body.regeneration_i']:
+			_enhancement_local_button(CAPS[id],id)
 	_button('返回','back')
