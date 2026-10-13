@@ -30,6 +30,31 @@ static func narrative(before: Dictionary, target: Dictionary, receipt: Dictionar
 	var id: String = target.entityId
 	var kind: String = target.kind
 	if P.same(before,after) and after.serverTick>=before.serverTick and after.authorityRevision>before.authorityRevision:
+		if kind=='scene_checkpoint' and typeof(after.get('checkpointId'))==TYPE_STRING and after.checkpointId==id:
+			var checkpoints = {
+				'mist_harbor:mh_fog_pier:mh_fog_pier_checkpoint':'',
+				'mist_harbor:mh_tidal_warehouse:mh_warehouse_checkpoint':'',
+				'mist_harbor:mh_signal_yard:mh_signal_yard_checkpoint':'',
+				'mist_harbor:mh_drowned_quay:mh_drowned_quay_checkpoint':'',
+				'mist_harbor:mh_breakwater:mh_breakwater_checkpoint':'',
+				'mist_harbor:mh_pump_station:mh_pump_station_checkpoint':'',
+				'mist_harbor:mh_resonance_tower:mh_resonance_tower_checkpoint':'',
+				'mist_harbor:mh_warden_arena:mh_warden_arena_checkpoint':'',
+				'mist_harbor:mh_extraction:mh_extraction_checkpoint':'',
+				'clockworks:cw_entry_foundry:cw_entry_foundry_checkpoint':'',
+				'clockworks:cw_pressure_hall:cw_pressure_hall_checkpoint':'',
+				'clockworks:cw_conveyor_bridge:cw_conveyor_bridge_checkpoint':'',
+				'clockworks:cw_boiler_chamber:cw_boiler_chamber_checkpoint':'',
+				'clockworks:cw_gear_shaft:cw_gear_shaft_checkpoint':'',
+				'clockworks:cw_gear_shaft:cw_gear_upper_dock_checkpoint':' · 上层停靠点',
+				'clockworks:cw_furnace_heart:cw_furnace_heart_checkpoint':'',
+				'clockworks:cw_forged_guard_arena:cw_forged_guard_arena_checkpoint':'',
+				'clockworks:cw_regulator_core:cw_regulator_core_checkpoint':'',
+				'clockworks:cw_shutdown_exit:cw_shutdown_exit_checkpoint':''
+			}
+			var key = before.worldId+':'+before.sceneId+':'+id
+			if checkpoints.has(key) and SCENE_NAMES.has(before.sceneId):
+				return '检查点已确认：'+SCENE_NAMES[before.sceneId]+checkpoints[key]+'。需要保留旅程时，请使用保存。'
 		if before.worldId=='grey_hive':
 			var lines = {'gh_beacon:gh_beacon_deploy_marker:beacon_collect':'这就是信号源。带回去，也许能解释这里为什么还在呼叫。','gh_entry_maintenance:gh_entry_checkpoint:scene_checkpoint':'B-17 链路仅保持最低功率。','gh_power_room:gh_power_console:power_console':'主电还活着，只是被人为切断。','gh_lockdown:gh_lockdown_terminal:lockdown_terminal':'隔离协议已被局部覆盖。','gh_sentinel_arena:gh_sys_sentinel_01:facility_log':'自动防卫单元已接管本区。','gh_entry_maintenance:gh_entry_tutorial_terminal:terminal':'维护终端：WASD / 方向键移动，鼠标指向瞄准；J / 左键攻击，Shift 冲刺。Q 脉冲，按住 E 防御，R 穿刺；F 交互，Space 情境穿越。T 任务，M 地图，Esc 暂停；动作与地图信息以当前状态和权限为准。'}
 			return lines.get(before.sceneId+':'+id+':'+kind,'')
