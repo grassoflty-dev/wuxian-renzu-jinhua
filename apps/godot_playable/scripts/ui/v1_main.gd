@@ -63,6 +63,15 @@ var slot_list_state = 'unknown'
 var current_slots: Array = []
 var save_projection_generation = -1
 var save_projection_connection = -1
+const TRACE_KEYS = [KEY_W,KEY_A,KEY_S,KEY_D,KEY_UP,KEY_DOWN,KEY_LEFT,KEY_RIGHT,KEY_J,KEY_SHIFT,KEY_SPACE,KEY_Q,KEY_E,KEY_R,KEY_F,KEY_T,KEY_M,KEY_ESCAPE]
+var trace_enabled = false
+var trace_started_ms = 0
+var trace_records = 0
+var trace_heartbeats = 0
+var trace_observations = 0
+var trace_input_count = 0
+var trace_unhandled_count = 0
+var trace_next_ms = 0
 func _ready() -> void:
 	name = 'V1Main'
 	audio = NativeAudio.new()
@@ -91,6 +100,7 @@ func _ready() -> void:
 	rpc.response.connect(_response)
 	rpc.failed.connect(_failed)
 	rpc.connection_changed.connect(_connection)
+	_trace_start()
 	_show('start')
 	rpc.start_from_arguments()
 func _context() -> Dictionary:
@@ -148,6 +158,7 @@ func _connection(connected: bool, code: String) -> void:
 func _eligible() -> bool:
 	return not close_attempted and journey_started and rpc.authenticated and focused and not uncertain and critical.is_empty() and not panels.visible and not snapshot.is_empty() and not status.is_empty() and P.same(status,snapshot) and not status.paused and status.get('entryToken')==null and snapshot.get('entryToken')==null and ready_pending.is_empty() and snapshot.player.currentHp>0 and Time.get_ticks_msec()-last_snapshot_at<1000 and Time.get_ticks_msec()-last_status_at<1000
 func _process(delta: float) -> void:
+	_trace_tick()
 	if close_confirmed:
 		return
 	poll_accumulator += delta
@@ -270,35 +281,45 @@ func _event_key(event: InputEventKey) -> int:
 func _key_held(key: int) -> bool:
 	return Input.is_physical_key_pressed(key) or logical_down.has(key)
 func _unhandled_input(event: InputEvent) -> void:
+	_trace_key(event,'unhandled','received')
 	if event is InputEventMouseMotion:
 		pointer_seen = true
 	if event is InputEventKey:
 		var key = _event_key(event)
 		if not event.pressed:
+			_trace_key(event,'unhandled','release')
 			blocked_keys.erase(key)
 			if key==KEY_E:
 				_end_guard()
 			return
 		if event.echo:
+			_trace_key(event,'unhandled','echo')
 			return
 		if key==KEY_ESCAPE:
+			_trace_key(event,'unhandled','escape')
 			_escape()
 			get_viewport().set_input_as_handled()
 			return
 		if not _eligible() or blocked_keys.has(key):
+			_trace_key(event,'unhandled','ineligible_or_blocked')
 			return
 		if key==KEY_F:
+			_trace_key(event,'unhandled','dispatch_f')
 			_interact()
 		elif key==KEY_T:
+			_trace_key(event,'unhandled','dispatch_t')
 			_open_paused('mission')
 		elif key==KEY_M:
+			_trace_key(event,'unhandled','dispatch_m')
 			_open_paused('map')
 		elif ACTION_KEYS.has(key):
+			_trace_key(event,'unhandled','dispatch_action')
 			_action(ACTION_KEYS[key])
 	if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT and event.pressed and _eligible() and get_viewport().gui_get_hovered_control()==null:
 		pointer_seen = true
 		_action('primaryAttack')
 func _input(event: InputEvent) -> void:
+	_trace_key(event,'input','received')
 	if not event is InputEventKey:
 		return
 	var key = _event_key(event)
@@ -311,6 +332,7 @@ func _input(event: InputEvent) -> void:
 		elif event.echo:
 			return
 		elif not focused or logical_down.has(key):
+			_trace_key(event,'input','logical_duplicate_or_unfocused')
 			get_viewport().set_input_as_handled()
 			return
 		else:
@@ -318,6 +340,7 @@ func _input(event: InputEvent) -> void:
 			if not _eligible() and (ACTION_KEYS.has(key) or key in [KEY_F,KEY_T,KEY_M]):
 				blocked_keys[key] = true
 	if event.pressed and not event.echo and key==KEY_ESCAPE:
+		_trace_key(event,'input','escape')
 		_escape()
 		get_viewport().set_input_as_handled()
 	# Release is observed even when a native control consumed the key-up.
@@ -1215,3 +1238,87 @@ func _submit_close() -> void:
 	elif rpc.authenticated:
 		_hold('E_CLOSE_SUBMISSION')
 	# A synchronous drop already published its usable disconnected error page.
+
+func _trace_start() -> void:
+	trace_enabled = OS.get_environment('WUXIAN_V1_INPUT_TRACE')=='1'
+	if not trace_enabled:
+		return
+	trace_started_ms = Time.get_ticks_msec()
+	trace_next_ms = trace_started_ms
+	_trace_write('start','','',0)
+func _trace_live(now: int) -> bool:
+	if now-trace_started_ms>=120000 or trace_records>=223:
+		_trace_stop('duration' if now-trace_started_ms>=120000 else 'records',now)
+		return false
+	return true
+func _trace_stop(reason: String, now: int) -> void:
+	trace_enabled = false
+	_trace_write('stopped','',reason,mini(120000,maxi(0,now-trace_started_ms)))
+func _trace_tick() -> void:
+	if not trace_enabled:
+		return
+	var now = Time.get_ticks_msec()
+	if not _trace_live(now) or now<trace_next_ms or trace_heartbeats>=121:
+		return
+	trace_next_ms = now+1000
+	trace_heartbeats += 1
+	_trace_write('state','','',maxi(0,now-trace_started_ms))
+func _trace_key(event: InputEvent, stage: String, tag: String) -> void:
+	if not trace_enabled:
+		return
+	var now = Time.get_ticks_msec()
+	if not _trace_live(now) or trace_observations>=96 or not event is InputEventKey:
+		return
+	var resolved = _event_key(event)
+	if not event.physical_keycode in TRACE_KEYS and not event.keycode in TRACE_KEYS:
+		return
+	trace_observations += 1
+	if tag=='received':
+		if stage=='input':
+			trace_input_count += 1
+		else:
+			trace_unhandled_count += 1
+	_trace_write('key',stage,tag,maxi(0,now-trace_started_ms),event)
+func _trace_write(kind: String, stage: String, tag: String, elapsed: int, event: InputEventKey = null) -> void:
+	var window = get_window()
+	var viewport = get_viewport()
+	var nodes = is_instance_valid(rpc) and is_instance_valid(panels)
+	var valid_snapshot = P.snapshot(snapshot)
+	var valid_status = P.status(status)
+	var observed_eligible = null
+	if nodes and (snapshot.is_empty() or valid_snapshot) and (status.is_empty() or valid_status):
+		observed_eligible = _eligible()
+	var row = {
+		'kind':kind,'stage':stage,'tag':tag,'seq':trace_records+1,'elapsed_ms':elapsed,
+		'input_count':trace_input_count,'unhandled_count':trace_unhandled_count,
+		'physical':0,'logical':0,'resolved':0,'pressed':null,'echo':null,
+		'window_focus':window.has_focus() if is_instance_valid(window) else null,
+		'gui_focus':is_instance_valid(viewport) and viewport.gui_get_focus_owner()!=null,
+		'eligible':observed_eligible,'close_attempted':close_attempted,'close_confirmed':close_confirmed,
+		'journey_started':journey_started,'authenticated':rpc.authenticated if is_instance_valid(rpc) else false,
+		'focused':focused,'uncertain':uncertain,'critical':not critical.is_empty(),
+		'panels_visible':panels.visible if is_instance_valid(panels) else false,
+		'snapshot_present':not snapshot.is_empty(),'status_present':not status.is_empty(),
+		'same_context':valid_snapshot and valid_status and P.same(snapshot,status),
+		'paused':status.paused if valid_status and typeof(status.get('paused'))==TYPE_BOOL else null,
+		'snapshot_entry':snapshot.get('entryToken')!=null,'status_entry':status.get('entryToken')!=null,
+		'ready_pending':not ready_pending.is_empty(),'player_alive':valid_snapshot and snapshot.player.currentHp>0,
+		'snapshot_fresh':valid_snapshot and Time.get_ticks_msec()-last_snapshot_at<1000,
+		'status_fresh':valid_status and Time.get_ticks_msec()-last_status_at<1000,
+		'blocked_key':false}
+	if event!=null:
+		row.physical = event.physical_keycode if event.physical_keycode in TRACE_KEYS else 0
+		row.logical = event.keycode if event.keycode in TRACE_KEYS else 0
+		var resolved = _event_key(event)
+		row.resolved = resolved if resolved in TRACE_KEYS else 0
+		row.pressed = event.pressed
+		row.echo = event.echo
+		row.blocked_key = blocked_keys.has(resolved)
+		if tag=='ineligible_or_blocked':
+			row.tag = 'ineligible' if observed_eligible==false else 'blocked'
+	var encoded = JSON.stringify(row)
+	if encoded.to_utf8_buffer().size()>2048 or trace_records>=224:
+		trace_enabled = false
+		return
+	trace_records += 1
+	print('WUXIAN_INPUT_TRACE:'+encoded)
