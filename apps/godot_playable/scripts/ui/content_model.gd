@@ -68,6 +68,35 @@ static func narrative(before: Dictionary, target: Dictionary, receipt: Dictionar
 				return '双基准建立，中心干扰源可定位。'
 			if kind=='terminal' and id=='mh_signal_console_staged' and before.sceneId=='mh_resonance_tower' and not 'mist_signal' in prior.completedEvents and 'mist_signal' in current.completedEvents and not P.granted(before,'perception.acoustic_mapping_i') and P.granted(after,'perception.acoustic_mapping_i',true):
 				return '这次我不是在看路——是在听。'
+		if before.get('worldId')=='clockworks' and P.snapshot(before) and P.snapshot(after):
+			if typeof(target.get('entityId'))!=TYPE_STRING or typeof(target.get('kind'))!=TYPE_STRING:
+				return ''
+			var valves = {'cw_pressure_valve_01_staged':'1','cw_pressure_valve_02_staged':'2','cw_pressure_valve_03_staged':'3'}
+			var selected = ''
+			var acknowledgement = ''
+			if before.sceneId=='cw_pressure_hall' and kind=='valve_control' and valves.has(id):
+				selected = 'clockworks_valves'
+				acknowledgement = '阀门 '+valves[id]+'：本次操作已确认。'
+			elif before.sceneId=='cw_regulator_core' and kind=='terminal' and id=='cw_regulator_core_console_staged':
+				selected = 'clockworks_core'
+			else:
+				return ''
+			var matches = before.interactables.filter(func(row): return row.entityId==id and row.kind==kind)
+			if matches.size()!=1 or typeof(matches[0].get('active'))!=TYPE_BOOL or not matches[0].active or not P.transform(matches[0].get('transform')):
+				return ''
+			var prior = progress(before,'clockworks')
+			var current = progress(after,'clockworks')
+			var new_event = false
+			if not prior.is_empty() and not current.is_empty() and prior.worldId==current.worldId and prior.visitId==current.visitId and prior.cycleId==current.cycleId and prior.revisitCount==current.revisitCount and not prior.completed and not current.completed and not prior.firstCompletion and not current.firstCompletion and before.progression.currentWorldId=='clockworks' and after.progression.currentWorldId=='clockworks' and after.progression.eventSeq==before.progression.eventSeq+1 and current.completedEvents.size()==prior.completedEvents.size()+1 and not selected in prior.completedEvents and selected in current.completedEvents:
+				var retained = true
+				for event in prior.completedEvents:
+					if not event in current.completedEvents:
+						retained = false
+				new_event = retained
+			if new_event:
+				var recorded = '压力阀门事件已记录。' if selected=='clockworks_valves' else '调节者核心事件已记录。'
+				return acknowledgement+(' ' if not acknowledgement.is_empty() else '')+recorded
+			return acknowledgement
 	if kind=='world_gate' and after.worldId=='return_station' and after.sceneId=='rs_core_room' and after.worldEpoch==before.worldEpoch+1 and after.authorityRevision>before.authorityRevision:
 		var row = progress(before,before.worldId)
 		var next = progress(after,before.worldId)
