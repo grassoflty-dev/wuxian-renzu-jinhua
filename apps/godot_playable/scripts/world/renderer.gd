@@ -493,7 +493,7 @@ func _world_ui() -> void:
 				if typeof(v.get('tier'))!=TYPE_STRING or not v.tier in ['healthy','wounded','severelyWounded','critical'] or not displayed.has(v.entityId) or not actor_visible(v.entityId):
 					continue
 				for a in snapshot.actors:
-					var enemy = a.actorKind=='enemy' or a.actorKind=='sentinel' and a.entityType=='enemy.grey_hive.sentinel' and a.entityId=='gh_sys_sentinel_01' and snapshot.worldId=='grey_hive' and snapshot.sceneId=='gh_sentinel_arena'
+					var enemy = a.actorKind=='enemy' or a.actorKind=='sentinel' and a.entityType=='enemy.grey_hive.sentinel' and a.entityId=='gh_sentinel_arena_sentinel_01' and snapshot.worldId=='grey_hive' and snapshot.sceneId=='gh_sentinel_arena'
 					if a.entityId==v.entityId and a.active and enemy and P.transform(a.transform):
 						_label(camera.project(P.vector(a.transform.positionM))-Vector2(0,55*text_scale),{'healthy':'健康','wounded':'受伤','severelyWounded':'重伤','critical':'濒危'}[v.tier])
 	if not sound.is_empty() and V.mapping(snapshot):
