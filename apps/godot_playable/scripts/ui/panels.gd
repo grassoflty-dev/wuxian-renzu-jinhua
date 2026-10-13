@@ -453,6 +453,10 @@ func _enhancement_local_button(text: String, choice: String) -> void:
 		_layout_content())
 	box.add_child(button)
 func _enhancement() -> void:
+	var use_text = {
+		'information.local_map_i':'M / 地图：只显示权威允许的已探索信息。',
+		'perception.rear_view_i':'后方视野：显示来自当前权威授权的信息。',
+		'body.regeneration_i':'再生：由权威自动处理，受伤与战斗后的恢复不由本页触发。'}
 	_text('灰巢首次撤离后的真实能力终端选择。一次确认，无法从此界面授予其他能力。')
 	var state = _enhancement_state()
 	if state=='unknown':
@@ -460,12 +464,16 @@ func _enhancement() -> void:
 		_button('确认选择','enhancement_choose',null,false)
 	elif state!='available':
 		_text('首次进化已记录：'+CAPS[state])
+		if use_text.has(state):
+			_text(use_text[state])
 	elif enhancement_preview_owner==page_owner and enhancement_preview in ['information.local_map_i','perception.rear_view_i','body.regeneration_i']:
 		_text('选择：'+CAPS[enhancement_preview])
+		_text(use_text[enhancement_preview])
 		_text('首次进化只能确认一次。确认后将记录在当前旅程。')
 		_button('确认选择','enhancement_choose',enhancement_preview,true)
 		_enhancement_local_button('返回选择','')
 	else:
 		for id in ['information.local_map_i','perception.rear_view_i','body.regeneration_i']:
 			_enhancement_local_button(CAPS[id],id)
+			_text(use_text[id])
 	_button('返回','back')
