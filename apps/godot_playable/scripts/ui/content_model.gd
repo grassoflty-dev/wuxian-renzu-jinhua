@@ -72,6 +72,21 @@ static func narrative(before: Dictionary, target: Dictionary, receipt: Dictionar
 				if checkpoint_rows.size()==1 and typeof(checkpoint_rows[0].get('active'))==TYPE_BOOL and checkpoint_rows[0].active and P.transform(checkpoint_rows[0].get('transform')):
 					var checkpoint_text = '检查点已确认：'+SCENE_NAMES[before.sceneId]+'。需要保留旅程时，请使用保存。'
 					return ('B-17 链路仅保持最低功率。 ' if checkpoint_key=='grey_hive:gh_entry_maintenance:gh_entry_checkpoint' else '')+checkpoint_text
+		if P.snapshot(before) and P.snapshot(after) and before.get('entryToken')==null and after.get('entryToken')==null and before.worldId=='grey_hive' and before.sceneId=='gh_beacon' and before.progression.currentWorldId=='grey_hive' and after.progression.currentWorldId=='grey_hive' and typeof(target.get('entityId'))==TYPE_STRING and typeof(target.get('kind'))==TYPE_STRING and typeof(target.get('active'))==TYPE_BOOL and target.active and P.transform(target.get('transform')):
+			var physical_beacon_before = before.get('greyHiveBeacon')
+			var physical_beacon_after = after.get('greyHiveBeacon')
+			if physical_beacon_before is Dictionary and physical_beacon_before.size()==2 and physical_beacon_before.has_all(['state','legacyCompletedWithoutReceipt']) and typeof(physical_beacon_before.state)==TYPE_STRING and physical_beacon_before.state in ['uncollected','carried','mounted'] and typeof(physical_beacon_before.legacyCompletedWithoutReceipt)==TYPE_BOOL and (not physical_beacon_before.legacyCompletedWithoutReceipt or physical_beacon_before.state=='uncollected') and physical_beacon_after is Dictionary and physical_beacon_after.size()==2 and physical_beacon_after.has_all(['state','legacyCompletedWithoutReceipt']) and typeof(physical_beacon_after.state)==TYPE_STRING and physical_beacon_after.state in ['uncollected','carried','mounted'] and typeof(physical_beacon_after.legacyCompletedWithoutReceipt)==TYPE_BOOL and not physical_beacon_after.legacyCompletedWithoutReceipt:
+				var physical_beacon_text = ''
+				if id=='gh_beacon_deploy_marker' and kind=='beacon_collect' and physical_beacon_before.state=='uncollected' and physical_beacon_after.state=='carried':
+					physical_beacon_text = '这就是信号源。带回去，也许能解释这里为什么还在呼叫。 信标：已携带。'
+				elif id=='gh_beacon_storage_mount_marker' and kind=='beacon_mount' and physical_beacon_before.state=='carried' and physical_beacon_after.state=='mounted':
+					physical_beacon_text = '信标：已部署。'
+				if not physical_beacon_text.is_empty():
+					var physical_beacon_rows = before.interactables.filter(func(row): return row.entityId==id and row.kind==kind)
+					var physical_beacon_prior = progress(before,'grey_hive')
+					var physical_beacon_current = progress(after,'grey_hive')
+					if physical_beacon_rows.size()==1 and typeof(physical_beacon_rows[0].get('active'))==TYPE_BOOL and physical_beacon_rows[0].active and P.transform(physical_beacon_rows[0].get('transform')) and physical_beacon_rows[0].transform==target.transform and not physical_beacon_prior.is_empty() and not physical_beacon_current.is_empty() and physical_beacon_prior.worldId=='grey_hive' and physical_beacon_current.worldId=='grey_hive' and physical_beacon_prior.visitId==physical_beacon_current.visitId and physical_beacon_prior.cycleId==physical_beacon_current.cycleId and physical_beacon_prior.revisitCount==physical_beacon_current.revisitCount and physical_beacon_prior.completed==physical_beacon_current.completed and physical_beacon_prior.firstCompletion==physical_beacon_current.firstCompletion and physical_beacon_prior.completedEvents==physical_beacon_current.completedEvents and before.progression.eventSeq==after.progression.eventSeq:
+						return physical_beacon_text
 		if before.worldId=='grey_hive':
 			var lines = {'gh_beacon:gh_beacon_deploy_marker:beacon_collect':'这就是信号源。带回去，也许能解释这里为什么还在呼叫。','gh_entry_maintenance:gh_entry_checkpoint:scene_checkpoint':'B-17 链路仅保持最低功率。','gh_power_room:gh_power_console:power_console':'主电还活着，只是被人为切断。','gh_lockdown:gh_lockdown_terminal:lockdown_terminal':'隔离协议已被局部覆盖。','gh_sentinel_arena:gh_sys_sentinel_01:facility_log':'自动防卫单元已接管本区。','gh_entry_maintenance:gh_entry_tutorial_terminal:terminal':'维护终端：WASD / 方向键移动，鼠标指向瞄准；J / 左键攻击，Shift 冲刺。Q 脉冲，按住 E 防御，R 穿刺；F 交互，Space 情境穿越。T 任务，M 地图，Esc 暂停；动作与地图信息以当前状态和权限为准。'}
 			return lines.get(before.sceneId+':'+id+':'+kind,'')
