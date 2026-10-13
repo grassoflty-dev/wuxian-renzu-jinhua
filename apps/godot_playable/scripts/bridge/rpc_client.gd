@@ -18,6 +18,9 @@ var token_secret = ''
 var connect_started = 0
 var hello_sent = false
 var closing_expected = false
+var terminal_code = ''
+var terminal_started = 0
+var transport_stopped = false
 func start_from_arguments() -> void:
 	var args = OS.get_cmdline_user_args()
 	var values = {}
@@ -55,6 +58,10 @@ func start_from_arguments() -> void:
 		return
 	# Live process/artifact/ordinary namespace provenance belongs to the future owned caller.
 	token_secret = values['--v1-token']
+	closing_expected = false
+	terminal_code = ''
+	terminal_started = 0
+	transport_stopped = false
 	connection_generation += 1
 	connect_started = Time.get_ticks_msec()
 	var err = peer.connect_to_host('127.0.0.1',int(ready.port))
@@ -68,7 +75,7 @@ func _valid_token(v: String) -> bool:
 			return false
 	return true
 func request(method: String, params: Dictionary, association: Dictionary = {}) -> int:
-	if not method in METHODS or (not authenticated and method!='hello') or peer.get_status()!=StreamPeerTCP.STATUS_CONNECTED or next_id>=9007199254740991:
+	if transport_stopped or not terminal_code.is_empty() or closing_expected or not method in METHODS or (not authenticated and method!='hello') or peer.get_status()!=StreamPeerTCP.STATUS_CONNECTED or next_id>=9007199254740991:
 		return 0
 	# Read work is coalesced while pending; mutations always preserve their original id/order.
 	if method in READS:
@@ -84,7 +91,13 @@ func request(method: String, params: Dictionary, association: Dictionary = {}) -
 	queue.append({'id':next_id,'bytes':bytes,'offset':0})
 	queued_bytes += bytes.size()
 	return next_id
+func _terminal(code: String) -> void:
+	if terminal_code.is_empty():
+		terminal_code = code
+		terminal_started = Time.get_ticks_msec()
 func _process(_delta: float) -> void:
+	if transport_stopped:
+		return
 	peer.poll()
 	var state = peer.get_status()
 	if state==StreamPeerTCP.STATUS_CONNECTING:
@@ -92,35 +105,40 @@ func _process(_delta: float) -> void:
 			_drop('E_CONNECT_TIMEOUT')
 		return
 	if state!=StreamPeerTCP.STATUS_CONNECTED:
-		if hello_sent or authenticated or connect_started>0:
-			_drop('E_CONNECTION_LOST')
-		return
-	if not hello_sent:
-		hello_sent = true
-		request('hello',{'sessionToken':token_secret,'clientProtocolVersion':1})
-		token_secret = ''
-	var work = 0
-	while not queue.is_empty() and work<65536:
-		var item: Dictionary = queue[0]
-		var data: PackedByteArray = item.bytes.slice(item.offset,mini(item.bytes.size(),item.offset+16384))
-		var sent = peer.put_partial_data(data)
-		if sent[0]!=OK:
-			_drop('E_SEND_FAILED')
+		if not hello_sent and not authenticated and connect_started==0:
 			return
-		if sent[1]==0:
-			break
-		item.offset += sent[1]
-		queued_bytes -= sent[1]
-		work += sent[1]
-		if item.offset==item.bytes.size():
-			queue.pop_front()
+		_terminal('E_CONNECTION_LOST')
+	if terminal_code.is_empty():
+		if not hello_sent:
+			hello_sent = true
+			request('hello',{'sessionToken':token_secret,'clientProtocolVersion':1})
+			token_secret = ''
+		var work = 0
+		while not queue.is_empty() and work<65536:
+			var item: Dictionary = queue[0]
+			var data: PackedByteArray = item.bytes.slice(item.offset,mini(item.bytes.size(),item.offset+16384))
+			var sent = peer.put_partial_data(data)
+			if sent[0]!=OK:
+				_terminal('E_SEND_FAILED')
+				break
+			if sent[1]==0:
+				break
+			item.offset += sent[1]
+			queued_bytes -= sent[1]
+			work += sent[1]
+			if item.offset==item.bytes.size():
+				queue.pop_front()
+	# The API may still expose bytes at EOF. Never infer bytes it does not expose.
 	var available = peer.get_available_bytes()
 	if available>0:
 		var got = peer.get_partial_data(mini(available,65536))
-		if got[0]!=OK:
-			_drop('E_READ_FAILED')
-			return
 		incoming.append_array(got[1])
+		if got[0]!=OK:
+			_terminal('E_READ_FAILED')
+			available = 0
+	if incoming.size()>2097152:
+		_drop('E_RESPONSE_LIMIT')
+		return
 	var lines = 0
 	while lines<16:
 		var at = incoming.find(10)
@@ -136,10 +154,18 @@ func _process(_delta: float) -> void:
 			return
 		_handle(JSON.parse_string(raw.get_string_from_utf8()))
 		lines += 1
-		if peer.get_status()!=StreamPeerTCP.STATUS_CONNECTED:
+		if transport_stopped:
 			return
-	if incoming.size()>2097152:
-		_drop('E_RESPONSE_LIMIT')
+	# Terminal work is spread across bounded frames; pending ownership survives the drain.
+	if peer.get_status()!=StreamPeerTCP.STATUS_CONNECTED:
+		_terminal('E_CONNECTION_LOST')
+	if not terminal_code.is_empty():
+		if Time.get_ticks_msec()-terminal_started>15000:
+			_drop('E_RESPONSE_TIMEOUT')
+		elif incoming.find(10)>=0 or peer.get_available_bytes()>0:
+			return
+		else:
+			_drop(terminal_code if incoming.is_empty() else 'E_RESPONSE_TRUNCATED')
 		return
 	for id in pending.keys():
 		if Time.get_ticks_msec()-pending[id].started>15000:
@@ -151,6 +177,12 @@ func _handle(v) -> void:
 		return
 	var id = int(v.id)
 	var item: Dictionary = pending[id]
+	if Time.get_ticks_msec()-item.started>15000:
+		_drop('E_RESPONSE_TIMEOUT')
+		return
+	if item.generation!=connection_generation or item.method=='session_close' and queue.any(func(row): return row.id==id):
+		_drop('E_RESPONSE_PROTOCOL')
+		return
 	pending.erase(id)
 	if not v.ok:
 		if not v.error is Dictionary or typeof(v.error.get('code'))!=TYPE_STRING or v.error.code.length()>128:
@@ -171,10 +203,13 @@ func _handle(v) -> void:
 		authenticated = true
 		connection_changed.emit(true,'')
 	else:
-		if item.method=='session_close' and v.result is Dictionary and v.result.get('closing')==true:
+		if item.method=='session_close' and v.result is Dictionary and typeof(v.result.get('closing'))==TYPE_BOOL and v.result.closing:
 			closing_expected = true
 		response.emit(id,item.method,v.result,item.association)
 func _drop(code: String) -> void:
+	if transport_stopped:
+		return
+	transport_stopped = true
 	peer.disconnect_from_host()
 	authenticated = false
 	connect_started = 0

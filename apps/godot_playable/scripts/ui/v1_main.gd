@@ -51,6 +51,10 @@ var guard_blocked = false
 var last_status_at = 0
 var last_input_packet_at = -1000
 var neutral_pending = false
+var close_attempted = false
+var close_pending: Dictionary = {}
+var close_confirmed = false
+var close_submitting = false
 var save_read_sequence = 0
 var save_reads: Dictionary = {}
 var default_save_state = 'unknown'
@@ -99,6 +103,8 @@ func _assoc(extra: Dictionary = {}) -> Dictionary:
 func _current(a: Dictionary, transition: bool = false) -> bool:
 	return a.get('generation')==generation and (transition or a.get('context',{}).is_empty() or P.same(a.context,_context()))
 func _request(method: String, params: Dictionary, purpose: String = '', extra: Dictionary = {}, block: bool = false) -> int:
+	if close_attempted and not (close_submitting and method=='session_close'):
+		return 0
 	if block:
 		if not critical.is_empty() or uncertain:
 			_feedback('当前请求尚未完成')
@@ -115,6 +121,14 @@ func _id(prefix: String) -> String:
 	request_sequence += 1
 	return prefix+'-'+str(generation)+'-'+str(request_sequence)
 func _connection(connected: bool, code: String) -> void:
+	if connected:
+		close_confirmed = false
+	if close_confirmed:
+		return
+	if connected:
+		close_attempted = false
+		close_pending.clear()
+		close_submitting = false
 	_invalidate_saves()
 	connection_text = '已连接' if connected else '未连接 / '+_localized(code)
 	if not connected:
@@ -123,18 +137,20 @@ func _connection(connected: bool, code: String) -> void:
 		if journey_started:
 			uncertain = true
 			_show('error')
-			panels.set_message('连接中断；未确认操作保持结果未知',true)
+			panels.set_message('连接中断；未确认操作保持结果未知',false)
 		else:
 			_show('start')
 	else:
 		_show('start')
 		_refresh_saves()
 func _eligible() -> bool:
-	return journey_started and rpc.authenticated and focused and not uncertain and critical.is_empty() and not panels.visible and not snapshot.is_empty() and not status.is_empty() and P.same(status,snapshot) and not status.paused and status.get('entryToken')==null and snapshot.get('entryToken')==null and ready_pending.is_empty() and snapshot.player.currentHp>0 and Time.get_ticks_msec()-last_snapshot_at<1000 and Time.get_ticks_msec()-last_status_at<1000
+	return not close_attempted and journey_started and rpc.authenticated and focused and not uncertain and critical.is_empty() and not panels.visible and not snapshot.is_empty() and not status.is_empty() and P.same(status,snapshot) and not status.paused and status.get('entryToken')==null and snapshot.get('entryToken')==null and ready_pending.is_empty() and snapshot.player.currentHp>0 and Time.get_ticks_msec()-last_snapshot_at<1000 and Time.get_ticks_msec()-last_status_at<1000
 func _process(delta: float) -> void:
+	if close_confirmed:
+		return
 	poll_accumulator += delta
 	input_accumulator += delta
-	if rpc.authenticated and poll_accumulator>=0.05:
+	if not close_attempted and rpc.authenticated and poll_accumulator>=0.05:
 		poll_accumulator = 0
 		_request('formal_snapshot',{},'poll')
 		_request('bridge_session_status',{},'status')
@@ -167,6 +183,8 @@ func _process(delta: float) -> void:
 		hint = '[F] '+_interaction_label(nearest)+' · '+last_feedback
 	hud.update_view(snapshot,connection_text,eligible,hint,preferences.scale)
 func _sample(neutral: bool) -> bool:
+	if close_attempted:
+		return false
 	if snapshot.is_empty() or not rpc.authenticated:
 		return false
 	if snapshot.get('entryToken')!=null or not ready_pending.is_empty() or not status.is_empty() and P.same(status,snapshot) and status.paused:
@@ -218,6 +236,8 @@ func _action(kind: String, release: bool = false) -> void:
 		return
 	_send_action(kind,Time.get_ticks_msec())
 func _send_action(kind: String, _event_time: int) -> void:
+	if close_attempted:
+		return
 	action_sequence += 1
 	if action_sequence>=9007199254740991:
 		_hold('E_COUNTER_EXHAUSTED')
@@ -280,6 +300,9 @@ func _input(event: InputEvent) -> void:
 		guard_blocked = false
 		_end_guard()
 func _notification(what: int) -> void:
+	if what==NOTIFICATION_WM_CLOSE_REQUEST and (not is_instance_valid(rpc) or not rpc.authenticated):
+		get_tree().quit()
+		return
 	if not is_instance_valid(rpc):
 		return
 	if what==NOTIFICATION_APPLICATION_FOCUS_OUT:
@@ -363,6 +386,11 @@ func _ui_intent(kind: String, value, owner: Dictionary) -> void:
 		return
 	if not owner.is_empty() and (owner.get('generation')!=generation or not owner.get('context',{}).is_empty() and not P.same(owner.context,_context())):
 		return
+	if kind=='close_client' and not rpc.authenticated:
+		get_tree().quit()
+		return
+	if close_confirmed or close_attempted and kind!='close_client':
+		return
 	if kind=='settings_defaults':
 		audio.ui_cue('confirm',focused)
 	if kind in ['settings_defaults','settings_apply','slot_create_prepare']:
@@ -438,7 +466,7 @@ func _ui_intent(kind: String, value, owner: Dictionary) -> void:
 				_back()
 		'close_client':
 			if rpc.authenticated:
-				_request('session_close',{},'close',{},true)
+				_submit_close()
 			else:
 				get_tree().quit()
 func _begin_journey(method: String, params: Dictionary) -> void:
@@ -582,6 +610,10 @@ func _close_baizhi() -> void:
 	_request('formal_baizhi_close',{'ticket':ticket.duplicate(true)},'baizhi_close',{'expectedCommand':'baizhi-close:'+ticket.ownerId+':'+str(int(ticket.generation))},true)
 	panels.set_message('等待对白关闭确认',true)
 func _response(_rpc_id: int, method: String, result, association: Dictionary) -> void:
+	if close_attempted and method in Rpc.READS:
+		return
+	if close_confirmed:
+		return
 	if method in ['formal_has_save','formal_list_save_slots']:
 		_save_read_response(_rpc_id,method,result,association)
 		return
@@ -632,10 +664,16 @@ func _response(_rpc_id: int, method: String, result, association: Dictionary) ->
 			event_view.accept_sound(result,snapshot)
 		return
 	if purpose=='close':
+		if not _close_current(_rpc_id,method,association):
+			return
+		close_pending.clear()
 		if result is Dictionary and typeof(result.get('closing'))==TYPE_BOOL and result.closing:
+			close_confirmed = true
 			get_tree().quit()
 		else:
 			_hold('E_CLOSE_RESPONSE')
+		return
+	if close_attempted and purpose in ['poll','status','events','sound']:
 		return
 	var r = result.get('receipt') if result is Dictionary and result.has('receipt') else result
 	if not P.receipt(r):
@@ -728,8 +766,7 @@ func _response(_rpc_id: int, method: String, result, association: Dictionary) ->
 		'save':
 			_feedback('已收到保存成功回执；不代表断电耐久性验收')
 			if association.get('exitAfter',false):
-				_request('session_close',{},'close',{},true)
-				_show('waiting',{},true)
+				_submit_close()
 			else:
 				_show('save')
 				panels.set_message('保存成功')
@@ -933,6 +970,8 @@ func _refresh_saves() -> void:
 	_save_read('formal_has_save',{'defaultOnly':true})
 	_save_read('formal_list_save_slots',{})
 func _save_read(method: String, params: Dictionary) -> void:
+	if close_attempted:
+		return
 	if not rpc.authenticated:
 		return
 	var owned = save_reads.get(method,{})
@@ -984,6 +1023,14 @@ func _valid_slots(value) -> bool:
 			return false
 	return true
 func _failed(_id_value: int, method: String, code: String, association: Dictionary) -> void:
+	if close_confirmed:
+		return
+	if method=='session_close':
+		if not _close_current(_id_value,method,association):
+			return
+		close_pending.clear()
+	elif close_attempted and method in Rpc.READS:
+		return
 	if method in ['formal_has_save','formal_list_save_slots']:
 		if not _save_read_current(_id_value,method,association):
 			return
@@ -1059,3 +1106,24 @@ func _advance_lifecycle() -> bool:
 func _exit_tree() -> void:
 	if is_instance_valid(audio):
 		audio.stop_all()
+
+func _close_current(id: int, method: String, association: Dictionary) -> bool:
+	return method=='session_close' and not close_pending.is_empty() and id==close_pending.id and close_pending.generation==generation and close_pending.connectionGeneration==rpc.connection_generation and association.get('connectionGeneration')==close_pending.connectionGeneration and association.get('purpose')=='close' and _current(association) and _current(close_pending)
+func _submit_close() -> void:
+	if close_attempted or not rpc.authenticated or uncertain or not critical.is_empty():
+		return
+	# Release existing Guard/input/audio work before the once-only close barrier.
+	_release()
+	close_attempted = true
+	close_submitting = true
+	var connection = rpc.connection_generation
+	var journey = generation
+	var context = _context().duplicate(true)
+	var id = _request('session_close',{},'close',{'connectionGeneration':connection},true)
+	close_submitting = false
+	if id>0 and rpc.authenticated and rpc.connection_generation==connection and generation==journey and rpc.pending.has(id):
+		close_pending = {'id':id,'generation':journey,'connectionGeneration':connection,'context':context}
+		_show('waiting',{},true)
+	elif rpc.authenticated:
+		_hold('E_CLOSE_SUBMISSION')
+	# A synchronous drop already published its usable disconnected error page.
