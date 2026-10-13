@@ -14,6 +14,10 @@ var hint: Label
 var mechanism: Label
 var icons
 var bottom: ScrollContainer
+var bottom_content: VBoxContainer
+var layout_queued = false
+var layout_busy = false
+var layout_scale = 1.0
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -43,19 +47,28 @@ func _ready() -> void:
 	bottom.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 	bottom.offset_top = -155
 	bottom.mouse_filter = Control.MOUSE_FILTER_STOP
+	bottom.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	add_child(bottom)
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color('#16202a')
 	style.border_color = Color('#344652')
 	style.set_border_width_all(1)
+	style.content_margin_left = 12
+	style.content_margin_right = 12
+	style.content_margin_top = 8
+	style.content_margin_bottom = 8
 	bottom.add_theme_stylebox_override('panel',style)
+	bottom_content = VBoxContainer.new()
+	bottom_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bottom_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bottom.add_child(bottom_content)
 	icons = Icons.new()
 	icons.name = 'SkillIconRow'
-	bottom.add_child(icons)
+	bottom_content.add_child(icons)
 	var side = VBoxContainer.new()
 	side.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	side.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	icons.add_child(side)
+	bottom_content.add_child(side)
 	hint = Label.new()
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -65,7 +78,7 @@ func _ready() -> void:
 	mechanism.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	mechanism.visible = false
 	side.add_child(mechanism)
-	var buttons = HBoxContainer.new()
+	var buttons = HFlowContainer.new()
 	side.add_child(buttons)
 	for item in [['mission','任务'],['inventory','背包'],['character','角色'],['capability','能力'],['map','地图'],['pause','菜单']]:
 		var button = Button.new()
@@ -74,6 +87,31 @@ func _ready() -> void:
 		buttons.add_child(button)
 		button_nodes.append(button)
 	call_deferred('_load_internal_icons')
+	resized.connect(_queue_bottom_layout)
+	bottom.resized.connect(_queue_bottom_layout)
+	bottom_content.minimum_size_changed.connect(_queue_bottom_layout)
+	_queue_bottom_layout()
+func _queue_bottom_layout() -> void:
+	if layout_queued or layout_busy:
+		return
+	layout_queued = true
+	call_deferred('_layout_bottom')
+func _layout_bottom() -> void:
+	layout_queued = false
+	if layout_busy or not is_instance_valid(bottom_content) or not is_finite(size.x) or not is_finite(size.y) or size.x<=0 or size.y<=0 or bottom.size.x<=0:
+		return
+	layout_busy = true
+	var style = bottom.get_theme_stylebox('panel')
+	var padding = style.get_minimum_size()
+	var reserve = bottom.get_v_scroll_bar().get_combined_minimum_size().x
+	var width = bottom.size.x-padding.x-reserve
+	if is_finite(width) and width>0 and bottom_content.custom_minimum_size.x!=width:
+		bottom_content.custom_minimum_size.x = width
+	var measured = bottom_content.get_combined_minimum_size().y+padding.y
+	var height = minf(maxf(155*layout_scale,measured),size.y*0.45)
+	if is_finite(height) and height>0 and bottom.offset_top!=-height:
+		bottom.offset_top = -height
+	layout_busy = false
 func _load_internal_icons() -> void:
 	var file = FileAccess.open('res://data/skill_icons.internal-use.json',FileAccess.READ)
 	if file == null:
@@ -106,4 +144,6 @@ func update_view(s: Dictionary, connection: String, eligible: bool, interaction:
 		button.add_theme_font_size_override('font_size',int(16*scale))
 		button.custom_minimum_size.y = 32*scale
 	icons.update_display(scale,'' if s.is_empty() else s.player.actionState,eligible,display.action)
-	bottom.offset_top = -155*scale
+	if layout_scale!=scale:
+		layout_scale = scale
+		_queue_bottom_layout()

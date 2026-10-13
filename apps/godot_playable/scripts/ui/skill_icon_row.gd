@@ -7,6 +7,7 @@ func _ready() -> void:
 		var box = VBoxContainer.new()
 		box.name = id.capitalize()
 		box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		add_child(box)
 		var icon = TextureRect.new()
 		icon.name = 'Icon'
@@ -20,13 +21,15 @@ func _ready() -> void:
 		box.add_child(icon)
 		var text = Label.new()
 		text.text = LABELS[id]
+		text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		text.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		box.add_child(text)
 		var phase = Label.new()
 		phase.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		phase.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		phase.custom_minimum_size.x = 56
-		phase.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		phase.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		box.add_child(phase)
 		slots[id] = {'icon':icon,'text':text,'phase':phase}
 func apply_admitted_mapping(mapping: Dictionary) -> void:
