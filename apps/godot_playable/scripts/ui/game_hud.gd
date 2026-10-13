@@ -9,6 +9,7 @@ const PLAYER_ACTION_LABELS = {'primaryAttack':'攻击','dash':'冲刺','pulse':'
 var player_action_states: Dictionary = {}
 signal intent(kind, value)
 const MOVEMENT_LABELS = {'move_up':'上移','move_down':'下移','move_left':'左移','move_right':'右移'}
+const SHOW_MOVEMENT_CONTROLS = false
 var movement_states: Dictionary = {}
 var guard_button: Button
 var guard_association: Dictionary = {}
@@ -297,7 +298,7 @@ func _add_movement_button(buttons: HFlowContainer, direction_id: String) -> void
 	movement_states[direction_id] = state
 	button.text = MOVEMENT_LABELS[direction_id]
 	button.tooltip_text = '按住沿屏幕方向移动；松开或取消时停止鼠标移动。'
-	button.mouse_filter = Control.MOUSE_FILTER_STOP
+	button.mouse_filter = Control.MOUSE_FILTER_STOP if SHOW_MOVEMENT_CONTROLS else Control.MOUSE_FILTER_IGNORE
 	button.focus_mode = Control.FOCUS_NONE
 	button.disabled = true
 	button.visible = false
@@ -312,7 +313,7 @@ func _add_movement_button(buttons: HFlowContainer, direction_id: String) -> void
 func _update_movements(s: Dictionary, eligible: bool, movements) -> void:
 	var selected: Dictionary = {}
 	var common_generation = -1
-	if eligible and P.snapshot(s) and movements is Array and movements.size()==4:
+	if SHOW_MOVEMENT_CONTROLS and eligible and P.snapshot(s) and movements is Array and movements.size()==4:
 		for row in movements:
 			if not _movement_association_valid(row) or not P.same(row.context,s) or selected.has(row.entityId) or common_generation!=-1 and common_generation!=row.generation:
 				selected.clear()
