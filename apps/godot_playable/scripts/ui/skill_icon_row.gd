@@ -22,7 +22,13 @@ func _ready() -> void:
 		text.text = LABELS[id]
 		text.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		box.add_child(text)
-		slots[id] = {'icon':icon,'text':text}
+		var phase = Label.new()
+		phase.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		phase.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		phase.custom_minimum_size.x = 56
+		phase.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		box.add_child(phase)
+		slots[id] = {'icon':icon,'text':text,'phase':phase}
 func apply_admitted_mapping(mapping: Dictionary) -> void:
 	# Explicit future intake only. No private lookup, implicit preload or admission from existence.
 	for id in slots:
@@ -45,8 +51,11 @@ func apply_admitted_mapping(mapping: Dictionary) -> void:
 				var texture = ImageTexture.create_from_image(image)
 				if texture != null:
 					slots[id].icon.texture = texture
-func update_display(scale: float, action: String, eligible: bool) -> void:
+func update_display(scale: float, action: String, eligible: bool, status: Dictionary = {}) -> void:
 	for id in slots:
 		slots[id].icon.custom_minimum_size = Vector2(56,56)*scale
 		slots[id].text.add_theme_font_size_override('font_size',int(16*scale))
 		slots[id].text.text = LABELS[id]+(' · 当前' if action==id else '')+(' · 暂停输入' if not eligible else '')
+		slots[id].phase.add_theme_font_size_override('font_size',int(14*scale))
+		slots[id].phase.custom_minimum_size.x = 56*scale
+		slots[id].phase.text = status.text if eligible and action==id and status.get('kind')==id and typeof(status.get('text'))==TYPE_STRING else ''

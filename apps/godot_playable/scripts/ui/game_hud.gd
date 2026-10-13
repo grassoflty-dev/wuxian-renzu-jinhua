@@ -2,6 +2,7 @@ extends Control
 const Content = preload('res://scripts/ui/content_model.gd')
 const P = preload('res://scripts/bridge/protocol.gd')
 const Icons = preload('res://scripts/ui/skill_icon_row.gd')
+const PlayStatus = preload('res://scripts/ui/play_status_model.gd')
 signal intent(kind, value)
 var portrait: Label
 var button_nodes: Array = []
@@ -80,16 +81,20 @@ func _load_internal_icons() -> void:
 func update_view(s: Dictionary, connection: String, eligible: bool, interaction: String, scale: float) -> void:
 	status_label.text = connection if s.is_empty() else {'return_station':'归航站','grey_hive':'灰巢设施','mist_harbor':'雾港余烬','clockworks':'钟骨工厂'}.get(s.worldId,s.worldId)+' · '+Content.SCENE_NAMES.get(s.sceneId,'当前场景')+' · '+connection
 	meters.text = '' if s.is_empty() else '岑遥 · 生命 %d / %d    能量 %d / %d'%[s.player.currentHp,s.player.maxHp,s.player.currentEnergy,s.player.maxEnergy]
-	var lines: Array = []
-	if not s.is_empty():
-		for o in s.objectives.slice(0,3):
-			lines.append(Content.objective(o))
+	var display = PlayStatus.project(s,eligible)
+	var lines: Array = display.objectives.duplicate()
+	if not display.milestones.is_empty():
+		if not lines.is_empty():
+			lines.append('')
+		lines.append(' · '.join(PackedStringArray(display.milestones)))
 	objectives.text = '\n'.join(PackedStringArray(lines))
 	hint.text = interaction+'\nWASD / 方向键移动 · J / 鼠标左键攻击 · 空格：场景穿越 · F：交互'
+	if not display.action.is_empty() and display.action.kind=='primaryAttack':
+		hint.text += '\n'+display.action.text
 	for label in [portrait,status_label,meters,objectives,hint]:
 		label.add_theme_font_size_override('font_size',int(16*scale))
 	for button in button_nodes:
 		button.add_theme_font_size_override('font_size',int(16*scale))
 		button.custom_minimum_size.y = 32*scale
-	icons.update_display(scale,'' if s.is_empty() else s.player.actionState,eligible)
+	icons.update_display(scale,'' if s.is_empty() else s.player.actionState,eligible,display.action)
 	bottom.offset_top = -155*scale
