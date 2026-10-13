@@ -31,6 +31,7 @@ var journey_started = false
 var focused = true
 var guard_active = false
 var blocked_keys = {}
+var logical_down: Dictionary = {}
 var critical = ''
 var uncertain = false
 var connection_text = '未连接'
@@ -133,6 +134,7 @@ func _connection(connected: bool, code: String) -> void:
 	connection_text = '已连接' if connected else '未连接 / '+_localized(code)
 	if not connected:
 		_release()
+		logical_down.clear()
 		status.clear()
 		if journey_started:
 			uncertain = true
@@ -169,10 +171,10 @@ func _process(delta: float) -> void:
 					_send_action(edge.kind,edge.time)
 		elif neutral_pending and critical.is_empty():
 			_sample(true)
-	if guard_active and (not eligible or not Input.is_physical_key_pressed(KEY_E)):
+	if guard_active and (not eligible or not _key_held(KEY_E)):
 		_end_guard()
 	for key in blocked_keys.keys():
-		if not Input.is_physical_key_pressed(key):
+		if not _key_held(key):
 			blocked_keys.erase(key)
 	if not snapshot.is_empty():
 		renderer.events = event_view.project(snapshot,renderer,eligible)
@@ -200,10 +202,10 @@ func _sample(neutral: bool) -> bool:
 		if not uncertain:
 			_hold('E_COUNTER_EXHAUSTED')
 		return false
-	var right = Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT)
-	var left = Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT)
-	var down = Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN)
-	var up = Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP)
+	var right = _key_held(KEY_D) or _key_held(KEY_RIGHT)
+	var left = _key_held(KEY_A) or _key_held(KEY_LEFT)
+	var down = _key_held(KEY_S) or _key_held(KEY_DOWN)
+	var up = _key_held(KEY_W) or _key_held(KEY_UP)
 	var sx = int(right)-int(left)
 	var sy = int(down)-int(up)
 	var move = Vector2(sy+0.5*sx,sy-0.5*sx).normalized() if not neutral else Vector2.ZERO
@@ -253,19 +255,25 @@ func _end_guard() -> void:
 func _release() -> void:
 	if is_instance_valid(audio):
 		audio.suspend_world()
-	if guard_active or Input.is_physical_key_pressed(KEY_E) or pending_actions.any(func(edge): return edge.kind=='guardStart'):
+	if guard_active or _key_held(KEY_E) or pending_actions.any(func(edge): return edge.kind=='guardStart'):
 		guard_blocked = true
 	pending_actions.clear()
 	_end_guard()
 	_sample(true)
 	for key in ACTION_KEYS:
-		if Input.is_physical_key_pressed(key):
+		if _key_held(key):
 			blocked_keys[key] = true
+func _event_key(event: InputEventKey) -> int:
+	if event.physical_keycode!=0:
+		return event.physical_keycode
+	return event.keycode if event.keycode in [KEY_W,KEY_A,KEY_S,KEY_D,KEY_UP,KEY_DOWN,KEY_LEFT,KEY_RIGHT,KEY_J,KEY_SHIFT,KEY_SPACE,KEY_Q,KEY_E,KEY_R,KEY_F,KEY_T,KEY_M,KEY_ESCAPE] else 0
+func _key_held(key: int) -> bool:
+	return Input.is_physical_key_pressed(key) or logical_down.has(key)
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		pointer_seen = true
 	if event is InputEventKey:
-		var key = event.physical_keycode
+		var key = _event_key(event)
 		if not event.pressed:
 			blocked_keys.erase(key)
 			if key==KEY_E:
@@ -291,11 +299,29 @@ func _unhandled_input(event: InputEvent) -> void:
 		pointer_seen = true
 		_action('primaryAttack')
 func _input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode==KEY_ESCAPE:
+	if not event is InputEventKey:
+		return
+	var key = _event_key(event)
+	if key==0:
+		return
+	if event.physical_keycode==0:
+		if not event.pressed:
+			logical_down.erase(key)
+			blocked_keys.erase(key)
+		elif event.echo:
+			return
+		elif not focused or logical_down.has(key):
+			get_viewport().set_input_as_handled()
+			return
+		else:
+			logical_down[key] = true
+			if not _eligible() and (ACTION_KEYS.has(key) or key in [KEY_F,KEY_T,KEY_M]):
+				blocked_keys[key] = true
+	if event.pressed and not event.echo and key==KEY_ESCAPE:
 		_escape()
 		get_viewport().set_input_as_handled()
 	# Release is observed even when a native control consumed the key-up.
-	if event is InputEventKey and not event.pressed and event.physical_keycode==KEY_E:
+	if not event.pressed and key==KEY_E:
 		blocked_keys.erase(KEY_E)
 		guard_blocked = false
 		_end_guard()
@@ -310,6 +336,7 @@ func _notification(what: int) -> void:
 		_release()
 		if _eligible():
 			_open_paused('pause')
+		logical_down.clear()
 		focused = false
 		audio.stop_all()
 	elif what==NOTIFICATION_APPLICATION_FOCUS_IN:
@@ -336,6 +363,9 @@ func _escape() -> void:
 	if _eligible():
 		_open_paused('pause')
 func _show(page: String, extra: Dictionary = {}, blocked: bool = false, refresh_saves: bool = true) -> void:
+	for key in logical_down:
+		if ACTION_KEYS.has(key) or key in [KEY_F,KEY_T,KEY_M]:
+			blocked_keys[key] = true
 	panel_generation += 1
 	var o = _owner()
 	o.merge(extra,true)
@@ -476,6 +506,7 @@ func _begin_journey(method: String, params: Dictionary) -> void:
 		_feedback('存档可用性尚未确认；未发送继续请求')
 		return
 	_release()
+	logical_down.clear()
 	generation += 1
 	_invalidate_saves()
 	journey_started = false
@@ -881,12 +912,13 @@ func _accept_snapshot(s: Dictionary, permit_transition: bool = false) -> bool:
 		audio.suspend_world()
 		# The core transition already neutralized the old epoch. Do not send stale input.
 		guard_active = false
-		guard_blocked = Input.is_physical_key_pressed(KEY_E)
+		guard_blocked = _key_held(KEY_E)
 		pending_actions.clear()
 		neutral_pending = false
 		for key in ACTION_KEYS:
-			if Input.is_physical_key_pressed(key):
+			if _key_held(key):
 				blocked_keys[key] = true
+		logical_down.clear()
 		if not catalog.build(s.worldId,s.sceneId):
 			_hold('E_SCENE_RESOURCE')
 			return false
