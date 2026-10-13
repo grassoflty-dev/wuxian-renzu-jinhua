@@ -1323,6 +1323,7 @@ func _trace_write(kind: String, stage: String, tag: String, elapsed: int, event:
 		'kind':kind,'stage':stage,'tag':tag,'seq':trace_records+1,'elapsed_ms':elapsed,
 		'input_count':trace_input_count,'unhandled_count':trace_unhandled_count,
 		'physical':0,'logical':0,'resolved':0,'pressed':null,'echo':null,
+		'physical_zero':null,'physical_recognized':null,'resolved_zero':null,'resolved_recognized':null,
 		'window_focus':window.has_focus() if is_instance_valid(window) else null,
 		'gui_focus':is_instance_valid(viewport) and viewport.gui_get_focus_owner()!=null,
 		'eligible':observed_eligible,'close_attempted':close_attempted,'close_confirmed':close_confirmed,
@@ -1341,6 +1342,10 @@ func _trace_write(kind: String, stage: String, tag: String, elapsed: int, event:
 		row.physical = event.physical_keycode if event.physical_keycode in TRACE_KEYS else 0
 		row.logical = event.keycode if event.keycode in TRACE_KEYS else 0
 		var resolved = _event_key(event)
+		row.physical_zero = event.physical_keycode==0
+		row.physical_recognized = event.physical_keycode in TRACE_KEYS
+		row.resolved_zero = resolved==0
+		row.resolved_recognized = resolved in TRACE_KEYS
 		row.resolved = resolved if resolved in TRACE_KEYS else 0
 		row.pressed = event.pressed
 		row.echo = event.echo
