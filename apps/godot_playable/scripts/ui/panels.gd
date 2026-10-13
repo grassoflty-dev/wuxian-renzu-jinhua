@@ -291,6 +291,7 @@ func _capability() -> void:
 					_button('确认后方视野','capability_activate',c.capabilityId,connected and c.get('cooldownRemainingMs',0)==0)
 		if not known:
 			_text('当前能力状态未确认')
+		_button('继续探索','resume',null,connected and P.snapshot(snapshot) and snapshot.player.currentHp>0)
 	_button('返回','back')
 func _mission() -> void:
 	if snapshot.is_empty():
