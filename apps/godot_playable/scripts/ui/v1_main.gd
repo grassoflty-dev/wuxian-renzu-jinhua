@@ -180,7 +180,7 @@ func _process(delta: float) -> void:
 	var nearest = _nearest()
 	var hint = audio.status_text if audio.failed else last_feedback
 	if eligible and not nearest.is_empty():
-		hint = '[F] '+_interaction_label(nearest)+' · '+last_feedback
+		hint = _interaction_prompt(nearest)+' · '+hint
 	hud.update_view(snapshot,connection_text,eligible,hint,preferences.scale)
 func _sample(neutral: bool) -> bool:
 	if close_attempted:
@@ -544,7 +544,62 @@ func _nearest() -> Dictionary:
 		var bd = player.distance_to(P.vector(b.transform.positionM))
 		return a.entityId<b.entityId if is_equal_approx(ad,bd) else ad<bd)
 	return {} if rows.is_empty() else rows[0]
+func _baizhi_available(i: Dictionary) -> bool:
+	var b = snapshot.get('baizhi')
+	return i.get('kind')=='npc_dialogue' and i.get('entityId')=='gh_bz_first_contact' and snapshot.get('worldId')=='grey_hive' and snapshot.get('sceneId')=='gh_bio_isolation' and typeof(i.get('active'))==TYPE_BOOL and i.active and b is Dictionary and typeof(b.get('canInteract'))==TYPE_BOOL and b.canInteract
+func _interaction_prompt(i: Dictionary) -> String:
+	var label = _interaction_label(i)
+	if typeof(i.get('active'))!=TYPE_BOOL or not i.active:
+		return label+' · 当前不可用'
+	if i.get('kind')=='npc_dialogue':
+		return '[F] '+label if _baizhi_available(i) else label+' · 当前对白不可用'
+	if SCENE_RPC.has(i.get('kind')) or i.get('kind') in INTERACT_KINDS:
+		return '[F] '+label
+	return label if label=='未知交互（不可执行）' else label+' · 未知交互（不可执行）'
+func _scene_in_world(scene: String, world: String) -> bool:
+	var scenes = {
+		'return_station':['rs_core_room'],
+		'grey_hive':['gh_entry_maintenance','gh_power_room','gh_gate_a','gh_central_shaft','gh_lockdown','gh_bio_isolation','gh_gate_b','gh_deep_decon','gh_sentinel_arena','gh_beacon','gh_exit'],
+		'mist_harbor':['mh_fog_pier','mh_tidal_warehouse','mh_signal_yard','mh_drowned_quay','mh_breakwater','mh_pump_station','mh_resonance_tower','mh_warden_arena','mh_extraction'],
+		'clockworks':['cw_entry_foundry','cw_pressure_hall','cw_conveyor_bridge','cw_boiler_chamber','cw_gear_shaft','cw_furnace_heart','cw_forged_guard_arena','cw_regulator_core','cw_shutdown_exit']}
+	return scene in scenes.get(world,[])
+func _destination_label(i: Dictionary) -> String:
+	if snapshot.is_empty() or catalog.current.get('worldId')!=snapshot.worldId or catalog.current.get('sceneId')!=snapshot.sceneId or typeof(i.get('kind'))!=TYPE_STRING or typeof(i.get('entityId'))!=TYPE_STRING:
+		return ''
+	if i.kind=='world_gate' and snapshot.worldId=='return_station' and snapshot.sceneId=='rs_core_room':
+		var worlds = {'rs_world_gate_marker':'grey_hive','rs_mh_world_gate_marker':'mist_harbor','rs_cw_world_gate_marker':'clockworks'}
+		if not worlds.has(i.entityId):
+			return ''
+		var interactions = catalog.current.get('interactions')
+		if not P.rows(interactions,2048):
+			return ''
+		var matches: Array = []
+		for row in interactions:
+			if row is Dictionary and typeof(row.get('id'))==TYPE_STRING and row.id==i.entityId:
+				matches.append(row)
+		if matches.size()==1 and typeof(matches[0].get('kind'))==TYPE_STRING and matches[0].kind=='world_gate_marker':
+			return '前往'+Content.WORLD_NAMES[worlds[i.entityId]]
+	elif i.kind=='scene_transition':
+		var transitions = catalog.current.get('transitions')
+		if not P.rows(transitions,2048):
+			return ''
+		var matches: Array = []
+		for row in transitions:
+			if row is Dictionary and typeof(row.get('id'))==TYPE_STRING and row.id==i.entityId:
+				matches.append(row)
+		if matches.size()!=1:
+			return ''
+		var destination = matches[0].get('toSceneId')
+		if typeof(destination)!=TYPE_STRING or not Content.SCENE_NAMES.has(destination) or not _scene_in_world(destination,snapshot.worldId):
+			return ''
+		var pin = catalog.manifest.get(destination)
+		if pin is Dictionary and typeof(pin.get('path'))==TYPE_STRING and pin.path=='res://data/scenes/'+destination+'.json':
+			return '前往'+Content.SCENE_NAMES[destination]
+	return ''
 func _interaction_label(i: Dictionary) -> String:
+	var destination = _destination_label(i)
+	if not destination.is_empty():
+		return destination
 	return {'world_gate':'世界入口','mission_terminal':'任务终端','capability_terminal':'能力终端','save_rest_terminal':'休息 / 保存','npc_dialogue':'与白芷交谈','scene_transition':'前往下一场景','scene_checkpoint':'检查点','scene_trigger':'场景装置','environment_control':'环境控制','power_console':'恢复电力','door_panel':'门控制','lockdown_terminal':'隔离协议','facility_log':'设施记录','bio_log_terminal':'生物记录','gate_b_panel':'Gate B 控制','extraction_console':'撤离控制','beacon_collect':'收取信标','beacon_mount':'部署信标','beacon':'信标','pump_control':'泵站控制','valve_control':'阀门','coolant_valve':'冷却阀','static_dialogue_marker':'查看炉心状态','terminal':'终端'}.get(i.kind,'未知交互（不可执行）')
 func _interact() -> void:
 	var i = _nearest()
@@ -557,7 +612,7 @@ func _interact() -> void:
 	var kind: String = i.kind
 	var id: String = i.entityId
 	if kind=='npc_dialogue':
-		if id!='gh_bz_first_contact' or snapshot.worldId!='grey_hive' or snapshot.sceneId!='gh_bio_isolation' or snapshot.get('baizhi',{}).get('canInteract')!=true:
+		if id!='gh_bz_first_contact' or snapshot.worldId!='grey_hive' or snapshot.sceneId!='gh_bio_isolation' or not _baizhi_available(i):
 			_feedback('当前对白不可用')
 			return
 		_begin_baizhi()
@@ -790,7 +845,8 @@ func _response(_rpc_id: int, method: String, result, association: Dictionary) ->
 			status.merge({'paused':true,'lastLifecycleCommandSequence':association.sequence,'entryToken':null,'enhancementTerminalContext':null})
 			_show('baizhi')
 		'baizhi_commit':
-			if typeof(result.get('resumed'))!=TYPE_BOOL or result.resumed or snapshot.get('baizhi',{}).get('choice')!=association.choice or not P.ticket(result.get('ticket'),_context()) or result.ticket!=ticket:
+			var baizhi = snapshot.get('baizhi')
+			if not baizhi is Dictionary or typeof(baizhi.get('choice'))!=TYPE_STRING or typeof(result.get('resumed'))!=TYPE_BOOL or result.resumed or baizhi.choice!=association.choice or not P.ticket(result.get('ticket'),_context()) or result.ticket!=ticket:
 				_hold('E_BAIZHI_POSTCONDITION')
 				return
 			_show('dialogue',{'text':'好，我会等你找到安全的出口。' if association.choice=='taken' else '我明白。'})
