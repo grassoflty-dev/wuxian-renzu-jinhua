@@ -97,6 +97,13 @@ static func local_traversal(s: Dictionary) -> Array:
 	if not P.snapshot(s):
 		return []
 	var point: Dictionary = s.player.transform.positionM
+	if not P.point(point):
+		return []
+	if s.worldId=='clockworks' and s.sceneId=='cw_gear_shaft' and P.granted(s,'mobility.air_step_i') and P.number(point.yM,0,0.1):
+		var earned_dx: float = float(point.xM)-11.0
+		var earned_dz: float = float(point.zM)-8.0
+		if earned_dx*earned_dx+earned_dz*earned_dz<=1.2*1.2:
+			return ['Space：空中踏步起点']
 	var start_x = 8.0
 	var minimum_y = 0.0
 	var maximum_y = 0.1
