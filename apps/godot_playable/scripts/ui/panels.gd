@@ -20,6 +20,8 @@ var preferences = {'scale':1.0,'fullscreen':false,'color':false,'reduced':false,
 var staged = {}
 var font_scale = 1.0
 var panel: PanelContainer
+var scroll: ScrollContainer
+var layout_busy = false
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -43,13 +45,40 @@ func _ready() -> void:
 	style.content_margin_top = 18
 	style.content_margin_bottom = 18
 	panel.add_theme_stylebox_override('panel',style)
-	var scroll = ScrollContainer.new()
+	scroll = ScrollContainer.new()
+	# Ignore child horizontal minimums so an earlier wider page cannot block shrink.
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	panel.add_child(scroll)
 	box = VBoxContainer.new()
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	box.custom_minimum_size.x = 520
+	box.custom_minimum_size.x = 0
 	scroll.add_child(box)
+	resized.connect(_layout_content)
+	scroll.resized.connect(_layout_content)
 	visible = false
+	call_deferred('_layout_content')
+func _layout_content() -> void:
+	if layout_busy or not is_instance_valid(scroll) or not is_instance_valid(box) or not is_finite(size.x) or not is_finite(size.y) or size.x<=48 or size.y<=36:
+		return
+	layout_busy = true
+	var scale = font_scale if P.number(font_scale,1,1.5) else 1.0
+	var bar_width = scroll.get_v_scroll_bar().get_combined_minimum_size().x
+	if not is_finite(bar_width) or bar_width<0:
+		layout_busy = false
+		return
+	var horizontal = clampf((size.x-48-bar_width-360*scale)*0.5,0,100)
+	var vertical = clampf((size.y-36-200*scale)*0.5,0,80)
+	if panel.offset_left!=horizontal:
+		panel.offset_left = horizontal
+		panel.offset_right = -horizontal
+	if panel.offset_top!=vertical:
+		panel.offset_top = vertical
+		panel.offset_bottom = -vertical
+	# Use the actual scroll size; zero pre-layout dimensions defer to its resize.
+	var width = scroll.size.x-bar_width
+	if is_finite(width) and width>0 and box.custom_minimum_size.x!=width:
+		box.custom_minimum_size.x = width
+	layout_busy = false
 func show_page(kind: String, association: Dictionary, s: Dictionary, is_connected: bool, blocked: bool = false) -> void:
 	mode = kind
 	page_owner = association.duplicate(true)
@@ -60,6 +89,7 @@ func show_page(kind: String, association: Dictionary, s: Dictionary, is_connecte
 	if kind=='settings':
 		staged = preferences.duplicate(true)
 	_rebuild()
+	_layout_content()
 func close_page() -> void:
 	visible = false
 	mode = ''
@@ -89,6 +119,9 @@ func _text(text: String) -> Label:
 func _button(text: String, action: String, value = null, enabled: bool = true) -> Button:
 	var button = Button.new()
 	button.text = text
+	button.tooltip_text = text
+	button.clip_text = true
+	button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	button.disabled = not enabled or pending
 	button.custom_minimum_size.y = 38*font_scale
 	button.add_theme_font_size_override('font_size',int(18*font_scale))
@@ -149,7 +182,8 @@ func _rebuild() -> void:
 		'map':
 			if not snapshot.is_empty():
 				var map = MapView.new()
-				map.custom_minimum_size = Vector2(520,440)*font_scale
+				map.custom_minimum_size = Vector2(0,440*font_scale)
+				map.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				map.text_scale = font_scale
 				box.add_child(map)
 				map.set_snapshot(snapshot)
