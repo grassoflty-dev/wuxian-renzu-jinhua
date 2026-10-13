@@ -4,6 +4,7 @@ const P = preload('res://scripts/bridge/protocol.gd')
 const Icons = preload('res://scripts/ui/skill_icon_row.gd')
 const PlayStatus = preload('res://scripts/ui/play_status_model.gd')
 const WorldMechanism = preload('res://scripts/ui/world_mechanism_model.gd')
+const CheckpointStatus = preload('res://scripts/ui/checkpoint_status_model.gd')
 signal intent(kind, value)
 var portrait: Label
 var button_nodes: Array = []
@@ -12,6 +13,7 @@ var meters: Label
 var objectives: Label
 var hint: Label
 var mechanism: Label
+var checkpoint: Label
 var icons
 var bottom: ScrollContainer
 var bottom_content: VBoxContainer
@@ -78,6 +80,11 @@ func _ready() -> void:
 	mechanism.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	mechanism.visible = false
 	side.add_child(mechanism)
+	checkpoint = Label.new()
+	checkpoint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	checkpoint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	checkpoint.visible = false
+	side.add_child(checkpoint)
 	var buttons = HFlowContainer.new()
 	side.add_child(buttons)
 	for item in [['mission','任务'],['inventory','背包'],['character','角色'],['capability','能力'],['map','地图'],['pause','菜单']]:
@@ -138,7 +145,9 @@ func update_view(s: Dictionary, connection: String, eligible: bool, interaction:
 		hint.text += '\n'+display.action.text
 	mechanism.text = '\n'.join(PackedStringArray(WorldMechanism.project(s,eligible)))
 	mechanism.visible = not mechanism.text.is_empty()
-	for label in [portrait,status_label,meters,objectives,hint,mechanism]:
+	checkpoint.text = CheckpointStatus.project(s,eligible)
+	checkpoint.visible = not checkpoint.text.is_empty()
+	for label in [portrait,status_label,meters,objectives,hint,mechanism,checkpoint]:
 		label.add_theme_font_size_override('font_size',int(16*scale))
 	for button in button_nodes:
 		button.add_theme_font_size_override('font_size',int(16*scale))
