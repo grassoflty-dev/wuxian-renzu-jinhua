@@ -206,9 +206,6 @@ pub fn apply_command_at_revision(
             }
         }
         CapabilityCommand::Select { capability_ids } => {
-            if capability_ids.is_empty() {
-                return Err(CapabilityError::EmptySelection);
-            }
             let mut seen = BTreeSet::new();
             for id in &capability_ids {
                 validate_id(id)?;
