@@ -194,8 +194,9 @@ func _draw() -> void:
 		var ay = camera.project(Vector3(a.p.x,0,a.p.z)).y
 		var by = camera.project(Vector3(b.p.x,0,b.p.z)).y
 		return a.id<b.id if is_equal_approx(ay,by) else ay<by)
+	var interaction_captions = _interaction_captions()
 	for o in objects:
-		_draw_object(o)
+		_draw_object(o,interaction_captions.get(o.id,''))
 	_hazards()
 	_beacon()
 	_boss_warning()
@@ -238,7 +239,19 @@ func _label(p: Vector2, text: String, c: Color = Color('#e7edf2')) -> void:
 	var bounds = Rect2(p-Vector2(width*0.5,font.get_ascent(size)),Vector2(width,font.get_height(size)))
 	if viewport_rect.encloses(bounds):
 		draw_string(font,p-Vector2(width*0.5,0),text,HORIZONTAL_ALIGNMENT_LEFT,-1,size,c)
-func _draw_object(o: Dictionary) -> void:
+func _interaction_captions() -> Dictionary:
+	if not P.snapshot(snapshot) or snapshot.get('entryToken')!=null or scene.get('worldId')!=snapshot.worldId or scene.get('sceneId')!=snapshot.sceneId or current_key!=snapshot.worldId+':'+snapshot.sceneId+':'+str(snapshot.worldEpoch):
+		return {}
+	var rows = snapshot.get('interactables')
+	if not P.rows(rows,2048) or not P.unique(rows,'entityId'):
+		return {}
+	var labels = {'world_gate':'世界入口','mission_terminal':'任务终端','capability_terminal':'能力终端','save_rest_terminal':'休息 / 保存','scene_transition':'前往下一场景','scene_checkpoint':'检查点','scene_trigger':'场景装置','environment_control':'环境控制','power_console':'恢复电力','door_panel':'门控制','lockdown_terminal':'隔离协议','facility_log':'设施记录','bio_log_terminal':'生物记录','gate_b_panel':'Gate B 控制','extraction_console':'撤离控制','beacon_collect':'收取信标','beacon_mount':'部署信标','beacon':'信标','pump_control':'泵站控制','valve_control':'阀门','coolant_valve':'冷却阀','terminal':'终端'}
+	var captions: Dictionary = {}
+	for row in rows:
+		if typeof(row.get('entityId'))==TYPE_STRING and typeof(row.get('kind'))==TYPE_STRING and typeof(row.get('active'))==TYPE_BOOL and row.active and P.transform(row.get('transform')) and labels.has(row.kind):
+			captions[row.entityId] = labels[row.kind]
+	return captions
+func _draw_object(o: Dictionary, interaction_caption: String = '') -> void:
 	var at = camera.project(o.p)
 	if not viewport_rect.grow(100).has_point(at):
 		return
@@ -338,6 +351,8 @@ func _draw_object(o: Dictionary) -> void:
 			_label(at-Vector2(0,caption_height),'开启' if d.open else ('锁定' if d.locked else '关闭'),c)
 		'interaction':
 			draw_rect(Rect2(at-Vector2(8,16)*scale,Vector2(16,16)*scale),Color('#72b9cb'))
+			if not interaction_caption.is_empty():
+				_label(at-Vector2(0,20)*scale,interaction_caption)
 		'npc':
 			if not is_finite(camera.ppm) or camera.ppm<=0 or not is_finite(at.x) or not is_finite(at.y) or not is_finite(1.7*camera.ppm+5*scale):
 				return
