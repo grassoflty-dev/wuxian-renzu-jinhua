@@ -89,7 +89,7 @@ func _ready() -> void:
 	hud = Hud.new()
 	hud.name = 'GameHUD'
 	ui.add_child(hud)
-	hud.intent.connect(func(kind,value): _ui_intent(kind,value,panels.page_owner.duplicate(true)))
+	hud.intent.connect(func(kind,value): _ui_intent(kind,value,_owner() if kind=='interact_current' else panels.page_owner.duplicate(true)))
 	panels = Panels.new()
 	panels.name = 'Panels'
 	ui.add_child(panels)
@@ -194,7 +194,7 @@ func _process(delta: float) -> void:
 	var hint = audio.status_text if audio.failed else last_feedback
 	if eligible and not nearest.is_empty():
 		hint = _interaction_prompt(nearest)+' · '+hint
-	hud.update_view(snapshot,connection_text,eligible,hint,preferences.scale)
+	hud.update_view(snapshot,connection_text,eligible,hint,preferences.scale,_current_hud_interaction())
 func _sample(neutral: bool) -> bool:
 	if close_attempted:
 		return false
@@ -473,6 +473,13 @@ func _ui_intent(kind: String, value, owner: Dictionary) -> void:
 	elif kind in ['new_confirm','exit_confirm','save','new','continue_default','continue_slot','slots','slots_refresh','save_default','save_slot','save_exit','build_item','capability_select','capability_activate','enhancement_choose','baizhi_confirm','baizhi_commit','return','close_client']:
 		audio.ui_cue('confirm',focused)
 	match kind:
+		'interact_current':
+			if not value is Dictionary or value.size()!=5 or not value.has_all(['generation','context','entityId','kind','label']) or not P.counter(value.generation) or value.generation!=generation or not P.context(value.context) or not P.same(value.context,_context()) or not P.ident(value.entityId) or typeof(value.kind)!=TYPE_STRING or typeof(value.label)!=TYPE_STRING:
+				return
+			var current = _current_hud_interaction()
+			if current.is_empty() or current.entityId!=value.entityId or current.kind!=value.kind:
+				return
+			_interact()
 		'new_confirm','settings','inventory','character','capability','mission','archive','save','map','pause','exit_confirm': _open_paused(kind)
 		'back': _back()
 		'resume': _resume()
@@ -650,6 +657,18 @@ func _destination_label(i: Dictionary) -> String:
 		if pin is Dictionary and typeof(pin.get('path'))==TYPE_STRING and pin.path=='res://data/scenes/'+destination+'.json':
 			return '前往'+Content.SCENE_NAMES[destination]
 	return ''
+func _current_hud_interaction() -> Dictionary:
+	if not P.snapshot(snapshot) or not P.context(_context()) or not _eligible():
+		return {}
+	var i = _nearest()
+	if i.is_empty() or typeof(i.get('active'))!=TYPE_BOOL or not i.active:
+		return {}
+	if i.kind=='npc_dialogue':
+		if not _baizhi_available(i):
+			return {}
+	elif not SCENE_RPC.has(i.kind) and not i.kind in INTERACT_KINDS:
+		return {}
+	return {'generation':generation,'context':_context().duplicate(true),'entityId':i.entityId,'kind':i.kind,'label':_interaction_label(i)}
 func _interaction_label(i: Dictionary) -> String:
 	var destination = _destination_label(i)
 	if not destination.is_empty():

@@ -8,6 +8,8 @@ const CheckpointStatus = preload('res://scripts/ui/checkpoint_status_model.gd')
 signal intent(kind, value)
 var portrait: Label
 var button_nodes: Array = []
+var interact_button: Button
+var interact_association: Dictionary = {}
 var status_label: Label
 var meters: Label
 var objectives: Label
@@ -93,6 +95,19 @@ func _ready() -> void:
 		button.pressed.connect(func(): intent.emit(item[0],null))
 		buttons.add_child(button)
 		button_nodes.append(button)
+	interact_button = Button.new()
+	interact_button.visible = false
+	interact_button.disabled = true
+	interact_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	interact_button.pressed.connect(func():
+		if interact_button.disabled or interact_association.is_empty():
+			return
+		var captured = interact_association.duplicate(true)
+		interact_button.disabled = true
+		interact_association.clear()
+		intent.emit('interact_current',captured))
+	buttons.add_child(interact_button)
+	button_nodes.append(interact_button)
 	call_deferred('_load_internal_icons')
 	resized.connect(_queue_bottom_layout)
 	bottom.resized.connect(_queue_bottom_layout)
@@ -130,7 +145,15 @@ func _load_internal_icons() -> void:
 	file.close()
 	if mapping is Dictionary:
 		icons.apply_admitted_mapping(mapping)
-func update_view(s: Dictionary, connection: String, eligible: bool, interaction: String, scale: float) -> void:
+func update_view(s: Dictionary, connection: String, eligible: bool, interaction: String, scale: float, target = {}) -> void:
+	interact_association.clear()
+	interact_button.disabled = true
+	interact_button.visible = false
+	if eligible and P.snapshot(s) and target is Dictionary and target.size()==5 and target.has_all(['generation','context','entityId','kind','label']) and P.counter(target.generation) and P.context(target.context) and P.same(target.context,s) and P.ident(target.entityId) and typeof(target.kind)==TYPE_STRING and typeof(target.label)==TYPE_STRING:
+		interact_association = target.duplicate(true)
+		interact_button.text = '交互 · '+target.label
+		interact_button.visible = true
+		interact_button.disabled = false
 	status_label.text = connection if s.is_empty() else {'return_station':'归航站','grey_hive':'灰巢设施','mist_harbor':'雾港余烬','clockworks':'钟骨工厂'}.get(s.worldId,s.worldId)+' · '+Content.SCENE_NAMES.get(s.sceneId,'当前场景')+' · '+connection
 	meters.text = '' if s.is_empty() else '岑遥 · 生命 %d / %d    能量 %d / %d'%[s.player.currentHp,s.player.maxHp,s.player.currentEnergy,s.player.maxEnergy]
 	var display = PlayStatus.project(s,eligible)
