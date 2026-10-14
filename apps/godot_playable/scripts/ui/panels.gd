@@ -442,11 +442,33 @@ func _mission() -> void:
 	_button('能力','capability')
 	_button('系统','settings')
 	_button('返回','back')
+func _archive_saved_baizhi_choice() -> String:
+	if not connected or pending or not P.snapshot(snapshot):
+		return ''
+	if snapshot.player.currentHp <= 0 or snapshot.get('entryToken') != null:
+		return ''
+	if not P.context(page_owner.get('context')) or not P.same(page_owner.context,snapshot):
+		return ''
+	var row = Content.progress(snapshot,'grey_hive')
+	if row.is_empty() or row.get('worldId') != 'grey_hive':
+		return ''
+	var choice = row.get('hiveChoice')
+	if typeof(choice) != TYPE_STRING:
+		return ''
+	if choice == 'taken':
+		return '已记录的白芷选择：我会帮你离开这里。'
+	if choice == 'left':
+		return '已记录的白芷选择：我不能带你走。'
+	return ''
 func _archive() -> void:
 	if snapshot.is_empty() or not P.snapshot(snapshot):
 		_text('档案状态未确认')
 	else:
 		var shown = false
+		var saved_choice = _archive_saved_baizhi_choice()
+		if not saved_choice.is_empty():
+			_text(saved_choice)
+			shown = true
 		for world in ['grey_hive','mist_harbor','clockworks']:
 			var row = Content.progress(snapshot,world)
 			if row.is_empty():
