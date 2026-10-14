@@ -275,6 +275,8 @@ pub struct WorldProgressProjection {
     pub visit_id: u64,
     pub cycle_id: u64,
     pub revisit_count: u32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hive_choice: Option<crate::world_progression::HiveChoice>,
 }
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

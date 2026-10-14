@@ -258,6 +258,7 @@ pub fn project_route(state: &RouteState) -> RouteProjection {
         worlds: state.progress.iter().map(|p| WorldProgressProjection {
             world_id: p.world_id.clone(), completed: p.completed, first_completion: p.first_completion,
             visit_id: p.visit_id, cycle_id: p.cycle_id, revisit_count: p.revisit_count,
+            hive_choice: if p.world_id == WORLD_GREY_HIVE { Some(p.hive_choice.clone()) } else { None },
         }).collect(),
     }
 }
