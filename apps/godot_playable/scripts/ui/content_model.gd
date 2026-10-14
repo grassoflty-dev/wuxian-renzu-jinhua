@@ -12,8 +12,27 @@ static func progress(s: Dictionary, world: String) -> Dictionary:
 	if matches.size()!=1:
 		return {}
 	var row: Dictionary = matches[0]
-	if typeof(row.get('completed'))!=TYPE_BOOL or typeof(row.get('firstCompletion'))!=TYPE_BOOL or not P.rows(row.get('completedEvents'),64) or not P.counter(row.get('revisitCount')) or not P.counter(row.get('visitId'),1) or not P.counter(row.get('cycleId'),1):
+	if typeof(row.get('completed'))!=TYPE_BOOL or typeof(row.get('firstCompletion'))!=TYPE_BOOL or not P.rows(row.get('completedEvents'),64) or not P.counter(row.get('revisitCount')) or not P.counter(row.get('visitId'),0) or not P.counter(row.get('cycleId'),1):
 		return {}
+	if row.visitId==0:
+		var hive_choice = row.get('hiveChoice')
+		var valid_unvisited = (
+			P.snapshot(s)
+			and s.worldId=='return_station'
+			and s.sceneId=='rs_core_room'
+			and s.get('entryToken')==null
+			and EVENTS.has(world)
+			and row.completed==false
+			and row.firstCompletion==false
+			and row.revisitCount==0
+			and row.cycleId==1
+			and row.completedEvents.is_empty()
+		)
+		if not valid_unvisited or (
+			hive_choice!=null
+			and (world!='grey_hive' or typeof(hive_choice)!=TYPE_STRING or hive_choice!='unresolved')
+		):
+			return {}
 	var seen = {}
 	for event in row.completedEvents:
 		if typeof(event)!=TYPE_STRING or seen.has(event) or not event in EVENTS.get(world,[]):
