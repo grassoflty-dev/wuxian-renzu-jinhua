@@ -288,9 +288,103 @@ func _inventory() -> void:
 		_text('尚无有效权威背包投影；不创建物品或预设。')
 	else:
 		_text('物品 / 装备 / 描述 · 修订 '+str(snapshot.build.revision))
+		var pane_flow = HFlowContainer.new()
+		pane_flow.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		pane_flow.custom_minimum_size.x = 0.0
+		box.add_child(pane_flow)
+		var item_column = VBoxContainer.new()
+		var equipment_column = VBoxContainer.new()
+		var description_column = VBoxContainer.new()
+		var pane_columns: Array = [item_column,equipment_column,description_column]
+		for pane in pane_columns:
+			pane.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			pane.custom_minimum_size.x = 0.0
+			pane_flow.add_child(pane)
+		var item_heading = _text('物品')
+		box.remove_child(item_heading)
+		item_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		item_column.add_child(item_heading)
+		var equipment_heading = _text('装备')
+		box.remove_child(equipment_heading)
+		equipment_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		equipment_column.add_child(equipment_heading)
+		var description_heading = _text('描述')
+		box.remove_child(description_heading)
+		description_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		description_column.add_child(description_heading)
+		var detail_label = _text('')
+		box.remove_child(detail_label)
+		detail_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		description_column.add_child(detail_label)
+		var detail_state = {'selected_item_id':''}
+		var current_item_for_selection = func(captured_owner: Dictionary, captured_revision, requested_item_id: String) -> Dictionary:
+			if not visible or mode != 'inventory' or not connected or pending:
+				return {}
+			if not P.snapshot(snapshot) or snapshot.get('entryToken') != null:
+				return {}
+			if snapshot.player.currentHp <= 0:
+				return {}
+			if not P.context(page_owner.get('context')) or not P.same(page_owner.context,snapshot):
+				return {}
+			if page_owner != captured_owner:
+				return {}
+			if not P.build(snapshot.get('build')) or snapshot.build.revision != captured_revision:
+				return {}
+			var matching_item: Dictionary = {}
+			var match_count = 0
+			for current_item in snapshot.build.items:
+				if current_item.get('itemId') == requested_item_id:
+					matching_item = current_item
+					match_count += 1
+			if match_count != 1:
+				return {}
+			return matching_item
+		var select_inventory_item = func(captured_owner: Dictionary, captured_revision, requested_item_id: String) -> void:
+			var actual_item: Dictionary = current_item_for_selection.call(captured_owner,captured_revision,requested_item_id)
+			if actual_item.is_empty():
+				return
+			detail_state['selected_item_id'] = requested_item_id
+			detail_label.text = actual_item.label+' ×'+str(actual_item.quantity)+'\n'+actual_item.description+'\n槽位：'+actual_item.slotId+(' · 已装备' if actual_item.equipped else '')
 		for item in snapshot.build.items:
-			_text(item.label+' ×'+str(item.quantity)+'\n'+item.description+'\n槽位：'+item.slotId+(' · 已装备' if item.equipped else ''))
-			_button('卸下' if item.equipped else '装备','build_item',item.itemId,connected)
+			var item_row = HBoxContainer.new()
+			item_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			item_row.custom_minimum_size.x = 0.0
+			item_column.add_child(item_row)
+			var selector = Button.new()
+			var selector_text = item.label+' ×'+str(item.quantity)+(' · 已装备' if item.equipped else '')
+			selector.text = selector_text
+			selector.tooltip_text = selector_text
+			selector.clip_text = true
+			selector.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+			selector.custom_minimum_size.y = 38*font_scale
+			selector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			selector.add_theme_font_size_override('font_size',int(18*font_scale))
+			var selector_owner: Dictionary = page_owner.duplicate(true)
+			var selector_revision = snapshot.build.revision
+			var selector_item_id: String = item.itemId
+			var current_selector_item: Dictionary = current_item_for_selection.call(selector_owner,selector_revision,selector_item_id)
+			selector.disabled = current_selector_item.is_empty()
+			selector.pressed.connect(select_inventory_item.bind(selector_owner,selector_revision,selector_item_id))
+			item_row.add_child(selector)
+			var action_button = _button('卸下' if item.equipped else '装备','build_item',item.itemId,connected)
+			box.remove_child(action_button)
+			item_row.add_child(action_button)
+		for equipment in snapshot.build.equipment:
+			var equipment_label = _text(equipment.label+'\n槽位：'+equipment.slotId)
+			box.remove_child(equipment_label)
+			equipment_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			equipment_column.add_child(equipment_label)
+		var update_pane_minimums = func() -> void:
+			var usable_width = pane_flow.size.x
+			if not is_finite(usable_width) or usable_width <= 0.0:
+				return
+			var minimum_width = minf(usable_width,18.0*font_scale*12.0)
+			for pane in pane_columns:
+				if pane.custom_minimum_size.x != minimum_width:
+					pane.custom_minimum_size.x = minimum_width
+		pane_flow.resized.connect(update_pane_minimums)
+		if pane_flow.size.x > 0.0:
+			update_pane_minimums.call()
 	_exploration_resume()
 	_button('返回','back')
 func _capability() -> void:
