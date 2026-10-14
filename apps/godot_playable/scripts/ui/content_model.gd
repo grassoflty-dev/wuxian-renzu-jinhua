@@ -167,10 +167,94 @@ static func narrative(before: Dictionary, target: Dictionary, receipt: Dictionar
 					if not event in current.completedEvents:
 						retained = false
 				new_event = retained
+			var receipt_suffix = ''
+			var receipt_context_valid = (
+				selected == 'clockworks_valves'
+				and P.snapshot(before)
+				and P.snapshot(after)
+				and before.has('entryToken')
+				and before.entryToken == null
+				and after.has('entryToken')
+				and after.entryToken == null
+				and before.get('worldId') == 'clockworks'
+				and before.get('sceneId') == 'cw_pressure_hall'
+				and after.get('worldId') == 'clockworks'
+				and after.get('sceneId') == 'cw_pressure_hall'
+				and before.progression.get('currentWorldId') == 'clockworks'
+				and after.progression.get('currentWorldId') == 'clockworks'
+				and typeof(target.get('entityId')) == TYPE_STRING
+				and typeof(target.get('kind')) == TYPE_STRING
+				and typeof(target.get('active')) == TYPE_BOOL
+				and target.active
+				and P.transform(target.get('transform'))
+				and P.rows(before.get('interactables'), 2048)
+				and P.unique(before.interactables, 'entityId')
+			)
+			var receipt_progress_valid = (
+				not prior.is_empty()
+				and not current.is_empty()
+				and prior.get('worldId') == 'clockworks'
+				and current.get('worldId') == 'clockworks'
+				and prior.get('visitId') == current.get('visitId')
+				and prior.get('cycleId') == current.get('cycleId')
+				and prior.get('revisitCount') == current.get('revisitCount')
+				and prior.get('completed') == current.get('completed')
+				and prior.get('firstCompletion') == current.get('firstCompletion')
+			)
+			if receipt_context_valid and receipt_progress_valid:
+				var receipt_capture_valid = (
+					matches.size() == 1
+					and typeof(matches[0].get('active')) == TYPE_BOOL
+					and matches[0].active
+					and P.transform(matches[0].get('transform'))
+					and matches[0].transform == target.transform
+				)
+				if receipt_capture_valid:
+					var receipt_event_path_valid = (
+						prior.get('completedEvents') == current.get('completedEvents')
+						and before.progression.get('eventSeq') == after.progression.get('eventSeq')
+					)
+					if selected == 'clockworks_valves' and new_event:
+						receipt_event_path_valid = true
+					var receipt_prior = prior.get('pressureValveReceipts')
+					var receipt_current = current.get('pressureValveReceipts')
+					var receipt_order = ['cw_pressure_valve_01_staged', 'cw_pressure_valve_02_staged', 'cw_pressure_valve_03_staged']
+					var receipt_arrays_valid = receipt_prior is Array and receipt_current is Array
+					if receipt_arrays_valid:
+						receipt_arrays_valid = receipt_prior.size() <= 3 and receipt_current.size() <= 3
+					if receipt_arrays_valid:
+						var prior_receipt_order = -1
+						for prior_receipt_id in receipt_prior:
+							if typeof(prior_receipt_id) != TYPE_STRING:
+								receipt_arrays_valid = false
+								break
+							var prior_receipt_index = receipt_order.find(prior_receipt_id)
+							if prior_receipt_index < 0 or prior_receipt_index <= prior_receipt_order:
+								receipt_arrays_valid = false
+								break
+							prior_receipt_order = prior_receipt_index
+						if receipt_arrays_valid:
+							var current_receipt_order = -1
+							for current_receipt_id in receipt_current:
+								if typeof(current_receipt_id) != TYPE_STRING:
+									receipt_arrays_valid = false
+									break
+								var current_receipt_index = receipt_order.find(current_receipt_id)
+								if current_receipt_index < 0 or current_receipt_index <= current_receipt_order:
+									receipt_arrays_valid = false
+									break
+								current_receipt_order = current_receipt_index
+					if receipt_arrays_valid and receipt_event_path_valid:
+						var prior_receipts_retained = true
+						for retained_receipt_id in receipt_prior:
+							if not receipt_current.has(retained_receipt_id):
+								prior_receipts_retained = false
+						if prior_receipts_retained and not receipt_prior.has(id) and receipt_current.has(id) and receipt_current.size() == receipt_prior.size() + 1:
+							receipt_suffix = ' 阀门 ' + valves[id] + ' 回执：已记录'
 			if new_event:
 				var recorded = '压力阀门事件已记录。' if selected=='clockworks_valves' else '调节者核心事件已记录。'
-				return acknowledgement+(' ' if not acknowledgement.is_empty() else '')+recorded
-			return acknowledgement
+				return acknowledgement+(' ' if not acknowledgement.is_empty() else '')+recorded+receipt_suffix
+			return acknowledgement+receipt_suffix
 	if kind=='world_gate' and after.worldId=='return_station' and after.sceneId=='rs_core_room' and after.worldEpoch==before.worldEpoch+1 and after.authorityRevision>before.authorityRevision:
 		var row = progress(before,before.worldId)
 		var next = progress(after,before.worldId)
