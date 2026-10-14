@@ -70,7 +70,7 @@ static func valves(rows) -> Array:
 		return neutral
 	var lines: Array = []
 	for n in range(3):
-		lines.append('阀门 '+str(n+1)+'：'+('可交互' if selected[VALVES[n]] else '当前不可交互'))
+		lines.append('阀门 '+str(n+1)+'：'+('当前启用' if selected[VALVES[n]] else '当前未启用'))
 	return lines
 static func pressure_valve_receipts(s: Dictionary) -> Array:
 	if not P.snapshot(s) or s.get('worldId') != 'clockworks' or s.get('sceneId') != 'cw_pressure_hall' or s.get('entryToken') != null:
