@@ -150,6 +150,7 @@ func _rebuild() -> void:
 			_button('退出','close_client')
 		'pause':
 			_button('继续当前旅程','resume',null,connected)
+			_text('操作参考\nWASD / 方向键移动，鼠标指向瞄准；J / 左键攻击，Shift 冲刺。Q 脉冲，按住 E 防御，R 穿刺；F 交互，Space 情境穿越。T 任务，M 地图，Esc 暂停；动作与地图信息以当前状态和权限为准。')
 			for item in [['mission','任务 / 世界网络'],['inventory','背包'],['character','角色'],['capability','能力'],['archive','档案'],['map','地图'],['save','保存'],['settings','设置']]:
 				_button(item[1],item[0])
 			_button('返回归航站','return',null,connected)
