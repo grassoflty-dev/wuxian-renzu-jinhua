@@ -735,16 +735,18 @@ func _gh_authored_position(value, expected: Vector3) -> bool:
 			return false
 	return Vector3(value[0],value[1],value[2])==expected
 func _terminal_position(prop: Dictionary):
-	if snapshot.worldId!='return_station' or snapshot.sceneId!='rs_core_room' or prop.get('assetId')!='runtime2d.world.returnstation.terminal.v1' or prop.get('layer')!='visual.props_back':
+	if snapshot.worldId!='return_station' or snapshot.sceneId!='rs_core_room' or prop.get('layer')!='visual.props_back':
 		return null
-	var positions = {'mission_terminal_art':Vector3(8,0,4),'capability_terminal_art':Vector3(15,0,4),'storage_terminal_art':Vector3(15,0,11)}
-	if not positions.has(prop.get('id')) or not prop.get('position') is Array or prop.position.size()!=3:
+	var positions = {'mission_terminal_art':Vector3(8,0,4),'capability_terminal_art':Vector3(15,0,4),'storage_terminal_art':Vector3(15,0,11),'world_gate_terminal_art':Vector3(20,0,6),'save_rest_terminal_art':Vector3(8,0,11)}
+	var asset_ids = {'mission_terminal_art':'runtime2d.world.returnstation.terminal.v1','capability_terminal_art':'runtime2d.world.returnstation.terminal.v1','storage_terminal_art':'runtime2d.world.returnstation.terminal.v1','world_gate_terminal_art':'runtime2d.world.returnstation.terminals.v1','save_rest_terminal_art':'runtime2d.world.returnstation.terminals.v1'}
+	var prop_id = prop.get('id')
+	if not positions.has(prop_id) or prop.get('assetId')!=asset_ids[prop_id] or not prop.get('position') is Array or prop.position.size()!=3:
 		return null
 	for value in prop.position:
 		if not P.number(value):
 			return null
 	var position = Vector3(prop.position[0],prop.position[1],prop.position[2])
-	return position if position==positions[prop.id] else null
+	return position if position==positions[prop_id] else null
 
 func _ground_beacon_body() -> Dictionary:
 	var beacon = snapshot.get('greyHiveBeacon')
