@@ -7,6 +7,9 @@ use std::{
     process::Command,
 };
 
+#[path = "return_station_candidate.rs"]
+mod return_station_candidate;
+
 pub const SIDECAR_FILE_NAME: &str = "bundle-identity.json";
 const SIDECAR_SCHEMA_ID: &str = "native-web-bundle-identity/1";
 const MAX_SIDECAR_BYTES: u64 = 16 * 1024 * 1024;
@@ -51,6 +54,7 @@ pub struct ValidatedBundleIdentity {
     pub sidecar_sha256: String,
     pub entry: FileEntry,
     pub file_count: u64,
+    pub return_station_candidate_manifest_sha256: Option<String>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -659,7 +663,9 @@ fn validate_dist_inner(
     cargo_version: &str,
     require_repo_frontend_dist: bool,
     profile: Option<&str>,
+    candidate_enabled: bool,
 ) -> Result<ValidatedBundleIdentity, String> {
+    println!("cargo:rerun-if-env-changed={}", return_station_candidate::FLAG);
     let repo_root = fs::canonicalize(repo_root)
         .map_err(|error| format!("E_BUNDLE_IDENTITY_REPO_ROOT:{error}"))?;
     println!("cargo:rerun-if-changed={}", dist_root.display());
@@ -674,6 +680,8 @@ fn validate_dist_inner(
         "apps/web/scripts/build-identity.mjs",
         "apps/web/scripts/bundle-identity.mjs",
         "apps/web/scripts/scene-definition-bundle.mjs",
+        "apps/web/scripts/return-station-candidate-bundle.mjs",
+        "server-rs/build_support/return_station_candidate.rs",
         "server-rs/Cargo.toml",
         "server-rs/tauri.conf.json",
         "server-rs/src/save_v5.rs",
@@ -750,6 +758,9 @@ fn validate_dist_inner(
     if let Some(profile) = profile {
         check_profile_cleanliness(profile, &sidecar.build_identity, &current)?;
     }
+    let return_station_candidate_manifest_sha256 = return_station_candidate::validate_bundle(
+        &repo_root, &actual_files, candidate_enabled, &mut watched,
+    )?;
 
     watched.extend(payload_watched);
     watched.extend(directories);
@@ -787,6 +798,7 @@ fn validate_dist_inner(
         sidecar_sha256: sha256(&sidecar_bytes),
         entry: sidecar.entry,
         file_count: actual_files.len() as u64,
+        return_station_candidate_manifest_sha256,
     })
 }
 
@@ -796,7 +808,7 @@ pub fn validate_dist(
     repo_root: &Path,
     cargo_version: &str,
 ) -> Result<ValidatedBundleIdentity, String> {
-    validate_dist_inner(dist_root, repo_root, cargo_version, false, None)
+    validate_dist_inner(dist_root, repo_root, cargo_version, false, None, false)
 }
 
 #[cfg(test)]
@@ -806,7 +818,7 @@ pub fn validate_dist_with_profile(
     cargo_version: &str,
     profile: &str,
 ) -> Result<ValidatedBundleIdentity, String> {
-    validate_dist_inner(dist_root, repo_root, cargo_version, false, Some(profile))
+    validate_dist_inner(dist_root, repo_root, cargo_version, false, Some(profile), false)
 }
 
 pub fn validate_repo_frontend_dist(
@@ -816,7 +828,8 @@ pub fn validate_repo_frontend_dist(
 ) -> Result<ValidatedBundleIdentity, String> {
     let profile = std::env::var("PROFILE")
         .map_err(|_| "E_BUNDLE_IDENTITY_PROFILE_MISSING".to_owned())?;
-    validate_dist_inner(dist_root, repo_root, cargo_version, true, Some(&profile))
+    let candidate_enabled = return_station_candidate::environment_enabled()?;
+    validate_dist_inner(dist_root, repo_root, cargo_version, true, Some(&profile), candidate_enabled)
 }
 
 #[cfg(test)]

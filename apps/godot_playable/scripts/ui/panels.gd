@@ -555,7 +555,7 @@ func _mission() -> void:
 			for pair in [['rs_world_gate_marker','灰巢入口'],['rs_mh_world_gate_marker','雾港入口'],['rs_cw_world_gate_marker','钟骨入口']]:
 				for i in snapshot.interactables:
 					if i.entityId==pair[0] and i.kind=='world_gate':
-						_text(pair[1]+' · '+('可用' if i.active else '锁定 / 当前不可用'))
+						_text(pair[1]+' · '+('当前启用' if i.active else '当前未启用'))
 		var beacon = snapshot.get('greyHiveBeacon')
 		if snapshot.worldId=='grey_hive' and beacon is Dictionary and beacon.get('state') in ['uncollected','carried','mounted'] and typeof(beacon.get('legacyCompletedWithoutReceipt'))==TYPE_BOOL and (not beacon.legacyCompletedWithoutReceipt or beacon.state=='uncollected'):
 			_text('信标：'+{'uncollected':'尚未收取','carried':'已携带','mounted':'已部署'}[beacon.state])

@@ -2,16 +2,23 @@
 name = "wuxian-horror-ch1"
 version = "1.0.0"
 edition = "2021"
-description = "无限轮回·第一章 生化蜂巢 —— Tauri 全栈（Rust 引擎 + WebView 前端）"
-
-[build-dependencies]
-tauri-build = { version = "2", features = [] }
-
+autobins = false
+build = "build.rs"
+[lib]
+name = "wuxian_horror_ch1"
+path = "src/lib.rs"
+[[bin]]
+name = "wuxian_v1_authority"
+path = "src/godot_main.rs"
+[features]
+default = []
+deterministic-replay = []
+legacy-test-rng = []
 [dependencies]
-tauri = { version = "2", features = [] }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-rand = "0.8"
-
-[profile.release]
-opt-level = 2
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.151"
+rand = "=0.8.7"
+sha2 = "=0.10.9"
+[build-dependencies]
+serde_json = "=1.0.151"
+sha2 = "=0.10.9"

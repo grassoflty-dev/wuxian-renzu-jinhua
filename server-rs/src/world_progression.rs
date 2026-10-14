@@ -220,6 +220,31 @@ pub fn post_clear_task_candidates(state: &RouteState, world_id: &str) -> Result<
     Ok(catalog.worlds.into_iter().find(|w| w.world_id == id).expect("validated catalog").post_clear_task_candidates)
 }
 
+pub fn can_revisit_world(state: &RouteState, world_id: &str) -> bool {
+    let Ok(world_id) = migrate_world_id(world_id) else {
+        return false;
+    };
+    let Some(progress) = state.progress.iter().find(|p| p.world_id == world_id) else {
+        return false;
+    };
+    if !progress.completed {
+        return false;
+    }
+    let Ok(catalog) = catalog() else {
+        return false;
+    };
+    let Some(definition) = catalog.worlds.iter().find(|w| w.world_id == world_id) else {
+        return false;
+    };
+    let limit = match definition.revisit_policy {
+        RevisitPolicy::Never => 0,
+        RevisitPolicy::AfterFirstClearLimited { max_revisits }
+        | RevisitPolicy::TaskCandidatesLimited { max_revisits } => max_revisits,
+        RevisitPolicy::RenewableByCycle { max_revisits_per_cycle } => max_revisits_per_cycle,
+    };
+    progress.revisit_count < limit
+}
+
 pub fn apply_route_command(state: &mut RouteState, command: RouteCommand, revision: WorldRevision) -> RouteResult {
     let request_id = match &command {
         RouteCommand::Enter { request_id, .. } | RouteCommand::Progress { request_id, .. }
@@ -258,7 +283,9 @@ pub fn project_route(state: &RouteState) -> RouteProjection {
         worlds: state.progress.iter().map(|p| WorldProgressProjection {
             world_id: p.world_id.clone(), completed: p.completed, first_completion: p.first_completion,
             visit_id: p.visit_id, cycle_id: p.cycle_id, revisit_count: p.revisit_count,
+            completed_events: p.completed_events.clone(),
             hive_choice: if p.world_id == WORLD_GREY_HIVE { Some(p.hive_choice.clone()) } else { None },
+            pressure_valve_receipts: None,
         }).collect(),
     }
 }

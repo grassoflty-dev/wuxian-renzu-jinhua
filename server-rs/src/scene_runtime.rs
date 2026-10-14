@@ -3,6 +3,7 @@
 use crate::{
     effects::TerrainTag,
     scene_registry::{valid_id, WorldRegistry, RETURN_STATION_ID, WORLD_IDS},
+    save_v5::SceneStateSave,
     world_persistent_v1::{
         DROWNED_QUAY_WATER_ID, PUMP_CONTROL_ID, PUMP_CONTROL_POSITION_M, PUMP_EAST_WATER_ID,
     },
@@ -1413,6 +1414,61 @@ impl SceneRuntime {
         Ok(())
     }
 
+    pub(crate) fn validate_scene_history(
+        &self,
+        persistent: &crate::world_persistent_v1::WorldPersistentState,
+    ) -> Result<(), String> {
+        Self::validate_scene_history_in_registry(&self.registry, persistent)
+    }
+
+    pub(crate) fn validate_scene_history_in_registry(
+        registry: &WorldRegistry,
+        persistent: &crate::world_persistent_v1::WorldPersistentState,
+    ) -> Result<(), String> {
+        persistent
+            .validate()
+            .map_err(|_| "E_SAVE_SCENE_HISTORY_INVALID".to_string())?;
+        if !registry.is_complete_clockworks_production() {
+            return Err("E_SAVE_SCENE_HISTORY_REGISTRY_REQUIRED".into());
+        }
+        let Some(history) = &persistent.scene_history_v1 else {
+            return Ok(());
+        };
+        if history.scene_states.len() > registry.scenes().count() {
+            return Err("E_SAVE_SCENE_HISTORY_INVALID".into());
+        }
+        for row in &history.scene_states {
+            let definition = registry
+                .scene(&row.scene_id)
+                .ok_or("E_SAVE_SCENE_HISTORY_INVALID")?;
+            validate_scene_history_row(definition, row)?;
+        }
+        Ok(())
+    }
+
+    /// Restore only authored generic scene-local state. This does not issue
+    /// commands or alter the target's request ledger or world progression.
+    pub(crate) fn hydrate_scene_history(
+        &mut self,
+        persistent: &crate::world_persistent_v1::WorldPersistentState,
+    ) -> Result<(), String> {
+        self.validate_scene_history(persistent)?;
+        // Requests belong to the departed epoch; the installed target begins fresh.
+        self.processed.clear();
+        if let Some(row) = persistent.scene_history_row(&self.scene_id) {
+            self.activated = row.activated_ids.iter().cloned().collect();
+            self.emitted = row.emitted_event_ids.iter().cloned().collect();
+            self.checkpoint_id = row.checkpoint_id.clone();
+        } else {
+            self.activated.clear();
+            self.emitted.clear();
+            self.checkpoint_id = None;
+        }
+        self.completed_objectives.clear();
+        self.refresh_objectives();
+        Ok(())
+    }
+
     pub fn objective_complete(&self, id: &str) -> bool {
         self.completed_objectives.contains(id)
     }
@@ -1536,6 +1592,66 @@ impl SceneRuntime {
             .collect();
         self.completed_objectives.extend(completed);
     }
+}
+
+fn validate_scene_history_row(
+    definition: &SceneDefinition,
+    row: &SceneStateSave,
+) -> Result<(), String> {
+    if definition.scene_id.as_str() != row.scene_id.as_str() {
+        return Err("E_SAVE_SCENE_HISTORY_INVALID".into());
+    }
+    let activated: BTreeSet<&str> = row.activated_ids.iter().map(String::as_str).collect();
+    let mut capturable_ids = BTreeSet::new();
+    for interaction in &definition.interactions {
+        let static_return_marker = definition.scene_id == "rs_core_room"
+            && interaction.kind.ends_with("_marker");
+        let aggregate_marker = definition
+            .interaction_aggregates
+            .iter()
+            .any(|aggregate| aggregate.marker_id.as_str() == interaction.id.as_str());
+        let command_only_control = matches!(
+            interaction.kind.as_str(),
+            "pump_control" | "coolant_valve" | "environment_control"
+        );
+        if !static_return_marker && !aggregate_marker && !command_only_control {
+            capturable_ids.insert(interaction.id.as_str());
+        }
+    }
+    capturable_ids.extend(definition.triggers.iter().map(|trigger| trigger.id.as_str()));
+    if row.activated_ids.iter().any(|id| !capturable_ids.contains(id.as_str())) {
+        return Err("E_SAVE_SCENE_HISTORY_INVALID".into());
+    }
+
+    // Rebuild precisely the event set produced by the existing interaction,
+    // trigger, aggregate, and durable-interaction restoration semantics.
+    let mut expected_events = BTreeSet::new();
+    for interaction in &definition.interactions {
+        if activated.contains(interaction.id.as_str()) {
+            if let Some(event) = &interaction.event {
+                expected_events.insert(event.as_str());
+            }
+        }
+    }
+    for trigger in &definition.triggers {
+        if activated.contains(trigger.id.as_str()) {
+            expected_events.insert(trigger.event.as_str());
+        }
+    }
+    for aggregate in &definition.interaction_aggregates {
+        if aggregate.member_ids.iter().all(|id| activated.contains(id.as_str())) {
+            expected_events.insert(aggregate.event.as_str());
+        }
+    }
+    let saved_events: BTreeSet<_> = row.emitted_event_ids.iter().map(String::as_str).collect();
+    if saved_events != expected_events
+        || row.checkpoint_id.as_ref().is_some_and(|checkpoint| {
+            !definition.checkpoints.iter().any(|item| item.id.as_str() == checkpoint.as_str())
+        })
+    {
+        return Err("E_SAVE_SCENE_HISTORY_INVALID".into());
+    }
+    Ok(())
 }
 fn vec3(v: [f32; 3]) -> Vec3 {
     Vec3 {

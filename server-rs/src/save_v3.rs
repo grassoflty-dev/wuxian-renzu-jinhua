@@ -15,10 +15,9 @@ use std::{
     io::{Read, Write},
     path::{Path, PathBuf},
     sync::atomic::{AtomicU64, Ordering},
-    time::{Duration, Instant},
 };
 
-pub const SAVE_SCHEMA_VERSION: u32 = 3;
+pub const SAVE_SCHEMA_VERSION: u32 = 4;
 pub const SAVE_FILE_NAME: &str = "formal-save-v3.json";
 pub const CONTENT_VERSION: &str = "grey-hive-first-flow/1";
 const PRIOR_CONTENT_VERSION: &str = "grey-hive-open-room-blockout/1";
@@ -39,6 +38,14 @@ pub struct PlayerStateV3 {
     pub dash_cooldown_remaining_ms: u64,
     pub current_hp: u32,
     pub max_hp: u32,
+    #[serde(default = "starting_energy")]
+    pub current_energy: u32,
+    #[serde(default = "starting_energy")]
+    pub max_energy: u32,
+}
+
+fn starting_energy() -> u32 {
+    100
 }
 
 impl From<&KccBody> for PlayerStateV3 {
@@ -56,6 +63,8 @@ impl From<&KccBody> for PlayerStateV3 {
             dash_cooldown_remaining_ms: body.dash_cooldown_remaining_ms,
             current_hp: 0,
             max_hp: 0,
+            current_energy: starting_energy(),
+            max_energy: starting_energy(),
         }
     }
 }
@@ -121,9 +130,12 @@ pub struct SaveV3 {
 
 impl SaveV3 {
     pub(crate) fn capture(state: &RuntimeState) -> Result<Self, String> {
+        if state.world.sentinels.iter().any(|s|s.charge_controller.is_some()) {return Err("E_SAVE_LEGACY_SENTINEL_UNSUPPORTED".into());}
         let mut player = PlayerStateV3::from(&state.world.player);
         player.current_hp = state.world.player_hp;
         player.max_hp = state.world.player_max_hp;
+        player.current_energy = state.world.player_energy;
+        player.max_energy = state.world.player_max_energy;
         let save = Self {
             schema_version: SAVE_SCHEMA_VERSION,
             content_version: CONTENT_VERSION.into(),
@@ -155,7 +167,7 @@ impl SaveV3 {
     }
 
     pub(crate) fn validate(&self) -> Result<(), String> {
-        if self.schema_version != SAVE_SCHEMA_VERSION {
+        if !matches!(self.schema_version, 3 | SAVE_SCHEMA_VERSION) {
             return Err("E_SAVE_VERSION_UNSUPPORTED".into());
         }
         if !matches!(
@@ -183,6 +195,8 @@ impl SaveV3 {
             || self.last_client_time_ms != self.last_received_client_time_ms
             || self.player.max_hp == 0
             || self.player.current_hp > self.player.max_hp
+            || self.player.max_energy == 0
+            || self.player.current_energy > self.player.max_energy
             || self.capabilities.schema_version != crate::capability_v1::CAPABILITY_SCHEMA_VERSION
             || self.route.schema_version != crate::world_progression::ROUTE_SCHEMA_VERSION
             || self.route.current_world_id != self.world_id
@@ -260,7 +274,8 @@ impl SaveV3 {
                 .iter()
                 .any(|g| &g.capability_id == id)
         }) || self.sentinels.iter().any(|s| {
-            s.entity_id.trim().is_empty()
+            matches!(s.state, SentinelState::ChargeWindup | SentinelState::Charge | SentinelState::Stagger)
+                || s.entity_id.trim().is_empty()
                 || ![s.position_m.x_m, s.position_m.y_m, s.position_m.z_m]
                     .iter()
                     .all(|v| v.is_finite())
@@ -331,6 +346,8 @@ impl SaveV3 {
         world.player.dash_cooldown_remaining_ms = self.player.dash_cooldown_remaining_ms;
         world.player_hp = self.player.current_hp;
         world.player_max_hp = self.player.max_hp;
+        world.player_energy = self.player.current_energy;
+        world.player_max_energy = self.player.max_energy;
         world.sentinels = self
             .sentinels
             .iter()
@@ -342,6 +359,7 @@ impl SaveV3 {
                 state_remaining_ms: s.state_remaining_ms,
                 attack_serial: s.attack_serial,
                 active: s.active,
+                charge_controller: None,
             })
             .collect();
         world.combat_state =
@@ -353,25 +371,50 @@ impl SaveV3 {
         world.last_client_time_ms = self.last_client_time_ms;
         let mut capabilities = self.capabilities.clone();
         rebase_capability_revisions(&mut capabilities, epoch)?;
-        let dt = 1.0 / 20.0;
         let stepper = crate::fixed_step::FixedStepClock::new(
-            crate::fixed_step::FixedStepConfig::new(20, 1)
+            crate::fixed_step::FixedStepConfig::new(60, 1)
                 .map_err(|e| format!("E_SAVE_CLOCK: {e:?}"))?,
         );
         // The scheduler starts clean; authority time and input sequence remain persisted.
         Ok(RuntimeState {
             world,
+            world_persistent_v1: crate::world_persistent_v1::WorldPersistentState::default(),
             route: self.route.clone(),
             capabilities,
+            build_commands: Default::default(),
+            progression_v6: crate::formal_runtime::build_v6::PlayerProgressionV6::default(),
+            effect_sources_v6: Vec::new(),
+            effective_rules_v6: crate::player_rules::EffectivePlayerRules::default(),
             kcc: crate::continuous_kcc::StaticKccWorld::grey_hive_first_flow(route_has_power(
                 &self.route,
             )),
             stepper,
-            next_tick_at: Instant::now() + Duration::from_secs_f32(dt),
+            latest_sample: crate::continuous_input::InputSample::new(
+                epoch,
+                self.last_received_seq,
+                self.last_received_client_time_ms,
+                0.0,
+                0.0,
+            )
+            .map_err(|error| format!("E_SAVE_INPUT: {error:?}"))?,
+            latest_input_received_at: std::time::Instant::now(),
+            pending_combat: Vec::new(),
+            presentation_events: Vec::new(),
+            next_presentation_event_id: 1,
+            sound_cues: Vec::new(),
+            next_sound_cue_id: 1,
             last_received_seq: self.last_received_seq,
             last_client_time_ms: self.last_received_client_time_ms,
             last_damaged_at_ms: self.last_damaged_at_ms,
             last_combat_at_ms: self.last_combat_at_ms,
+            paused: false,
+            entry_generation: 0,
+            pending_entry: None,
+            entry_pause_requested: false,
+            last_lifecycle_sequence: 0,
+            enhancement_terminal: None,
+            baizhi: Default::default(),
+            last_owner_error: None,
         })
     }
 }
@@ -411,19 +454,52 @@ pub fn has_valid_save(root: &Path) -> bool {
         .is_ok()
 }
 
-/// The historical `GameState` v2 is a Grid/campaign save, not a Continuous
-/// World v2. It is parsed for an explicit, non-mutating rejection only; in
-/// particular, px/py are never converted to metres.
+/// Legacy grid saves have no authenticated continuous-world checkpoint mapping.
+/// Only their format header is inspected to select a rejection code. No legacy
+/// story module is loaded and no caller can obtain an accepted/migrated save.
+/// Unlike the former full DTO decode, unrelated old payload fields do not affect
+/// rejection classification. Every input is still rejected without any writes.
 pub fn inspect_legacy_grid_v2(raw: &str) -> Result<(), String> {
-    let old: crate::state::GameState =
+    #[derive(serde::Deserialize)]
+    struct LegacyHeader {
+        #[serde(default)]
+        save_version: u32,
+        #[serde(default = "legacy_world")]
+        world_id: String,
+    }
+    fn legacy_world() -> String { "biohazard_ch1".to_owned() }
+    let value: serde_json::Value =
+        serde_json::from_str(raw).map_err(|_| "E_LEGACY_SAVE_CORRUPT".to_string())?;
+    if !value.is_object() { return Err("E_LEGACY_SAVE_CORRUPT".into()); }
+    let old: LegacyHeader =
         serde_json::from_str(raw).map_err(|_| "E_LEGACY_SAVE_CORRUPT".to_string())?;
     if old.save_version != 2 {
         return Err("E_LEGACY_SAVE_VERSION_UNSUPPORTED".into());
     }
-    if old.world_id != crate::worlds::WORLD_BIOHAZARD {
+    if old.world_id != "biohazard_ch1" {
         return Err("E_LEGACY_SAVE_WORLD_UNSUPPORTED".into());
     }
     Err("E_V2_GRID_NO_CHECKPOINT_MAPPING: historical GameState v2 has no authenticated Grey Hive semantic checkpoint mapping; original retained".into())
+}
+
+#[cfg(test)]
+mod legacy_header_rejection_tests {
+    use super::inspect_legacy_grid_v2;
+    #[test]
+    fn every_legacy_header_is_rejected_without_payload_migration() {
+        for raw in [r#"{"save_version":2,"world_id":"biohazard_ch1"}"#,
+                    r#"{"save_version":2}"#,
+                    r#"{"save_version":2,"world_id":"biohazard_ch1","px":123,"py":456}"#] {
+            let unchanged = raw.to_owned();
+            assert!(inspect_legacy_grid_v2(raw).unwrap_err().starts_with("E_V2_GRID_NO_CHECKPOINT_MAPPING"));
+            assert_eq!(raw, unchanged);
+        }
+        assert_eq!(inspect_legacy_grid_v2("{}").unwrap_err(), "E_LEGACY_SAVE_VERSION_UNSUPPORTED");
+        assert_eq!(inspect_legacy_grid_v2(r#"{"save_version":2,"world_id":"other"}"#).unwrap_err(), "E_LEGACY_SAVE_WORLD_UNSUPPORTED");
+        for raw in ["not json", "[]", "null", r#"{"save_version":"2"}"#, r#"{"save_version":2,"world_id":null}"#] {
+            assert_eq!(inspect_legacy_grid_v2(raw).unwrap_err(), "E_LEGACY_SAVE_CORRUPT");
+        }
+    }
 }
 
 pub fn read_save(root: &Path) -> Result<SaveV3, String> {

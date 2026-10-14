@@ -3,6 +3,10 @@
 use crate::effects::TerrainTag;
 use serde::{Deserialize, Serialize};
 
+const SCENE_HISTORY_V1_SCHEMA_VERSION: u32 = 1;
+const MAX_SCENE_HISTORY_ROWS: usize = 64;
+const MAX_SCENE_HISTORY_IDS_PER_ROW: usize = 256;
+
 pub const CLOCKWORKS_PRESSURE_VALVE_IDS: [&str; 3] = [
     "cw_pressure_valve_01_staged",
     "cw_pressure_valve_02_staged",
@@ -230,6 +234,24 @@ pub struct WorldPersistentState {
     pub clockworks: ClockworksPersistentState,
     #[serde(default)]
     pub mist_harbor: MistHarborPersistentState,
+    #[serde(default, skip_serializing_if = "Option::is_none", deserialize_with = "deserialize_scene_history_v1")]
+    pub scene_history_v1: Option<SceneHistoryV1>,
+}
+
+/// Bounded generic scene-local state retained across authored V1 scene visits.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SceneHistoryV1 {
+    pub schema_version: u32,
+    pub scene_states: Vec<crate::save_v5::SceneStateSave>,
+}
+
+fn deserialize_scene_history_v1<'de, D>(deserializer: D) -> Result<Option<SceneHistoryV1>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    // A missing field uses the field default; an explicit JSON null is malformed.
+    SceneHistoryV1::deserialize(deserializer).map(Some)
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -327,7 +349,57 @@ impl WorldPersistentState {
         }) {
             return Err(PumpStateError::InvalidState);
         }
+        if let Some(history) = &self.scene_history_v1 {
+            if history.schema_version != SCENE_HISTORY_V1_SCHEMA_VERSION
+                || history.scene_states.len() > MAX_SCENE_HISTORY_ROWS
+            {
+                return Err(PumpStateError::InvalidState);
+            }
+            let mut previous_scene_id: Option<&str> = None;
+            for row in &history.scene_states {
+                if !valid_scene_history_id(&row.scene_id)
+                    || previous_scene_id.is_some_and(|previous| previous >= row.scene_id.as_str())
+                    || row.activated_ids.len() > MAX_SCENE_HISTORY_IDS_PER_ROW
+                    || row.emitted_event_ids.len() > MAX_SCENE_HISTORY_IDS_PER_ROW
+                    || !unique_valid_scene_history_ids(&row.activated_ids)
+                    || !unique_valid_scene_history_ids(&row.emitted_event_ids)
+                    || row.checkpoint_id.as_deref().is_some_and(|id| !valid_scene_history_id(id))
+                {
+                    return Err(PumpStateError::InvalidState);
+                }
+                previous_scene_id = Some(&row.scene_id);
+            }
+        }
         Ok(())
+    }
+
+    pub(crate) fn scene_history_row(&self, scene_id: &str) -> Option<&crate::save_v5::SceneStateSave> {
+        let history = self.scene_history_v1.as_ref()?;
+        history.scene_states
+            .binary_search_by(|row| row.scene_id.as_str().cmp(scene_id))
+            .ok()
+            .map(|index| &history.scene_states[index])
+    }
+
+    pub(crate) fn upsert_scene_history_row(
+        &mut self,
+        row: crate::save_v5::SceneStateSave,
+    ) -> Result<(), String> {
+        self.validate().map_err(|_| "E_SAVE_SCENE_HISTORY_INVALID".to_string())?;
+        let history = self.scene_history_v1.get_or_insert_with(|| SceneHistoryV1 {
+            schema_version: SCENE_HISTORY_V1_SCHEMA_VERSION,
+            scene_states: Vec::new(),
+        });
+        match history.scene_states.binary_search_by(|existing| existing.scene_id.cmp(&row.scene_id)) {
+            Ok(index) => history.scene_states[index] = row,
+            Err(index) => {
+                if history.scene_states.len() >= MAX_SCENE_HISTORY_ROWS {
+                    return Err("E_SAVE_SCENE_HISTORY_INVALID".into());
+                }
+                history.scene_states.insert(index, row);
+            }
+        }
+        self.validate().map_err(|_| "E_SAVE_SCENE_HISTORY_INVALID".to_string())
     }
 
     pub fn resolve_at(&mut self, world_time_ms: u64) -> Result<bool, PumpStateError> {
@@ -357,4 +429,13 @@ impl WorldPersistentState {
             .iter()
             .any(|id| id == region_id)
     }
+}
+
+fn valid_scene_history_id(id: &str) -> bool {
+    !id.trim().is_empty() && crate::scene_registry::valid_id(id)
+}
+
+fn unique_valid_scene_history_ids(values: &[String]) -> bool {
+    let mut seen = std::collections::BTreeSet::new();
+    values.iter().all(|id| valid_scene_history_id(id) && seen.insert(id))
 }

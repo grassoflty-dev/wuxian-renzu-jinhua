@@ -43,7 +43,18 @@ impl SaveV6 {
         let save = SaveV5::capture(state, scene)?;
         let mut progression = state.progression_v6.clone();
         progression.sync_capabilities(&state.capabilities);
-        Self::from_authority(save, progression, state.world_persistent_v1.clone())
+        let mut world_persistent_v1 = state.world_persistent_v1.clone();
+        if let Some(scene) = scene.filter(|scene| scene.is_complete_clockworks_production()) {
+            world_persistent_v1
+                .validate()
+                .map_err(|_| "E_SAVE_WORLD_PERSISTENT_INVALID")?;
+            let [active_scene_state] = save.scene_states.as_slice() else {
+                return Err("E_SAVE_SCENE_HISTORY_ACTIVE_ROW_INVALID".into());
+            };
+            world_persistent_v1.upsert_scene_history_row(active_scene_state.clone())?;
+            scene.validate_scene_history(&world_persistent_v1)?;
+        }
+        Self::from_authority(save, progression, world_persistent_v1)
     }
 
     /// A shared current constructor, used only after the caller has established authority.
