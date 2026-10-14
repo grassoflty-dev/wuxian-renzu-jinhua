@@ -496,6 +496,39 @@ func _mission_route_guidance() -> Array:
 	if not canonical[2] in events:
 		return ['任务参考：前往停机出口查看停机终端。']
 	return ['任务参考：停机事件已记录；查看停机出口的当前归航交互。']
+func _mission_revisit_limit_suffix(world: String, row: Dictionary) -> String:
+	# Fixed caps from the frozen progression catalog and gameplay §33 policy.
+	var limits = {'grey_hive':2,'mist_harbor':2,'clockworks':4}
+	if mode != 'mission' or not limits.has(world) or not Content.EVENTS.has(world):
+		return ''
+	if not connected or pending or not P.snapshot(snapshot):
+		return ''
+	if snapshot.player.currentHp <= 0 or snapshot.get('entryToken') != null:
+		return ''
+	if not P.context(page_owner.get('context')) or not P.same(page_owner.context,snapshot):
+		return ''
+	var current: Dictionary = Content.progress(snapshot,world)
+	if current.is_empty() or row != current:
+		return ''
+	if typeof(row.get('worldId')) != TYPE_STRING or row.worldId != world:
+		return ''
+	if typeof(row.get('completed')) != TYPE_BOOL or not row.completed:
+		return ''
+	if typeof(row.get('firstCompletion')) != TYPE_BOOL or not row.firstCompletion:
+		return ''
+	var limit: int = limits[world]
+	if not P.counter(row.get('visitId'),1) or not P.counter(row.get('cycleId'),1,1) or not P.counter(row.get('revisitCount'),0,limit):
+		return ''
+	if row.visitId != row.revisitCount + 1 or row.cycleId != 1:
+		return ''
+	var completed_events = row.get('completedEvents')
+	var canonical_events: Array = Content.EVENTS[world]
+	if not completed_events is Array or completed_events.size() != 3 or canonical_events.size() != 3:
+		return ''
+	for event in canonical_events:
+		if not event in completed_events:
+			return ''
+	return ' / ' + str(limit)
 func _mission() -> void:
 	if snapshot.is_empty():
 		_text('尚未收到当前旅程')
@@ -513,7 +546,7 @@ func _mission() -> void:
 			if row.is_empty():
 				_text(WORLDS[world]+' · 进度未确认')
 			else:
-				_text(WORLDS[world]+' · '+('已完成' if row.completed else '尚未完成')+' · 复访 '+str(int(row.revisitCount)))
+				_text(WORLDS[world]+' · '+('已完成' if row.completed else '尚未完成')+' · 复访 '+str(int(row.revisitCount))+_mission_revisit_limit_suffix(world,row))
 				_text('事件记录 %d / 3'%row.completedEvents.size())
 				for event in Content.EVENTS[world]:
 					var recorded = event in row.completedEvents
