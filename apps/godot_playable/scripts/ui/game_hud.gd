@@ -33,6 +33,7 @@ var checkpoint: Label
 var icons
 var bottom: ScrollContainer
 var bottom_content: VBoxContainer
+var bottom_layout_valid = false
 var layout_queued = false
 var layout_busy = false
 var layout_scale = 1.0
@@ -200,7 +201,22 @@ func _layout_bottom() -> void:
 	var height = minf(maxf(155*layout_scale,measured),size.y*0.45)
 	if is_finite(height) and height>0 and bottom.offset_top!=-height:
 		bottom.offset_top = -height
+	bottom_layout_valid = is_finite(height) and height>0 and is_finite(bottom.offset_top) and bottom.offset_top<0
 	layout_busy = false
+func get_world_safe_rect() -> Rect2:
+	var full = get_viewport_rect()
+	if not is_visible_in_tree() or not bottom_layout_valid or not is_instance_valid(bottom):
+		return full
+	if not bottom.is_visible_in_tree():
+		return full
+	var occupied = bottom.get_global_rect()
+	if not is_finite(occupied.position.x) or not is_finite(occupied.position.y) or not is_finite(occupied.size.x) or not is_finite(occupied.size.y):
+		return full
+	if occupied.size.x<=0 or occupied.size.y<=0 or not occupied.intersects(full):
+		return full
+	var safe_bottom = clampf(occupied.position.y,full.position.y,full.end.y)
+	var safe = Rect2(full.position,Vector2(full.size.x,safe_bottom-full.position.y)).intersection(full)
+	return safe if safe.size.x>0 and safe.size.y>0 else full
 func _load_internal_icons() -> void:
 	var file = FileAccess.open('res://data/skill_icons.internal-use.json',FileAccess.READ)
 	if file == null:

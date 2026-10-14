@@ -98,6 +98,7 @@ func _ready() -> void:
 	hud = Hud.new()
 	hud.name = 'GameHUD'
 	ui.add_child(hud)
+	renderer.safe_rect_provider = Callable(hud,'get_world_safe_rect')
 	hud.intent.connect(func(kind,value): _ui_intent(kind,value,_owner() if kind in ['interact_current','traverse_current','player_action_current','guard_current_begin','guard_current_end','movement_current_begin','movement_current_end'] else panels.page_owner.duplicate(true)))
 	panels = Panels.new()
 	panels.name = 'Panels'

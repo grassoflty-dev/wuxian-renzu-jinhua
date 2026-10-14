@@ -70,6 +70,7 @@ var current_key = ''
 var displayed = {}
 var occluder_alpha = {}
 var viewport_rect = Rect2()
+var safe_rect_provider: Callable
 var interaction_focus: Dictionary = {}
 func _ready() -> void:
 	baizhi_placeholder_visual = BaizhiPlaceholderVisual.new()
@@ -138,8 +139,17 @@ func set_interaction_focus(target: Dictionary, s: Dictionary, eligible: bool, ex
 func _process(delta: float) -> void:
 	if snapshot.is_empty() or scene.is_empty():
 		return
-	camera.update(snapshot,scene,get_viewport_rect().size,maxf(0,delta))
-	viewport_rect = get_viewport_rect()
+	var full = get_viewport_rect()
+	var safe_rect = full
+	if snapshot.worldId=='return_station' and snapshot.sceneId=='rs_core_room' and safe_rect_provider.is_valid():
+		var candidate = safe_rect_provider.call()
+		if candidate is Rect2:
+			if is_finite(candidate.position.x) and is_finite(candidate.position.y) and is_finite(candidate.size.x) and is_finite(candidate.size.y) and candidate.size.x>0 and candidate.size.y>0:
+				var clipped = candidate.intersection(full)
+				if clipped.size.x>0 and clipped.size.y>0:
+					safe_rect = clipped
+	camera.update(snapshot,scene,full.size,maxf(0,delta),safe_rect)
+	viewport_rect = full
 	_update_occlusion(delta)
 	queue_redraw()
 func visible_point(p: Vector3) -> bool:
