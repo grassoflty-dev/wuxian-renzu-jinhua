@@ -29,7 +29,7 @@ static func project(s: Dictionary, eligible) -> Array:
 	if s.worldId=='clockworks' and s.sceneId in ['cw_boiler_chamber','cw_furnace_heart']:
 		return local_environment(s)
 	if s.worldId=='clockworks' and s.sceneId=='cw_pressure_hall':
-		return valves(s.get('interactables'))
+		return valves(s.get('interactables')) + pressure_valve_receipts(s)
 	if s.worldId=='clockworks' and s.sceneId=='cw_shutdown_exit':
 		return extraction_controls(s)
 	return []
@@ -71,6 +71,30 @@ static func valves(rows) -> Array:
 	var lines: Array = []
 	for n in range(3):
 		lines.append('阀门 '+str(n+1)+'：'+('可交互' if selected[VALVES[n]] else '当前不可交互'))
+	return lines
+static func pressure_valve_receipts(s: Dictionary) -> Array:
+	if not P.snapshot(s) or s.get('worldId') != 'clockworks' or s.get('sceneId') != 'cw_pressure_hall' or s.get('entryToken') != null:
+		return []
+	var progression = Content.progress(s, 'clockworks')
+	if progression.is_empty():
+		return []
+	var raw_receipts = progression.get('pressureValveReceipts')
+	if raw_receipts == null:
+		return []
+	if typeof(raw_receipts) != TYPE_ARRAY or raw_receipts.size() > VALVES.size():
+		return ['阀门回执：状态未确认']
+	var previous_index = -1
+	for receipt in raw_receipts:
+		if typeof(receipt) != TYPE_STRING:
+			return ['阀门回执：状态未确认']
+		var valve_index = VALVES.find(receipt)
+		if valve_index < 0 or valve_index <= previous_index:
+			return ['阀门回执：状态未确认']
+		previous_index = valve_index
+	var lines: Array = ['阀门回执：'+str(raw_receipts.size())+' / 3']
+	for n in range(VALVES.size()):
+		var state = '已记录' if raw_receipts.has(VALVES[n]) else '未记录'
+		lines.append('阀门 '+str(n+1)+' 回执：'+state)
 	return lines
 static func local_environment(s: Dictionary) -> Array:
 	if not P.snapshot(s) or not P.point(s.player.transform.positionM) or not P.number(s.player.transform.positionM.yM,0,0.1):
