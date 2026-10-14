@@ -59,7 +59,13 @@ def relative(raw: object, prefix: str) -> str:
     return raw
 
 
-def identity(info: os.stat_result) -> tuple:
+def identity_cross_source(info: os.stat_result) -> tuple:
+    # Windows lstat/fstat can expose different ctime values for unchanged bytes.
+    return (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns)
+
+
+def identity_same_source(info: os.stat_result) -> tuple:
+    # Preserve ctime change detection within path or descriptor observations.
     return (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
 
 
@@ -105,7 +111,7 @@ def fingerprint(path: Path, expected_size: int | None, keep: bool = False) -> di
     with path.open('rb') as handle:
         opened = os.fstat(handle.fileno())
         ordinary(opened, False)
-        if identity(opened) != identity(before):
+        if identity_cross_source(opened) != identity_cross_source(before):
             raise Fault('FILE_CHANGED_BEFORE_READ')
         while True:
             chunk = handle.read(1024 * 1024)
@@ -120,9 +126,9 @@ def fingerprint(path: Path, expected_size: int | None, keep: bool = False) -> di
                 chunks.append(chunk)
         after = os.fstat(handle.fileno())
         ordinary(after, False)
-        if count != before.st_size or identity(after) != identity(before):
+        if count != before.st_size or identity_same_source(after) != identity_same_source(opened):
             raise Fault('FILE_CHANGED_DURING_READ')
-    if identity(inspect(path)) != identity(before):
+    if identity_same_source(inspect(path)) != identity_same_source(before):
         raise Fault('FILE_CHANGED_AFTER_READ')
     result = {'bytes': count, 'sha256': digest.hexdigest(), 'gitBlob': git.hexdigest()}
     if keep:
