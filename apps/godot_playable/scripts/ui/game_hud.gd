@@ -1,4 +1,5 @@
 extends Control
+const HudTheme = preload('res://scripts/ui/theme_model.gd')
 const Content = preload('res://scripts/ui/content_model.gd')
 const P = preload('res://scripts/bridge/protocol.gd')
 const Icons = preload('res://scripts/ui/skill_icon_row.gd')
@@ -23,7 +24,8 @@ var interact_button: Button
 var interact_association: Dictionary = {}
 var interact_press: Dictionary = {}
 var status_label: Label
-var meters: Label
+var hp_label: Label
+var energy_label: Label
 var objectives: Label
 var hint: Label
 var mechanism: Label
@@ -46,10 +48,19 @@ func _ready() -> void:
 	status_label.position = Vector2(60,12)
 	status_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(status_label)
-	meters = Label.new()
-	meters.position = Vector2(60,44)
-	meters.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(meters)
+	var vitals = VBoxContainer.new()
+	vitals.position = Vector2(60,44)
+	vitals.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vitals.add_theme_constant_override('separation',0)
+	add_child(vitals)
+	hp_label = Label.new()
+	hp_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hp_label.add_theme_color_override('font_color',Color(HudTheme.BASE.danger))
+	vitals.add_child(hp_label)
+	energy_label = Label.new()
+	energy_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	energy_label.add_theme_color_override('font_color',Color(HudTheme.BASE.system))
+	vitals.add_child(energy_label)
 	objectives = Label.new()
 	objectives.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	objectives.offset_left = -430
@@ -372,7 +383,12 @@ func update_view(s: Dictionary, connection: String, eligible: bool, interaction:
 	_update_guard(s,eligible,guard)
 	_update_movements(s,eligible,movements)
 	status_label.text = connection if s.is_empty() else {'return_station':'归航站','grey_hive':'灰巢设施','mist_harbor':'雾港余烬','clockworks':'钟骨工厂'}.get(s.worldId,s.worldId)+' · '+Content.SCENE_NAMES.get(s.sceneId,'当前场景')+' · '+connection
-	meters.text = '' if s.is_empty() else '岑遥 · 生命 %d / %d    能量 %d / %d'%[s.player.currentHp,s.player.maxHp,s.player.currentEnergy,s.player.maxEnergy]
+	if s.is_empty():
+		hp_label.text = ''
+		energy_label.text = ''
+	else:
+		hp_label.text = '岑遥 · 生命 %d / %d'%[s.player.currentHp,s.player.maxHp]
+		energy_label.text = '能量 %d / %d'%[s.player.currentEnergy,s.player.maxEnergy]
 	var display = PlayStatus.project(s,eligible)
 	var lines: Array = display.objectives.duplicate()
 	if not display.milestones.is_empty():
@@ -387,7 +403,7 @@ func update_view(s: Dictionary, connection: String, eligible: bool, interaction:
 	mechanism.visible = not mechanism.text.is_empty()
 	checkpoint.text = CheckpointStatus.project(s,eligible)
 	checkpoint.visible = not checkpoint.text.is_empty()
-	for label in [portrait,status_label,meters,objectives,hint,mechanism,checkpoint]:
+	for label in [portrait,status_label,hp_label,energy_label,objectives,hint,mechanism,checkpoint]:
 		label.add_theme_font_size_override('font_size',int(16*scale))
 	for button in button_nodes:
 		button.add_theme_font_size_override('font_size',int(16*scale))
