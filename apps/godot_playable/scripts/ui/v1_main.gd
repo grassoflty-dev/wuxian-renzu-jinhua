@@ -1015,6 +1015,9 @@ func _response(_rpc_id: int, method: String, result, association: Dictionary) ->
 	if not _accept_snapshot(r.snapshot,transition):
 		return
 	match purpose:
+		'journey':
+			if method=='formal_new' and r.applied==true and r.alreadyApplied==false and P.snapshot(snapshot) and snapshot.worldId=='return_station' and snapshot.sceneId=='rs_core_room' and P.same(r.snapshot,snapshot):
+				_feedback('归航链路稳定。请选择首次回收坐标：灰巢设施。')
 		'open_page','enhancement_pause':
 			pause_owned = _context()
 			status = _context()
