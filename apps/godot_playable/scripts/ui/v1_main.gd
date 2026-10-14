@@ -1188,6 +1188,8 @@ func _accept_snapshot(s: Dictionary, permit_transition: bool = false) -> bool:
 		_hold('E_PLAYER_PROJECTION_BOUNDS')
 		return false
 	snapshot = s
+	if changed:
+		last_feedback = ''
 	last_snapshot_at = Time.get_ticks_msec()
 	renderer.commit(s,catalog.current,catalog.source_hash)
 	if journey_started and s.get('entryToken')!=null:
