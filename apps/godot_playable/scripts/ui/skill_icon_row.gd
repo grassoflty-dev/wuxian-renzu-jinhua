@@ -59,7 +59,7 @@ func update_display(scale: float, action: String, eligible: bool, status: Dictio
 	for id in slots:
 		slots[id].icon.custom_minimum_size = Vector2(56,56)*scale
 		slots[id].text.add_theme_font_size_override('font_size',int(16*scale))
-		slots[id].text.text = LABELS[id]+(' · 当前' if action==id else '')+(' · 暂停输入' if not eligible else '')+'\n'+USE_TEXT[id]
+		slots[id].text.text = LABELS[id]+(' · 当前' if action==id else '')+(' · 暂停输入' if not eligible else '')
 		slots[id].phase.add_theme_font_size_override('font_size',int(14*scale))
 		slots[id].phase.custom_minimum_size.x = 56*scale
 		slots[id].phase.text = status.text if eligible and action==id and status.get('kind')==id and typeof(status.get('text'))==TYPE_STRING else ''

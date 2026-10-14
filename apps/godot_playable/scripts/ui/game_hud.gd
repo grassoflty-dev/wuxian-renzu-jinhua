@@ -149,7 +149,7 @@ func _ready() -> void:
 		_add_player_action(buttons,action_id)
 	guard_button = Button.new()
 	guard_button.text = '防御'
-	guard_button.tooltip_text = '按住尝试防御；松开或取消时结束鼠标防御。'
+	guard_button.tooltip_text = '按住尝试防御；松开或取消时结束鼠标防御。'+'\n'+Icons.USE_TEXT['guard']
 	guard_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	guard_button.focus_mode = Control.FOCUS_NONE
 	guard_button.visible = false
@@ -212,7 +212,7 @@ func _add_player_action(buttons: HFlowContainer, action_id: String) -> void:
 	var state = {'button':button,'display':{},'press':{}}
 	player_action_states[action_id] = state
 	button.text = PLAYER_ACTION_LABELS[action_id]
-	button.tooltip_text = '尝试'+button.text+'；使用当前瞄准方向。'
+	button.tooltip_text = '尝试'+button.text+'；使用当前瞄准方向。'+('\n'+Icons.USE_TEXT[action_id] if Icons.USE_TEXT.has(action_id) else '')
 	button.mouse_filter = Control.MOUSE_FILTER_STOP
 	button.focus_mode = Control.FOCUS_NONE
 	button.visible = false
