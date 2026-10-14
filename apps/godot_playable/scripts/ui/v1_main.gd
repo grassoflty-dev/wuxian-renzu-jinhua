@@ -681,13 +681,60 @@ func _nearest() -> Dictionary:
 func _baizhi_available(i: Dictionary) -> bool:
 	var b = snapshot.get('baizhi')
 	return i.get('kind')=='npc_dialogue' and i.get('entityId')=='gh_bz_first_contact' and snapshot.get('worldId')=='grey_hive' and snapshot.get('sceneId')=='gh_bio_isolation' and typeof(i.get('active'))==TYPE_BOOL and i.active and b is Dictionary and typeof(b.get('canInteract'))==TYPE_BOOL and b.canInteract
+func _storage_inventory_available(i: Dictionary) -> bool:
+	if not P.snapshot(snapshot) or not _eligible():
+		return false
+	var current_context = _context()
+	if not P.context(current_context) or not P.same(current_context,snapshot):
+		return false
+	if snapshot.get('worldId')!='return_station' or snapshot.get('sceneId')!='rs_core_room' or snapshot.get('entryToken')!=null or snapshot.player.currentHp<=0:
+		return false
+	if catalog.current.get('worldId')!=snapshot.worldId or catalog.current.get('sceneId')!=snapshot.sceneId:
+		return false
+	if typeof(i.get('entityId'))!=TYPE_STRING or i.get('entityId')!='rs_storage_inventory_marker' or typeof(i.get('kind'))!=TYPE_STRING or i.get('kind')!='storage_inventory_marker':
+		return false
+	if typeof(i.get('active'))!=TYPE_BOOL or not i.get('active') or not P.transform(i.get('transform')):
+		return false
+	var native_rows = snapshot.get('interactables')
+	if not P.rows(native_rows,2048) or not P.unique(native_rows,'entityId'):
+		return false
+	var native_matches: Array = []
+	for row in native_rows:
+		if row is Dictionary and typeof(row.get('entityId'))==TYPE_STRING and row.entityId=='rs_storage_inventory_marker' and typeof(row.get('kind'))==TYPE_STRING and row.kind=='storage_inventory_marker':
+			native_matches.append(row)
+	if native_matches.size()!=1:
+		return false
+	var native_row: Dictionary = native_matches[0]
+	if typeof(native_row.get('active'))!=TYPE_BOOL or not native_row.get('active') or not P.transform(native_row.get('transform')) or native_row.get('active')!=i.get('active') or native_row.get('transform')!=i.get('transform'):
+		return false
+	var authored_rows = catalog.current.get('interactions')
+	if not P.rows(authored_rows,2048) or not P.unique(authored_rows,'id'):
+		return false
+	var authored_matches: Array = []
+	for row in authored_rows:
+		if row is Dictionary and typeof(row.get('id'))==TYPE_STRING and row.id=='rs_storage_inventory_marker':
+			authored_matches.append(row)
+	if authored_matches.size()!=1:
+		return false
+	var authored_row: Dictionary = authored_matches[0]
+	if typeof(authored_row.get('kind'))!=TYPE_STRING or authored_row.get('kind')!='storage_inventory_marker':
+		return false
+	var position = authored_row.get('position')
+	if typeof(position)!=TYPE_ARRAY or position.size()!=3:
+		return false
+	if not P.number(position[0]) or not P.number(position[1]) or not P.number(position[2]):
+		return false
+	var authored_position = Vector3(float(position[0]),float(position[1]),float(position[2]))
+	if authored_position!=Vector3(15.0,0.0,12.0):
+		return false
+	return P.vector(native_row.transform.positionM)==authored_position
 func _interaction_prompt(i: Dictionary) -> String:
 	var label = _interaction_label(i)
 	if typeof(i.get('active'))!=TYPE_BOOL or not i.active:
 		return label+' · 当前不可用'
 	if i.get('kind')=='npc_dialogue':
 		return '[F] '+label if _baizhi_available(i) else label+' · 当前对白不可用'
-	if SCENE_RPC.has(i.get('kind')) or i.get('kind') in INTERACT_KINDS:
+	if SCENE_RPC.has(i.get('kind')) or i.get('kind') in INTERACT_KINDS or _storage_inventory_available(i):
 		return '[F] '+label
 	return label if label=='未知交互（不可执行）' else label+' · 未知交互（不可执行）'
 func _scene_in_world(scene: String, world: String) -> bool:
@@ -803,10 +850,15 @@ func _current_hud_interaction() -> Dictionary:
 	if i.kind=='npc_dialogue':
 		if not _baizhi_available(i):
 			return {}
+	elif i.kind=='storage_inventory_marker':
+		if not _storage_inventory_available(i):
+			return {}
 	elif not SCENE_RPC.has(i.kind) and not i.kind in INTERACT_KINDS:
 		return {}
 	return {'generation':generation,'context':_context().duplicate(true),'entityId':i.entityId,'kind':i.kind,'label':_interaction_label(i)}
 func _interaction_label(i: Dictionary) -> String:
+	if _storage_inventory_available(i):
+		return '背包'
 	var destination = _destination_label(i)
 	if not destination.is_empty():
 		return destination
@@ -835,6 +887,9 @@ func _interact() -> void:
 		return
 	var kind: String = i.kind
 	var id: String = i.entityId
+	if kind=='storage_inventory_marker' and _storage_inventory_available(i):
+		_open_paused('inventory')
+		return
 	if kind=='npc_dialogue':
 		if id!='gh_bz_first_contact' or snapshot.worldId!='grey_hive' or snapshot.sceneId!='gh_bio_isolation' or not _baizhi_available(i):
 			_feedback('当前对白不可用')
