@@ -1,0 +1,226 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "0d96883c6a0b661b711d5b94bcfdd3acadbf0ddb",
+  "sourceTree": "64430cd9d27e2942a4d9cccd4d627dc45043e539",
+  "publicSourceCount": 27,
+  "externalTargetCount": 4,
+  "targets": [
+    {
+      "target": "apps/godot_playable/assets/ui/skills/guard/icon_128.png",
+      "sha256": "b7d6397f891893bac5f83ae47231c63e9de229a791b4e3c85df313463fe22dd8",
+      "bytes": null,
+      "publicSource": null,
+      "publicGitBlob": null
+    },
+    {
+      "target": "apps/godot_playable/assets/ui/skills/pulse/icon_128.png",
+      "sha256": "08c9188c6acb8e147ef30ea3030aca58506cf67018b45e849619f4709a6f19ac",
+      "bytes": null,
+      "publicSource": null,
+      "publicGitBlob": null
+    },
+    {
+      "target": "apps/godot_playable/assets/ui/skills/pierce/icon_128.png",
+      "sha256": "85bb04f8b285381a6fc1510c8770749972e9c1df64932db7d3a97c2c3b45118b",
+      "bytes": null,
+      "publicSource": null,
+      "publicGitBlob": null
+    },
+    {
+      "target": "apps/godot_playable/assets/ui/skills/dash/icon_128.png",
+      "sha256": "8e53f8d30b7dc202944e048e8a9f3fcdd22d8a7254c39541e88569a9c8881064",
+      "bytes": null,
+      "publicSource": null,
+      "publicGitBlob": null
+    },
+    {
+      "target": "apps/godot_playable/assets/props/grey_hive/bio_pod.png",
+      "sha256": "d71d51dea193527c71262ccb54d7d7b14d80e43346b017dede9a4122e2589588",
+      "bytes": 1371757,
+      "publicSource": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.bio_pod.v1.png",
+      "publicGitBlob": "d8cf082a9ee0802bbb2a70583d65f5e46c3eb776"
+    },
+    {
+      "target": "apps/godot_playable/assets/props/grey_hive/medical_station.png",
+      "sha256": "de4fdadfd8b9fc21afd1bf430a1da846129fa09b2a303a064eaedeb8552dc0f2",
+      "bytes": 1418293,
+      "publicSource": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.medical_station.v1.png",
+      "publicGitBlob": "a06fc6bed3e8547c2b98b0fc2b9ece521a69e75f"
+    },
+    {
+      "target": "apps/godot_playable/assets/props/grey_hive/lockdown_terminal.png",
+      "sha256": "e917f9b4677d49e6d534b6b5f32b8756fb2934dbe4e87e76391c09ccd786361c",
+      "bytes": 1870319,
+      "publicSource": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.lockdown_terminal.v1.png",
+      "publicGitBlob": "8f0957cb802c5a1e019edc53e0d402d239ca526b"
+    },
+    {
+      "target": "apps/godot_playable/assets/enemies/grey_hive/sentinel_sheet.png",
+      "sha256": "c490ace4eb8ec9bf27e176359aefb8c3cd36c55a0651452be39ef25e4864df1d",
+      "bytes": 2160789,
+      "publicSource": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.sentinel.base.v1.png",
+      "publicGitBlob": "7ec0b941a0ad7fde1f54644e8b00b2a1f8bc54b1"
+    },
+    {
+      "target": "apps/godot_playable/assets/enemies/grey_hive/security_sheet.png",
+      "sha256": "cee3c171a14d82317e98ef00f39c3341a16364931dd8d56ec0ced330bcbecf66",
+      "bytes": 1827592,
+      "publicSource": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.infected_security.v1.png",
+      "publicGitBlob": "bc072bb0988f2280057d8676ae37929bf83dd889"
+    },
+    {
+      "target": "apps/godot_playable/assets/enemies/grey_hive/maintenance_sheet.png",
+      "sha256": "f7ee9460d18be46a8aea81fda2e566b29e5ac7b80d9ad2b20fd58f2f7e7a8168",
+      "bytes": 1870188,
+      "publicSource": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.infected_maintenance_worker.v1.png",
+      "publicGitBlob": "33ea03610a4ebfa70e08333bfbf7ff1627662123"
+    },
+    {
+      "target": "apps/godot_playable/assets/props/rs_terminal.png",
+      "sha256": "a9bdd20187d6944f5e485291fe8c8d36e2464daca2a6a1487ad0bbabdd37221a",
+      "bytes": 1036337,
+      "publicSource": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.returnstation.terminal.v1.png",
+      "publicGitBlob": "f017c9ca98d331e707b4ed1c84f3efd9476eefbb"
+    },
+    {
+      "target": "apps/godot_playable/assets/props/beacon_deployed.png",
+      "sha256": "2b2fe4729122f66740dcb1a00c2ea0cb7cd18bfbc3816822a5be4294f8c7d1e4",
+      "bytes": 710102,
+      "publicSource": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.beacon.deployed.v1.png",
+      "publicGitBlob": "2467887a63b965541401859ba4e5e7b2441fa3e3"
+    },
+    {
+      "target": "apps/godot_playable/assets/props/beacon_folded.png",
+      "sha256": "e31b18c233f03f39cdbfd51aeaf3541dd7141550d17c4c2c65bfbae043d7f080",
+      "bytes": 1350329,
+      "publicSource": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.beacon.folded.v1.png",
+      "publicGitBlob": "c5d86d551174ccfbaf8349fe9092f261bc5b686d"
+    },
+    {
+      "target": "apps/godot_playable/assets/props/clockworks/pressure_pipe_valve.png",
+      "sha256": "cb411faf57aacc7be0c116b3806b64dac0f75a9a421875b2215f54e9447a6e3a",
+      "bytes": 1384057,
+      "publicSource": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.clockworks.pressure_pipe_valve.v1.png",
+      "publicGitBlob": "2646ffcbb982c5752f9c56ab999b654edd6596bf"
+    },
+    {
+      "target": "apps/godot_playable/assets/enemies/mist_harbor/drowned.png",
+      "sha256": "752ac830587fc957d5695cd7714c57e584f40ec1a8f511f324ee491adaee7f2d",
+      "bytes": 1128162,
+      "publicSource": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.mistharbor.drowned.v2.png",
+      "publicGitBlob": "9cb9c13b14b2a5c8eec9df3b05be3f273f0e1f58"
+    },
+    {
+      "target": "apps/godot_playable/assets/enemies/clockworks/forged_guard.png",
+      "sha256": "b41cdc83c587805d0beee9d48668a9328001882595e0ab97fa69347d9bcf8cb4",
+      "bytes": 1300721,
+      "publicSource": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.clockworks.forged_guard.v2.png",
+      "publicGitBlob": "712df340b732557b1c0d8a31bfdd1428e0161e07"
+    },
+    {
+      "target": "apps/godot_playable/assets/enemies/mist_harbor/signal_wraith.png",
+      "sha256": "942a294e86076bfa91762113cd9bb14c81db329baabf5804ba9138942cc7166b",
+      "bytes": 1440594,
+      "publicSource": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.enemy.mistharbor.signal_wraith.v2.png",
+      "publicGitBlob": "7f12dba5912e1dd067fe69b61c38e5ca2dfa2844"
+    },
+    {
+      "target": "apps/godot_playable/assets/props/grey_hive/supply_crates_sheet.png",
+      "sha256": "0dbad1364c14649b021f20510b9faf970ff317e6202131bd4cb2c32648b34b00",
+      "bytes": 2067549,
+      "publicSource": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.supply_crates.v1.png",
+      "publicGitBlob": "e3a6b5ea91a39d9afe3d4956caff456077f6f941"
+    },
+    {
+      "target": "apps/godot_playable/assets/characters/cenyao/idle/cenyao_idle_south_west.png",
+      "sha256": "3d3e34d0a5d388de522fd6a94fd2769efbf8137aea1ae7c0b69881c5416520be",
+      "bytes": 158163,
+      "publicSource": "assets/derived/cenyao-runtime-master-v1/png/cenyao_idle_south_west.png",
+      "publicGitBlob": "5702126108f96031b49d3abb751b46f047479b12"
+    },
+    {
+      "target": "apps/godot_playable/assets/characters/cenyao/idle/cenyao_idle_east.png",
+      "sha256": "fd38db1daec829c0a7c2adffcdfd5c605f54b3611bb515599cd8deeea1f47402",
+      "bytes": 109177,
+      "publicSource": "assets/derived/cenyao-runtime-master-v1/png/cenyao_idle_east.png",
+      "publicGitBlob": "7fac81768057a218849b7240914efd9a081bbff6"
+    },
+    {
+      "target": "apps/godot_playable/assets/characters/cenyao/idle/cenyao_idle_west.png",
+      "sha256": "fc8e0b132c48f594a49a20bd39955d731f02077502e33131499608cc3bd7a70c",
+      "bytes": 121863,
+      "publicSource": "assets/derived/cenyao-runtime-master-v1/png/cenyao_idle_west.png",
+      "publicGitBlob": "0b4aa545a486b1cf8c90b9d91705cbe4b4715d18"
+    },
+    {
+      "target": "apps/godot_playable/assets/characters/cenyao/idle/cenyao_idle_south.png",
+      "sha256": "b6cff22dabb303f0a9c95ba24a41fb3c2f5159ff191adefacf0c6dad38ffe875",
+      "bytes": 158435,
+      "publicSource": "assets/derived/cenyao-runtime-master-v1/png/cenyao_idle_south.png",
+      "publicGitBlob": "578c8d69b874cdb34ae93858d19c4a38abcecc20"
+    },
+    {
+      "target": "apps/godot_playable/assets/characters/cenyao/idle/cenyao_idle_north_east.png",
+      "sha256": "19b8e318bf5216d6075f64ac986ef7c3c3299241816b472843aac24bbf4a7676",
+      "bytes": 144761,
+      "publicSource": "assets/derived/cenyao-runtime-master-v1/png/cenyao_idle_north_east.png",
+      "publicGitBlob": "ffaaaf6c1b7c575f5c6daa4c9e258efa997be6e8"
+    },
+    {
+      "target": "apps/godot_playable/assets/characters/cenyao/idle/cenyao_idle_south_east.png",
+      "sha256": "bfe0107fe1efdcd73b90d57b01283a22658960b5847bb5e88b401dae9857be56",
+      "bytes": 158547,
+      "publicSource": "assets/derived/cenyao-runtime-master-v1/png/cenyao_idle_south_east.png",
+      "publicGitBlob": "ab563d45cbeaad2b57e01eec8783b8f7df7725d0"
+    },
+    {
+      "target": "apps/godot_playable/assets/characters/cenyao/idle/cenyao_idle_north.png",
+      "sha256": "6608ed34685f28f3380849d7fe5e5319078e8feb1fbd66cbcd4cb3782a1a8221",
+      "bytes": 151244,
+      "publicSource": "assets/derived/cenyao-runtime-master-v1/png/cenyao_idle_north.png",
+      "publicGitBlob": "7007e461eeb5e24fa9f28e87f2ce823ea21b8343"
+    },
+    {
+      "target": "apps/godot_playable/assets/characters/cenyao/idle/cenyao_idle_north_west.png",
+      "sha256": "8dc527b975b1da5ed7b36a54cf4ad260cdcd9d7d3ccba24660308cf971c3164e",
+      "bytes": 143105,
+      "publicSource": "assets/derived/cenyao-runtime-master-v1/png/cenyao_idle_north_west.png",
+      "publicGitBlob": "3bb81b47b3aeb7be5bf7b9c188d6f395fd3b3606"
+    },
+    {
+      "target": "apps/godot_playable/assets/props/clockworks/furnace_v1.png",
+      "sha256": "4a36e98fec3057bac6e59e01bcd2287ee5e412071a5396731c50082a351aec44",
+      "bytes": 1938854,
+      "publicSource": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.clockworks.furnace.v1.png",
+      "publicGitBlob": "ecec05286cc1f4e3875dc7266e4872bafbd1a822"
+    },
+    {
+      "target": "apps/godot_playable/assets/props/clockworks/furnace_v2.png",
+      "sha256": "207e2b4c1759e49bfd03613958f86787586410dc0abe6da526f34679f17cc74d",
+      "bytes": 1584389,
+      "publicSource": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.clockworks.furnace.v2.png",
+      "publicGitBlob": "92147a4087b242964926aa150881300f26fa0432"
+    },
+    {
+      "target": "apps/godot_playable/assets/props/grey_hive/gate_a_sheet.png",
+      "sha256": "0fa3981a0abfa5a1f7a5d4b75033f392e46f1b91f901605dcacf415c796e1b7b",
+      "bytes": 1386982,
+      "publicSource": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.gate_a.closed_open.v1.png",
+      "publicGitBlob": "dc2b04e5c2469b71a9e61fc34f8c5062558667f0"
+    },
+    {
+      "target": "apps/godot_playable/assets/props/grey_hive/gate_b.png",
+      "sha256": "fdad9675bb90b37bc3c452773934536918fa56f4bef2b6f95c10a9823e2a67f6",
+      "bytes": 2397332,
+      "publicSource": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.gate_b.v1.png",
+      "publicGitBlob": "c34b84a760bb15a8432cffcd5f3126411e068838"
+    },
+    {
+      "target": "apps/godot_playable/assets/props/grey_hive/power_console_sheet.png",
+      "sha256": "740eaaf0d0b9c0b1ba3b9f2c6650ffc3e270e70e15d0d979f2637df4092f048c",
+      "bytes": 2311441,
+      "publicSource": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.prop.power_console.off_on.v1.png",
+      "publicGitBlob": "f317f3a11c017322b2efca70026f2c8f8772ffbd"
+    }
+  ]
+}
