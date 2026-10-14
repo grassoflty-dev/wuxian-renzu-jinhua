@@ -2,6 +2,7 @@ extends Control
 const P = preload('res://scripts/bridge/protocol.gd')
 const V = preload('res://scripts/world/presentation.gd')
 const CHANNELS = ['topology','terrain','connections','objectives','enemies','hazards','loot','npcs','secrets']
+const CHANNEL_TAGS = {'enemies':'E','hazards':'H','loot':'L','npcs':'N','secrets':'S'}
 const CATEGORY_LABELS = {'objective':'目标','hazard':'风险信息','other':'其他信息'}
 var text_scale = 1.0
 var polygons: Array = []
@@ -130,13 +131,20 @@ func _category(channel: String) -> String:
 	if channel in ['enemies','hazards']:
 		return 'hazard'
 	return 'other'
+func _channel_tag(channel: String) -> String:
+	return str(CHANNEL_TAGS.get(channel,''))
+func _has_channel_tags() -> bool:
+	for item in points:
+		if item is Dictionary and not _channel_tag(str(item.get('channel',''))).is_empty():
+			return true
+	return false
 func _fit(ui_scale: float) -> Dictionary:
 	if not is_finite(size.x) or not is_finite(size.y) or not is_finite(range_rect.position.x) or not is_finite(range_rect.position.y) or not is_finite(range_rect.size.x) or not is_finite(range_rect.size.y) or range_rect.size.x<=0 or range_rect.size.y<=0:
 		return {}
 	var pad = 20*ui_scale
 	var header = 48*ui_scale
 	# Fixed generic legend rows are bounded independently of payload strings.
-	var footer = (legend.size()+2)*22*ui_scale+pad
+	var footer = (legend.size()+2)*22*ui_scale+pad+(44*ui_scale if _has_channel_tags() else 0.0)
 	var area = Rect2(Vector2(pad,header),Vector2(size.x-2*pad,size.y-header-footer))
 	if area.size.x<32*ui_scale or area.size.y<32*ui_scale:
 		return {}
@@ -186,6 +194,17 @@ func _draw() -> void:
 		draw_line(_map(line.from,fit),_map(line.to,fit),accent.lightened(0.4),2*ui_scale,true)
 	for item in points:
 		_marker(_map(item.p,fit),item.category,item.knowledge=='detected_only',ui_scale)
+		var channel_tag = _channel_tag(str(item.get('channel','')))
+		if not channel_tag.is_empty():
+			var tag_font = ThemeDB.fallback_font
+			var tag_font_size = int(12*ui_scale)
+			var tag_width = tag_font.get_string_size(channel_tag,HORIZONTAL_ALIGNMENT_LEFT,-1,tag_font_size).x
+			var tag_position = _map(item.p,fit)+Vector2(6,-6)*ui_scale
+			var tag_minimum_y = 48*ui_scale+tag_font.get_ascent(tag_font_size)
+			var tag_maximum_y = fit.legend_y-22*ui_scale-tag_font.get_descent(tag_font_size)
+			tag_position.x = clampf(tag_position.x,20*ui_scale,maxf(20*ui_scale,size.x-20*ui_scale-tag_width))
+			tag_position.y = clampf(tag_position.y,tag_minimum_y,tag_maximum_y)
+			draw_string(tag_font,tag_position,channel_tag,HORIZONTAL_ALIGNMENT_LEFT,tag_width,tag_font_size,Color('#ffffff'))
 	var player = _map(player_point,fit)
 	draw_circle(player,7*ui_scale,Color('#85dfd0'),false,2*ui_scale,true)
 	draw_circle(player,2*ui_scale,Color('#85dfd0'))
@@ -193,6 +212,11 @@ func _draw() -> void:
 	for category in legend:
 		_marker(Vector2(24*ui_scale,legend_y-5*ui_scale),category,false,ui_scale)
 		draw_string(ThemeDB.fallback_font,Vector2(40*ui_scale,legend_y),CATEGORY_LABELS[category],HORIZONTAL_ALIGNMENT_LEFT,maxf(0,size.x-56*ui_scale),int(14*ui_scale),Color('#e7edf2'))
+		legend_y += 22*ui_scale
+	if _has_channel_tags():
+		draw_string(ThemeDB.fallback_font,Vector2(pad,legend_y),'E 敌人 · H 风险信息 · L 战利品',HORIZONTAL_ALIGNMENT_LEFT,maxf(0,size.x-56*ui_scale),int(14*ui_scale),Color('#e7edf2'))
+		legend_y += 22*ui_scale
+		draw_string(ThemeDB.fallback_font,Vector2(pad,legend_y),'N NPC · S 秘密',HORIZONTAL_ALIGNMENT_LEFT,maxf(0,size.x-56*ui_scale),int(14*ui_scale),Color('#e7edf2'))
 		legend_y += 22*ui_scale
 	draw_string(ThemeDB.fallback_font,Vector2(pad,legend_y),'青色环：当前位置',HORIZONTAL_ALIGNMENT_LEFT,maxf(0,size.x-2*pad),int(14*ui_scale),Color('#85dfd0'))
 	legend_y += 22*ui_scale
