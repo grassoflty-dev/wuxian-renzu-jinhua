@@ -205,7 +205,9 @@ func _process(delta: float) -> void:
 	var hint = audio.status_text if audio.failed else last_feedback
 	if eligible and not nearest.is_empty():
 		hint = _interaction_prompt(nearest)+' · '+hint
-	hud.update_view(snapshot,connection_text,eligible,hint,preferences.scale,_current_hud_interaction(),_current_hud_traversal(),_current_hud_actions(),_current_hud_guard(),_current_hud_movements())
+	var current_interaction = _current_hud_interaction()
+	renderer.set_interaction_focus(current_interaction,snapshot,eligible,generation)
+	hud.update_view(snapshot,connection_text,eligible,hint,preferences.scale,current_interaction,_current_hud_traversal(),_current_hud_actions(),_current_hud_guard(),_current_hud_movements())
 func _sample(neutral: bool) -> bool:
 	if close_attempted:
 		return false
@@ -286,6 +288,8 @@ func _end_guard() -> void:
 		guard_active = false
 		_action('guardEnd',true)
 func _release() -> void:
+	if is_instance_valid(renderer):
+		renderer.clear_interaction_focus()
 	_clear_mouse_movement()
 	_clear_mouse_guard()
 	if is_instance_valid(audio):

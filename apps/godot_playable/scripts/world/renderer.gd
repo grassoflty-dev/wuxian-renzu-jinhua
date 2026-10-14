@@ -70,6 +70,7 @@ var current_key = ''
 var displayed = {}
 var occluder_alpha = {}
 var viewport_rect = Rect2()
+var interaction_focus: Dictionary = {}
 func _ready() -> void:
 	baizhi_placeholder_visual = BaizhiPlaceholderVisual.new()
 	cw_furnace_visual = CwFurnaceVisual.new()
@@ -82,6 +83,7 @@ func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	texture_repeat = CanvasItem.TEXTURE_REPEAT_DISABLED
 func commit(s: Dictionary, data: Dictionary, hash: String) -> void:
+	clear_interaction_focus()
 	var key = s.worldId+':'+s.sceneId+':'+str(s.worldEpoch)
 	if key!=current_key:
 		camera.reset()
@@ -100,6 +102,38 @@ func commit(s: Dictionary, data: Dictionary, hash: String) -> void:
 		if akey!=action_key:
 			action_key = akey
 			action_at = last_snapshot_at
+	queue_redraw()
+func clear_interaction_focus() -> void:
+	interaction_focus.clear()
+	queue_redraw()
+func set_interaction_focus(target: Dictionary, s: Dictionary, eligible: bool, expected_generation: int) -> void:
+	clear_interaction_focus()
+	if not eligible or target.is_empty() or not P.counter(expected_generation,1):
+		return
+	if not P.snapshot(s) or not P.snapshot(snapshot):
+		return
+	if not P.same(s,snapshot) or s.serverTick!=snapshot.serverTick or s.authorityRevision!=snapshot.authorityRevision:
+		return
+	if s.get('entryToken')!=null or snapshot.get('entryToken')!=null or s.player.currentHp<=0 or snapshot.player.currentHp<=0:
+		return
+	if scene.is_empty() or scene.get('worldId')!=snapshot.worldId or scene.get('sceneId')!=snapshot.sceneId or current_key!=snapshot.worldId+':'+snapshot.sceneId+':'+str(snapshot.worldEpoch):
+		return
+	if target.size()!=5 or not target.has('generation') or not target.has('context') or not target.has('entityId') or not target.has('kind') or not target.has('label'):
+		return
+	if not P.counter(target.get('generation'),1) or target.get('generation')!=expected_generation:
+		return
+	var target_context = target.get('context')
+	if not P.context(target_context) or not P.same(target_context,snapshot):
+		return
+	if not P.ident(target.get('entityId')):
+		return
+	if typeof(target.get('kind'))!=TYPE_STRING or typeof(target.get('label'))!=TYPE_STRING:
+		return
+	var kind: String = target.kind
+	var label: String = target.label
+	if kind.is_empty() or label.is_empty():
+		return
+	interaction_focus = {'target':target.duplicate(true),'generation':expected_generation,'serverTick':snapshot.serverTick,'authorityRevision':snapshot.authorityRevision}
 	queue_redraw()
 func _process(delta: float) -> void:
 	if snapshot.is_empty() or scene.is_empty():
@@ -205,6 +239,7 @@ func _draw() -> void:
 	_occlusion()
 	_atmosphere()
 	_world_ui()
+	_draw_interaction_focus()
 	_rear_view()
 	if reported_key!=current_key:
 		reported_key = current_key
@@ -517,6 +552,56 @@ func _world_ui() -> void:
 		draw_line(at-dir*10,at+dir*10,Color('#bcd9e2'),3)
 		var distance = '近处' if sound.distanceM<2 else '约 5 米' if sound.distanceM<7.5 else '约 '+str(int(round(sound.distanceM/10)*10))+' 米'
 		_label(at+Vector2(0,-15),('真实声源' if sound.kind=='warden_true_call' else '信号')+' · '+distance)
+func _draw_interaction_focus() -> void:
+	if interaction_focus.is_empty() or interaction_focus.size()!=4:
+		return
+	var window = get_window()
+	if not is_instance_valid(window) or not window.has_focus():
+		return
+	if not P.snapshot(snapshot) or snapshot.get('entryToken')!=null or snapshot.player.currentHp<=0:
+		return
+	if scene.is_empty() or scene.get('worldId')!=snapshot.worldId or scene.get('sceneId')!=snapshot.sceneId or current_key!=snapshot.worldId+':'+snapshot.sceneId+':'+str(snapshot.worldEpoch):
+		return
+	var target = interaction_focus.get('target')
+	if not target is Dictionary or target.size()!=5 or not target.has('generation') or not target.has('context') or not target.has('entityId') or not target.has('kind') or not target.has('label'):
+		return
+	if not P.counter(interaction_focus.get('generation'),1) or not P.counter(target.get('generation'),1) or interaction_focus.generation!=target.generation:
+		return
+	var target_context = target.get('context')
+	if not P.context(target_context) or not P.same(target_context,snapshot):
+		return
+	if not P.ident(target.get('entityId')) or typeof(target.get('kind'))!=TYPE_STRING or typeof(target.get('label'))!=TYPE_STRING:
+		return
+	if target.kind.is_empty() or target.label.is_empty():
+		return
+	if not P.counter(interaction_focus.get('serverTick')) or not P.counter(interaction_focus.get('authorityRevision')) or interaction_focus.serverTick!=snapshot.serverTick or interaction_focus.authorityRevision!=snapshot.authorityRevision:
+		return
+	var rows = snapshot.get('interactables')
+	if not P.rows(rows,2048) or not P.unique(rows,'entityId'):
+		return
+	var matches: Array = rows.filter(func(row): return row is Dictionary and row.get('entityId')==target.entityId and row.get('kind')==target.kind)
+	if matches.size()!=1:
+		return
+	var row: Dictionary = matches[0]
+	if typeof(row.get('active'))!=TYPE_BOOL or not row.active or not P.transform(row.get('transform')):
+		return
+	var position: Vector3 = P.vector(row.transform.positionM)
+	if _occluded(position):
+		return
+	if not is_finite(camera.ppm) or camera.ppm<=0:
+		return
+	var projected: Vector2 = camera.project(position)
+	if not is_finite(projected.x) or not is_finite(projected.y):
+		return
+	var scale = camera.ppm/48.0
+	if not is_finite(scale) or scale<=0:
+		return
+	var rect = Rect2(projected-Vector2(12,20)*scale,Vector2(24,24)*scale)
+	if not is_finite(rect.position.x) or not is_finite(rect.position.y) or not is_finite(rect.size.x) or not is_finite(rect.size.y):
+		return
+	if not viewport_rect.encloses(rect):
+		return
+	draw_rect(rect,Color('#D9AD58'),false,2.0)
 func _atmosphere() -> void:
 	if snapshot.worldId=='mist_harbor':
 		for prop in scene.get('presentation',{}).get('sprites',[]):
