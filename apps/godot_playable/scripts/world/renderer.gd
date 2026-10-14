@@ -281,10 +281,37 @@ func _interaction_captions() -> Dictionary:
 	if not P.rows(rows,2048) or not P.unique(rows,'entityId'):
 		return {}
 	var labels = {'world_gate':'世界入口','mission_terminal':'任务终端','capability_terminal':'能力终端','save_rest_terminal':'休息 / 保存','scene_transition':'前往下一场景','scene_checkpoint':'检查点','scene_trigger':'场景装置','environment_control':'环境控制','power_console':'恢复电力','door_panel':'门控制','lockdown_terminal':'隔离协议','facility_log':'设施记录','bio_log_terminal':'生物记录','gate_b_panel':'Gate B 控制','extraction_console':'撤离控制','beacon_collect':'收取信标','beacon_mount':'部署信标','beacon':'信标','pump_control':'泵站控制','valve_control':'阀门','coolant_valve':'冷却阀','terminal':'终端'}
+	var rs_roles: Dictionary = {
+		'rs_world_gate_marker':{'native_kind':'world_gate','authored_kind':'world_gate_marker','position':Vector3(20,0,8),'caption':'世界入口 · '+Content.WORLD_NAMES['grey_hive']},
+		'rs_mh_world_gate_marker':{'native_kind':'world_gate','authored_kind':'world_gate_marker','position':Vector3(20,0,12),'caption':'世界入口 · '+Content.WORLD_NAMES['mist_harbor']},
+		'rs_cw_world_gate_marker':{'native_kind':'world_gate','authored_kind':'world_gate_marker','position':Vector3(20,0,4),'caption':'世界入口 · '+Content.WORLD_NAMES['clockworks']},
+		'rs_storage_inventory_marker':{'native_kind':'storage_inventory_marker','authored_kind':'storage_inventory_marker','position':Vector3(15,0,12),'caption':'背包'}
+	}
+	var rs_scope: bool = snapshot.worldId=='return_station' and snapshot.sceneId=='rs_core_room'
+	var rs_authored_captions: Dictionary = {}
+	if rs_scope:
+		var authored_rows = scene.get('interactions')
+		if P.rows(authored_rows,2048) and P.unique(authored_rows,'id'):
+			for authored in authored_rows:
+				if typeof(authored.get('id'))!=TYPE_STRING or typeof(authored.get('kind'))!=TYPE_STRING or not rs_roles.has(authored.id):
+					continue
+				var role: Dictionary = rs_roles[authored.id]
+				var position = authored.get('position')
+				if typeof(position)!=TYPE_ARRAY or position.size()!=3 or not P.number(position[0]) or not P.number(position[1]) or not P.number(position[2]) or authored.kind!=role.authored_kind:
+					continue
+				var authored_position = Vector3(float(position[0]),float(position[1]),float(position[2]))
+				if authored_position==role.position:
+					rs_authored_captions[authored.id] = role.caption
 	var captions: Dictionary = {}
 	for row in rows:
-		if typeof(row.get('entityId'))==TYPE_STRING and typeof(row.get('kind'))==TYPE_STRING and typeof(row.get('active'))==TYPE_BOOL and row.active and P.transform(row.get('transform')) and labels.has(row.kind):
-			captions[row.entityId] = labels[row.kind]
+		if typeof(row.get('entityId'))==TYPE_STRING and typeof(row.get('kind'))==TYPE_STRING and typeof(row.get('active'))==TYPE_BOOL and row.active and P.transform(row.get('transform')):
+			var caption: String = labels.get(row.kind,'')
+			if rs_scope and rs_roles.has(row.entityId):
+				var role: Dictionary = rs_roles[row.entityId]
+				if row.kind==role.native_kind and P.vector(row.transform.positionM)==role.position and rs_authored_captions.has(row.entityId):
+					caption = rs_authored_captions[row.entityId]
+			if not caption.is_empty():
+				captions[row.entityId] = caption
 	return captions
 func _draw_object(o: Dictionary, interaction_caption: String = '') -> void:
 	var at = camera.project(o.p)
