@@ -561,6 +561,9 @@ func _event_draw() -> void:
 			draw_circle(camera.project(pos),maxf(3,e.radiusM*camera.ppm*0.25),c)
 		elif e.kind in ['EnemyStagger','EnemyDeath','SentinelDeath','ForgedGuardEliteDeath','EnemyAlert','EnemyMemberHit','EnemyMemberDisperse','EnemyAttackImpact','SignalBlink']:
 			_label(camera.project(pos)-Vector2(0,35*text_scale),{'EnemyStagger':'硬直','EnemyDeath':'击败','SentinelDeath':'哨卫停用','ForgedGuardEliteDeath':'铸造卫士停用','EnemyAlert':'警觉','EnemyMemberHit':'命中','EnemyMemberDisperse':'散开','EnemyAttackImpact':'接触','SignalBlink':'信号位移'}.get(e.kind,e.kind),c)
+func _occluder_fade_to(o: Dictionary) -> float:
+	var value = o.get('fadeTo',0.25)
+	return float(value) if P.number(value,0,1) else 0.25
 func _occlusion() -> void:
 	var player = P.vector(snapshot.player.transform.positionM)
 	for o in scene.get('occluders',[]):
@@ -570,7 +573,7 @@ func _occlusion() -> void:
 		for p in o.polygon:
 			poly.append(Vector2(p[0],p[1]))
 		var covered = Geometry2D.is_point_in_polygon(Vector2(player.x,player.z),poly)
-		var alpha = occluder_alpha.get(o.get('id'),0.25 if covered else 1.0)
+		var alpha = occluder_alpha.get(o.get('id'),_occluder_fade_to(o) if covered else 1.0)
 		_poly(o.polygon,0,Color(0.3,0.38,0.4,clampf(alpha,0,1)),true)
 func _world_ui() -> void:
 	if P.snapshot(snapshot) and snapshot.get('entryToken')==null and Content.WORLD_NAMES.has(snapshot.worldId) and Content.SCENE_NAMES.has(snapshot.sceneId) and scene.get('worldId')==snapshot.worldId and scene.get('sceneId')==snapshot.sceneId and current_key==snapshot.worldId+':'+snapshot.sceneId+':'+str(snapshot.worldEpoch):
@@ -667,7 +670,7 @@ func _update_occlusion(delta: float) -> void:
 		var poly = PackedVector2Array()
 		for p in o.polygon:
 			poly.append(Vector2(p[0],p[1]))
-		var target = 0.25 if Geometry2D.is_point_in_polygon(Vector2(player.x,player.z),poly) else 1.0
+		var target = _occluder_fade_to(o) if Geometry2D.is_point_in_polygon(Vector2(player.x,player.z),poly) else 1.0
 		occluder_alpha[o.id] = move_toward(float(occluder_alpha.get(o.id,1.0)),target,delta*3.75)
 func _rear_view() -> void:
 	var grant = snapshot.capabilities.get('rearView')
