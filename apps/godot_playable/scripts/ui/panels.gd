@@ -2,6 +2,7 @@ extends Control
 const Content = preload('res://scripts/ui/content_model.gd')
 const P = preload('res://scripts/bridge/protocol.gd')
 const MapView = preload('res://scripts/ui/map_panel.gd')
+const ThemeModel = preload('res://scripts/ui/theme_model.gd')
 const CAPS = {'information.local_map_i':'局部地图','information.enemy_vitals_basic':'敌人生命信息','perception.rear_view_i':'后方视野','perception.acoustic_mapping_i':'声学映射','body.regeneration_i':'再生能力','mobility.air_step_i':'空中踏步'}
 const WORLDS = {'return_station':'归航站','grey_hive':'灰巢设施','mist_harbor':'雾港余烬','clockworks':'钟骨工厂'}
 signal intent(kind, value, page_owner)
@@ -536,42 +537,91 @@ func _mission_revisit_limit_suffix(world: String, row: Dictionary) -> String:
 		if not event in completed_events:
 			return ''
 	return ' / ' + str(limit)
+func _mission_card(parent: Control, key: String, colors: Dictionary) -> VBoxContainer:
+	var card = PanelContainer.new()
+	card.name = 'MissionCard_'+key
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.custom_minimum_size.x = 0.0
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(colors.get('panelRaised','#1B2934'))
+	style.border_color = Color(colors.get('border','#344652'))
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(2)
+	var padding = 12.0*font_scale
+	style.content_margin_left = padding
+	style.content_margin_right = padding
+	style.content_margin_top = padding
+	style.content_margin_bottom = padding
+	card.add_theme_stylebox_override('panel',style)
+	var content = VBoxContainer.new()
+	content.name = 'MissionCardContent'
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.custom_minimum_size.x = 0.0
+	content.add_theme_constant_override('separation',int(6*font_scale))
+	card.add_child(content)
+	parent.add_child(card)
+	return content
+func _mission_label(parent: Control, text_value: String, colors: Dictionary, role: String = 'text', size_scale: float = 1.0) -> Label:
+	var label = Label.new()
+	label.text = text_value
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.custom_minimum_size.x = 0.0
+	label.add_theme_font_size_override('font_size',int(18*font_scale*size_scale))
+	label.add_theme_color_override('font_color',Color(colors.get(role,colors.get('text','#E7EDF2'))))
+	parent.add_child(label)
+	return label
 func _mission() -> void:
+	title.add_theme_font_size_override('font_size',int(24*font_scale))
 	if snapshot.is_empty():
 		_text('尚未收到当前旅程')
 	elif not P.snapshot(snapshot):
 		_text('当前旅程状态未确认')
 	else:
-		_text('当前世界：'+WORLDS.get(snapshot.worldId,'世界名称未确认'))
-		_text('当前场景：'+Content.SCENE_NAMES.get(snapshot.sceneId,'场景名称未确认'))
+		var colors = ThemeModel.palette(snapshot.worldId)
+		var stack = VBoxContainer.new()
+		stack.name = 'MissionContent'
+		stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		stack.custom_minimum_size.x = 0.0
+		stack.add_theme_constant_override('separation',int(8*font_scale))
+		box.add_child(stack)
+		var overview = _mission_card(stack,'overview',colors)
+		_mission_label(overview,'当前世界：'+WORLDS.get(snapshot.worldId,'世界名称未确认'),colors,'system',1.12)
+		_mission_label(overview,'当前场景：'+Content.SCENE_NAMES.get(snapshot.sceneId,'场景名称未确认'),colors,'textMuted')
 		for line in _mission_route_guidance():
-			_text(line)
+			_mission_label(overview,line,colors,'accent')
 		for o in snapshot.objectives:
-			_text(Content.objective(o))
+			_mission_label(overview,Content.objective(o),colors,'accent')
 		for world in ['grey_hive','mist_harbor','clockworks']:
+			var world_card = _mission_card(stack,world,colors)
 			var row = Content.progress(snapshot,world)
 			if row.is_empty():
-				_text(WORLDS[world]+' · 进度未确认')
+				_mission_label(world_card,WORLDS[world]+' · 进度未确认',colors,'text',1.12)
 			else:
-				_text(WORLDS[world]+' · '+('已完成' if row.completed else '尚未完成')+' · 复访 '+str(int(row.revisitCount))+_mission_revisit_limit_suffix(world,row))
-				_text('事件记录 %d / 3'%row.completedEvents.size())
+				_mission_label(world_card,WORLDS[world]+' · '+('已完成' if row.completed else '尚未完成')+' · 复访 '+str(int(row.revisitCount))+_mission_revisit_limit_suffix(world,row),colors,'text',1.12)
+				_mission_label(world_card,'事件记录 %d / 3'%row.completedEvents.size(),colors,'textMuted')
 				for event in Content.EVENTS[world]:
 					var recorded = event in row.completedEvents
-					_text(('✓ ' if recorded else '○ ')+Content.EVENT_LABELS[event]+(' · 已记录' if recorded else ' · 尚未记录'))
+					_mission_label(world_card,('✓ ' if recorded else '○ ')+Content.EVENT_LABELS[event]+(' · 已记录' if recorded else ' · 尚未记录'),colors)
+		var context_lines: Array[String] = []
 		if snapshot.worldId=='return_station' and snapshot.sceneId=='rs_core_room':
 			for pair in [['rs_world_gate_marker','灰巢入口'],['rs_mh_world_gate_marker','雾港入口'],['rs_cw_world_gate_marker','钟骨入口']]:
 				for i in snapshot.interactables:
 					if i.entityId==pair[0] and i.kind=='world_gate':
-						_text(pair[1]+' · '+('当前启用' if i.active else '当前未启用'))
+						context_lines.append(pair[1]+' · '+('当前启用' if i.active else '当前未启用'))
 		var beacon = snapshot.get('greyHiveBeacon')
 		if snapshot.worldId=='grey_hive' and beacon is Dictionary and beacon.get('state') in ['uncollected','carried','mounted'] and typeof(beacon.get('legacyCompletedWithoutReceipt'))==TYPE_BOOL and (not beacon.legacyCompletedWithoutReceipt or beacon.state=='uncollected'):
-			_text('信标：'+{'uncollected':'尚未收取','carried':'已携带','mounted':'已部署'}[beacon.state])
+			context_lines.append('信标：'+{'uncollected':'尚未收取','carried':'已携带','mounted':'已部署'}[beacon.state])
 		var pump = snapshot.get('mistHarborPump')
 		if snapshot.worldId=='mist_harbor' and pump is Dictionary and pump.get('state') in ['ready','draining','drained']:
-			_text('泵站：'+{'ready':'就绪','draining':'排水中','drained':'排水完成'}[pump.state])
-		_text('目标交互需在场景恢复后进行。')
+			context_lines.append('泵站：'+{'ready':'就绪','draining':'排水中','drained':'排水完成'}[pump.state])
+		if not context_lines.is_empty():
+			var context_card = _mission_card(stack,'context',colors)
+			for line in context_lines:
+				_mission_label(context_card,line,colors)
+		_mission_label(stack,'目标交互需在场景恢复后进行。',colors,'textMuted')
 		if snapshot.worldId=='return_station' and snapshot.sceneId=='rs_core_room':
-			_text('返回场景、靠近世界门，再查看当前交互提示。')
+			_mission_label(stack,'返回场景、靠近世界门，再查看当前交互提示。',colors,'textMuted')
 		_button('继续探索','resume',null,connected and P.snapshot(snapshot) and snapshot.player.currentHp>0)
 	_button('档案','archive')
 	_button('能力','capability')
