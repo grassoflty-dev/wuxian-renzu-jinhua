@@ -1,8 +1,8 @@
 extends RefCounted
 const P = preload('res://scripts/bridge/protocol.gd')
 const CONFIG = {
-	'furnace_v1':{'id':'runtime2d.world.clockworks.furnace.v1','width':1193,'height':1254,'bytes':1938854,'sha256':'4a36e98fec3057bac6e59e01bcd2287ee5e412071a5396731c50082a351aec44'},
-	'furnace_v2':{'id':'runtime2d.world.clockworks.furnace.v2','width':1165,'height':1240,'bytes':1584389,'sha256':'207e2b4c1759e49bfd03613958f86787586410dc0abe6da526f34679f17cc74d'}
+	'furnace_v1':{'id':'runtime2d.world.clockworks.furnace.v1','width':1193,'height':1254,'anchor':[0.5,1.0],'heightM':4.0,'bytes':1938854,'sha256':'4a36e98fec3057bac6e59e01bcd2287ee5e412071a5396731c50082a351aec44'},
+	'furnace_v2':{'id':'runtime2d.world.clockworks.furnace.v2','width':1165,'height':1240,'anchor':[0.5,1.0],'heightM':4.0,'bytes':1584389,'sha256':'207e2b4c1759e49bfd03613958f86787586410dc0abe6da526f34679f17cc74d'}
 }
 var attempted = false
 var textures: Dictionary = {}
@@ -29,7 +29,7 @@ func _load_once() -> void:
 		var c: Dictionary = CONFIG[key]
 		var row = m.assets.get(key)
 		var path = 'res://assets/props/clockworks/'+key+'.png'
-		if not row is Dictionary or row.get('key')!=key or row.get('path')!=path or row.get('assetId')!=c.id or row.get('sourceId')!=c.id or row.get('sourceAdmission')!='release_approved' or row.get('sourceRuntimeStatus')!='ADOPT' or row.get('format')!='RGBA8' or not P.counter(row.get('bytes'),1,4194304) or row.bytes!=c.bytes or row.get('sha256')!=c.sha256 or not _pair(row.get('canvas'),c.width,c.height) or not _pair(row.get('anchor'),0.5,1) or not P.number(row.get('heightM'),4,4):
+		if not row is Dictionary or row.get('key')!=key or row.get('path')!=path or row.get('assetId')!=c.id or row.get('sourceId')!=c.id or row.get('sourceAdmission')!='release_approved' or row.get('sourceRuntimeStatus')!='ADOPT' or row.get('format')!='RGBA8' or not P.counter(row.get('bytes'),1,4194304) or row.bytes!=c.bytes or row.get('sha256')!=c.sha256 or not _pair(row.get('canvas'),c.width,c.height) or not _pair(row.get('anchor'),c.anchor[0],c.anchor[1]) or not P.number(row.get('heightM'),c.heightM,c.heightM):
 			continue
 		var png_file = FileAccess.open(path,FileAccess.READ)
 		if png_file==null:
@@ -50,17 +50,29 @@ func _load_once() -> void:
 		var texture = ImageTexture.create_from_image(image)
 		if texture!=null:
 			textures[key] = texture
-func draw_body(canvas: CanvasItem, key: String, foot: Vector2, ppm: float) -> bool:
+func canvas_rect(key: String, foot: Vector2, ppm: float) -> Rect2:
 	if not CONFIG.has(key) or not is_finite(foot.x) or not is_finite(foot.y) or not is_finite(ppm) or ppm<=0:
-		return false
+		return Rect2()
 	var c: Dictionary = CONFIG[key]
-	var factor = 4.0*ppm/float(c.height)
+	var anchor_value = c.get('anchor')
+	if not anchor_value is Array or anchor_value.size()!=2 or not P.number(anchor_value[0],0,1) or not P.number(anchor_value[1],0,1) or not P.number(c.get('heightM'),0.001,100):
+		return Rect2()
+	var factor = float(c.heightM)*ppm/float(c.height)
 	var size = Vector2(c.width,c.height)*factor
-	var origin = foot-Vector2(c.width*0.5,c.height)*factor
+	var anchor = Vector2(anchor_value[0],anchor_value[1])
+	var origin = foot-Vector2(c.width*anchor.x,c.height*anchor.y)*factor
 	if not is_finite(factor) or factor<=0 or not is_finite(size.x) or not is_finite(size.y) or size.x<=0 or size.y<=0 or not is_finite(origin.x) or not is_finite(origin.y):
+		return Rect2()
+	var rect = Rect2(origin,size)
+	if not is_finite(rect.end.x) or not is_finite(rect.end.y):
+		return Rect2()
+	return rect
+func draw_body(canvas: CanvasItem, key: String, foot: Vector2, ppm: float) -> bool:
+	var rect = canvas_rect(key,foot,ppm)
+	if rect.size.x<=0 or rect.size.y<=0:
 		return false
 	_load_once()
 	if not textures.has(key):
 		return false
-	canvas.draw_texture_rect(textures[key],Rect2(origin,size),false,Color.WHITE)
+	canvas.draw_texture_rect(textures[key],rect,false,Color.WHITE)
 	return true
