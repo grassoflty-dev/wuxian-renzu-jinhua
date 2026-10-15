@@ -48,6 +48,8 @@ func _ready() -> void:
 	style.content_margin_bottom = 18
 	panel.add_theme_stylebox_override('panel',style)
 	scroll = ScrollContainer.new()
+	# Keep keyboard-focused controls visible when scaled pages need scrolling.
+	scroll.follow_focus = true
 	# Ignore child horizontal minimums so an earlier wider page cannot block shrink.
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	panel.add_child(scroll)
