@@ -900,3 +900,212 @@ fn genuine_earned_conveyor_boiler_and_lower_gear_continue() {
     println!("Earned Conveyor → Boiler → lower Gear continuation retained: {}", save_dir.display());
     drop(runtime);
 }
+
+// Exact real saved lower Gear entry from the completed Conveyor/Boiler prefix.
+const EARNED_CW_LOWER_GEAR_ENTRY_V6: &str = include_str!("../fixtures/earned-cw-lower-gear-entry-v6.json");
+
+#[test]
+fn genuine_earned_gear_lift_midride_continue_reaches_upper_checkpoint() {
+    NEXT_TIME.fetch_max(600_000, Ordering::Relaxed);
+    let save_dir = save_root();
+    assert!(!save_dir.exists(), "test save directory must be fresh");
+    std::fs::create_dir_all(&save_dir).unwrap();
+    std::fs::write(save_dir.join("formal-save-v6.json"), EARNED_CW_LOWER_GEAR_ENTRY_V6.as_bytes()).unwrap();
+
+    let entry_save = save_v6::read_save(&save_dir).unwrap();
+    assert_earned_valve_route_save(&entry_save, "cw_gear_shaft");
+    assert_eq!(entry_save.save.player.current_hp, 56);
+    assert_eq!(entry_save.save.player.current_energy, 28);
+    assert_eq!(entry_save.save.checkpoint_id, None);
+    assert_eq!(entry_save.save.generic_actors.len(), 5);
+    assert!(entry_save.save.generic_actors.iter().all(|actor| actor.hp > 0));
+    let entry_support = entry_save.save.moving_support_frame.as_ref().expect("qualified lower Gear save retains its real support frame");
+    assert_eq!(entry_support.server_time_ms, entry_save.save.server_time_ms);
+    assert!(entry_support.poses.iter().any(|pose| pose.support_id == "cw_gear_main_lift"
+        && pose.phase != wuxian_horror_ch1::moving_support::SupportPhase::Stationary));
+    let expected_enemies = BTreeSet::from([
+        "cw_gear_shaft_forged_guard_01".to_owned(),
+        "cw_gear_shaft_forged_guard_02".to_owned(),
+        "cw_gear_shaft_pressure_drone_01".to_owned(),
+        "cw_gear_shaft_pressure_drone_02".to_owned(),
+        "cw_gear_shaft_pressure_drone_03".to_owned(),
+    ]);
+    assert_eq!(entry_save.save.generic_actors.iter().map(|actor| actor.entity_id.clone()).collect::<BTreeSet<_>>(), expected_enemies);
+
+    let runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&runtime).unwrap();
+    let mut view = acknowledge_ready(&runtime, runtime.continue_saved().unwrap());
+    assert_earned_valve_route_view(&view, "cw_gear_shaft");
+    assert_eq!(view.player.current_hp, 56);
+    assert_eq!(view.player.current_energy, 28);
+    assert_eq!(active_enemy_ids(&view), expected_enemies, "Continue restores the five authored live Gear enemies");
+
+    let old_epoch = view.world_epoch;
+
+    view = clear_live_enemies(&runtime, view);
+    assert!(view.player.current_hp > 0, "all five Gear enemies must be defeated alive");
+    assert!(active_enemy_ids(&view).is_empty());
+    assert_eq!(view.actors.iter().filter(|actor| actor.actor_kind == "enemy").count(), 5);
+
+    assert_earned_valve_route_view(&view, "cw_gear_shaft");
+
+    // Wait for the authored lower hold with neutral inputs; do not change the saved clock or lift pose.
+    view = gear_walk(&runtime, view, 12.0, 11.0);
+    let lower_wait = std::time::Instant::now();
+    let mut lower_hold = false;
+    for _ in 0..1200 {
+        let lift = view.support_scene.as_ref().unwrap().poses.iter()
+            .find(|pose| pose.support_id == "cw_gear_main_lift").unwrap();
+        if lift.phase == wuxian_horror_ch1::moving_support::SupportPhase::LowerHold
+            && lift.phase_elapsed_ms < 600 {
+            lower_hold = true;
+            break;
+        }
+        assert!(lower_wait.elapsed() < std::time::Duration::from_secs(20), "natural lift lower-hold wait exceeded 20 seconds");
+        view = input(&runtime, &view, (0.0, 0.0), (1.0, 0.0));
+    }
+    assert!(lower_hold, "the unchanged moving lift must naturally reach its lower hold");
+    view = gear_walk(&runtime, view, 12.0, 8.0);
+    assert_eq!(view.support_scene.as_ref().unwrap().rider.support_id.as_deref(), Some("cw_gear_main_lift"),
+        "boarding must come from real KCC contact with the authored lift");
+
+    // Observe a real rising rider, then pause and save without advancing the owner clock.
+    let rise_wait = std::time::Instant::now();
+    let mut reached_midride = false;
+    for _ in 0..600 {
+        let support = view.support_scene.as_ref().unwrap();
+        let lift = support.poses.iter().find(|pose| pose.support_id == "cw_gear_main_lift").unwrap();
+        let y = view.player.transform.position_m.y_m;
+        if lift.phase == wuxian_horror_ch1::moving_support::SupportPhase::Rising
+            && y > 0.7 && y < 1.5
+            && support.rider.support_id.as_deref() == Some("cw_gear_main_lift") {
+            reached_midride = true;
+            break;
+        }
+        assert!(rise_wait.elapsed() < std::time::Duration::from_secs(10), "rising lift observation exceeded 10 seconds");
+        view = input(&runtime, &view, (0.0, 0.0), (1.0, 0.0));
+    }
+    assert!(reached_midride, "the actual lift must carry the living player through its rising midride band");
+    let held = runtime.pause().unwrap();
+    assert_eq!(held.player.transform.position_m, view.player.transform.position_m);
+    assert_eq!(held.server_time_ms, view.server_time_ms);
+    assert_eq!(held.support_scene.as_ref().unwrap().rider.support_id.as_deref(), Some("cw_gear_main_lift"));
+    runtime.save().unwrap();
+    let midride_save = save_v6::read_save(&save_dir).unwrap();
+    assert_earned_valve_route_save(&midride_save, "cw_gear_shaft");
+    assert_eq!(midride_save.save.player.current_hp, held.player.current_hp);
+    assert_eq!(midride_save.save.player.current_energy, held.player.current_energy);
+    assert_eq!(midride_save.save.player.position_m, held.player.transform.position_m);
+    assert_eq!(midride_save.save.server_time_ms, held.server_time_ms);
+    assert_eq!(midride_save.save.checkpoint_id, None);
+    assert_eq!(midride_save.save.scene_states.len(), 1, "SaveV5 keeps its existing active-scene row contract");
+    assert_eq!(midride_save.save.generic_actors.len(), 5);
+    assert!(midride_save.save.generic_actors.iter().all(|actor| actor.hp == 0), "all five actual Gear enemies must be saved defeated before riding continues");
+    assert_eq!(midride_save.save.generic_actors.iter().map(|actor| actor.entity_id.clone()).collect::<BTreeSet<_>>(), expected_enemies);
+    let moving_frame = midride_save.save.moving_support_frame.as_ref().expect("real moving support frame is saved");
+    assert_eq!(moving_frame.server_time_ms, held.server_time_ms);
+    assert_eq!(moving_frame.poses, held.support_scene.as_ref().unwrap().poses);
+    assert!(moving_frame.poses.iter().any(|pose| pose.support_id == "cw_gear_main_lift"
+        && pose.phase == wuxian_horror_ch1::moving_support::SupportPhase::Rising));
+    let midride_bytes = std::fs::read(save_v6::save_path(&save_dir)).unwrap();
+    let midride_hp = held.player.current_hp;
+    let midride_energy = held.player.current_energy;
+    let midride_position = held.player.transform.position_m;
+    let midride_time = held.server_time_ms;
+    let midride_poses = held.support_scene.as_ref().unwrap().poses.clone();
+    let midride_rider = held.support_scene.as_ref().unwrap().rider.clone();
+    drop(runtime);
+
+    // A distinct production owner must restore the exact moving time, player pose and rider before readiness.
+    let runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&runtime).unwrap();
+    let prepared = runtime.continue_saved().unwrap();
+    assert_ne!(prepared.world_epoch, old_epoch, "Continue creates a fresh owner epoch");
+    assert!(prepared.entry_token.is_some(), "new owner remains prepared until the normal ready acknowledgement");
+    assert_eq!(prepared.player.transform.position_m, midride_position);
+    assert_eq!(prepared.player.current_hp, midride_hp);
+    assert_eq!(prepared.player.current_energy, midride_energy);
+    assert_eq!(prepared.server_time_ms, midride_time);
+    assert_eq!(prepared.support_scene.as_ref().unwrap().poses, midride_poses);
+    assert_eq!(prepared.support_scene.as_ref().unwrap().rider, midride_rider);
+    assert_eq!(std::fs::read(save_v6::save_path(&save_dir)).unwrap(), midride_bytes,
+        "Continue preparation cannot rewrite the saved state");
+    assert!(runtime.presentation_events_since(prepared.world_epoch, 0).unwrap().iter()
+        .all(|event| event.kind != "EnemyDeath"), "new owner preparation cannot replay Gear deaths");
+    let mut view = acknowledge_ready(&runtime, prepared);
+    assert_earned_valve_route_view(&view, "cw_gear_shaft");
+    assert!(active_enemy_ids(&view).is_empty());
+    assert!(runtime.presentation_events_since(view.world_epoch, 0).unwrap().iter()
+        .all(|event| event.kind != "EnemyDeath"), "readiness cannot replay Gear deaths");
+
+    let upper_wait = std::time::Instant::now();
+    let mut reached_upper_hold = false;
+    for _ in 0..600 {
+        let lift = view.support_scene.as_ref().unwrap().poses.iter()
+            .find(|pose| pose.support_id == "cw_gear_main_lift").unwrap();
+        if lift.phase == wuxian_horror_ch1::moving_support::SupportPhase::UpperHold
+            && (view.player.transform.position_m.y_m - 2.0).abs() < 0.001 {
+            reached_upper_hold = true;
+            break;
+        }
+        assert!(upper_wait.elapsed() < std::time::Duration::from_secs(10), "upper-hold wait exceeded 10 seconds");
+        view = input(&runtime, &view, (0.0, 0.0), (1.0, 0.0));
+    }
+    assert!(reached_upper_hold, "Continue must preserve a naturally advancing rider until the upper hold");
+    view = gear_walk(&runtime, view, 16.0, 8.0);
+    assert!(view.player.current_hp > 0);
+    assert!((view.player.transform.position_m.y_m - 2.0).abs() < 0.001);
+    assert_eq!(view.support_scene.as_ref().unwrap().rider.support_id.as_deref(), Some("cw_gear_upper_dock"));
+    assert!(view.actors.iter().filter(|actor| actor.actor_kind == "enemy").all(|actor| !actor.active));
+
+    let checkpoint = scene_route_commands::checkpoint(&runtime, "cw_gear_upper_dock_checkpoint",
+        "genuine-earned-gear-upper-dock", view.world_epoch).unwrap();
+    assert!(checkpoint.applied, "the authored upper-dock checkpoint command must apply");
+    view = runtime.snapshot().unwrap();
+    assert_eq!(view.support_scene.as_ref().unwrap().rider.support_id.as_deref(), Some("cw_gear_upper_dock"));
+    runtime.save().unwrap();
+    let upper_save = save_v6::read_save(&save_dir).unwrap();
+    assert_earned_valve_route_save(&upper_save, "cw_gear_shaft");
+    assert_eq!(upper_save.save.checkpoint_id.as_deref(), Some("cw_gear_upper_dock_checkpoint"));
+    assert_eq!(upper_save.save.player.position_m.y_m, 2.0);
+    assert_eq!(upper_save.save.generic_actors.len(), 5);
+    assert!(upper_save.save.generic_actors.iter().all(|actor| actor.hp == 0), "saved Gear enemies remain defeated");
+    assert_eq!(upper_save.save.generic_actors.iter().map(|actor| actor.entity_id.clone()).collect::<BTreeSet<_>>(), expected_enemies);
+    let upper_bytes = std::fs::read(save_v6::save_path(&save_dir)).unwrap();
+    let upper_hp = view.player.current_hp;
+    let upper_energy = view.player.current_energy;
+    let upper_position = view.player.transform.position_m;
+    let upper_time = view.server_time_ms;
+    let upper_epoch = view.world_epoch;
+    drop(runtime);
+
+    // A second fresh production owner must retain the checkpoint and dead enemies without replay.
+    let runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&runtime).unwrap();
+    let prepared = runtime.continue_saved().unwrap();
+    assert_ne!(prepared.world_epoch, upper_epoch);
+    assert!(prepared.entry_token.is_some());
+    assert_eq!(prepared.player.transform.position_m, upper_position);
+    assert_eq!(prepared.player.current_hp, upper_hp);
+    assert_eq!(prepared.player.current_energy, upper_energy);
+    assert_eq!(prepared.server_time_ms, upper_time);
+    assert_eq!(prepared.support_scene.as_ref().unwrap().rider.support_id.as_deref(), Some("cw_gear_upper_dock"));
+    assert_eq!(std::fs::read(save_v6::save_path(&save_dir)).unwrap(), upper_bytes);
+    assert!(runtime.presentation_events_since(prepared.world_epoch, 0).unwrap().iter()
+        .all(|event| event.kind != "EnemyDeath"), "checkpoint Continue cannot replay Gear deaths");
+    let view = acknowledge_ready(&runtime, prepared);
+    assert_earned_valve_route_view(&view, "cw_gear_shaft");
+    assert_eq!(view.player.transform.position_m, upper_position);
+    assert_eq!(view.support_scene.as_ref().unwrap().rider.support_id.as_deref(), Some("cw_gear_upper_dock"));
+    assert!(active_enemy_ids(&view).is_empty());
+    assert!(runtime.presentation_events_since(view.world_epoch, 0).unwrap().iter()
+        .all(|event| event.kind != "EnemyDeath"), "checkpoint readiness cannot replay Gear deaths");
+    runtime.save().unwrap();
+    let final_save = save_v6::read_save(&save_dir).unwrap();
+    assert_eq!(final_save.save.checkpoint_id.as_deref(), Some("cw_gear_upper_dock_checkpoint"));
+    assert_eq!(final_save.save.generic_actors.iter().map(|actor| actor.entity_id.clone()).collect::<BTreeSet<_>>(), expected_enemies);
+    assert!(final_save.save.generic_actors.iter().all(|actor| actor.hp == 0));
+    assert_earned_valve_route_save(&final_save, "cw_gear_shaft");
+    println!("Earned Gear lift midride Continue reached and saved the real upper-dock checkpoint at {} HP/{} energy; stopped before the upper gap", view.player.current_hp, view.player.current_energy);
+    drop(runtime);
+}
