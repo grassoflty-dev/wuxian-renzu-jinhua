@@ -87,7 +87,20 @@ fn preserve(runtime: &FormalRuntime, dir: &Path, stage: Stage, actions: &[Action
     runtime.resume().unwrap()
 }
 
-pub(super) fn collect_and_mount(runtime: &FormalRuntime, mut view: WorldView, dir: &Path) -> WorldView {
+pub(super) fn collect_carried(runtime: &FormalRuntime, view: WorldView, dir: &Path) -> WorldView {
+    collect_with_optional_mount(runtime, view, dir, false)
+}
+
+pub(super) fn collect_and_mount(runtime: &FormalRuntime, view: WorldView, dir: &Path) -> WorldView {
+    collect_with_optional_mount(runtime, view, dir, true)
+}
+
+fn collect_with_optional_mount(
+    runtime: &FormalRuntime,
+    mut view: WorldView,
+    dir: &Path,
+    mount_beacon: bool,
+) -> WorldView {
     assert_eq!(view.scene_id, "gh_beacon");
     assert_stage(&view, Stage::Uncollected);
     // A new journey cannot skip the device. Test the real exit rejection, then
@@ -125,6 +138,10 @@ pub(super) fn collect_and_mount(runtime: &FormalRuntime, mut view: WorldView, di
     let replay = runtime.activate_scene_interaction(COLLECT, "genuine-beacon-collect", view.world_epoch).unwrap();
     assert!(!replay.applied && replay.already_applied);
     assert_unchanged_view(&view, &replay.view);
+    if !mount_beacon {
+        assert_stage(&replay.view, Stage::Carried);
+        return replay.view;
+    }
     // Carried ownership alone exposes the genuine extraction control. Mounting
     // remains an optional action; this driver exercises it after that check.
     view = approach(runtime, replay.view, "gh_beacon_to_exit");
