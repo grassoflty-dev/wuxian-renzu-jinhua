@@ -5,6 +5,8 @@ use entry_readiness::acknowledge_ready;
 mod clockworks_campaign;
 #[path = "support/earned_death_recovery.rs"]
 mod earned_death_recovery;
+#[path = "support/earned_new_journey.rs"]
+mod earned_new_journey;
 #[path = "support/swarm_campaign.rs"]
 mod swarm_campaign;
 #[path = "support/mist_harbor_campaign.rs"]
