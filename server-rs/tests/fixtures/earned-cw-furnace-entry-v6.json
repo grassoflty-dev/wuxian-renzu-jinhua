@@ -1,0 +1,686 @@
+{
+  "schemaVersion": 6,
+  "effectSourcesVersion": 2,
+  "save": {
+    "schemaVersion": 5,
+    "buildVersion": "1.0.0",
+    "contentVersion": "campaign-content-v1",
+    "worldId": "clockworks",
+    "sceneId": "cw_furnace_heart",
+    "checkpointId": null,
+    "player": {
+      "positionM": {
+        "xM": 3.0,
+        "yM": 0.0,
+        "zM": 8.0
+      },
+      "velocityMps": {
+        "xM": 0.0,
+        "yM": 0.0,
+        "zM": 0.0
+      },
+      "radiusM": 0.35,
+      "grounded": true,
+      "moveSpeedMps": 4.0,
+      "jumpSpeedMps": 5.5,
+      "gravityMps2": 16.0,
+      "dashSpeedMps": 10.0,
+      "dashRemainingMs": 0,
+      "dashCooldownRemainingMs": 0,
+      "currentHp": 56,
+      "maxHp": 100,
+      "currentEnergy": 28,
+      "maxEnergy": 100
+    },
+    "actors": [],
+    "genericActors": [
+      {
+        "entityId": "cw_furnace_heart_forged_guard_01",
+        "entityType": "enemy.clockworks.forged_guard",
+        "positionM": {
+          "xM": 6.5,
+          "yM": 0.0,
+          "zM": 8.0
+        },
+        "homeM": {
+          "xM": 6.5,
+          "yM": 0.0,
+          "zM": 8.0
+        },
+        "hp": 55,
+        "state": "idle",
+        "stateRemainingMs": 0,
+        "attackSerial": 0,
+        "currentAttack": null,
+        "windupOriginM": null
+      },
+      {
+        "entityId": "cw_furnace_heart_forged_guard_02",
+        "entityType": "enemy.clockworks.forged_guard",
+        "positionM": {
+          "xM": 9.5,
+          "yM": 0.0,
+          "zM": 8.0
+        },
+        "homeM": {
+          "xM": 9.5,
+          "yM": 0.0,
+          "zM": 8.0
+        },
+        "hp": 55,
+        "state": "idle",
+        "stateRemainingMs": 0,
+        "attackSerial": 0,
+        "currentAttack": null,
+        "windupOriginM": null
+      },
+      {
+        "entityId": "cw_furnace_heart_furnace_hound_01",
+        "entityType": "enemy.clockworks.furnace_hound",
+        "positionM": {
+          "xM": 11.0,
+          "yM": 0.0,
+          "zM": 4.0
+        },
+        "homeM": {
+          "xM": 11.0,
+          "yM": 0.0,
+          "zM": 4.0
+        },
+        "hp": 48,
+        "state": "idle",
+        "stateRemainingMs": 0,
+        "attackSerial": 0,
+        "currentAttack": null,
+        "windupOriginM": null,
+        "ordinary": {}
+      },
+      {
+        "entityId": "cw_furnace_heart_furnace_hound_02",
+        "entityType": "enemy.clockworks.furnace_hound",
+        "positionM": {
+          "xM": 16.0,
+          "yM": 0.0,
+          "zM": 12.0
+        },
+        "homeM": {
+          "xM": 16.0,
+          "yM": 0.0,
+          "zM": 12.0
+        },
+        "hp": 48,
+        "state": "idle",
+        "stateRemainingMs": 0,
+        "attackSerial": 0,
+        "currentAttack": null,
+        "windupOriginM": null,
+        "ordinary": {}
+      },
+      {
+        "entityId": "cw_furnace_heart_furnace_hound_03",
+        "entityType": "enemy.clockworks.furnace_hound",
+        "positionM": {
+          "xM": 20.0,
+          "yM": 0.0,
+          "zM": 5.0
+        },
+        "homeM": {
+          "xM": 20.0,
+          "yM": 0.0,
+          "zM": 5.0
+        },
+        "hp": 48,
+        "state": "idle",
+        "stateRemainingMs": 0,
+        "attackSerial": 0,
+        "currentAttack": null,
+        "windupOriginM": null,
+        "ordinary": {}
+      }
+    ],
+    "combatHandledRequestIds": [],
+    "sceneStates": [
+      {
+        "sceneId": "cw_furnace_heart",
+        "activatedIds": [],
+        "emittedEventIds": [],
+        "checkpointId": null
+      }
+    ],
+    "progression": {
+      "schemaVersion": 1,
+      "currentWorldId": "clockworks",
+      "progress": [
+        {
+          "worldId": "grey_hive",
+          "completed": true,
+          "firstCompletion": true,
+          "visitId": 1,
+          "cycleId": 1,
+          "revisitCount": 0,
+          "completedEvents": [
+            "hive_power",
+            "hive_lockdown",
+            "hive_extraction"
+          ],
+          "firstMainlineResult": null,
+          "hiveChoice": "unresolved",
+          "sentinelFirstKillRecorded": false
+        },
+        {
+          "worldId": "mist_harbor",
+          "completed": true,
+          "firstCompletion": true,
+          "visitId": 1,
+          "cycleId": 1,
+          "revisitCount": 0,
+          "completedEvents": [
+            "mist_beacon_west",
+            "mist_beacon_east",
+            "mist_signal"
+          ],
+          "firstMainlineResult": null,
+          "hiveChoice": "unresolved",
+          "sentinelFirstKillRecorded": false
+        },
+        {
+          "worldId": "clockworks",
+          "completed": false,
+          "firstCompletion": false,
+          "visitId": 1,
+          "cycleId": 1,
+          "revisitCount": 0,
+          "completedEvents": [
+            "clockworks_valves"
+          ],
+          "firstMainlineResult": null,
+          "hiveChoice": "unresolved",
+          "sentinelFirstKillRecorded": false
+        }
+      ],
+      "rewardLedger": [],
+      "eventSeq": 13,
+      "processedRequestIds": [
+        "formal-runtime-bootstrap-grey-hive",
+        "world-gate-enter-seven-scene-route-station-entry-rs-to-gh",
+        "scene-event-seven-scene-route-restore-power",
+        "scene-event-seven-scene-clear-lockdown",
+        "scene-event-eleven-scene-extraction",
+        "scene-complete-eleven-scene-extraction",
+        "world-gate-enter-earned-first-mh-entry",
+        "scene-event-earned-mh-west-beacon",
+        "scene-event-f-earned-east-beacon",
+        "scene-event-f-plus-one-earned-tower-signal",
+        "world-gate-complete-warden-earned-extraction-return",
+        "world-gate-enter-warden-earned-enter-clockworks",
+        "scene-event-earned-cw-valve-03"
+      ]
+    },
+    "capabilities": {
+      "schemaVersion": 1,
+      "grants": [
+        {
+          "capabilityId": "information.enemy_vitals_basic",
+          "grantedAtRevision": {
+            "worldEpoch": 8,
+            "serverTick": 1325,
+            "authorityRevision": 1345
+          }
+        },
+        {
+          "capabilityId": "perception.rear_view_i",
+          "grantedAtRevision": {
+            "worldEpoch": 28,
+            "serverTick": 9615,
+            "authorityRevision": 9695
+          }
+        },
+        {
+          "capabilityId": "perception.acoustic_mapping_i",
+          "grantedAtRevision": {
+            "worldEpoch": 50,
+            "serverTick": 23294,
+            "authorityRevision": 23454
+          }
+        }
+      ],
+      "selected": [
+        "perception.rear_view_i"
+      ],
+      "regeneration": {
+        "delayAfterDamageMs": 1500,
+        "delayAfterCombatMs": 3000,
+        "hpPerSecond": 2.5,
+        "regenCapFraction": 0.75
+      },
+      "firstEnhancementChoice": "perception.rear_view_i",
+      "worldId": "clockworks",
+      "exploredMap": {
+        "worldId": "clockworks",
+        "playerPositionM": {
+          "xM": 3.0,
+          "yM": 0.0,
+          "zM": 8.0
+        },
+        "rooms": [],
+        "connections": [],
+        "objectives": []
+      },
+      "rearViewAuthorization": {
+        "granted": true,
+        "grantId": "perception.rear_view_i",
+        "grantedAtRevision": {
+          "worldEpoch": 28,
+          "serverTick": 9615,
+          "authorityRevision": 9695
+        }
+      },
+      "currentRevision": {
+        "worldEpoch": 75,
+        "serverTick": 35797,
+        "authorityRevision": 36025
+      },
+      "lastTickRevision": {
+        "worldEpoch": 75,
+        "serverTick": 35797,
+        "authorityRevision": 36025
+      },
+      "lastNowMs": 608549,
+      "lastDamageAtMs": 544918,
+      "lastCombatAtMs": 607886,
+      "fractionalHeal": 0.0,
+      "handledRequestIds": []
+    },
+    "inventory": {
+      "items": []
+    },
+    "dialogFlags": [],
+    "revision": {
+      "worldEpoch": 75,
+      "serverTick": 35797,
+      "authorityRevision": 36031
+    },
+    "serverTimeMs": 608549,
+    "explored": {
+      "worldId": "clockworks",
+      "playerPositionM": {
+        "xM": 3.0,
+        "yM": 0.0,
+        "zM": 8.0
+      },
+      "rooms": [],
+      "connections": [],
+      "objectives": []
+    },
+    "rearView": {
+      "granted": true,
+      "grantId": "perception.rear_view_i",
+      "grantedAtRevision": {
+        "worldEpoch": 28,
+        "serverTick": 9615,
+        "authorityRevision": 9695
+      }
+    },
+    "lastInputSeq": 0,
+    "lastClientTimeMs": 0,
+    "lastDamagedAtMs": 544918,
+    "lastCombatAtMs": 607886,
+    "migrationProvenance": null
+  },
+  "progression": {
+    "inventory": {},
+    "equipment": {},
+    "ownedSkills": [],
+    "equippedSkills": [],
+    "skillProficiency": {},
+    "categoryProficiency": {},
+    "bloodline": null,
+    "bloodlineTier": 0,
+    "bloodlineProficiency": 0,
+    "treasures": [],
+    "geneStage": 0,
+    "cultivation": {},
+    "capabilities": [
+      "information.enemy_vitals_basic",
+      "perception.acoustic_mapping_i",
+      "perception.rear_view_i"
+    ]
+  },
+  "effectSources": [
+    {
+      "source_kind": "innate_capability",
+      "source_id": "information.enemy_vitals_basic",
+      "instance_id": "capability:information.enemy_vitals_basic",
+      "lifetime": "permanent",
+      "ui_category": "information",
+      "effects": [
+        {
+          "grant_capability": {
+            "tag": "enemy_vitals_basic",
+            "stack": "any"
+          }
+        }
+      ]
+    },
+    {
+      "source_kind": "innate_capability",
+      "source_id": "perception.rear_view_i",
+      "instance_id": "capability:perception.rear_view_i",
+      "lifetime": "permanent",
+      "ui_category": "perception",
+      "effects": [
+        {
+          "perception": {
+            "tag": "rear_view",
+            "stack": "any"
+          }
+        }
+      ]
+    }
+  ],
+  "worldPersistentV1": {
+    "environment": {
+      "hazards": {
+        "clockworks/cw_boiler_chamber/cw_boiler_vent_staged": {
+          "cycleStartedAtMs": 529006,
+          "lastAdvancedAtMs": 555084,
+          "nextDamageAtMs": 545618,
+          "suppressedUntilMs": 0,
+          "exposureMilliunits": 0
+        },
+        "clockworks/cw_boiler_chamber/cw_heat_accumulation_staged": {
+          "cycleStartedAtMs": 529006,
+          "lastAdvancedAtMs": 555084,
+          "nextDamageAtMs": 529006,
+          "suppressedUntilMs": 0,
+          "exposureMilliunits": 0
+        },
+        "clockworks/cw_furnace_heart/cw_heat_accumulation_staged": {
+          "cycleStartedAtMs": 608549,
+          "lastAdvancedAtMs": 608549,
+          "nextDamageAtMs": 608549,
+          "suppressedUntilMs": 0,
+          "exposureMilliunits": 0
+        },
+        "grey_hive/gh_deep_decon/gh_decon_mist_zone": {
+          "cycleStartedAtMs": 108426,
+          "lastAdvancedAtMs": 137564,
+          "nextDamageAtMs": 108426,
+          "suppressedUntilMs": 0,
+          "exposureMilliunits": 0
+        },
+        "grey_hive/gh_deep_decon/gh_decon_steam_jet_zone": {
+          "cycleStartedAtMs": 108426,
+          "lastAdvancedAtMs": 137564,
+          "nextDamageAtMs": 108426,
+          "suppressedUntilMs": 0,
+          "exposureMilliunits": 0
+        }
+      },
+      "controlCooldownUntilMs": {}
+    },
+    "greyHive": {
+      "beacon": {
+        "schemaVersion": 1,
+        "state": "carried",
+        "receipts": [
+          {
+            "action": "collect",
+            "requestId": "genuine-beacon-collect",
+            "worldEpoch": 24
+          }
+        ]
+      },
+      "gateBActorRosterVersion": 1,
+      "swarmActorRosterVersion": 1,
+      "sentinelFirstKill": true
+    },
+    "clockworks": {
+      "gearShaftSupportVersion": 1,
+      "actorRosterVersion": 1,
+      "pressureValveIds": [
+        "cw_pressure_valve_01_staged",
+        "cw_pressure_valve_02_staged",
+        "cw_pressure_valve_03_staged"
+      ]
+    },
+    "mistHarbor": {
+      "signalWraithControllerVersion": 1,
+      "tideboundActorRosterVersion": 1,
+      "wardenDefeated": true,
+      "pump": {
+        "state": "drained",
+        "drainCompleteAtWorldTimeMs": 338571
+      },
+      "exploredRegionIds": [
+        "mh_bw_center_seawall",
+        "mh_bw_east_beacon",
+        "mh_bw_west_seawall",
+        "mh_dq_east_quay",
+        "mh_dq_flooded_channel",
+        "mh_dq_west_quay",
+        "mh_ex_arrival",
+        "mh_ex_extraction_pad",
+        "mh_fp_entry_berth",
+        "mh_fp_foghorn_pier",
+        "mh_fp_warehouse_approach",
+        "mh_ps_control_hall",
+        "mh_ps_east_channel",
+        "mh_ps_intake",
+        "mh_rt_entry",
+        "mh_rt_resonance_floor",
+        "mh_rt_signal_section",
+        "mh_sy_interference_field",
+        "mh_sy_quay_approach",
+        "mh_sy_west_yard",
+        "mh_tw_beacon_bay",
+        "mh_tw_storage_floor",
+        "mh_tw_west_loading",
+        "mh_wa_arena_core",
+        "mh_wa_entry",
+        "mh_wa_exit"
+      ]
+    },
+    "sceneHistoryV1": {
+      "schemaVersion": 1,
+      "sceneStates": [
+        {
+          "sceneId": "cw_boiler_chamber",
+          "activatedIds": [],
+          "emittedEventIds": [],
+          "checkpointId": null
+        },
+        {
+          "sceneId": "cw_conveyor_bridge",
+          "activatedIds": [],
+          "emittedEventIds": [],
+          "checkpointId": null
+        },
+        {
+          "sceneId": "cw_entry_foundry",
+          "activatedIds": [],
+          "emittedEventIds": [],
+          "checkpointId": null
+        },
+        {
+          "sceneId": "cw_furnace_heart",
+          "activatedIds": [],
+          "emittedEventIds": [],
+          "checkpointId": null
+        },
+        {
+          "sceneId": "cw_gear_shaft",
+          "activatedIds": [],
+          "emittedEventIds": [],
+          "checkpointId": "cw_gear_upper_dock_checkpoint"
+        },
+        {
+          "sceneId": "cw_pressure_hall",
+          "activatedIds": [
+            "cw_pressure_valve_01_staged",
+            "cw_pressure_valve_02_staged",
+            "cw_pressure_valve_03_staged"
+          ],
+          "emittedEventIds": [
+            "clockworks_valves"
+          ],
+          "checkpointId": null
+        },
+        {
+          "sceneId": "gh_beacon",
+          "activatedIds": [
+            "gh_beacon_deploy_marker"
+          ],
+          "emittedEventIds": [],
+          "checkpointId": null
+        },
+        {
+          "sceneId": "gh_bio_isolation",
+          "activatedIds": [],
+          "emittedEventIds": [],
+          "checkpointId": null
+        },
+        {
+          "sceneId": "gh_central_shaft",
+          "activatedIds": [
+            "gh_log_shaft_01"
+          ],
+          "emittedEventIds": [],
+          "checkpointId": null
+        },
+        {
+          "sceneId": "gh_deep_decon",
+          "activatedIds": [],
+          "emittedEventIds": [],
+          "checkpointId": null
+        },
+        {
+          "sceneId": "gh_entry_maintenance",
+          "activatedIds": [],
+          "emittedEventIds": [],
+          "checkpointId": null
+        },
+        {
+          "sceneId": "gh_exit",
+          "activatedIds": [
+            "gh_exit_extraction_console"
+          ],
+          "emittedEventIds": [
+            "hive_extraction"
+          ],
+          "checkpointId": null
+        },
+        {
+          "sceneId": "gh_gate_a",
+          "activatedIds": [],
+          "emittedEventIds": [],
+          "checkpointId": "gh_gate_a_checkpoint"
+        },
+        {
+          "sceneId": "gh_gate_b",
+          "activatedIds": [],
+          "emittedEventIds": [],
+          "checkpointId": null
+        },
+        {
+          "sceneId": "gh_lockdown",
+          "activatedIds": [
+            "gh_lockdown_terminal"
+          ],
+          "emittedEventIds": [
+            "hive_lockdown"
+          ],
+          "checkpointId": "gh_lockdown_checkpoint"
+        },
+        {
+          "sceneId": "gh_power_room",
+          "activatedIds": [
+            "gh_power_console"
+          ],
+          "emittedEventIds": [
+            "hive_power"
+          ],
+          "checkpointId": null
+        },
+        {
+          "sceneId": "gh_sentinel_arena",
+          "activatedIds": [],
+          "emittedEventIds": [],
+          "checkpointId": null
+        },
+        {
+          "sceneId": "mh_breakwater",
+          "activatedIds": [
+            "mh_east_beacon"
+          ],
+          "emittedEventIds": [
+            "mist_beacon_east"
+          ],
+          "checkpointId": null
+        },
+        {
+          "sceneId": "mh_drowned_quay",
+          "activatedIds": [],
+          "emittedEventIds": [],
+          "checkpointId": null
+        },
+        {
+          "sceneId": "mh_extraction",
+          "activatedIds": [],
+          "emittedEventIds": [],
+          "checkpointId": null
+        },
+        {
+          "sceneId": "mh_fog_pier",
+          "activatedIds": [],
+          "emittedEventIds": [],
+          "checkpointId": null
+        },
+        {
+          "sceneId": "mh_pump_station",
+          "activatedIds": [],
+          "emittedEventIds": [],
+          "checkpointId": null
+        },
+        {
+          "sceneId": "mh_resonance_tower",
+          "activatedIds": [
+            "mh_signal_console_staged"
+          ],
+          "emittedEventIds": [
+            "mist_signal"
+          ],
+          "checkpointId": null
+        },
+        {
+          "sceneId": "mh_signal_yard",
+          "activatedIds": [],
+          "emittedEventIds": [],
+          "checkpointId": null
+        },
+        {
+          "sceneId": "mh_tidal_warehouse",
+          "activatedIds": [
+            "mh_west_beacon"
+          ],
+          "emittedEventIds": [
+            "mist_beacon_west"
+          ],
+          "checkpointId": null
+        },
+        {
+          "sceneId": "mh_warden_arena",
+          "activatedIds": [],
+          "emittedEventIds": [],
+          "checkpointId": null
+        },
+        {
+          "sceneId": "rs_core_room",
+          "activatedIds": [],
+          "emittedEventIds": [],
+          "checkpointId": null
+        }
+      ]
+    }
+  }
+}
