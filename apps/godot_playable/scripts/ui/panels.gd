@@ -27,6 +27,7 @@ var layout_busy = false
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	focus_mode = Control.FOCUS_ALL
 	var shade = ColorRect.new()
 	shade.color = Color(0.02,0.04,0.06,0.82)
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -84,6 +85,7 @@ func _layout_content() -> void:
 		box.custom_minimum_size.x = width
 	layout_busy = false
 func show_page(kind: String, association: Dictionary, s: Dictionary, is_connected: bool, blocked: bool = false) -> void:
+	var opening = not visible
 	_clear_enhancement_preview()
 	mode = kind
 	page_owner = association.duplicate(true)
@@ -95,6 +97,9 @@ func show_page(kind: String, association: Dictionary, s: Dictionary, is_connecte
 		staged = preferences.duplicate(true)
 	_rebuild()
 	_layout_content()
+	# Take focus off the background without selecting a confirmation action.
+	if opening:
+		grab_focus()
 func close_page() -> void:
 	_clear_enhancement_preview()
 	visible = false
