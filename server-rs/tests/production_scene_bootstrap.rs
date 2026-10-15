@@ -36,6 +36,8 @@ const FULL_TEST_CW: &str = include_str!("fixtures/scene-runtime-v1/clockworks.js
 const EARNED_GH_CARRIED_CLEAR_V6: &str = include_str!("fixtures/earned-gh-carried-clear-v6.json");
 // Exact semantic source: Package E successful west-beacon SaveV6, before the east route.
 const EARNED_MH_WEST_V6: &str = include_str!("fixtures/earned-mh-west-v6.json");
+// Semantic source: the exact Ready pump-room SaveV6 retained from the successful EAST scenario.
+const EARNED_MH_EAST_PUMP_READY_V6: &str = include_str!("fixtures/earned-mh-east-pump-ready-v6.json");
 static NEXT_TIME: AtomicU64 = AtomicU64::new(500_000);
 static NEXT_COMBAT_REQUEST: AtomicU64 = AtomicU64::new(1);
 
@@ -3116,4 +3118,330 @@ fn genuine_mist_harbor_east_beacon_from_earned_west_opens_pump_and_survives_cont
         wuxian_horror_ch1::world_v3::MistHarborPumpState::Ready);
     println!("F milestone: Continue restored west+east partial progress and Ready pump");
     drop(continued_runtime);
+}
+
+#[test]
+fn genuine_mist_harbor_pump_drain_and_signal_from_earned_east_survives_continue() {
+    NEXT_TIME.fetch_max(1_000_000, Ordering::Relaxed);
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let serial = NEXT_TIME.fetch_add(1, Ordering::Relaxed);
+    let save_dir = std::env::temp_dir().join(format!(
+        "genuine-mh-pump-signal-earned-east-{}-{nonce}-{serial}",
+        std::process::id()
+    ));
+    fs::create_dir_all(&save_dir).unwrap();
+    fs::write(
+        save_dir.join("formal-save-v6.json"),
+        EARNED_MH_EAST_PUMP_READY_V6,
+    )
+    .unwrap();
+
+    let assert_mh_events = |view: &wuxian_horror_ch1::world_v3::WorldView, expected: &[&str]| {
+        let mh = view
+            .progression
+            .worlds
+            .iter()
+            .find(|world| world.world_id == "mist_harbor")
+            .expect("Mist Harbor progress is projected");
+        assert_eq!(mh.visit_id, 1);
+        assert_eq!(mh.revisit_count, 0);
+        assert!(!mh.completed && !mh.first_completion);
+        assert_eq!(mh.completed_events.len(), expected.len());
+        for event in expected {
+            assert!(
+                mh.completed_events.iter().any(|saved| saved.as_str() == *event),
+                "missing earned event {event}: {:?}",
+                mh.completed_events
+            );
+        }
+    };
+
+    // Continue the exact EAST result through the full production registry.
+    let runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&runtime).unwrap();
+    let view = acknowledge_ready(&runtime, runtime.continue_saved().unwrap());
+    assert_eq!(view.world_id, "mist_harbor");
+    assert_eq!(view.scene_id, "mh_pump_station");
+    assert!(view.player.current_hp > 0 && view.player.current_hp <= view.player.max_hp);
+    assert_mh_events(&view, &["mist_beacon_west", "mist_beacon_east"]);
+    assert_eq!(
+        view.mist_harbor_pump.as_ref().unwrap().state,
+        wuxian_horror_ch1::world_v3::MistHarborPumpState::Ready
+    );
+    assert_eq!(
+        view.capabilities.first_enhancement_choice.as_deref(),
+        Some(wuxian_horror_ch1::capability_v1::CAP_REAR_VIEW)
+    );
+    assert!(view.capabilities.rear_view.granted);
+    assert_eq!(view.capabilities.acoustic_mapping_authorized, Some(false));
+    assert!(!view.capabilities.items.iter().any(|item| {
+        item.capability_id == wuxian_horror_ch1::capability_v1::CAP_ACOUSTIC_MAPPING
+            && item.granted
+    }));
+    println!("F+1 milestone: continued the earned-east Ready pump save");
+
+    let mut view = mist_harbor_campaign::clear_scene(&runtime, view, &save_dir);
+    view = walk_to_compiled_target(
+        &runtime,
+        view,
+        "mh_pump_station",
+        "interactions",
+        "mh_pump_control_primary",
+    );
+    let pump_start = runtime
+        .activate_scene_interaction(
+            "mh_pump_control_primary",
+            "f-plus-one-earned-pump-start",
+            view.world_epoch,
+        )
+        .unwrap();
+    assert!(pump_start.applied, "{:?}", pump_start.error_code);
+    assert_eq!(pump_start.view.scene_id, "mh_pump_station");
+    assert_eq!(
+        pump_start.view.mist_harbor_pump.as_ref().unwrap().state,
+        wuxian_horror_ch1::world_v3::MistHarborPumpState::Draining
+    );
+    assert_mh_events(
+        &pump_start.view,
+        &["mist_beacon_west", "mist_beacon_east"],
+    );
+    assert_eq!(pump_start.view.capabilities.acoustic_mapping_authorized, Some(false));
+
+    // Freeze a genuinely activated drain before the native six-second deadline.
+    let activation_time_ms = pump_start.view.server_time_ms;
+    runtime.pause().unwrap();
+    let pre_save = runtime.snapshot().unwrap();
+    assert_eq!(pre_save.scene_id, "mh_pump_station");
+    assert_eq!(
+        pre_save.mist_harbor_pump.as_ref().unwrap().state,
+        wuxian_horror_ch1::world_v3::MistHarborPumpState::Draining
+    );
+    runtime.save().unwrap();
+    let draining_save = save_v6::read_save(&save_dir).unwrap();
+    assert_eq!(draining_save.save.scene_id, "mh_pump_station");
+    assert_eq!(draining_save.world_persistent_v1.mist_harbor.pump.state,
+        wuxian_horror_ch1::world_persistent_v1::PumpStatus::Draining);
+    let deadline_ms = draining_save.world_persistent_v1.mist_harbor.pump
+        .drain_complete_at_world_time_ms.expect("real pump activation stores its deadline");
+    assert_eq!(
+        deadline_ms,
+        activation_time_ms + wuxian_horror_ch1::world_persistent_v1::PUMP_DRAIN_DURATION_MS
+    );
+    assert!(pre_save.server_time_ms < deadline_ms);
+    assert!(draining_save.save.server_time_ms < deadline_ms);
+    let saved_mh = draining_save.save.progression.progress.iter()
+        .find(|world| world.world_id == "mist_harbor").unwrap();
+    assert_eq!(saved_mh.completed_events.len(), 2);
+    assert!(!saved_mh.completed && !saved_mh.first_completion);
+    println!("F+1 milestone: native pump Draining saved before deadline");
+    drop(runtime);
+
+    // A new full runtime restores the same live drain; pause immediately after
+    // Continue/ready so no synthetic time jump or accidental expiry is involved.
+    let continued_runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&continued_runtime).unwrap();
+    let continued = acknowledge_ready(
+        &continued_runtime,
+        continued_runtime.continue_saved().unwrap(),
+    );
+    assert_eq!(continued.scene_id, "mh_pump_station");
+    assert_eq!(continued.mist_harbor_pump.as_ref().unwrap().state,
+        wuxian_horror_ch1::world_v3::MistHarborPumpState::Draining);
+    assert_mh_events(&continued, &["mist_beacon_west", "mist_beacon_east"]);
+    continued_runtime.pause().unwrap();
+    let continued_predeadline = continued_runtime.snapshot().unwrap();
+    assert_eq!(continued_predeadline.scene_id, "mh_pump_station");
+    assert_eq!(continued_predeadline.mist_harbor_pump.as_ref().unwrap().state,
+        wuxian_horror_ch1::world_v3::MistHarborPumpState::Draining);
+    assert!(continued_predeadline.server_time_ms < deadline_ms);
+    continued_runtime.save().unwrap();
+    let continued_draining_save = save_v6::read_save(&save_dir).unwrap();
+    assert_eq!(continued_draining_save.world_persistent_v1.mist_harbor.pump.state,
+        wuxian_horror_ch1::world_persistent_v1::PumpStatus::Draining);
+    assert_eq!(continued_draining_save.world_persistent_v1.mist_harbor.pump
+        .drain_complete_at_world_time_ms, Some(deadline_ms));
+    assert!(continued_draining_save.save.server_time_ms < deadline_ms);
+    let continued_saved_mh = continued_draining_save.save.progression.progress.iter()
+        .find(|world| world.world_id == "mist_harbor").unwrap();
+    assert_eq!(continued_saved_mh.completed_events.len(), 2);
+    assert!(!continued_saved_mh.completed && !continued_saved_mh.first_completion);
+    println!("F+1 milestone: new runtime Continue restored predeadline Draining");
+
+    let wall_started = std::time::Instant::now();
+    continued_runtime.resume().unwrap();
+    let mut live = continued_runtime.snapshot().unwrap();
+    let released = continued_runtime.submit_input(
+        InputSample::new(
+            live.world_epoch,
+            live.ack_seq + 1,
+            NEXT_TIME.fetch_add(17, Ordering::Relaxed),
+            0.0,
+            0.0,
+        )
+        .unwrap(),
+        vec![],
+    ).unwrap();
+    live = released;
+    while live.mist_harbor_pump.as_ref().unwrap().state
+        == wuxian_horror_ch1::world_v3::MistHarborPumpState::Draining
+        && wall_started.elapsed() < std::time::Duration::from_secs(30)
+    {
+        std::thread::sleep(std::time::Duration::from_millis(25));
+        live = continued_runtime.snapshot().unwrap();
+    }
+    let native_elapsed_ms = wall_started.elapsed().as_millis();
+    println!(
+        "F+1 native pump timeline: activation_ms={} saved_predeadline_ms={} continued_predeadline_ms={} deadline_ms={} resolved_ms={} wall_ms={} state={:?}",
+        activation_time_ms,
+        pre_save.server_time_ms,
+        continued_predeadline.server_time_ms,
+        deadline_ms,
+        live.server_time_ms,
+        native_elapsed_ms,
+        live.mist_harbor_pump.as_ref().unwrap().state
+    );
+    assert_eq!(
+        live.mist_harbor_pump.as_ref().unwrap().state,
+        wuxian_horror_ch1::world_v3::MistHarborPumpState::Drained,
+        "native owner did not resolve the pump before the bounded 30s wait; time={}/deadline={deadline_ms}",
+        live.server_time_ms
+    );
+    assert!(live.server_time_ms >= deadline_ms);
+    assert_mh_events(&live, &["mist_beacon_west", "mist_beacon_east"]);
+
+    // Confirm Drained and the original deadline under a normal pause, then resume
+    // for authored KCC navigation.
+    continued_runtime.pause().unwrap();
+    let drained_held = continued_runtime.snapshot().unwrap();
+    assert_eq!(drained_held.mist_harbor_pump.as_ref().unwrap().state,
+        wuxian_horror_ch1::world_v3::MistHarborPumpState::Drained);
+    assert!(drained_held.server_time_ms >= deadline_ms);
+    continued_runtime.save().unwrap();
+    let drained_save = save_v6::read_save(&save_dir).unwrap();
+    assert_eq!(drained_save.world_persistent_v1.mist_harbor.pump.state,
+        wuxian_horror_ch1::world_persistent_v1::PumpStatus::Drained);
+    assert_eq!(drained_save.world_persistent_v1.mist_harbor.pump
+        .drain_complete_at_world_time_ms, Some(deadline_ms));
+    assert!(drained_save.save.server_time_ms >= deadline_ms);
+    continued_runtime.resume().unwrap();
+    println!("F+1 milestone: native owner reached Drained at or after the saved deadline");
+
+    let mut view = mist_harbor_campaign::clear_scene(&continued_runtime, drained_held, &save_dir);
+    view = walk_to_compiled_target(
+        &continued_runtime,
+        view,
+        "mh_pump_station",
+        "transitions",
+        "mh_pump_station_to_tower",
+    );
+    view = apply_transition(
+        &continued_runtime,
+        "mh_pump_station_to_tower",
+        "f-plus-one-earned-pump-to-tower",
+        view.world_epoch,
+    );
+    assert_eq!(view.scene_id, "mh_resonance_tower");
+    assert_eq!(view.mist_harbor_pump.as_ref().unwrap().state,
+        wuxian_horror_ch1::world_v3::MistHarborPumpState::Drained);
+    assert_mh_events(&view, &["mist_beacon_west", "mist_beacon_east"]);
+
+    // Resolve tower combat under the existing mapping-free public-cue policy,
+    // before the authored signal grants Acoustic Mapping.
+    view = mist_harbor_campaign::clear_scene(&continued_runtime, view, &save_dir);
+    assert_eq!(view.capabilities.acoustic_mapping_authorized, Some(false));
+    view = walk_to_compiled_target(
+        &continued_runtime,
+        view,
+        "mh_resonance_tower",
+        "interactions",
+        "mh_signal_console_staged",
+    );
+    let signal = continued_runtime
+        .activate_scene_interaction(
+            "mh_signal_console_staged",
+            "f-plus-one-earned-tower-signal",
+            view.world_epoch,
+        )
+        .unwrap();
+    assert!(signal.applied, "{:?}", signal.error_code);
+    assert_eq!(signal.view.scene_id, "mh_resonance_tower");
+    assert_mh_events(
+        &signal.view,
+        &["mist_beacon_west", "mist_beacon_east", "mist_signal"],
+    );
+    assert_eq!(
+        signal.view.capabilities.first_enhancement_choice.as_deref(),
+        Some(wuxian_horror_ch1::capability_v1::CAP_REAR_VIEW)
+    );
+    let rear_view = signal.view.capabilities.items.iter()
+        .find(|item| item.capability_id == wuxian_horror_ch1::capability_v1::CAP_REAR_VIEW)
+        .expect("earned Rear View remains projected");
+    assert!(rear_view.granted && rear_view.selected);
+    let acoustic = signal.view.capabilities.items.iter()
+        .find(|item| item.capability_id == wuxian_horror_ch1::capability_v1::CAP_ACOUSTIC_MAPPING)
+        .expect("actual signal grants Acoustic Mapping");
+    assert!(acoustic.granted && acoustic.selected);
+    assert!(signal.view.capabilities.rear_view.granted);
+    assert_eq!(signal.view.capabilities.acoustic_mapping_authorized, Some(true));
+    assert_eq!(signal.view.mist_harbor_pump.as_ref().unwrap().state,
+        wuxian_horror_ch1::world_v3::MistHarborPumpState::Drained);
+    println!("F+1 milestone: authored tower signal earned all three events and Acoustic Mapping");
+
+    continued_runtime.pause().unwrap();
+    let signaled_held = continued_runtime.snapshot().unwrap();
+    assert_eq!(signaled_held.scene_id, "mh_resonance_tower");
+    assert_mh_events(
+        &signaled_held,
+        &["mist_beacon_west", "mist_beacon_east", "mist_signal"],
+    );
+    assert_eq!(signaled_held.capabilities.acoustic_mapping_authorized, Some(true));
+    continued_runtime.save().unwrap();
+    let signaled_save = save_v6::read_save(&save_dir).unwrap();
+    assert_eq!(signaled_save.save.scene_id, "mh_resonance_tower");
+    assert_eq!(signaled_save.world_persistent_v1.mist_harbor.pump.state,
+        wuxian_horror_ch1::world_persistent_v1::PumpStatus::Drained);
+    assert_eq!(signaled_save.world_persistent_v1.mist_harbor.pump
+        .drain_complete_at_world_time_ms, Some(deadline_ms));
+    let saved_mh = signaled_save.save.progression.progress.iter()
+        .find(|world| world.world_id == "mist_harbor").unwrap();
+    assert_eq!(saved_mh.completed_events.len(), 3);
+    assert!(!saved_mh.completed && !saved_mh.first_completion);
+    assert!(signaled_save.progression.capabilities.iter().any(|id| {
+        id == wuxian_horror_ch1::capability_v1::CAP_ACOUSTIC_MAPPING
+    }));
+    drop(continued_runtime);
+
+    // Reconstruct once more from the earned signal save; assert the actual native
+    // Continue view, not just the typed disk record.
+    let final_runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&final_runtime).unwrap();
+    let final_view = acknowledge_ready(&final_runtime, final_runtime.continue_saved().unwrap());
+    assert_eq!(final_view.world_id, "mist_harbor");
+    assert_eq!(final_view.scene_id, "mh_resonance_tower");
+    assert!(final_view.player.current_hp > 0 && final_view.player.current_hp <= final_view.player.max_hp);
+    assert_mh_events(
+        &final_view,
+        &["mist_beacon_west", "mist_beacon_east", "mist_signal"],
+    );
+    assert_eq!(final_view.mist_harbor_pump.as_ref().unwrap().state,
+        wuxian_horror_ch1::world_v3::MistHarborPumpState::Drained);
+    assert_eq!(final_view.capabilities.first_enhancement_choice.as_deref(),
+        Some(wuxian_horror_ch1::capability_v1::CAP_REAR_VIEW));
+    let final_rear = final_view.capabilities.items.iter()
+        .find(|item| item.capability_id == wuxian_horror_ch1::capability_v1::CAP_REAR_VIEW)
+        .expect("Continue retains earned Rear View");
+    assert!(final_rear.granted && final_rear.selected);
+    let final_acoustic = final_view.capabilities.items.iter()
+        .find(|item| item.capability_id == wuxian_horror_ch1::capability_v1::CAP_ACOUSTIC_MAPPING)
+        .expect("Continue retains signal-earned Acoustic Mapping");
+    assert!(final_acoustic.granted && final_acoustic.selected);
+    assert!(final_view.capabilities.rear_view.granted);
+    assert_eq!(final_view.capabilities.acoustic_mapping_authorized, Some(true));
+    assert_eq!(final_view.mist_harbor_pump.as_ref().unwrap().state,
+        wuxian_horror_ch1::world_v3::MistHarborPumpState::Drained);
+    println!("F+1 milestone: Continue restored signal, both capabilities, and Drained pump");
+    drop(final_runtime);
 }
