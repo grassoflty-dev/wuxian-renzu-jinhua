@@ -38,6 +38,8 @@ const EARNED_GH_CARRIED_CLEAR_V6: &str = include_str!("fixtures/earned-gh-carrie
 const EARNED_MH_WEST_V6: &str = include_str!("fixtures/earned-mh-west-v6.json");
 // Semantic source: the exact Ready pump-room SaveV6 retained from the successful EAST scenario.
 const EARNED_MH_EAST_PUMP_READY_V6: &str = include_str!("fixtures/earned-mh-east-pump-ready-v6.json");
+// Exact successful pump/signal SaveV6 source: slot1 task-owned output, 17,890 bytes, SHA-256 22d14c3335b9c9647dd968ae76b08cdb8ed85259fe3f3204b36568468ad733ea.
+const EARNED_MH_SIGNAL_V6: &str = include_str!("fixtures/earned-mh-signal-v6.json");
 static NEXT_TIME: AtomicU64 = AtomicU64::new(500_000);
 static NEXT_COMBAT_REQUEST: AtomicU64 = AtomicU64::new(1);
 
@@ -3443,5 +3445,410 @@ fn genuine_mist_harbor_pump_drain_and_signal_from_earned_east_survives_continue(
     assert_eq!(final_view.mist_harbor_pump.as_ref().unwrap().state,
         wuxian_horror_ch1::world_v3::MistHarborPumpState::Drained);
     println!("F+1 milestone: Continue restored signal, both capabilities, and Drained pump");
+    drop(final_runtime);
+}
+
+#[test]
+fn genuine_mist_harbor_warden_extraction_from_earned_signal_unlocks_clockworks_and_survives_continue() {
+    NEXT_TIME.fetch_max(1_000_000, Ordering::Relaxed);
+    let save_dir = save_root();
+    assert!(!save_dir.exists(), "test save directory must be fresh");
+    fs::create_dir_all(&save_dir).unwrap();
+    fs::write(save_dir.join("formal-save-v6.json"), EARNED_MH_SIGNAL_V6.as_bytes()).unwrap();
+
+    let expected_mh_events = BTreeSet::from([
+        "mist_beacon_west",
+        "mist_beacon_east",
+        "mist_signal",
+    ]);
+    let assert_mh_progress = |view: &wuxian_horror_ch1::world_v3::WorldView, completed: bool| {
+        let mh = view
+            .progression
+            .worlds
+            .iter()
+            .find(|world| world.world_id == "mist_harbor")
+            .expect("Mist Harbor progress is projected");
+        assert_eq!(mh.visit_id, 1);
+        assert_eq!(mh.revisit_count, 0);
+        assert_eq!(mh.completed, completed);
+        assert_eq!(mh.first_completion, completed);
+        assert_eq!(
+            mh.completed_events.iter().map(String::as_str).collect::<BTreeSet<_>>(),
+            expected_mh_events
+        );
+    };
+    let assert_grey_hive_clear = |view: &wuxian_horror_ch1::world_v3::WorldView| {
+        let gh = view
+            .progression
+            .worlds
+            .iter()
+            .find(|world| world.world_id == "grey_hive")
+            .expect("Grey Hive progress is projected");
+        assert!(gh.completed && gh.first_completion);
+        assert_eq!(gh.visit_id, 1);
+        assert_eq!(gh.revisit_count, 0);
+    };
+    let assert_clockworks_pristine = |view: &wuxian_horror_ch1::world_v3::WorldView| {
+        let cw = view
+            .progression
+            .worlds
+            .iter()
+            .find(|world| world.world_id == "clockworks")
+            .expect("Clockworks progress is projected");
+        assert!(!cw.completed && !cw.first_completion);
+        assert_eq!(cw.visit_id, 0);
+        assert_eq!(cw.revisit_count, 0);
+        assert!(cw.completed_events.is_empty());
+    };
+
+    let initial_save = save_v6::read_save(&save_dir).unwrap();
+    assert_eq!(initial_save.save.world_id, "mist_harbor");
+    assert_eq!(initial_save.save.scene_id, "mh_resonance_tower");
+    assert_eq!(initial_save.save.player.current_hp, 100);
+    assert_eq!(initial_save.save.player.current_energy, 76);
+    assert_eq!(
+        initial_save.world_persistent_v1.mist_harbor.pump.state,
+        wuxian_horror_ch1::world_persistent_v1::PumpStatus::Drained
+    );
+    assert!(
+        !initial_save
+            .world_persistent_v1
+            .mist_harbor
+            .warden_defeated,
+        "the signal fixture does not pre-award the Warden defeat"
+    );
+
+    // Continue the exact successful east-pump/signal result in a fresh full registry.
+    let first_runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&first_runtime).unwrap();
+    let mut view = acknowledge_ready(&first_runtime, first_runtime.continue_saved().unwrap());
+    assert_eq!(view.world_id, "mist_harbor");
+    assert_eq!(view.scene_id, "mh_resonance_tower");
+    assert!(view.player.current_hp > 0);
+    assert_mh_progress(&view, false);
+    assert_grey_hive_clear(&view);
+    assert_clockworks_pristine(&view);
+    assert_eq!(
+        view.mist_harbor_pump.as_ref().unwrap().state,
+        wuxian_horror_ch1::world_v3::MistHarborPumpState::Drained
+    );
+    assert_eq!(
+        view.capabilities.first_enhancement_choice.as_deref(),
+        Some(wuxian_horror_ch1::capability_v1::CAP_REAR_VIEW)
+    );
+    let rear = view
+        .capabilities
+        .items
+        .iter()
+        .find(|item| item.capability_id == wuxian_horror_ch1::capability_v1::CAP_REAR_VIEW)
+        .expect("earned Rear View is projected");
+    let acoustic = view
+        .capabilities
+        .items
+        .iter()
+        .find(|item| item.capability_id == wuxian_horror_ch1::capability_v1::CAP_ACOUSTIC_MAPPING)
+        .expect("signal-earned Acoustic Mapping is projected");
+    assert!(rear.granted && rear.selected);
+    assert!(acoustic.granted && acoustic.selected);
+    assert!(view.capabilities.rear_view.granted);
+    assert_eq!(view.capabilities.acoustic_mapping_authorized, Some(true));
+    println!("Warden scenario: continued earned east, drained pump, and signal state");
+
+    view = walk_to_compiled_target(
+        &first_runtime,
+        view,
+        "mh_resonance_tower",
+        "transitions",
+        "mh_tower_to_warden_arena",
+    );
+    view = apply_transition(
+        &first_runtime,
+        "mh_tower_to_warden_arena",
+        "warden-earned-signal-to-arena",
+        view.world_epoch,
+    );
+    assert_registered_warden(&view, true);
+    view = first_runtime
+        .apply_capability_command(
+            wuxian_horror_ch1::formal_runtime::CapabilityCommandRequest::Select {
+                capability_ids: vec![wuxian_horror_ch1::capability_v1::CAP_REAR_VIEW.into()],
+            },
+        )
+        .unwrap();
+    assert!(view.capabilities.rear_view.granted);
+    assert_eq!(view.capabilities.acoustic_mapping_authorized, Some(false));
+    view = walk_to_compiled_target(
+        &first_runtime,
+        view,
+        "mh_warden_arena",
+        "transitions",
+        "mh_warden_arena_to_extraction",
+    );
+    let exit_before_defeat = view
+        .interactables
+        .iter()
+        .find(|item| item.entity_id == "mh_warden_arena_to_extraction")
+        .expect("authored extraction transition is projected");
+    let projection_active_before_defeat = exit_before_defeat.active;
+    let blocked_exit = scene_route_commands::transition(
+        &first_runtime,
+        "mh_warden_arena_to_extraction",
+        "warden-before-defeat-extraction-blocked",
+        view.world_epoch,
+    )
+    .unwrap();
+    assert_v3_receipt(
+        &blocked_exit,
+        "warden-before-defeat-extraction-blocked",
+        false,
+    );
+    assert_eq!(
+        blocked_exit.error_code.as_deref(),
+        Some("E_MH_WARDEN_DEFEAT_REQUIRED")
+    );
+    assert_eq!(blocked_exit.snapshot.scene_id, "mh_warden_arena");
+    assert!(
+        !projection_active_before_defeat,
+        "the Warden-specific extraction transition must remain inactive before real defeat"
+    );
+
+    view = kill_registered_warden_with_public_actions(
+        &first_runtime,
+        first_runtime.snapshot().unwrap(),
+    );
+    assert_registered_warden(&view, false);
+    first_runtime.pause().unwrap();
+    first_runtime.save().unwrap();
+    let defeated_save = save_v6::read_save(&save_dir).unwrap();
+    assert!(defeated_save.world_persistent_v1.mist_harbor.warden_defeated);
+    assert_eq!(defeated_save.save.generic_actors.len(), 1);
+    let saved_warden = defeated_save
+        .save
+        .generic_actors
+        .iter()
+        .find(|actor| actor.entity_id == "mh_resonance_warden_staged_marker")
+        .expect("the actual defeated Warden is persisted");
+    assert_eq!(saved_warden.entity_type, "enemy.mist_harbor.resonance_warden");
+    assert_eq!(saved_warden.hp, 0);
+    println!("Warden scenario: public combat defeated and saved the authored Warden");
+    drop(first_runtime);
+
+    // A separate runtime owner must restore the inactive Warden and extraction gate.
+    let warden_continue_runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&warden_continue_runtime).unwrap();
+    let mut at_warden = acknowledge_ready(
+        &warden_continue_runtime,
+        warden_continue_runtime.continue_saved().unwrap(),
+    );
+    assert_registered_warden(&at_warden, false);
+    assert!(at_warden.player.current_hp > 0);
+    assert_mh_progress(&at_warden, false);
+    assert_grey_hive_clear(&at_warden);
+    assert_clockworks_pristine(&at_warden);
+    assert_eq!(
+        at_warden.mist_harbor_pump.as_ref().unwrap().state,
+        wuxian_horror_ch1::world_v3::MistHarborPumpState::Drained
+    );
+    at_warden = walk_to_compiled_target(
+        &warden_continue_runtime,
+        at_warden,
+        "mh_warden_arena",
+        "transitions",
+        "mh_warden_arena_to_extraction",
+    );
+    assert!(at_warden
+        .interactables
+        .iter()
+        .find(|item| item.entity_id == "mh_warden_arena_to_extraction")
+        .unwrap()
+        .active);
+    let continued_rear = at_warden
+        .capabilities
+        .items
+        .iter()
+        .find(|item| item.capability_id == wuxian_horror_ch1::capability_v1::CAP_REAR_VIEW)
+        .unwrap();
+    let continued_acoustic = at_warden
+        .capabilities
+        .items
+        .iter()
+        .find(|item| item.capability_id == wuxian_horror_ch1::capability_v1::CAP_ACOUSTIC_MAPPING)
+        .unwrap();
+    assert!(continued_rear.granted && continued_rear.selected);
+    assert!(continued_acoustic.granted && !continued_acoustic.selected);
+    assert_eq!(at_warden.capabilities.acoustic_mapping_authorized, Some(false));
+    assert!(warden_continue_runtime
+        .presentation_events_since(at_warden.world_epoch, 0)
+        .unwrap()
+        .iter()
+        .all(|event| event.kind != "ResonanceWardenDeath"));
+    println!("Warden scenario: fresh-owner Continue restored inactive Warden without replay");
+
+    at_warden = apply_transition(
+        &warden_continue_runtime,
+        "mh_warden_arena_to_extraction",
+        "warden-earned-arena-to-extraction",
+        at_warden.world_epoch,
+    );
+    assert_eq!(at_warden.scene_id, "mh_extraction");
+    let at_mh_exit = walk_to_compiled_target(
+        &warden_continue_runtime,
+        at_warden,
+        "mh_extraction",
+        "interactions",
+        "mh_extraction_exit",
+    );
+    let mh_return = scene_route_commands::world_gate(
+        &warden_continue_runtime,
+        "mh_extraction_return_to_rs",
+        "warden-earned-extraction-return",
+        at_mh_exit.world_epoch,
+    )
+    .unwrap();
+    assert_v3_receipt(&mh_return, "warden-earned-extraction-return", true);
+    let at_rs = acknowledge_ready(
+        &warden_continue_runtime,
+        warden_continue_runtime.snapshot().unwrap(),
+    );
+    assert_eq!(at_rs.world_id, "return_station");
+    assert_eq!(at_rs.scene_id, "rs_core_room");
+    assert!(at_rs.player.current_hp > 0);
+    assert_mh_progress(&at_rs, true);
+    assert_grey_hive_clear(&at_rs);
+    assert_clockworks_pristine(&at_rs);
+    warden_continue_runtime.pause().unwrap();
+    warden_continue_runtime.save().unwrap();
+    let return_save = save_v6::read_save(&save_dir).unwrap();
+    assert_eq!(return_save.save.scene_id, "rs_core_room");
+    assert!(return_save.world_persistent_v1.mist_harbor.warden_defeated);
+    assert_eq!(
+        return_save.world_persistent_v1.mist_harbor.pump.state,
+        wuxian_horror_ch1::world_persistent_v1::PumpStatus::Drained
+    );
+    drop(warden_continue_runtime);
+    println!("Warden scenario: extraction returned to RS and completed the three-event MH route");
+
+    // Continue the actual RS return save before using its now-open Clockworks gate.
+    let station_runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&station_runtime).unwrap();
+    let at_station = acknowledge_ready(&station_runtime, station_runtime.continue_saved().unwrap());
+    assert_eq!(at_station.world_id, "return_station");
+    assert_eq!(at_station.scene_id, "rs_core_room");
+    assert_mh_progress(&at_station, true);
+    assert_grey_hive_clear(&at_station);
+    assert_clockworks_pristine(&at_station);
+    assert!(at_station
+        .interactables
+        .iter()
+        .find(|item| item.entity_id == "rs_cw_world_gate_marker")
+        .expect("Clockworks gate is projected after the real MH extraction")
+        .active);
+    println!("Warden scenario: fresh-owner RS Continue retained earned campaign state");
+
+    let at_cw_gate = walk_to_compiled_target(
+        &station_runtime,
+        at_station,
+        "rs_core_room",
+        "interactions",
+        "rs_cw_world_gate_marker",
+    );
+    let cw_entry = scene_route_commands::world_gate(
+        &station_runtime,
+        "rs_world_gate_to_cw",
+        "warden-earned-enter-clockworks",
+        at_cw_gate.world_epoch,
+    )
+    .unwrap();
+    assert_v3_receipt(&cw_entry, "warden-earned-enter-clockworks", true);
+    let mut at_cw = acknowledge_ready(&station_runtime, station_runtime.snapshot().unwrap());
+    assert_eq!(at_cw.world_id, "clockworks");
+    assert_eq!(at_cw.scene_id, "cw_entry_foundry");
+    assert!(at_cw.player.current_hp > 0);
+    assert_mh_progress(&at_cw, true);
+    assert_grey_hive_clear(&at_cw);
+    let cw = at_cw
+        .progression
+        .worlds
+        .iter()
+        .find(|world| world.world_id == "clockworks")
+        .unwrap();
+    assert!(!cw.completed && !cw.first_completion);
+    assert_eq!(cw.visit_id, 1);
+    assert_eq!(cw.revisit_count, 0);
+    assert!(cw.completed_events.is_empty());
+    assert!(!at_cw.capabilities.items.iter().any(|item| {
+        item.capability_id == wuxian_horror_ch1::capability_v1::CAP_AIR_STEP && item.granted
+    }));
+    assert!(at_cw.actors.iter().all(|actor| {
+        !actor.entity_id.contains("warden") && !actor.entity_id.contains("pump")
+    }));
+    station_runtime.pause().unwrap();
+    station_runtime.save().unwrap();
+    let foundry_save = save_v6::read_save(&save_dir).unwrap();
+    assert_eq!(foundry_save.save.world_id, "clockworks");
+    assert_eq!(foundry_save.save.scene_id, "cw_entry_foundry");
+    assert!(foundry_save.world_persistent_v1.mist_harbor.warden_defeated);
+    assert_eq!(
+        foundry_save.world_persistent_v1.mist_harbor.pump.state,
+        wuxian_horror_ch1::world_persistent_v1::PumpStatus::Drained
+    );
+    let saved_mh = foundry_save
+        .save
+        .progression
+        .progress
+        .iter()
+        .find(|world| world.world_id == "mist_harbor")
+        .unwrap();
+    assert!(saved_mh.completed && saved_mh.first_completion);
+    assert_eq!(saved_mh.completed_events.len(), 3);
+    let saved_cw = foundry_save
+        .save
+        .progression
+        .progress
+        .iter()
+        .find(|world| world.world_id == "clockworks")
+        .unwrap();
+    assert!(!saved_cw.completed && !saved_cw.first_completion);
+    assert_eq!(saved_cw.visit_id, 1);
+    assert_eq!(saved_cw.revisit_count, 0);
+    assert!(saved_cw.completed_events.is_empty());
+    println!("Warden scenario: saved the real Clockworks entry without entering combat");
+    drop(station_runtime);
+
+    // One final full-registry owner Continue checks the saved Foundry entry and then pauses it.
+    let final_runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&final_runtime).unwrap();
+    at_cw = acknowledge_ready(&final_runtime, final_runtime.continue_saved().unwrap());
+    assert_eq!(at_cw.world_id, "clockworks");
+    assert_eq!(at_cw.scene_id, "cw_entry_foundry");
+    assert!(at_cw.player.current_hp > 0);
+    assert_mh_progress(&at_cw, true);
+    assert_grey_hive_clear(&at_cw);
+    let final_cw = at_cw
+        .progression
+        .worlds
+        .iter()
+        .find(|world| world.world_id == "clockworks")
+        .unwrap();
+    assert!(!final_cw.completed && !final_cw.first_completion);
+    assert_eq!(final_cw.visit_id, 1);
+    assert_eq!(final_cw.revisit_count, 0);
+    assert!(final_cw.completed_events.is_empty());
+    assert!(final_runtime
+        .snapshot()
+        .unwrap()
+        .actors
+        .iter()
+        .all(|actor| !actor.entity_id.contains("warden") && !actor.entity_id.contains("pump")));
+    final_runtime.pause().unwrap();
+    final_runtime.save().unwrap();
+    let final_save = save_v6::read_save(&save_dir).unwrap();
+    assert_eq!(final_save.save.scene_id, "cw_entry_foundry");
+    assert!(final_save.world_persistent_v1.mist_harbor.warden_defeated);
+    assert_eq!(
+        final_save.world_persistent_v1.mist_harbor.pump.state,
+        wuxian_horror_ch1::world_persistent_v1::PumpStatus::Drained
+    );
+    println!("Warden scenario: final fresh-owner Continue and save retained at {}", save_dir.display());
     drop(final_runtime);
 }
