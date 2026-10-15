@@ -8,6 +8,9 @@ use wuxian_horror_ch1::{
     world_v3::WorldView,
 };
 
+// Exact final SaveV6 from the successful Warden/extraction prefix, 14,242 bytes, SHA-256 233275e296937b66956159f6bd89f9e6d08130298fd3ebfef84e52363158a0fb.
+const EARNED_CW_FOUNDRY_ENTRY_V6: &str = include_str!("../fixtures/earned-cw-foundry-entry-v6.json");
+
 const ROUTE: [(&str, &str); 8] = [
     ("cw_entry_foundry", "cw_to_pressure_hall"),
     ("cw_pressure_hall", "cw_to_conveyor_bridge"),
@@ -357,4 +360,247 @@ fn gear_walk(runtime:&FormalRuntime,mut view:WorldView,x:f32,z:f32)->WorldView{
     for _ in 0..600{assert!(view.player.current_hp>0);let p=view.player.transform.position_m;let dx=x-p.x_m;let dz=z-p.z_m;let d=dx.hypot(dz);
         if d<0.12{return input(runtime,&view,(0.,0.),(1.,0.));}view=input(runtime,&view,(dx/d,dz/d),(dx/d,dz/d));}
     panic!("genuine Gear Shaft walk failed to reach ({x},{z}) from {:?}",view.player.transform.position_m)
+}
+
+fn assert_earned_clockworks_prefix(view: &WorldView) {
+    assert_eq!(view.progression.current_world_id, "clockworks");
+    for world_id in ["grey_hive", "mist_harbor"] {
+        let progress = view.progression.worlds.iter().find(|row| row.world_id == world_id)
+            .unwrap_or_else(|| panic!("missing retained {world_id} progression"));
+        assert!(progress.completed && progress.first_completion,
+            "earned {world_id} completion must survive the Clockworks route");
+    }
+    let rear_view = view.capabilities.items.iter()
+        .find(|item| item.capability_id == wuxian_horror_ch1::capability_v1::CAP_REAR_VIEW)
+        .expect("earned Rear View remains projected");
+    assert!(rear_view.granted && rear_view.selected);
+    let acoustic = view.capabilities.items.iter()
+        .find(|item| item.capability_id == wuxian_horror_ch1::capability_v1::CAP_ACOUSTIC_MAPPING)
+        .expect("earned Acoustic Mapping remains projected");
+    assert!(acoustic.granted);
+    assert!(!acoustic.selected);
+    assert!(!view.capabilities.items.iter()
+        .any(|item| item.capability_id == CAP_AIR_STEP && item.granted),
+        "pressure valves alone cannot grant AirStep");
+}
+
+fn assert_clockworks_pressure_hall_state(
+    view: &WorldView,
+    active: [bool; 3],
+    receipts: &[&str],
+    valves_event: bool,
+) {
+    assert_eq!(view.world_id, "clockworks");
+    assert_eq!(view.scene_id, "cw_pressure_hall");
+    assert!(view.player.current_hp > 0);
+    let progress = view.progression.worlds.iter().find(|row| row.world_id == "clockworks")
+        .expect("Clockworks progression is projected");
+    assert_eq!(progress.visit_id, 1);
+    assert_eq!(progress.cycle_id, 1);
+    assert_eq!(progress.revisit_count, 0);
+    assert!(!progress.completed && !progress.first_completion);
+    let expected_receipts = receipts.iter().map(|id| (*id).to_owned()).collect::<Vec<_>>();
+    assert_eq!(progress.pressure_valve_receipts.as_ref(), Some(&expected_receipts));
+    let actual_events = progress.completed_events.iter().cloned().collect::<BTreeSet<_>>();
+    let expected_events = if valves_event {
+        BTreeSet::from(["clockworks_valves".to_owned()])
+    } else {
+        BTreeSet::new()
+    };
+    assert_eq!(actual_events, expected_events);
+    for (number, expected_active) in active.into_iter().enumerate() {
+        let id = format!("cw_pressure_valve_0{}_staged", number + 1);
+        let control = view.interactables.iter().find(|item| item.entity_id == id)
+            .unwrap_or_else(|| panic!("missing authored Clockworks valve projection {id}"));
+        assert_eq!(control.kind, "valve_control");
+        assert_eq!(control.active, expected_active, "{id} availability");
+    }
+}
+
+#[test]
+fn genuine_earned_foundry_pressure_valves_and_conveyor_continue() {
+    NEXT_TIME.fetch_max(1_000_000, Ordering::Relaxed);
+    let save_dir = save_root();
+    assert!(!save_dir.exists(), "test save directory must be fresh");
+    std::fs::create_dir_all(&save_dir).unwrap();
+    std::fs::write(save_dir.join("formal-save-v6.json"), EARNED_CW_FOUNDRY_ENTRY_V6.as_bytes()).unwrap();
+
+    let initial_save = save_v6::read_save(&save_dir).unwrap();
+    assert_eq!(initial_save.save.world_id, "clockworks");
+    assert_eq!(initial_save.save.scene_id, "cw_entry_foundry");
+    assert_eq!(initial_save.world_persistent_v1.clockworks.pressure_valve_ids, Vec::<String>::new());
+    assert!(initial_save.save.progression.progress.iter().find(|row| row.world_id == "clockworks")
+        .is_some_and(|row| row.visit_id == 1 && !row.completed && row.completed_events.is_empty()));
+
+    let runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&runtime).unwrap();
+    let mut view = acknowledge_ready(&runtime, runtime.continue_saved().unwrap());
+    assert_eq!(view.world_id, "clockworks");
+    assert_eq!(view.scene_id, "cw_entry_foundry");
+    assert_eq!(view.player.current_hp, 86, "use the earned prefix without healing");
+    assert_eq!(view.player.current_energy, 28, "use the earned prefix without replenishing energy");
+    assert!(view.player.current_hp > 0);
+    assert_earned_clockworks_prefix(&view);
+    let foundry_progress = view.progression.worlds.iter().find(|row| row.world_id == "clockworks").unwrap();
+    assert_eq!(foundry_progress.visit_id, 1);
+    assert_eq!(foundry_progress.revisit_count, 0);
+    assert!(!foundry_progress.completed && !foundry_progress.first_completion);
+    assert!(foundry_progress.completed_events.is_empty());
+    assert_eq!(view.actors.iter().filter(|actor| actor.active && actor.actor_kind == "enemy").count(), 2,
+        "the saved Foundry entry must contain its actual two guards");
+    view = clear_live_enemies(&runtime, view);
+    assert!(view.player.current_hp > 0);
+    assert!(view.actors.iter().all(|actor| !actor.active || actor.actor_kind != "enemy"));
+    println!("Earned prefix: continued in Foundry and cleared its actual guards with {} HP/{} energy",
+        view.player.current_hp, view.player.current_energy);
+
+    view = walk_to_compiled_target(&runtime, view, "cw_entry_foundry", "transitions", "cw_to_pressure_hall");
+    view = apply_transition(&runtime, "cw_to_pressure_hall", "earned-cw-foundry-to-hall", view.world_epoch);
+    assert_earned_clockworks_prefix(&view);
+    assert_eq!(view.scene_id, "cw_pressure_hall");
+    assert_clockworks_pressure_hall_state(&view, [true; 3], &[], false);
+    let active_enemies = view.actors.iter().filter(|actor| actor.active && actor.actor_kind == "enemy")
+        .map(|actor| actor.entity_id.as_str()).collect::<BTreeSet<_>>();
+    assert_eq!(active_enemies, BTreeSet::from([
+        "cw_pressure_hall_forged_guard_01",
+        "cw_pressure_hall_forged_guard_02",
+        "cw_pressure_hall_pressure_drone_01",
+        "cw_pressure_hall_pressure_drone_02",
+    ]), "Pressure Hall combat uses the four exact authored enemy actors");
+    view = clear_live_enemies(&runtime, view);
+    assert!(view.player.current_hp > 0);
+    assert!(view.actors.iter().all(|actor| !actor.active || actor.actor_kind != "enemy"));
+    assert_clockworks_pressure_hall_state(&view, [true; 3], &[], false);
+
+    view = interact(&runtime, view, "cw_pressure_valve_01_staged", "earned-cw-valve-01");
+    assert_clockworks_pressure_hall_state(&view, [false, true, true], &["cw_pressure_valve_01_staged"], false);
+    view = interact(&runtime, view, "cw_pressure_valve_02_staged", "earned-cw-valve-02");
+    let two_valves = ["cw_pressure_valve_01_staged", "cw_pressure_valve_02_staged"];
+    assert_clockworks_pressure_hall_state(&view, [false, false, true], &two_valves, false);
+    println!("Pressure Hall: earned the first two public valve receipts at {} HP/{} energy",
+        view.player.current_hp, view.player.current_energy);
+
+    runtime.pause().unwrap();
+    runtime.save().unwrap();
+    let two_valve_save = save_v6::read_save(&save_dir).unwrap();
+    assert_eq!(two_valve_save.world_persistent_v1.clockworks.pressure_valve_ids,
+        two_valves.map(str::to_owned));
+    assert!(two_valve_save.save.progression.progress.iter().find(|row| row.world_id == "clockworks")
+        .is_some_and(|row| row.completed_events.is_empty() && !row.completed));
+    let saved_hp = view.player.current_hp;
+    let saved_energy = view.player.current_energy;
+    drop(runtime);
+
+    let runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&runtime).unwrap();
+    let mut view = acknowledge_ready(&runtime, runtime.continue_saved().unwrap());
+    assert_earned_clockworks_prefix(&view);
+    assert_eq!(view.player.current_hp, saved_hp);
+    assert_eq!(view.player.current_energy, saved_energy);
+    assert_clockworks_pressure_hall_state(&view, [false, false, true], &two_valves, false);
+    assert!(view.actors.iter().all(|actor| !actor.active || actor.actor_kind != "enemy"));
+
+    view = walk_to_compiled_target(&runtime, view, "cw_pressure_hall", "transitions", "cw_to_conveyor_bridge");
+    let locked_affordance = view.interactables.iter().find(|item| item.entity_id == "cw_to_conveyor_bridge")
+        .expect("authored Conveyor transition is projected at its real polygon");
+    assert_eq!(locked_affordance.kind, "scene_transition");
+    assert!(!locked_affordance.active, "two receipts leave the progression gate closed at its polygon");
+    let locked = scene_route_commands::transition(&runtime, "cw_to_conveyor_bridge",
+        "earned-cw-conveyor-rejected-two-valves", view.world_epoch).unwrap();
+    assert_v3_receipt(&locked, "earned-cw-conveyor-rejected-two-valves", false);
+    assert_eq!(locked.error_code.as_deref(), Some("E_SCENE_RUNTIME_ProgressionLocked"));
+    assert_eq!(locked.snapshot.scene_id, "cw_pressure_hall");
+    assert!(locked.snapshot.progression.worlds.iter().find(|row| row.world_id == "clockworks")
+        .is_some_and(|row| row.completed_events.is_empty()));
+    assert_eq!(runtime.snapshot().unwrap().scene_id, "cw_pressure_hall");
+    println!("Pressure Hall: Conveyor transition returned E_SCENE_RUNTIME_ProgressionLocked at the authored polygon");
+
+    view = interact(&runtime, view, "cw_pressure_valve_03_staged", "earned-cw-valve-03");
+    let three_valves = [
+        "cw_pressure_valve_01_staged",
+        "cw_pressure_valve_02_staged",
+        "cw_pressure_valve_03_staged",
+    ];
+    assert_clockworks_pressure_hall_state(&view, [false; 3], &three_valves, true);
+    println!("Pressure Hall: earned all three receipts and the authored aggregate event");
+
+    runtime.pause().unwrap();
+    runtime.save().unwrap();
+    let three_valve_save = save_v6::read_save(&save_dir).unwrap();
+    assert_eq!(three_valve_save.world_persistent_v1.clockworks.pressure_valve_ids,
+        three_valves.map(str::to_owned));
+    let saved_hall = three_valve_save.save.progression.progress.iter()
+        .find(|row| row.world_id == "clockworks").unwrap();
+    assert_eq!(saved_hall.completed_events, vec!["clockworks_valves"]);
+    assert!(!saved_hall.completed && !saved_hall.first_completion);
+    let saved_hp = view.player.current_hp;
+    let saved_energy = view.player.current_energy;
+    drop(runtime);
+
+    let runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&runtime).unwrap();
+    let mut view = acknowledge_ready(&runtime, runtime.continue_saved().unwrap());
+    assert_earned_clockworks_prefix(&view);
+    assert_eq!(view.player.current_hp, saved_hp);
+    assert_eq!(view.player.current_energy, saved_energy);
+    assert_clockworks_pressure_hall_state(&view, [false; 3], &three_valves, true);
+    assert!(view.actors.iter().all(|actor| !actor.active || actor.actor_kind != "enemy"));
+
+    view = walk_to_compiled_target(&runtime, view, "cw_pressure_hall", "transitions", "cw_to_conveyor_bridge");
+    let open_affordance = view.interactables.iter().find(|item| item.entity_id == "cw_to_conveyor_bridge")
+        .expect("authored Conveyor transition is projected at its real polygon");
+    assert_eq!(open_affordance.kind, "scene_transition");
+    assert!(open_affordance.active, "all three receipts unlock the route at its polygon");
+    view = apply_transition(&runtime, "cw_to_conveyor_bridge", "earned-cw-hall-to-conveyor", view.world_epoch);
+    assert_eq!(view.world_id, "clockworks");
+    assert_eq!(view.scene_id, "cw_conveyor_bridge");
+    assert!(view.player.current_hp > 0);
+    assert_earned_clockworks_prefix(&view);
+    let conveyor_progress = view.progression.worlds.iter().find(|row| row.world_id == "clockworks").unwrap();
+    assert_eq!(conveyor_progress.visit_id, 1);
+    assert_eq!(conveyor_progress.revisit_count, 0);
+    assert!(!conveyor_progress.completed && !conveyor_progress.first_completion);
+    assert_eq!(conveyor_progress.completed_events, vec!["clockworks_valves"]);
+    runtime.pause().unwrap();
+    runtime.save().unwrap();
+    let conveyor_save = save_v6::read_save(&save_dir).unwrap();
+    assert_eq!(conveyor_save.save.world_id, "clockworks");
+    assert_eq!(conveyor_save.save.scene_id, "cw_conveyor_bridge");
+    assert_eq!(conveyor_save.world_persistent_v1.clockworks.pressure_valve_ids,
+        three_valves.map(str::to_owned));
+    let saved_conveyor = conveyor_save.save.progression.progress.iter()
+        .find(|row| row.world_id == "clockworks").unwrap();
+    assert_eq!(saved_conveyor.completed_events, vec!["clockworks_valves"]);
+    assert_eq!(saved_conveyor.visit_id, 1);
+    assert_eq!(saved_conveyor.revisit_count, 0);
+    assert!(!saved_conveyor.completed && !saved_conveyor.first_completion);
+    assert!(!conveyor_save.save.capabilities.grants.iter()
+        .any(|grant| grant.capability_id == CAP_AIR_STEP));
+    println!("Conveyor entry saved without combat at {} HP/{} energy: {}",
+        view.player.current_hp, view.player.current_energy, save_dir.display());
+    drop(runtime);
+
+    let runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&runtime).unwrap();
+    let view = acknowledge_ready(&runtime, runtime.continue_saved().unwrap());
+    assert_eq!(view.world_id, "clockworks");
+    assert_eq!(view.scene_id, "cw_conveyor_bridge");
+    assert!(view.player.current_hp > 0);
+    assert_earned_clockworks_prefix(&view);
+    let continued_progress = view.progression.worlds.iter().find(|row| row.world_id == "clockworks").unwrap();
+    assert_eq!(continued_progress.visit_id, 1);
+    assert_eq!(continued_progress.revisit_count, 0);
+    assert!(!continued_progress.completed && !continued_progress.first_completion);
+    assert_eq!(continued_progress.completed_events, vec!["clockworks_valves"]);
+    runtime.pause().unwrap();
+    runtime.save().unwrap();
+    let final_save = save_v6::read_save(&save_dir).unwrap();
+    assert_eq!(final_save.save.scene_id, "cw_conveyor_bridge");
+    assert_eq!(final_save.world_persistent_v1.clockworks.pressure_valve_ids,
+        three_valves.map(str::to_owned));
+    assert!(!final_save.save.capabilities.grants.iter()
+        .any(|grant| grant.capability_id == CAP_AIR_STEP));
+    println!("Fresh Conveyor Continue retained the earned route at {} HP/{} energy; final save: {}",
+        view.player.current_hp, view.player.current_energy, save_dir.display());
+    drop(runtime);
 }
