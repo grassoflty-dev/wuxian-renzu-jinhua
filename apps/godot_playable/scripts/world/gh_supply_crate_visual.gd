@@ -3,7 +3,7 @@ const P = preload('res://scripts/bridge/protocol.gd')
 const PATH = 'res://assets/props/grey_hive/supply_crates_sheet.png'
 const ID = 'runtime2d.prop.supply_crates.v1'
 const SHA = '0dbad1364c14649b021f20510b9faf970ff317e6202131bd4cb2c32648b34b00'
-const CUTOUT = [[250,10],[510,100],[539,440],[295,549],[15,420],[15,140]]
+const CUTOUT = [[250,0],[539,20],[539,440],[295,549],[15,420],[15,20]]
 var attempted = false
 var texture: Texture2D
 func _integers(value, expected: Array) -> bool:
