@@ -604,3 +604,299 @@ fn genuine_earned_foundry_pressure_valves_and_conveyor_continue() {
         view.player.current_hp, view.player.current_energy, save_dir.display());
     drop(runtime);
 }
+
+// Exact SaveV6 retained by the successful Conveyor Continue scenario: 16,488 bytes,
+// SHA-256 6a23121dd5c30063a33a922b594a284ee4077839a01aecb5db95713a8229ce47.
+const EARNED_CW_CONVEYOR_ENTRY_V6: &str = include_str!("../fixtures/earned-cw-conveyor-entry-v6.json");
+
+fn assert_earned_valve_route_view(view: &WorldView, scene_id: &str) {
+    assert_eq!(view.world_id, "clockworks");
+    assert_eq!(view.scene_id, scene_id);
+    assert_earned_clockworks_prefix(view);
+    let progress = view.progression.worlds.iter().find(|row| row.world_id == "clockworks")
+        .expect("Clockworks route progress remains projected");
+    assert_eq!(progress.visit_id, 1);
+    assert_eq!(progress.cycle_id, 1);
+    assert_eq!(progress.revisit_count, 0);
+    assert!(!progress.completed && !progress.first_completion);
+    assert_eq!(progress.completed_events, vec!["clockworks_valves"]);
+}
+
+fn assert_earned_valve_route_save(save: &save_v6::SaveV6, scene_id: &str) {
+    assert_eq!(save.save.world_id, "clockworks");
+    assert_eq!(save.save.scene_id, scene_id);
+    let progress = save.save.progression.progress.iter().find(|row| row.world_id == "clockworks")
+        .expect("Clockworks route progress is saved");
+    assert_eq!(progress.visit_id, 1);
+    assert_eq!(progress.cycle_id, 1);
+    assert_eq!(progress.revisit_count, 0);
+    assert!(!progress.completed && !progress.first_completion);
+    assert_eq!(progress.completed_events, vec!["clockworks_valves"]);
+    assert_eq!(save.world_persistent_v1.clockworks.pressure_valve_ids, vec![
+        "cw_pressure_valve_01_staged".to_owned(),
+        "cw_pressure_valve_02_staged".to_owned(),
+        "cw_pressure_valve_03_staged".to_owned(),
+    ]);
+    assert!(!save.save.capabilities.grants.iter().any(|grant| grant.capability_id == CAP_AIR_STEP));
+}
+
+fn active_enemy_ids(view: &WorldView) -> BTreeSet<String> {
+    view.actors.iter().filter(|actor| actor.active && actor.actor_kind == "enemy")
+        .map(|actor| actor.entity_id.clone()).collect()
+}
+
+fn walk_to_authored_traversal_start(
+    runtime: &FormalRuntime,
+    mut view: WorldView,
+    scene_id: &str,
+    marker_id: &str,
+) -> WorldView {
+    const MAX_INPUT_STEPS: usize = 600;
+    let scene = compiled_route_scene(scene_id);
+    let marker = scene["logic"]["traversal"].as_array().expect("compiled traversal list")
+        .iter().find(|marker| marker["id"] == marker_id)
+        .unwrap_or_else(|| panic!("{scene_id} lacks authored traversal {marker_id}"));
+    let from = marker["from"].as_array().expect("authored traversal start");
+    let target_x = from[0].as_f64().expect("traversal start x") as f32;
+    let target_y = from[1].as_f64().expect("traversal start y") as f32;
+    let target_z = from[2].as_f64().expect("traversal start z") as f32;
+    assert_eq!((target_x, target_y, target_z), (8.0, 0.0, 8.0), "authored Conveyor vault start");
+
+    for _ in 0..MAX_INPUT_STEPS {
+        assert!(view.player.current_hp > 0, "player must stay alive approaching {marker_id}");
+        let position = view.player.transform.position_m;
+        let dx = target_x - position.x_m;
+        let dz = target_z - position.z_m;
+        let distance = dx.hypot(dz);
+        if distance <= 0.08 {
+            let stopped = input(runtime, &view, (0.0, 0.0), (1.0, 0.0));
+            assert_eq!(stopped.scene_id, scene_id);
+            assert!(stopped.player.current_hp > 0);
+            return stopped;
+        }
+        let length = distance.max(f32::EPSILON);
+        view = input(runtime, &view, (dx / length, dz / length), (dx / length, dz / length));
+    }
+    panic!("could not reach authored {scene_id}.{marker_id} start from {:?}", view.player.transform.position_m);
+}
+
+#[test]
+fn genuine_earned_conveyor_boiler_and_lower_gear_continue() {
+    NEXT_TIME.fetch_max(600_000, Ordering::Relaxed);
+    let save_dir = save_root();
+    assert!(!save_dir.exists(), "test save directory must be fresh");
+    std::fs::create_dir_all(&save_dir).unwrap();
+    std::fs::write(save_dir.join("formal-save-v6.json"), EARNED_CW_CONVEYOR_ENTRY_V6.as_bytes()).unwrap();
+
+    let initial_save = save_v6::read_save(&save_dir).unwrap();
+    assert_earned_valve_route_save(&initial_save, "cw_conveyor_bridge");
+    assert_eq!(initial_save.save.player.current_hp, 86);
+    assert_eq!(initial_save.save.player.current_energy, 28);
+    assert_eq!(initial_save.save.generic_actors.len(), 5);
+    assert_eq!(initial_save.save.generic_actors.iter().map(|actor| actor.entity_id.as_str()).collect::<BTreeSet<_>>(),
+        BTreeSet::from([
+            "cw_conveyor_bridge_forged_guard_01",
+            "cw_conveyor_bridge_forged_guard_02",
+            "cw_conveyor_bridge_forged_guard_03",
+            "cw_conveyor_bridge_pressure_drone_01",
+            "cw_conveyor_bridge_pressure_drone_02",
+        ]));
+
+    let runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&runtime).unwrap();
+    let mut view = acknowledge_ready(&runtime, runtime.continue_saved().unwrap());
+    assert_eq!(view.world_id, "clockworks");
+    assert_eq!(view.scene_id, "cw_conveyor_bridge");
+    assert_eq!(view.player.current_hp, 86);
+    assert_eq!(view.player.current_energy, 28);
+    assert!(view.player.current_hp > 0);
+    assert_earned_valve_route_view(&view, "cw_conveyor_bridge");
+    let expected_conveyor_enemies = BTreeSet::from([
+        "cw_conveyor_bridge_forged_guard_01".to_owned(),
+        "cw_conveyor_bridge_forged_guard_02".to_owned(),
+        "cw_conveyor_bridge_forged_guard_03".to_owned(),
+        "cw_conveyor_bridge_pressure_drone_01".to_owned(),
+        "cw_conveyor_bridge_pressure_drone_02".to_owned(),
+    ]);
+    assert_eq!(active_enemy_ids(&view), expected_conveyor_enemies,
+        "Continue must restore the five actual Conveyor enemies");
+    view = clear_live_enemies(&runtime, view);
+    assert!(view.player.current_hp > 0);
+    assert!(active_enemy_ids(&view).is_empty());
+    assert_earned_valve_route_view(&view, "cw_conveyor_bridge");
+    println!("Conveyor: cleared its actual five enemies alive at {} HP/{} energy",
+        view.player.current_hp, view.player.current_energy);
+
+    // Approach only the authored marker start. The production ActionV2 command remains the
+    // authority that decides whether a loaded marker in range permits this free traversal.
+    let _at_vault = walk_to_authored_traversal_start(&runtime, view, "cw_conveyor_bridge", "cw_conveyor_context_vault");
+    let before_action = runtime.snapshot().unwrap();
+    assert_eq!(before_action.world_id, "clockworks");
+    assert_eq!(before_action.scene_id, "cw_conveyor_bridge");
+    assert!(before_action.player.current_hp > 0);
+    let start_position = before_action.player.transform.position_m;
+    assert!(start_position.y_m.abs() <= 0.1, "vault starts on the actual lower Conveyor floor");
+    let authored_scene = compiled_route_scene("cw_conveyor_bridge");
+    let marker = authored_scene["logic"]["traversal"].as_array().unwrap().iter()
+        .find(|marker| marker["id"] == "cw_conveyor_context_vault").unwrap();
+    assert!(marker["requiredCapabilities"].as_array().unwrap().is_empty(),
+        "the authored Conveyor vault is capability-free");
+    let event_cursor = runtime.presentation_events_since(before_action.world_epoch, 0).unwrap()
+        .iter().map(|event| event.event_id).max().unwrap_or(0);
+    let epoch = before_action.world_epoch;
+    let owner_start_ms = before_action.server_time_ms;
+    let wall_start = std::time::Instant::now();
+    let action_view = runtime.submit_action(ActionCommandRequest {
+        protocol_version: 2,
+        world_epoch: epoch,
+        request_id: NEXT_COMBAT_REQUEST.fetch_add(1, Ordering::Relaxed),
+        client_time_ms: NEXT_TIME.fetch_add(17, Ordering::Relaxed),
+        kind: ActionKind::ContextTraversal,
+    }).unwrap();
+    assert_eq!(action_view.world_epoch, epoch);
+    let mut observed = action_view.clone();
+    let mut started_event = None;
+    let mut completed_event = None;
+    let mut blocked_event = None;
+    for _ in 0..300 {
+        observed = runtime.snapshot().unwrap();
+        assert_eq!(observed.world_epoch, epoch, "vault remains in its originating epoch");
+        for event in runtime.presentation_events_since(epoch, event_cursor).unwrap() {
+            if event.event_id <= event_cursor || event.world_epoch != epoch { continue; }
+            match event.kind.as_str() {
+                "ContextTraversalStarted" => started_event = Some(event.event_id),
+                "ContextTraversalCompleted" => completed_event = Some(event.event_id),
+                "ContextTraversalBlocked" => blocked_event = Some(event.event_id),
+                _ => {}
+            }
+        }
+        if completed_event.is_some() { break; }
+        let elapsed_owner_ms = observed.server_time_ms.saturating_sub(owner_start_ms);
+        if elapsed_owner_ms >= 3_000 || wall_start.elapsed() >= std::time::Duration::from_secs(3) { break; }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    assert!(started_event.is_some(), "one new authoritative ContextTraversalStarted must follow the cursor");
+    assert!(completed_event.is_some(), "one new authoritative ContextTraversalCompleted must follow the cursor within 3 seconds");
+    assert!(blocked_event.is_none(), "the authored free vault must not emit a blocked outcome");
+    assert!(started_event.unwrap() < completed_event.unwrap(), "vault start precedes its completion");
+    assert!(observed.server_time_ms.saturating_sub(owner_start_ms) <= 3_000,
+        "vault completion is bounded by three seconds of owner time");
+    let end_position = observed.player.transform.position_m;
+    assert_eq!(observed.scene_id, "cw_conveyor_bridge");
+    assert!(observed.player.current_hp > 0);
+    assert!(end_position.y_m.abs() <= 0.1, "vault completes on the authored lower floor");
+    let forward_m = end_position.x_m - start_position.x_m;
+    assert!(forward_m >= 1.0,
+        "authoritative vault completion must accompany at least 1m of observed forward movement: {start_position:?} -> {end_position:?}");
+    println!("Conveyor vault: new Started/Completed cues with {:.2}m forward displacement, {} HP",
+        forward_m, observed.player.current_hp);
+
+    view = walk_to_compiled_target(&runtime, observed, "cw_conveyor_bridge", "transitions", "cw_bridge_to_boiler_chamber");
+    view = apply_transition(&runtime, "cw_bridge_to_boiler_chamber", "earned-cw-conveyor-to-boiler", view.world_epoch);
+    assert_eq!(view.scene_id, "cw_boiler_chamber");
+    assert!(view.player.current_hp > 0);
+    assert_earned_valve_route_view(&view, "cw_boiler_chamber");
+    let expected_hounds = BTreeSet::from([
+        "cw_boiler_chamber_furnace_hound_01".to_owned(),
+        "cw_boiler_chamber_furnace_hound_02".to_owned(),
+        "cw_boiler_chamber_furnace_hound_03".to_owned(),
+    ]);
+    assert_eq!(active_enemy_ids(&view), expected_hounds, "Boiler entry loads its exact three Furnace Hounds");
+    view = clear_live_enemies(&runtime, view);
+    assert!(view.player.current_hp > 0, "the actual Boiler encounter must end alive");
+    assert!(active_enemy_ids(&view).is_empty(), "all three actual Furnace Hounds must be defeated");
+    println!("Boiler: defeated its actual three Furnace Hounds at {} HP/{} energy",
+        view.player.current_hp, view.player.current_energy);
+
+    let boiler_epoch = view.world_epoch;
+    let saved_boiler_view = runtime.pause().unwrap();
+    runtime.save().unwrap();
+    let boiler_save = save_v6::read_save(&save_dir).unwrap();
+    assert_earned_valve_route_save(&boiler_save, "cw_boiler_chamber");
+    assert_eq!(boiler_save.save.player.current_hp, saved_boiler_view.player.current_hp);
+    assert_eq!(boiler_save.save.player.current_energy, saved_boiler_view.player.current_energy);
+    assert!(boiler_save.save.generic_actors.iter().all(|actor| actor.hp == 0),
+        "typed Boiler actor saves retain all defeated enemies at 0 HP");
+    assert_eq!(boiler_save.save.generic_actors.len(), 3);
+    assert_eq!(boiler_save.save.generic_actors.iter().map(|actor| actor.entity_id.as_str()).collect::<BTreeSet<_>>(),
+        BTreeSet::from([
+            "cw_boiler_chamber_furnace_hound_01",
+            "cw_boiler_chamber_furnace_hound_02",
+            "cw_boiler_chamber_furnace_hound_03",
+        ]));
+    let saved_boiler_hp = saved_boiler_view.player.current_hp;
+    let saved_boiler_energy = saved_boiler_view.player.current_energy;
+    drop(runtime);
+
+    let runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&runtime).unwrap();
+    let mut view = acknowledge_ready(&runtime, runtime.continue_saved().unwrap());
+    assert_ne!(view.world_epoch, boiler_epoch, "Boiler Continue reconstructs a new owner epoch");
+    assert_earned_valve_route_view(&view, "cw_boiler_chamber");
+    assert_eq!(view.player.current_hp, saved_boiler_hp);
+    assert_eq!(view.player.current_energy, saved_boiler_energy);
+    assert!(active_enemy_ids(&view).is_empty(), "Boiler Continue must restore the defeated Hounds");
+    assert_eq!(view.actors.iter().filter(|actor| actor.actor_kind == "enemy").count(), 3);
+    assert!(runtime.presentation_events_since(view.world_epoch, 0).unwrap().iter()
+        .all(|event| event.kind != "EnemyDeath"), "Boiler Continue cannot replay enemy deaths in its new epoch");
+    let continued_boiler = save_v6::read_save(&save_dir).unwrap();
+    assert_earned_valve_route_save(&continued_boiler, "cw_boiler_chamber");
+    assert_eq!(continued_boiler.world_persistent_v1.environment, boiler_save.world_persistent_v1.environment,
+        "Continue retains the actual saved environment state");
+    assert_eq!(continued_boiler.save.capabilities.grants, boiler_save.save.capabilities.grants,
+        "Continue retains the earned grants");
+
+    view = walk_to_compiled_target(&runtime, view, "cw_boiler_chamber", "transitions", "cw_boiler_to_gear_shaft");
+    view = apply_transition(&runtime, "cw_boiler_to_gear_shaft", "earned-cw-boiler-to-lower-gear", view.world_epoch);
+    assert_eq!(view.world_id, "clockworks");
+    assert_eq!(view.scene_id, "cw_gear_shaft");
+    assert!(view.player.current_hp > 0);
+    let lower_position = view.player.transform.position_m;
+    assert!((0.0..=0.1).contains(&lower_position.y_m), "Gear entry is on the authored lower physical floor");
+    assert_earned_valve_route_view(&view, "cw_gear_shaft");
+    let expected_gear_enemies = BTreeSet::from([
+        "cw_gear_shaft_forged_guard_01".to_owned(),
+        "cw_gear_shaft_forged_guard_02".to_owned(),
+        "cw_gear_shaft_pressure_drone_01".to_owned(),
+        "cw_gear_shaft_pressure_drone_02".to_owned(),
+        "cw_gear_shaft_pressure_drone_03".to_owned(),
+    ]);
+    assert_eq!(active_enemy_ids(&view), expected_gear_enemies,
+        "Gear projects its own authored enemies, never Boiler Hounds");
+    assert!(view.actors.iter().all(|actor| !actor.entity_id.starts_with("cw_boiler_chamber_")),
+        "foreign Boiler actors cannot appear in the Gear scene");
+    let saved_gear_view = runtime.pause().unwrap();
+    runtime.save().unwrap();
+    let gear_save = save_v6::read_save(&save_dir).unwrap();
+    assert_earned_valve_route_save(&gear_save, "cw_gear_shaft");
+    assert!((0.0..=0.1).contains(&gear_save.save.player.position_m.y_m));
+    assert_ne!(gear_save.save.checkpoint_id.as_deref(), Some("cw_gear_upper_dock_checkpoint"));
+    assert_eq!(gear_save.save.player.current_hp, saved_gear_view.player.current_hp);
+    assert_eq!(gear_save.save.player.current_energy, saved_gear_view.player.current_energy);
+    let saved_gear_hp = saved_gear_view.player.current_hp;
+    let saved_gear_energy = saved_gear_view.player.current_energy;
+    drop(runtime);
+
+    let runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&runtime).unwrap();
+    let view = acknowledge_ready(&runtime, runtime.continue_saved().unwrap());
+    assert_eq!(view.scene_id, "cw_gear_shaft");
+    assert!(view.player.current_hp > 0);
+    assert_eq!(view.player.current_hp, saved_gear_hp);
+    assert_eq!(view.player.current_energy, saved_gear_energy);
+    assert!((0.0..=0.1).contains(&view.player.transform.position_m.y_m));
+    assert_earned_valve_route_view(&view, "cw_gear_shaft");
+    assert_eq!(active_enemy_ids(&view), expected_gear_enemies);
+    assert!(view.actors.iter().all(|actor| !actor.entity_id.starts_with("cw_boiler_chamber_")));
+    let final_view = runtime.pause().unwrap();
+    runtime.save().unwrap();
+    let final_save = save_v6::read_save(&save_dir).unwrap();
+    assert_earned_valve_route_save(&final_save, "cw_gear_shaft");
+    assert!((0.0..=0.1).contains(&final_save.save.player.position_m.y_m));
+    assert_eq!(final_save.save.player.current_hp, saved_gear_hp);
+    assert_eq!(final_save.save.player.current_energy, saved_gear_energy);
+    println!("Lower Gear entry saved and restored at height {:.2}m, {} HP/{} energy; no Gear combat or ascent",
+        final_view.player.transform.position_m.y_m, final_view.player.current_hp, final_view.player.current_energy);
+    println!("Earned Conveyor → Boiler → lower Gear continuation retained: {}", save_dir.display());
+    drop(runtime);
+}
