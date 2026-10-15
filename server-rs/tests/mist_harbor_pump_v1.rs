@@ -82,7 +82,7 @@ fn station_scene() -> serde_json::Value {
 fn load_fixture(runtime: &FormalRuntime) {
     let station = station_scene().to_string();
     let pump = pump_scene().to_string();
-    runtime
+    let initial = runtime
         .load_scene_registry(
             [station.as_str(), GH, pump.as_str(), CW],
             "gh_test_power",
@@ -90,6 +90,13 @@ fn load_fixture(runtime: &FormalRuntime) {
             &BTreeSet::new(),
         )
         .unwrap();
+    assert!(
+        initial.entry_token.is_none(),
+        "initial registry install has no prepared entry"
+    );
+    runtime
+        .resume()
+        .expect("resume the initial fixture boot hold");
 }
 
 fn interact(runtime: &FormalRuntime, id: &str, request: &str) {
