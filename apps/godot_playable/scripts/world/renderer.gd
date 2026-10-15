@@ -330,10 +330,37 @@ func _interaction_captions() -> Dictionary:
 			if not caption.is_empty():
 				captions[row.entityId] = caption
 	return captions
+func _prop_placeholder_rect(at: Vector2, ppm: float) -> Rect2:
+	if not is_finite(at.x) or not is_finite(at.y) or not is_finite(ppm) or ppm<=0:
+		return Rect2()
+	var scale = ppm/48.0
+	var size = Vector2(32,24)*scale
+	var origin = at-Vector2(16,24)*scale
+	if not is_finite(scale) or scale<=0 or not is_finite(size.x) or not is_finite(size.y) or size.x<=0 or size.y<=0 or not is_finite(origin.x) or not is_finite(origin.y):
+		return Rect2()
+	var rect = Rect2(origin,size)
+	return rect if is_finite(rect.end.x) and is_finite(rect.end.y) else Rect2()
+func _rect_intersects(a: Rect2, b: Rect2) -> bool:
+	if not is_finite(a.position.x) or not is_finite(a.position.y) or not is_finite(a.size.x) or not is_finite(a.size.y) or a.size.x<=0 or a.size.y<=0 or not is_finite(b.position.x) or not is_finite(b.position.y) or not is_finite(b.size.x) or not is_finite(b.size.y) or b.size.x<=0 or b.size.y<=0:
+		return false
+	return a.intersects(b)
+func _object_culling_state(o: Dictionary, at: Vector2) -> Dictionary:
+	var furnace_key = ''
+	if o.get('kind')=='prop' and o.get('data') is Dictionary:
+		furnace_key = _cw_furnace_key(o.data)
+	if furnace_key.is_empty():
+		return {'furnaceKey':'','culled':not viewport_rect.grow(100).has_point(at),'bodyRect':Rect2(),'fallbackRect':Rect2()}
+	var body_rect = cw_furnace_visual.canvas_rect(furnace_key,at,camera.ppm) if cw_furnace_visual!=null else Rect2()
+	var fallback_rect = _prop_placeholder_rect(at,camera.ppm)
+	var body_visible = _rect_intersects(viewport_rect,body_rect)
+	var fallback_visible = _rect_intersects(viewport_rect,fallback_rect)
+	return {'furnaceKey':furnace_key,'culled':not (body_visible or fallback_visible),'bodyRect':body_rect,'fallbackRect':fallback_rect}
 func _draw_object(o: Dictionary, interaction_caption: String = '') -> void:
 	var at = camera.project(o.p)
-	if not viewport_rect.grow(100).has_point(at):
+	var culling = _object_culling_state(o,at)
+	if culling.culled:
 		return
+	var furnace_key: String = culling.furnaceKey
 	var scale = camera.ppm/48.0
 	var c = Color('#779ba2')
 	match o.kind:
@@ -358,7 +385,6 @@ func _draw_object(o: Dictionary, interaction_caption: String = '') -> void:
 		'prop':
 			if _gh_crate_selected(o.data) and gh_supply_crate_visual!=null and gh_supply_crate_visual.draw_body(self,at,camera.ppm):
 				return
-			var furnace_key = _cw_furnace_key(o.data)
 			if furnace_key!='' and cw_furnace_visual!=null and cw_furnace_visual.draw_body(self,furnace_key,at,camera.ppm):
 				return
 			if _cw_pressure_valve_selected(o.data) and cw_pressure_valve_visual!=null and cw_pressure_valve_visual.draw_body(self,at,camera.ppm):
@@ -369,7 +395,7 @@ func _draw_object(o: Dictionary, interaction_caption: String = '') -> void:
 					if row is Dictionary and row.get('worldId')=='grey_hive' and row.get('completedEvents') is Array and 'hive_power' in row.completedEvents:
 						powered = true
 				draw_circle(at-Vector2(0,28)*scale,5,Color('#61ddcf') if powered else Color('#efbc6c'))
-			draw_rect(Rect2(at-Vector2(16,24)*scale,Vector2(32,24)*scale),Color('#65716d'))
+			draw_rect(_prop_placeholder_rect(at,camera.ppm),Color('#65716d'))
 		'player':
 			c = Color('#85dfd0')
 			draw_circle(at,12*scale,c)
