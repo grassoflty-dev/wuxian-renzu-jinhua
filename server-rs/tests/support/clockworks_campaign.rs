@@ -2240,3 +2240,372 @@ fn genuine_earned_regulator_core_reaches_durable_shutdown_entry() {
     );
     drop(runtime);
 }
+
+// Exact qualified two-event shutdown-entry SaveV6 from the earned Regulator/core route.
+const EARNED_CW_SHUTDOWN_ENTRY_V6: &str =
+    include_str!("../fixtures/earned-cw-shutdown-entry-v6.json");
+
+#[test]
+fn genuine_earned_shutdown_returns_durable_three_world_completion() {
+    let save_dir = save_root();
+    assert!(!save_dir.exists(), "task save directory must be fresh");
+    std::fs::create_dir_all(&save_dir).unwrap();
+    let save_path = save_dir.join("formal-save-v6.json");
+    std::fs::write(&save_path, EARNED_CW_SHUTDOWN_ENTRY_V6.as_bytes()).unwrap();
+    let fixture_bytes = EARNED_CW_SHUTDOWN_ENTRY_V6.as_bytes().to_vec();
+    assert_eq!(std::fs::read(&save_path).unwrap(), fixture_bytes,
+        "the scenario starts from the exact embedded qualified SaveV6");
+
+    let entry_save = save_v6::read_save(&save_dir).unwrap();
+    assert_eq!(entry_save.save.world_id, "clockworks");
+    assert_eq!(entry_save.save.scene_id, "cw_shutdown_exit");
+    assert_eq!(entry_save.save.checkpoint_id, None);
+    assert_eq!(entry_save.save.player.position_m.x_m, 3.0);
+    assert_eq!(entry_save.save.player.position_m.y_m, 0.0);
+    assert_eq!(entry_save.save.player.position_m.z_m, 8.0);
+    assert_eq!(entry_save.save.player.current_hp, 46);
+    assert_eq!(entry_save.save.player.current_energy, 28);
+    assert_eq!(entry_save.save.server_time_ms, 743_223);
+    assert!(entry_save.save.generic_actors.is_empty(),
+        "the qualified shutdown entry has no active or latent actors");
+    let clockworks_entry = entry_save.save.progression.progress.iter()
+        .find(|row| row.world_id == "clockworks").expect("Clockworks progress is saved");
+    assert_eq!(clockworks_entry.visit_id, 1);
+    assert_eq!(clockworks_entry.cycle_id, 1);
+    assert_eq!(clockworks_entry.revisit_count, 0);
+    assert!(!clockworks_entry.completed && !clockworks_entry.first_completion);
+    assert_eq!(clockworks_entry.completed_events,
+        vec!["clockworks_valves".to_owned(), "clockworks_core".to_owned()]);
+    assert!(entry_save.world_persistent_v1.clockworks.forged_guard_elite_first_kill);
+    assert!(entry_save.world_persistent_v1.clockworks.regulator_defeated);
+    assert!(entry_save.world_persistent_v1.clockworks.core_console_confirmed);
+    let initial_effect_sources = entry_save.effect_sources.clone();
+    let initial_grants = entry_save.save.capabilities.grants.clone();
+    let initial_selection = entry_save.save.capabilities.selected.clone();
+    assert!(!initial_effect_sources.iter().any(|source| source.source_id == CAP_AIR_STEP));
+    assert!(!initial_grants.iter().any(|grant| grant.capability_id == CAP_AIR_STEP));
+    assert!(!initial_selection.iter().any(|capability| capability == CAP_AIR_STEP));
+    let prior_worlds = [
+        ("grey_hive", vec!["hive_power", "hive_lockdown", "hive_extraction"]),
+        ("mist_harbor", vec!["mist_beacon_west", "mist_beacon_east", "mist_signal"]),
+    ];
+    for (world_id, events) in &prior_worlds {
+        let row = entry_save.save.progression.progress.iter()
+            .find(|row| row.world_id == *world_id).expect("prior earned world is saved");
+        assert!(row.completed && row.first_completion,
+            "prior {world_id} completion remains earned at shutdown entry");
+        assert_eq!(row.completed_events.iter().map(String::as_str).collect::<Vec<_>>(),
+            events.clone(), "prior {world_id} event set is preserved");
+    }
+
+    // Keep client request timestamps strictly beyond the admitted last-client value.
+    // The native saved server clock and body are never synthesized or reset.
+    NEXT_TIME.fetch_max(entry_save.save.last_client_time_ms.saturating_add(1), Ordering::Relaxed);
+    assert!(NEXT_TIME.load(Ordering::Relaxed) > entry_save.save.last_client_time_ms);
+
+    let assert_campaign_view = |view: &WorldView, expected_world: &str, expected_scene: &str,
+                                expected_events: &[&str], completed: bool, air_step: bool| {
+        assert_eq!(view.world_id, expected_world);
+        assert_eq!(view.scene_id, expected_scene);
+        assert!(view.player.current_hp > 0, "the earned shutdown route remains alive");
+        let progress = view.progression.worlds.iter().find(|row| row.world_id == "clockworks")
+            .expect("Clockworks progress remains projected");
+        assert_eq!(progress.visit_id, 1);
+        assert_eq!(progress.cycle_id, 1);
+        assert_eq!(progress.revisit_count, 0);
+        assert_eq!(progress.completed, completed);
+        assert_eq!(progress.first_completion, completed);
+        assert_eq!(progress.completed_events,
+            expected_events.iter().map(|event| (*event).to_owned()).collect::<Vec<_>>());
+        for (world_id, expected_prior_events) in &prior_worlds {
+            let prior = view.progression.worlds.iter().find(|row| row.world_id == *world_id)
+                .unwrap_or_else(|| panic!("missing retained {world_id} progress"));
+            assert!(prior.completed && prior.first_completion);
+            assert_eq!(prior.visit_id, 1);
+            assert_eq!(prior.cycle_id, 1);
+            assert_eq!(prior.revisit_count, 0);
+            assert_eq!(prior.completed_events,
+                expected_prior_events.iter().map(|event| (*event).to_owned()).collect::<Vec<_>>());
+        }
+        let projected_air_step = view.capabilities.items.iter()
+            .find(|item| item.capability_id == CAP_AIR_STEP);
+        assert_eq!(projected_air_step.is_some_and(|item| item.granted), air_step,
+            "AirStep grant follows only the actual shutdown transaction");
+        assert_eq!(projected_air_step.is_some_and(|item| item.selected), air_step,
+            "AirStep selection follows only the actual shutdown transaction");
+    };
+    let assert_campaign_save = |saved: &save_v6::SaveV6, expected_world: &str, expected_scene: &str,
+                                expected_events: &[&str], completed: bool, air_step: bool| {
+        assert_eq!(saved.save.world_id, expected_world);
+        assert_eq!(saved.save.scene_id, expected_scene);
+        let progress = saved.save.progression.progress.iter()
+            .find(|row| row.world_id == "clockworks").expect("Clockworks SaveV6 row is present");
+        assert_eq!(progress.visit_id, 1);
+        assert_eq!(progress.cycle_id, 1);
+        assert_eq!(progress.revisit_count, 0);
+        assert_eq!(progress.completed, completed);
+        assert_eq!(progress.first_completion, completed);
+        assert_eq!(progress.completed_events,
+            expected_events.iter().map(|event| (*event).to_owned()).collect::<Vec<_>>());
+        for (world_id, expected_prior_events) in &prior_worlds {
+            let prior = saved.save.progression.progress.iter()
+                .find(|row| row.world_id == *world_id)
+                .unwrap_or_else(|| panic!("missing retained {world_id} SaveV6 progress"));
+            assert!(prior.completed && prior.first_completion);
+            assert_eq!(prior.visit_id, 1);
+            assert_eq!(prior.cycle_id, 1);
+            assert_eq!(prior.revisit_count, 0);
+            assert_eq!(prior.completed_events,
+                expected_prior_events.iter().map(|event| (*event).to_owned()).collect::<Vec<_>>());
+        }
+        let clockworks = &saved.world_persistent_v1.clockworks;
+        assert!(clockworks.forged_guard_elite_first_kill);
+        assert!(clockworks.regulator_defeated);
+        assert!(clockworks.core_console_confirmed);
+        assert_eq!(clockworks.pressure_valve_ids, vec![
+            "cw_pressure_valve_01_staged".to_owned(),
+            "cw_pressure_valve_02_staged".to_owned(),
+            "cw_pressure_valve_03_staged".to_owned(),
+        ]);
+        let expected_award_count = if air_step { 1 } else { 0 };
+        assert_eq!(saved.effect_sources.iter()
+            .filter(|source| source.source_id == CAP_AIR_STEP).count(), expected_award_count,
+            "the real shutdown awards exactly one AirStep effect source");
+        assert_eq!(saved.save.capabilities.grants.iter()
+            .filter(|grant| grant.capability_id == CAP_AIR_STEP).count(), expected_award_count,
+            "the real shutdown awards exactly one AirStep capability grant");
+        assert_eq!(saved.save.capabilities.selected.iter()
+            .any(|capability| capability == CAP_AIR_STEP), air_step,
+            "AirStep selection matches the earned completion stage");
+    };
+
+    let runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&runtime).unwrap();
+    let prepared = runtime.continue_saved().unwrap();
+    let entry_epoch = prepared.world_epoch;
+    let token = prepared.entry_token.as_ref()
+        .expect("full production Continue waits for normal shutdown-entry readiness");
+    assert_eq!(token.world_id, "clockworks");
+    assert_eq!(token.scene_id, "cw_shutdown_exit");
+    assert_eq!(token.world_epoch, entry_epoch);
+    assert_campaign_view(&prepared, "clockworks", "cw_shutdown_exit",
+        &["clockworks_valves", "clockworks_core"], false, false);
+    assert_eq!(prepared.player.transform.position_m, entry_save.save.player.position_m);
+    assert_eq!(prepared.player.current_hp, entry_save.save.player.current_hp);
+    assert_eq!(prepared.player.current_energy, entry_save.save.player.current_energy);
+    assert_eq!(prepared.server_time_ms, entry_save.save.server_time_ms);
+    assert_eq!(prepared.checkpoint_id, entry_save.save.checkpoint_id);
+    assert_eq!(std::fs::read(&save_path).unwrap(), fixture_bytes,
+        "shutdown-entry Continue preparation cannot rewrite the admitted save");
+    assert!(runtime.presentation_events_since(entry_epoch, 0).unwrap().iter().all(|event|
+        !matches!(event.kind.as_str(), "EnemyDeath" | "ForgedGuardEliteDeath" | "PrimeRegulatorDeath")),
+        "shutdown-entry preparation cannot replay an earned Boss defeat");
+    let mut view = acknowledge_ready(&runtime, prepared);
+    assert_campaign_view(&view, "clockworks", "cw_shutdown_exit",
+        &["clockworks_valves", "clockworks_core"], false, false);
+    assert_eq!(view.player.transform.position_m, entry_save.save.player.position_m);
+    assert_eq!(view.player.current_hp, entry_save.save.player.current_hp);
+    assert_eq!(view.player.current_energy, entry_save.save.player.current_energy);
+    assert_eq!(view.server_time_ms, entry_save.save.server_time_ms);
+
+    // The authored master terminal is the only completion action in this scenario.
+    view = interact(&runtime, view, "cw_master_shutdown_staged", "genuine-cw-shutdown-once");
+    let shutdown_epoch = view.world_epoch;
+    assert_eq!(shutdown_epoch, entry_epoch, "the real terminal receipt is in the entered epoch");
+    assert_campaign_view(&view, "clockworks", "cw_shutdown_exit",
+        &["clockworks_valves", "clockworks_core", "clockworks_shutdown"], true, true);
+    assert!(runtime.presentation_events_since(shutdown_epoch, 0).unwrap().iter().all(|event|
+        !matches!(event.kind.as_str(), "EnemyDeath" | "ForgedGuardEliteDeath" | "PrimeRegulatorDeath")),
+        "shutdown completion does not replay either earned Boss defeat");
+    runtime.save().unwrap();
+    let awarded_save = save_v6::read_save(&save_dir).unwrap();
+    assert_campaign_save(&awarded_save, "clockworks", "cw_shutdown_exit",
+        &["clockworks_valves", "clockworks_core", "clockworks_shutdown"], true, true);
+    assert!(initial_effect_sources.iter().all(|source| awarded_save.effect_sources.contains(source)),
+        "all prior earned effect sources survive first completion");
+    assert!(initial_grants.iter().all(|grant| awarded_save.save.capabilities.grants.contains(grant)),
+        "all prior earned capability grants survive first completion");
+    assert_eq!(awarded_save.effect_sources.iter()
+        .filter(|source| source.source_id != CAP_AIR_STEP).cloned().collect::<Vec<_>>(),
+        initial_effect_sources);
+    assert_eq!(awarded_save.save.capabilities.grants.iter()
+        .filter(|grant| grant.capability_id != CAP_AIR_STEP).cloned().collect::<Vec<_>>(),
+        initial_grants);
+    let awarded_effect_sources = awarded_save.effect_sources.clone();
+    let awarded_grants = awarded_save.save.capabilities.grants.clone();
+    let awarded_selection = awarded_save.save.capabilities.selected.clone();
+    let completed_progression = view.progression.clone();
+
+    // One bounded, fresh-ID duplicate at the same terminal and in the same owner.
+    let duplicate = scene_route_commands::interaction(&runtime, "cw_master_shutdown_staged",
+        "genuine-cw-shutdown-duplicate", Some(view.world_epoch)).unwrap();
+    assert!(!duplicate.applied, "the one repeated master-terminal interaction is not applied");
+    assert_eq!(duplicate.view.world_epoch, shutdown_epoch);
+    assert_eq!(duplicate.view.progression, completed_progression,
+        "duplicate shutdown cannot change completed progression");
+    assert_campaign_view(&duplicate.view, "clockworks", "cw_shutdown_exit",
+        &["clockworks_valves", "clockworks_core", "clockworks_shutdown"], true, true);
+    let paused_shutdown = runtime.pause().unwrap();
+    assert_eq!(paused_shutdown.progression, completed_progression);
+    runtime.save().unwrap();
+    let duplicate_save = save_v6::read_save(&save_dir).unwrap();
+    assert_campaign_save(&duplicate_save, "clockworks", "cw_shutdown_exit",
+        &["clockworks_valves", "clockworks_core", "clockworks_shutdown"], true, true);
+    assert_eq!(duplicate_save.effect_sources, awarded_effect_sources,
+        "duplicate shutdown preserves source identity and cannot add a second source");
+    assert_eq!(duplicate_save.save.capabilities.grants, awarded_grants,
+        "duplicate shutdown preserves grant identity and cannot add a second grant");
+    assert_eq!(duplicate_save.save.capabilities.selected, awarded_selection,
+        "duplicate shutdown preserves the original selection");
+    assert_eq!(duplicate_save.effect_sources.iter()
+        .filter(|source| source.source_id == CAP_AIR_STEP).count(), 1);
+    assert_eq!(duplicate_save.save.capabilities.grants.iter()
+        .filter(|grant| grant.capability_id == CAP_AIR_STEP).count(), 1);
+    let shutdown_view = runtime.pause().unwrap();
+    runtime.save().unwrap();
+    let shutdown_save = save_v6::read_save(&save_dir).unwrap();
+    assert_campaign_save(&shutdown_save, "clockworks", "cw_shutdown_exit",
+        &["clockworks_valves", "clockworks_core", "clockworks_shutdown"], true, true);
+    assert_eq!(shutdown_save.effect_sources, awarded_effect_sources);
+    assert_eq!(shutdown_save.save.capabilities.grants, awarded_grants);
+    assert_eq!(shutdown_save.save.capabilities.selected, awarded_selection);
+    assert!(shutdown_view.player.current_hp > 0);
+    let shutdown_position = shutdown_view.player.transform.position_m;
+    let shutdown_hp = shutdown_view.player.current_hp;
+    let shutdown_energy = shutdown_view.player.current_energy;
+    let shutdown_time = shutdown_view.server_time_ms;
+    let shutdown_checkpoint = shutdown_view.checkpoint_id.clone();
+    let shutdown_bytes = std::fs::read(&save_path).unwrap();
+    drop(runtime);
+
+    // A full new production owner must continue the completed shutdown stage without replay.
+    let runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&runtime).unwrap();
+    let prepared = runtime.continue_saved().unwrap();
+    assert_ne!(prepared.world_epoch, shutdown_epoch,
+        "shutdown completion Continue installs a fresh owner epoch");
+    let token = prepared.entry_token.as_ref().expect("new shutdown owner awaits readiness");
+    assert_eq!(token.world_id, "clockworks");
+    assert_eq!(token.scene_id, "cw_shutdown_exit");
+    assert_eq!(token.world_epoch, prepared.world_epoch);
+    assert_campaign_view(&prepared, "clockworks", "cw_shutdown_exit",
+        &["clockworks_valves", "clockworks_core", "clockworks_shutdown"], true, true);
+    assert_eq!(prepared.player.transform.position_m, shutdown_position);
+    assert_eq!(prepared.player.current_hp, shutdown_hp);
+    assert_eq!(prepared.player.current_energy, shutdown_energy);
+    assert_eq!(prepared.server_time_ms, shutdown_time);
+    assert_eq!(prepared.checkpoint_id, shutdown_checkpoint);
+    assert_eq!(std::fs::read(&save_path).unwrap(), shutdown_bytes,
+        "new-owner preparation cannot rewrite the completed shutdown save");
+    assert!(runtime.presentation_events_since(prepared.world_epoch, 0).unwrap().iter().all(|event|
+        !matches!(event.kind.as_str(), "EnemyDeath" | "ForgedGuardEliteDeath" | "PrimeRegulatorDeath")),
+        "new-owner preparation cannot replay an earned Boss defeat");
+    view = acknowledge_ready(&runtime, prepared);
+    assert_campaign_view(&view, "clockworks", "cw_shutdown_exit",
+        &["clockworks_valves", "clockworks_core", "clockworks_shutdown"], true, true);
+    assert_eq!(view.progression, completed_progression);
+    assert_eq!(view.player.transform.position_m, shutdown_position);
+    assert_eq!(view.player.current_hp, shutdown_hp);
+    assert_eq!(view.player.current_energy, shutdown_energy);
+    assert_eq!(view.server_time_ms, shutdown_time);
+    assert_eq!(view.checkpoint_id, shutdown_checkpoint);
+    assert_eq!(std::fs::read(&save_path).unwrap(), shutdown_bytes,
+        "readiness cannot rewrite the completed shutdown save");
+    assert!(runtime.presentation_events_since(view.world_epoch, 0).unwrap().iter().all(|event|
+        !matches!(event.kind.as_str(), "EnemyDeath" | "ForgedGuardEliteDeath" | "PrimeRegulatorDeath")),
+        "new-owner readiness cannot replay an earned Boss defeat");
+    assert_eq!(save_v6::read_save(&save_dir).unwrap().effect_sources, awarded_effect_sources);
+    assert_eq!(save_v6::read_save(&save_dir).unwrap().save.capabilities.grants, awarded_grants);
+    assert_eq!(save_v6::read_save(&save_dir).unwrap().save.capabilities.selected, awarded_selection);
+
+    // Return only through the authored shutdown portal, then Continue in Return Station.
+    let completed_epoch = view.world_epoch;
+    let returned = return_to_station(&runtime, view, "genuine-cw-shutdown-return-to-rs");
+    assert_ne!(returned.world_epoch, completed_epoch,
+        "the actual shutdown world-gate receipt installs the Return Station scene");
+    assert_campaign_view(&returned, "return_station", "rs_core_room",
+        &["clockworks_valves", "clockworks_core", "clockworks_shutdown"], true, true);
+    assert!(active_enemy_ids(&returned).is_empty());
+    assert!(runtime.presentation_events_since(returned.world_epoch, 0).unwrap().iter().all(|event|
+        !matches!(event.kind.as_str(), "EnemyDeath" | "ForgedGuardEliteDeath" | "PrimeRegulatorDeath")),
+        "Return Station entry cannot replay an earned Boss defeat");
+    let returned_view = runtime.pause().unwrap();
+    assert_campaign_view(&returned_view, "return_station", "rs_core_room",
+        &["clockworks_valves", "clockworks_core", "clockworks_shutdown"], true, true);
+    let returned_position = returned_view.player.transform.position_m;
+    let returned_hp = returned_view.player.current_hp;
+    let returned_energy = returned_view.player.current_energy;
+    let returned_time = returned_view.server_time_ms;
+    let returned_checkpoint = returned_view.checkpoint_id.clone();
+    runtime.save().unwrap();
+    let returned_save = save_v6::read_save(&save_dir).unwrap();
+    assert_campaign_save(&returned_save, "return_station", "rs_core_room",
+        &["clockworks_valves", "clockworks_core", "clockworks_shutdown"], true, true);
+    assert_eq!(returned_save.effect_sources, awarded_effect_sources);
+    assert_eq!(returned_save.save.capabilities.grants, awarded_grants);
+    assert_eq!(returned_save.save.capabilities.selected, awarded_selection);
+    let returned_bytes = std::fs::read(&save_path).unwrap();
+    drop(runtime);
+
+    let runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&runtime).unwrap();
+    let prepared = runtime.continue_saved().unwrap();
+    let rs_epoch = prepared.world_epoch;
+    assert!(prepared.entry_token.as_ref().is_some_and(|token|
+        token.world_id == "return_station" && token.scene_id == "rs_core_room"
+            && token.world_epoch == rs_epoch));
+    assert_campaign_view(&prepared, "return_station", "rs_core_room",
+        &["clockworks_valves", "clockworks_core", "clockworks_shutdown"], true, true);
+    assert_eq!(prepared.player.transform.position_m, returned_position);
+    assert_eq!(prepared.player.current_hp, returned_hp);
+    assert_eq!(prepared.player.current_energy, returned_energy);
+    assert_eq!(prepared.server_time_ms, returned_time);
+    assert_eq!(prepared.checkpoint_id, returned_checkpoint);
+    assert_eq!(std::fs::read(&save_path).unwrap(), returned_bytes,
+        "final Return Station Continue preparation cannot rewrite its save");
+    assert!(runtime.presentation_events_since(rs_epoch, 0).unwrap().iter().all(|event|
+        !matches!(event.kind.as_str(), "EnemyDeath" | "ForgedGuardEliteDeath" | "PrimeRegulatorDeath")),
+        "final Return Station Continue preparation cannot replay an earned Boss defeat");
+    view = acknowledge_ready(&runtime, prepared);
+    assert_campaign_view(&view, "return_station", "rs_core_room",
+        &["clockworks_valves", "clockworks_core", "clockworks_shutdown"], true, true);
+    assert_eq!(view.player.transform.position_m, returned_position);
+    assert_eq!(view.player.current_hp, returned_hp);
+    assert_eq!(view.player.current_energy, returned_energy);
+    assert_eq!(view.server_time_ms, returned_time);
+    assert_eq!(view.checkpoint_id, returned_checkpoint);
+    assert_eq!(std::fs::read(&save_path).unwrap(), returned_bytes,
+        "normal Return Station readiness cannot rewrite the held save");
+    assert!(runtime.presentation_events_since(view.world_epoch, 0).unwrap().iter().all(|event|
+        !matches!(event.kind.as_str(), "EnemyDeath" | "ForgedGuardEliteDeath" | "PrimeRegulatorDeath")),
+        "final Return Station readiness cannot replay an earned Boss defeat");
+
+    let final_rs_view = runtime.pause().unwrap();
+    assert_campaign_view(&final_rs_view, "return_station", "rs_core_room",
+        &["clockworks_valves", "clockworks_core", "clockworks_shutdown"], true, true);
+    runtime.save().unwrap();
+    let final_rs_save = save_v6::read_save(&save_dir).unwrap();
+    assert_campaign_save(&final_rs_save, "return_station", "rs_core_room",
+        &["clockworks_valves", "clockworks_core", "clockworks_shutdown"], true, true);
+    assert_eq!(final_rs_save.effect_sources, awarded_effect_sources);
+    assert_eq!(final_rs_save.save.capabilities.grants, awarded_grants);
+    assert_eq!(final_rs_save.save.capabilities.selected, awarded_selection);
+    assert_eq!(final_rs_save.save.player.position_m, final_rs_view.player.transform.position_m);
+    assert_eq!(final_rs_save.save.player.current_hp, final_rs_view.player.current_hp);
+    assert_eq!(final_rs_save.save.player.current_energy, final_rs_view.player.current_energy);
+    assert_eq!(final_rs_save.save.server_time_ms, final_rs_view.server_time_ms);
+    assert_eq!(final_rs_save.save.checkpoint_id, final_rs_view.checkpoint_id);
+    assert!(final_rs_save.save.player.current_hp > 0);
+    assert!(active_enemy_ids(&final_rs_view).is_empty());
+    let final_bytes = std::fs::read(&save_path).unwrap();
+    println!(
+        "Earned master shutdown, one AirStep award, fresh-owner Continue, authored Return Station gate, and final Return Station Continue completed alive at {} HP/{} energy, time {}, checkpoint {:?}; final SaveV6 {} bytes at {}",
+        final_rs_save.save.player.current_hp,
+        final_rs_save.save.player.current_energy,
+        final_rs_save.save.server_time_ms,
+        final_rs_save.save.checkpoint_id,
+        final_bytes.len(),
+        save_path.display(),
+    );
+    drop(runtime);
+}
