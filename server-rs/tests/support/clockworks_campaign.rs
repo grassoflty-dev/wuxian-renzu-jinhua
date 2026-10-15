@@ -1109,3 +1109,230 @@ fn genuine_earned_gear_lift_midride_continue_reaches_upper_checkpoint() {
     println!("Earned Gear lift midride Continue reached and saved the real upper-dock checkpoint at {} HP/{} energy; stopped before the upper gap", view.player.current_hp, view.player.current_energy);
     drop(runtime);
 }
+
+// Exact qualified Continue save at the earned Gear upper dock, before the free gap traversal.
+const EARNED_CW_UPPER_DOCK_ENTRY_V6: &str = include_str!("../fixtures/earned-cw-upper-dock-v6.json");
+
+#[test]
+fn genuine_earned_upper_gap_reaches_durable_furnace_entry() {
+    let save_dir = save_root();
+    assert!(!save_dir.exists(), "task save directory must be fresh");
+    std::fs::create_dir_all(&save_dir).unwrap();
+    std::fs::write(save_dir.join("formal-save-v6.json"), EARNED_CW_UPPER_DOCK_ENTRY_V6.as_bytes()).unwrap();
+
+    let gear_save = save_v6::read_save(&save_dir).unwrap();
+    assert_earned_valve_route_save(&gear_save, "cw_gear_shaft");
+    assert_eq!(gear_save.save.checkpoint_id.as_deref(), Some("cw_gear_upper_dock_checkpoint"));
+    assert_eq!(gear_save.save.player.current_hp, 56);
+    assert_eq!(gear_save.save.player.current_energy, 28);
+    assert_eq!(gear_save.save.scene_states.len(), 1, "SaveV5 retains its active-scene row contract");
+    assert_eq!(gear_save.save.generic_actors.len(), 5);
+    assert!(gear_save.save.generic_actors.iter().all(|actor| actor.hp == 0),
+        "the earned upper-dock save retains all five defeated Gear actors");
+    let gear_actor_ids = BTreeSet::from([
+        "cw_gear_shaft_forged_guard_01".to_owned(),
+        "cw_gear_shaft_forged_guard_02".to_owned(),
+        "cw_gear_shaft_pressure_drone_01".to_owned(),
+        "cw_gear_shaft_pressure_drone_02".to_owned(),
+        "cw_gear_shaft_pressure_drone_03".to_owned(),
+    ]);
+    assert_eq!(gear_save.save.generic_actors.iter().map(|actor| actor.entity_id.clone()).collect::<BTreeSet<_>>(), gear_actor_ids);
+    let gear_frame = gear_save.save.moving_support_frame.as_ref().expect("earned Gear save retains its actual lift frame");
+    assert_eq!(gear_frame.server_time_ms, gear_save.save.server_time_ms);
+    assert!(gear_frame.poses.iter().any(|pose| pose.support_id == "cw_gear_upper_dock"
+        && pose.height_m == 2.0), "the saved upper dock remains at its authored height");
+    NEXT_TIME.fetch_max(gear_save.save.last_client_time_ms.saturating_add(1), Ordering::Relaxed);
+
+    let runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&runtime).unwrap();
+    let gear_save_bytes = std::fs::read(save_v6::save_path(&save_dir)).unwrap();
+    let prepared = runtime.continue_saved().unwrap();
+    assert_eq!(prepared.world_id, "clockworks");
+    assert_eq!(prepared.scene_id, "cw_gear_shaft");
+    assert_eq!(prepared.entry_token.as_ref().map(|token| token.scene_id.as_str()), Some("cw_gear_shaft"));
+    assert_eq!(prepared.player.transform.position_m, gear_save.save.player.position_m);
+    assert_eq!(prepared.server_time_ms, gear_save.save.server_time_ms);
+    assert_eq!(prepared.player.current_hp, 56);
+    assert_eq!(prepared.player.current_energy, 28);
+    assert_eq!(prepared.support_scene.as_ref().unwrap().rider.support_id.as_deref(), Some("cw_gear_upper_dock"));
+    assert!(active_enemy_ids(&prepared).is_empty());
+    assert_earned_valve_route_view(&prepared, "cw_gear_shaft");
+    assert_eq!(std::fs::read(save_v6::save_path(&save_dir)).unwrap(), gear_save_bytes,
+        "Continue preparation must not rewrite the pinned earned input");
+    let mut view = acknowledge_ready(&runtime, prepared);
+    assert_earned_valve_route_view(&view, "cw_gear_shaft");
+    assert!(active_enemy_ids(&view).is_empty());
+
+    let authored_gear = compiled_route_scene("cw_gear_shaft");
+    let marker = authored_gear["logic"]["traversal"].as_array().unwrap().iter()
+        .find(|marker| marker["id"] == "cw_gear_upper_gap")
+        .expect("current authored upper-gap marker exists");
+    assert!(marker["requiredCapabilities"].as_array().unwrap().is_empty(),
+        "the authored first-clear upper gap is not gated by AirStep");
+    assert_eq!(marker["from"], serde_json::json!([17.8, 2.0, 8.0]));
+    assert_eq!(marker["to"], serde_json::json!([20.2, 2.0, 8.0]));
+    assert!(!view.capabilities.items.iter().any(|item| item.capability_id == CAP_AIR_STEP && item.granted),
+        "the earned valve-only route does not grant AirStep");
+
+    let from = marker["from"].as_array().unwrap();
+    view = gear_walk(&runtime, view, from[0].as_f64().unwrap() as f32, from[2].as_f64().unwrap() as f32);
+    assert_eq!(view.support_scene.as_ref().unwrap().rider.support_id.as_deref(), Some("cw_gear_upper_dock"));
+    assert!((view.player.transform.position_m.y_m - 2.0).abs() < 0.1,
+        "the genuine action begins on the earned upper dock");
+    view = input(&runtime, &view, (0.0, 0.0), (1.0, 0.0));
+    let before_action = runtime.snapshot().unwrap();
+    assert_eq!(before_action.scene_id, "cw_gear_shaft");
+    assert!(before_action.player.current_hp > 0);
+    assert_eq!(before_action.support_scene.as_ref().unwrap().rider.support_id.as_deref(), Some("cw_gear_upper_dock"));
+    let event_cursor = runtime.presentation_events_since(before_action.world_epoch, 0).unwrap()
+        .iter().map(|event| event.event_id).max().unwrap_or(0);
+    let start_position = before_action.player.transform.position_m;
+    let start_time_ms = before_action.server_time_ms;
+    let epoch = before_action.world_epoch;
+    let wall_start = std::time::Instant::now();
+    let action_view = runtime.submit_action(ActionCommandRequest {
+        protocol_version: 2,
+        world_epoch: epoch,
+        request_id: NEXT_COMBAT_REQUEST.fetch_add(1, Ordering::Relaxed),
+        client_time_ms: NEXT_TIME.fetch_add(17, Ordering::Relaxed),
+        kind: ActionKind::ContextTraversal,
+    }).unwrap();
+    assert_eq!(action_view.world_epoch, epoch);
+    let mut observed = action_view;
+    let mut started_event = None;
+    let mut completed_event = None;
+    let mut blocked_event = None;
+    for _ in 0..300 {
+        observed = runtime.snapshot().unwrap();
+        assert_eq!(observed.world_epoch, epoch, "the authored gap traversal stays in Gear");
+        for event in runtime.presentation_events_since(epoch, event_cursor).unwrap() {
+            if event.event_id <= event_cursor || event.world_epoch != epoch { continue; }
+            match event.kind.as_str() {
+                "ContextTraversalStarted" => started_event = Some(event.event_id),
+                "ContextTraversalCompleted" => completed_event = Some(event.event_id),
+                "ContextTraversalBlocked" => blocked_event = Some(event.event_id),
+                _ => {}
+            }
+        }
+        if completed_event.is_some() { break; }
+        let elapsed_owner_ms = observed.server_time_ms.saturating_sub(start_time_ms);
+        if elapsed_owner_ms >= 3_000 || wall_start.elapsed() >= std::time::Duration::from_secs(3) { break; }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    assert!(started_event.is_some(), "one new ContextTraversalStarted cue must follow the captured cursor");
+    assert!(completed_event.is_some(), "the single authored gap traversal must complete within three seconds");
+    assert!(blocked_event.is_none(), "the authored capability-free gap must not be blocked");
+    assert!(started_event.unwrap() < completed_event.unwrap(), "traversal start precedes completion");
+    assert!(observed.server_time_ms.saturating_sub(start_time_ms) <= 3_000,
+        "the traversal must complete within three seconds of owner time");
+    assert_eq!(observed.scene_id, "cw_gear_shaft");
+    assert!(observed.player.current_hp > 0, "the living player must reach the Furnace landing");
+    let end_position = observed.player.transform.position_m;
+    assert!(end_position.x_m - start_position.x_m >= 1.0,
+        "completed gap traversal must demonstrate at least 1m forward displacement: {start_position:?} -> {end_position:?}");
+    assert!((1.9..=2.1).contains(&end_position.y_m), "the traversal must land in the authored 2m height band");
+    let landing = observed.support_scene.as_ref().expect("landing support view");
+    assert_eq!(landing.rider.support_id.as_deref(), Some("cw_gear_furnace_landing"),
+        "the player must be physically supported by the authored Furnace landing");
+    assert_eq!(landing.rider.mode, wuxian_horror_ch1::moving_support::SupportRiderMode::Surface);
+    assert!(landing.poses.iter().any(|pose| pose.support_id == "cw_gear_furnace_landing"
+        && pose.height_m == 2.0), "the landing support remains at the authored height");
+    println!("Upper gap: observed Started/Completed cues, {:.2}m forward displacement, {:.2}m landing height, actual landing support, {} HP",
+        end_position.x_m - start_position.x_m, end_position.y_m, observed.player.current_hp);
+
+    view = walk_to_compiled_target(&runtime, observed, "cw_gear_shaft", "transitions", "cw_gear_to_furnace_heart");
+    let transition_scene = compiled_route_scene("cw_gear_shaft");
+    let transition = transition_scene["transitions"].as_array().unwrap().iter()
+        .find(|transition| transition["id"] == "cw_gear_to_furnace_heart").unwrap();
+    assert_eq!(transition["toSceneId"], "cw_furnace_heart");
+    assert_eq!(transition["spawnId"], "cw_furnace_heart_spawn");
+    assert!(transition["heightRangeM"].as_array().unwrap().iter()
+        .all(|height| (1.9..=2.1).contains(&(height.as_f64().unwrap() as f32))));
+    assert_eq!(view.support_scene.as_ref().unwrap().rider.support_id.as_deref(), Some("cw_gear_furnace_landing"));
+    assert!((1.9..=2.1).contains(&view.player.transform.position_m.y_m),
+        "the authored height-gated Furnace route is approached from its landing height");
+    view = apply_transition(&runtime, "cw_gear_to_furnace_heart", "genuine-upper-gap-to-furnace-entry", view.world_epoch);
+    assert_eq!(view.world_id, "clockworks");
+    assert_eq!(view.scene_id, "cw_furnace_heart");
+    assert!(view.player.current_hp > 0);
+    assert!((0.0..=0.1).contains(&view.player.transform.position_m.y_m), "Furnace entry uses its authored lower floor");
+    assert!((view.player.transform.position_m.x_m - 3.0).abs() <= 0.1);
+    assert!((view.player.transform.position_m.z_m - 8.0).abs() <= 0.1);
+    assert_earned_valve_route_view(&view, "cw_furnace_heart");
+    let expected_furnace_enemies = BTreeSet::from([
+        "cw_furnace_heart_forged_guard_01".to_owned(),
+        "cw_furnace_heart_forged_guard_02".to_owned(),
+        "cw_furnace_heart_furnace_hound_01".to_owned(),
+        "cw_furnace_heart_furnace_hound_02".to_owned(),
+        "cw_furnace_heart_furnace_hound_03".to_owned(),
+    ]);
+    assert_eq!(active_enemy_ids(&view), expected_furnace_enemies,
+        "actual Furnace entry loads its five authored live enemies");
+
+    // Pause and save the genuine entry immediately; no Furnace combat or checkpoint action follows.
+    let entry_view = runtime.pause().unwrap();
+    assert_earned_valve_route_view(&entry_view, "cw_furnace_heart");
+    assert_eq!(active_enemy_ids(&entry_view), expected_furnace_enemies);
+    runtime.save().unwrap();
+    let furnace_save = save_v6::read_save(&save_dir).unwrap();
+    assert_earned_valve_route_save(&furnace_save, "cw_furnace_heart");
+    assert_eq!(furnace_save.save.server_time_ms, entry_view.server_time_ms);
+    assert_eq!(furnace_save.save.player.position_m, entry_view.player.transform.position_m);
+    assert_eq!(furnace_save.save.player.current_hp, entry_view.player.current_hp);
+    assert_eq!(furnace_save.save.player.current_energy, entry_view.player.current_energy);
+    assert_eq!(furnace_save.save.generic_actors.iter().map(|actor| actor.entity_id.clone()).collect::<BTreeSet<_>>(), expected_furnace_enemies);
+    assert!(furnace_save.save.generic_actors.iter().all(|actor| actor.hp > 0),
+        "entry save preserves all five live Furnace actor rows");
+    let entry_checkpoint = furnace_save.save.checkpoint_id.clone();
+    let entry_save_bytes = std::fs::read(save_v6::save_path(&save_dir)).unwrap();
+    let entry_position = entry_view.player.transform.position_m;
+    let entry_hp = entry_view.player.current_hp;
+    let entry_energy = entry_view.player.current_energy;
+    let entry_time_ms = entry_view.server_time_ms;
+    let entry_epoch = entry_view.world_epoch;
+    println!("Paused Furnace entry: {} HP/{} energy, {} live actors, destination checkpoint {:?}",
+        entry_hp, entry_energy, expected_furnace_enemies.len(), entry_checkpoint);
+    drop(runtime);
+
+    // A fresh production owner must prepare the same saved entry before the normal ready handshake.
+    let runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&runtime).unwrap();
+    let prepared = runtime.continue_saved().unwrap();
+    assert_ne!(prepared.world_epoch, entry_epoch, "Continue creates a coherent new owner epoch");
+    let token = prepared.entry_token.as_ref().expect("fresh Furnace owner remains prepared before readiness");
+    assert_eq!(token.world_id, "clockworks");
+    assert_eq!(token.scene_id, "cw_furnace_heart");
+    assert_eq!(token.world_epoch, prepared.world_epoch);
+    assert_eq!(prepared.world_id, "clockworks");
+    assert_eq!(prepared.scene_id, "cw_furnace_heart");
+    assert_eq!(prepared.player.transform.position_m, entry_position);
+    assert_eq!(prepared.player.current_hp, entry_hp);
+    assert_eq!(prepared.player.current_energy, entry_energy);
+    assert_eq!(prepared.server_time_ms, entry_time_ms);
+    assert_eq!(active_enemy_ids(&prepared), expected_furnace_enemies);
+    assert_eq!(std::fs::read(save_v6::save_path(&save_dir)).unwrap(), entry_save_bytes,
+        "Continue preparation cannot rewrite the saved Furnace entry");
+    assert!(runtime.presentation_events_since(prepared.world_epoch, 0).unwrap().iter()
+        .all(|event| event.kind != "EnemyDeath"), "fresh-owner preparation cannot replay prior Gear deaths");
+    let continued = acknowledge_ready(&runtime, prepared);
+    assert_earned_valve_route_view(&continued, "cw_furnace_heart");
+    assert!(continued.player.current_hp > 0);
+    assert_eq!(continued.player.transform.position_m, entry_position);
+    assert_eq!(continued.player.current_hp, entry_hp);
+    assert_eq!(continued.player.current_energy, entry_energy);
+    assert_eq!(continued.server_time_ms, entry_time_ms);
+    assert_eq!(active_enemy_ids(&continued), expected_furnace_enemies);
+    assert!(runtime.presentation_events_since(continued.world_epoch, 0).unwrap().iter()
+        .all(|event| event.kind != "EnemyDeath"), "readiness cannot replay prior Gear deaths");
+    let final_entry_view = runtime.pause().unwrap();
+    runtime.save().unwrap();
+    let final_save = save_v6::read_save(&save_dir).unwrap();
+    assert_earned_valve_route_save(&final_save, "cw_furnace_heart");
+    assert_eq!(final_save.save.generic_actors.iter().map(|actor| actor.entity_id.clone()).collect::<BTreeSet<_>>(), expected_furnace_enemies);
+    assert!(final_save.save.generic_actors.iter().all(|actor| actor.hp > 0));
+    assert_eq!(final_save.save.player.current_hp, final_entry_view.player.current_hp);
+    assert_eq!(final_save.save.player.current_energy, final_entry_view.player.current_energy);
+    println!("Durable Furnace entry survived new-owner Continue at {} HP/{} energy; stopped before combat",
+        final_entry_view.player.current_hp, final_entry_view.player.current_energy);
+    drop(runtime);
+}
