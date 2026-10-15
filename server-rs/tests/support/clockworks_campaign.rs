@@ -1336,3 +1336,275 @@ fn genuine_earned_upper_gap_reaches_durable_furnace_entry() {
         final_entry_view.player.current_hp, final_entry_view.player.current_energy);
     drop(runtime);
 }
+
+// Exact qualified SaveV6 for the earned Furnace entry: retained from the upper-gap successor.
+const EARNED_CW_FURNACE_ENCOUNTER_ENTRY_V6: &str =
+    include_str!("../fixtures/earned-cw-furnace-entry-v6.json");
+
+#[test]
+fn genuine_earned_furnace_encounter_reaches_durable_arena_entry() {
+    let save_dir = save_root();
+    assert!(!save_dir.exists(), "task save directory must be fresh");
+    std::fs::create_dir_all(&save_dir).unwrap();
+    let save_path = save_dir.join("formal-save-v6.json");
+    std::fs::write(&save_path, EARNED_CW_FURNACE_ENCOUNTER_ENTRY_V6.as_bytes()).unwrap();
+
+    let furnace_save = save_v6::read_save(&save_dir).unwrap();
+    assert_earned_valve_route_save(&furnace_save, "cw_furnace_heart");
+    assert_eq!(furnace_save.save.checkpoint_id.as_deref(), None);
+    assert_eq!(furnace_save.save.player.current_hp, 56);
+    assert_eq!(furnace_save.save.player.current_energy, 28);
+    assert_eq!(furnace_save.save.player.position_m.x_m, 3.0);
+    assert_eq!(furnace_save.save.player.position_m.y_m, 0.0);
+    assert_eq!(furnace_save.save.player.position_m.z_m, 8.0);
+    assert_eq!(furnace_save.save.server_time_ms, 608_549);
+    assert_eq!(furnace_save.save.last_client_time_ms, 0);
+
+    let expected_furnace_actors = BTreeMap::from([
+        ("cw_furnace_heart_forged_guard_01".to_owned(), "enemy.clockworks.forged_guard".to_owned()),
+        ("cw_furnace_heart_forged_guard_02".to_owned(), "enemy.clockworks.forged_guard".to_owned()),
+        ("cw_furnace_heart_furnace_hound_01".to_owned(), "enemy.clockworks.furnace_hound".to_owned()),
+        ("cw_furnace_heart_furnace_hound_02".to_owned(), "enemy.clockworks.furnace_hound".to_owned()),
+        ("cw_furnace_heart_furnace_hound_03".to_owned(), "enemy.clockworks.furnace_hound".to_owned()),
+    ]);
+    assert_eq!(furnace_save.save.generic_actors.len(), expected_furnace_actors.len());
+    assert_eq!(
+        furnace_save.save.generic_actors.iter().map(|actor| actor.entity_id.clone()).collect::<BTreeSet<_>>(),
+        expected_furnace_actors.keys().cloned().collect::<BTreeSet<_>>(),
+    );
+    assert!(furnace_save.save.generic_actors.iter().all(|actor| {
+        actor.hp > 0 && expected_furnace_actors.get(&actor.entity_id) == Some(&actor.entity_type)
+    }), "the exact five typed Furnace enemies are alive in the qualified input");
+    NEXT_TIME.fetch_max(furnace_save.save.last_client_time_ms.saturating_add(1), Ordering::Relaxed);
+
+    let input_bytes = std::fs::read(&save_path).unwrap();
+    let runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&runtime).unwrap();
+    let prepared = runtime.continue_saved().unwrap();
+    assert_eq!(prepared.world_id, "clockworks");
+    assert_eq!(prepared.scene_id, "cw_furnace_heart");
+    let token = prepared.entry_token.as_ref().expect("fresh Furnace owner remains prepared before readiness");
+    assert_eq!(token.world_id, "clockworks");
+    assert_eq!(token.scene_id, "cw_furnace_heart");
+    assert_eq!(token.world_epoch, prepared.world_epoch);
+    assert_eq!(prepared.player.transform.position_m, furnace_save.save.player.position_m);
+    assert_eq!(prepared.server_time_ms, furnace_save.save.server_time_ms);
+    assert_eq!(prepared.player.current_hp, 56);
+    assert_eq!(prepared.player.current_energy, 28);
+    assert_eq!(active_enemy_ids(&prepared), expected_furnace_actors.keys().cloned().collect());
+    assert_earned_valve_route_view(&prepared, "cw_furnace_heart");
+    assert_eq!(std::fs::read(&save_path).unwrap(), input_bytes,
+        "Continue preparation must not rewrite the qualified Furnace entry");
+    let prepared_epoch = prepared.world_epoch;
+    assert!(runtime.presentation_events_since(prepared_epoch, 0).unwrap().iter()
+        .all(|event| event.kind != "EnemyDeath"), "Continue cannot replay prior enemy deaths");
+
+    let ready = acknowledge_ready(&runtime, prepared);
+    assert_earned_valve_route_view(&ready, "cw_furnace_heart");
+    assert!(ready.player.current_hp > 0);
+    assert_eq!(active_enemy_ids(&ready), expected_furnace_actors.keys().cloned().collect());
+    assert!(runtime.presentation_events_since(ready.world_epoch, 0).unwrap().iter()
+        .all(|event| event.kind != "EnemyDeath"), "readiness cannot replay prior enemy deaths");
+
+    let cleared = clear_live_enemies(&runtime, ready);
+    assert_earned_valve_route_view(&cleared, "cw_furnace_heart");
+    assert!(cleared.player.current_hp > 0);
+    assert!(active_enemy_ids(&cleared).is_empty(), "all five Furnace enemies must be defeated through public combat");
+    let cleared_entry = runtime.pause().unwrap();
+    assert_earned_valve_route_view(&cleared_entry, "cw_furnace_heart");
+    assert!(active_enemy_ids(&cleared_entry).is_empty());
+    runtime.save().unwrap();
+    let cleared_save = save_v6::read_save(&save_dir).unwrap();
+    assert_earned_valve_route_save(&cleared_save, "cw_furnace_heart");
+    assert_eq!(cleared_save.save.checkpoint_id.as_deref(), None,
+        "the encounter does not create a checkpoint");
+    assert_eq!(cleared_save.save.server_time_ms, cleared_entry.server_time_ms);
+    assert_eq!(cleared_save.save.player.position_m, cleared_entry.player.transform.position_m);
+    assert_eq!(cleared_save.save.player.current_hp, cleared_entry.player.current_hp);
+    assert_eq!(cleared_save.save.player.current_energy, cleared_entry.player.current_energy);
+    assert_eq!(
+        cleared_save.save.generic_actors.iter().map(|actor| actor.entity_id.clone()).collect::<BTreeSet<_>>(),
+        expected_furnace_actors.keys().cloned().collect::<BTreeSet<_>>(),
+    );
+    assert!(cleared_save.save.generic_actors.iter().all(|actor| {
+        actor.hp == 0 && expected_furnace_actors.get(&actor.entity_id) == Some(&actor.entity_type)
+    }), "the durable cleared entry retains exactly the five defeated typed Furnace actors");
+    let cleared_bytes = std::fs::read(&save_path).unwrap();
+    let cleared_position = cleared_entry.player.transform.position_m;
+    let cleared_hp = cleared_entry.player.current_hp;
+    let cleared_energy = cleared_entry.player.current_energy;
+    let cleared_time = cleared_entry.server_time_ms;
+    let cleared_epoch = cleared_entry.world_epoch;
+    drop(runtime);
+
+    let runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&runtime).unwrap();
+    let prepared = runtime.continue_saved().unwrap();
+    assert_ne!(prepared.world_epoch, cleared_epoch, "fresh Furnace Continue creates a new owner epoch");
+    let token = prepared.entry_token.as_ref().expect("fresh owner waits for its exact readiness token");
+    assert_eq!(token.world_id, "clockworks");
+    assert_eq!(token.scene_id, "cw_furnace_heart");
+    assert_eq!(token.world_epoch, prepared.world_epoch);
+    assert_eq!(prepared.scene_id, "cw_furnace_heart");
+    assert_eq!(prepared.player.transform.position_m, cleared_position);
+    assert_eq!(prepared.player.current_hp, cleared_hp);
+    assert_eq!(prepared.player.current_energy, cleared_energy);
+    assert_eq!(prepared.server_time_ms, cleared_time);
+    assert!(active_enemy_ids(&prepared).is_empty(), "fresh Continue keeps the Furnace encounter cleared");
+    assert_earned_valve_route_view(&prepared, "cw_furnace_heart");
+    assert_eq!(std::fs::read(&save_path).unwrap(), cleared_bytes,
+        "fresh Continue preparation cannot rewrite the cleared Furnace save");
+    assert!(runtime.presentation_events_since(prepared.world_epoch, 0).unwrap().iter()
+        .all(|event| event.kind != "EnemyDeath"), "fresh owner preparation cannot replay Furnace deaths");
+    let ready = acknowledge_ready(&runtime, prepared);
+    assert_earned_valve_route_view(&ready, "cw_furnace_heart");
+    assert_eq!(ready.player.transform.position_m, cleared_position);
+    assert_eq!(ready.player.current_hp, cleared_hp);
+    assert_eq!(ready.player.current_energy, cleared_energy);
+    assert_eq!(ready.server_time_ms, cleared_time);
+    assert!(active_enemy_ids(&ready).is_empty());
+    assert!(runtime.presentation_events_since(ready.world_epoch, 0).unwrap().iter()
+        .all(|event| event.kind != "EnemyDeath"), "readiness cannot replay Furnace deaths");
+
+    let furnace_scene = compiled_route_scene("cw_furnace_heart");
+    let furnace_transition = furnace_scene["transitions"].as_array().unwrap().iter()
+        .find(|transition| transition["id"] == "cw_furnace_heart_to_arena")
+        .expect("the authored Furnace-to-arena transition exists");
+    assert_eq!(furnace_transition["toSceneId"], "cw_forged_guard_arena");
+    assert_eq!(furnace_transition["spawnId"], "cw_forged_guard_arena_spawn");
+    let arena_scene = compiled_route_scene("cw_forged_guard_arena");
+    let arena_player_spawn = arena_scene["spawns"].as_array().unwrap().iter()
+        .find(|spawn| spawn["id"] == furnace_transition["spawnId"])
+        .expect("the transition destination has its registered player spawn");
+    assert_eq!(arena_player_spawn["kind"], "player");
+    assert_eq!(arena_player_spawn["position"], serde_json::json!([3.0, 0.0, 8.0]));
+    let elite_spawn = arena_scene["spawns"].as_array().unwrap().iter()
+        .find(|spawn| spawn["id"] == "cw_forged_guard_elite")
+        .expect("the authored arena has its typed elite actor spawn");
+    assert_eq!(elite_spawn["kind"], "enemy");
+    assert_eq!(elite_spawn["entityType"], "enemy.clockworks.forged_guard_elite");
+
+    let approach = walk_to_compiled_target(
+        &runtime,
+        ready,
+        "cw_furnace_heart",
+        "transitions",
+        "cw_furnace_heart_to_arena",
+    );
+    let affordance = approach.interactables.iter()
+        .find(|item| item.entity_id == "cw_furnace_heart_to_arena")
+        .expect("the authored Furnace-to-arena transition is projected at its polygon");
+    assert_eq!(affordance.kind, "scene_transition");
+    assert!(affordance.active, "the earned Furnace encounter route reaches the arena transition");
+    let arena_entry = apply_transition(
+        &runtime,
+        "cw_furnace_heart_to_arena",
+        "genuine-furnace-to-arena-entry",
+        approach.world_epoch,
+    );
+    assert_eq!(arena_entry.world_id, "clockworks");
+    assert_eq!(arena_entry.scene_id, "cw_forged_guard_arena");
+    assert_earned_valve_route_view(&arena_entry, "cw_forged_guard_arena");
+    assert!(arena_entry.player.current_hp > 0);
+    let player_spawn_position = arena_player_spawn["position"].as_array().unwrap();
+    assert!((arena_entry.player.transform.position_m.x_m - player_spawn_position[0].as_f64().unwrap() as f32).abs() <= 0.1);
+    assert!((arena_entry.player.transform.position_m.y_m - player_spawn_position[1].as_f64().unwrap() as f32).abs() <= 0.1);
+    assert!((arena_entry.player.transform.position_m.z_m - player_spawn_position[2].as_f64().unwrap() as f32).abs() <= 0.1);
+    let expected_elite_ids = BTreeSet::from(["cw_forged_guard_elite".to_owned()]);
+    assert_eq!(active_enemy_ids(&arena_entry), expected_elite_ids,
+        "arena entry must retain the living elite without starting its encounter");
+    let elite_view = arena_entry.actors.iter().find(|actor| actor.entity_id == "cw_forged_guard_elite")
+        .expect("the canonical elite actor is projected at arena entry");
+    assert_eq!(elite_view.actor_kind, "enemy");
+    assert!(elite_view.active, "the canonical elite actor is alive at arena entry");
+    assert!(runtime.presentation_events_since(arena_entry.world_epoch, 0).unwrap().iter()
+        .all(|event| event.kind != "EnemyDeath"), "arena entry records no enemy defeat");
+
+    let arena_entry = runtime.pause().unwrap();
+    assert_earned_valve_route_view(&arena_entry, "cw_forged_guard_arena");
+    assert_eq!(active_enemy_ids(&arena_entry), expected_elite_ids);
+    runtime.save().unwrap();
+    let arena_save = save_v6::read_save(&save_dir).unwrap();
+    assert_earned_valve_route_save(&arena_save, "cw_forged_guard_arena");
+    assert_eq!(arena_save.save.checkpoint_id.as_deref(), None,
+        "the arena entry does not invent a checkpoint");
+    assert_eq!(arena_save.save.server_time_ms, arena_entry.server_time_ms);
+    assert_eq!(arena_save.save.player.position_m, arena_entry.player.transform.position_m);
+    assert_eq!(arena_save.save.player.current_hp, arena_entry.player.current_hp);
+    assert_eq!(arena_save.save.player.current_energy, arena_entry.player.current_energy);
+    let elite_row = arena_save.save.generic_actors.iter()
+        .find(|actor| actor.entity_id == "cw_forged_guard_elite")
+        .expect("the arena SaveV6 retains the canonical elite row");
+    assert_eq!(elite_row.entity_type, "enemy.clockworks.forged_guard_elite");
+    assert!(elite_row.hp > 0, "the elite remains alive in the durable arena-entry save");
+    let arena_bytes = std::fs::read(&save_path).unwrap();
+    let arena_position = arena_entry.player.transform.position_m;
+    let arena_hp = arena_entry.player.current_hp;
+    let arena_energy = arena_entry.player.current_energy;
+    let arena_time = arena_entry.server_time_ms;
+    let arena_epoch = arena_entry.world_epoch;
+    drop(runtime);
+
+    let runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&runtime).unwrap();
+    let prepared = runtime.continue_saved().unwrap();
+    assert_ne!(prepared.world_epoch, arena_epoch, "fresh arena Continue creates a new owner epoch");
+    let token = prepared.entry_token.as_ref().expect("fresh arena owner waits for its exact readiness token");
+    assert_eq!(token.world_id, "clockworks");
+    assert_eq!(token.scene_id, "cw_forged_guard_arena");
+    assert_eq!(token.world_epoch, prepared.world_epoch);
+    assert_eq!(prepared.scene_id, "cw_forged_guard_arena");
+    assert_eq!(prepared.player.transform.position_m, arena_position);
+    assert_eq!(prepared.player.current_hp, arena_hp);
+    assert_eq!(prepared.player.current_energy, arena_energy);
+    assert_eq!(prepared.server_time_ms, arena_time);
+    assert_eq!(active_enemy_ids(&prepared), expected_elite_ids);
+    let elite_view = prepared.actors.iter().find(|actor| actor.entity_id == "cw_forged_guard_elite")
+        .expect("fresh Continue retains the canonical elite actor");
+    assert!(elite_view.active);
+    assert_earned_valve_route_view(&prepared, "cw_forged_guard_arena");
+    assert_eq!(std::fs::read(&save_path).unwrap(), arena_bytes,
+        "Continue preparation must not rewrite the durable arena entry");
+    assert!(runtime.presentation_events_since(prepared.world_epoch, 0).unwrap().iter()
+        .all(|event| event.kind != "EnemyDeath"), "arena Continue cannot replay an enemy defeat");
+    let continued = acknowledge_ready(&runtime, prepared);
+    assert_earned_valve_route_view(&continued, "cw_forged_guard_arena");
+    assert!(continued.player.current_hp > 0);
+    assert_eq!(continued.player.transform.position_m, arena_position);
+    assert_eq!(continued.player.current_hp, arena_hp);
+    assert_eq!(continued.player.current_energy, arena_energy);
+    assert_eq!(continued.server_time_ms, arena_time);
+    assert_eq!(active_enemy_ids(&continued), expected_elite_ids);
+    let elite_view = continued.actors.iter().find(|actor| actor.entity_id == "cw_forged_guard_elite")
+        .expect("readiness retains the canonical elite actor");
+    assert!(elite_view.active);
+    assert!(runtime.presentation_events_since(continued.world_epoch, 0).unwrap().iter()
+        .all(|event| event.kind != "EnemyDeath"), "readiness cannot replay an enemy defeat");
+
+    let final_entry = runtime.pause().unwrap();
+    assert_earned_valve_route_view(&final_entry, "cw_forged_guard_arena");
+    assert_eq!(active_enemy_ids(&final_entry), expected_elite_ids);
+    runtime.save().unwrap();
+    let final_save = save_v6::read_save(&save_dir).unwrap();
+    assert_earned_valve_route_save(&final_save, "cw_forged_guard_arena");
+    assert_eq!(final_save.save.checkpoint_id.as_deref(), None);
+    let final_elite = final_save.save.generic_actors.iter()
+        .find(|actor| actor.entity_id == "cw_forged_guard_elite")
+        .expect("the final owned SaveV6 retains the canonical elite row");
+    assert_eq!(final_elite.entity_type, "enemy.clockworks.forged_guard_elite");
+    assert!(final_elite.hp > 0, "the elite remains alive after the fresh-owner Continue");
+    let final_bytes = std::fs::read(&save_path).unwrap();
+    println!(
+        "Earned Furnace encounter cleared and saved; fresh Continue reached durable arena entry with elite {} ({}) at {} HP; player {} HP/{} energy, time {}, checkpoint {:?}; final save {} bytes, path {}",
+        final_elite.entity_id,
+        final_elite.entity_type,
+        final_elite.hp,
+        final_save.save.player.current_hp,
+        final_save.save.player.current_energy,
+        final_save.save.server_time_ms,
+        final_save.save.checkpoint_id,
+        final_bytes.len(),
+        save_path.display(),
+    );
+    drop(runtime);
+}
