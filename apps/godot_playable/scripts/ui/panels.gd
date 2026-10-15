@@ -649,44 +649,54 @@ func _archive() -> void:
 	if snapshot.is_empty() or not P.snapshot(snapshot):
 		_text('档案状态未确认')
 	else:
+		title.add_theme_font_size_override('font_size',int(24*font_scale))
+		var colors = ThemeModel.palette(snapshot.worldId)
+		var stack = VBoxContainer.new()
+		stack.name = 'ArchiveContent'
+		stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		stack.custom_minimum_size.x = 0.0
+		stack.add_theme_constant_override('separation',int(8*font_scale))
+		box.add_child(stack)
 		var shown = false
 		var saved_choice = _archive_saved_baizhi_choice()
 		if not saved_choice.is_empty():
-			_text(saved_choice)
+			var choice_card = _mission_card(stack,'archive_saved_baizhi_choice',colors)
+			_mission_label(choice_card,saved_choice,colors)
 			shown = true
 		for world in ['grey_hive','mist_harbor','clockworks']:
 			var row = Content.progress(snapshot,world)
 			if row.is_empty():
 				continue
+			var records: Array[String] = []
 			if row.get('worldId')=='grey_hive':
 				if 'hive_power' in row.completedEvents:
-					_text('灰巢：主电恢复记录\n主电还活着，只是被人为切断。')
-					shown = true
+					records.append('灰巢：主电恢复记录\n主电还活着，只是被人为切断。')
 				if 'hive_lockdown' in row.completedEvents:
-					_text('灰巢：隔离协议记录\n隔离协议已被局部覆盖。')
-					shown = true
+					records.append('灰巢：隔离协议记录\n隔离协议已被局部覆盖。')
 			if row.get('worldId')=='mist_harbor' and 'mist_beacon_west' in row.completedEvents and 'mist_beacon_east' in row.completedEvents:
-				_text('雾港：双基准同步记录\n双基准建立，中心干扰源可定位。')
-				shown = true
+				records.append('雾港：双基准同步记录\n双基准建立，中心干扰源可定位。')
 			if world=='mist_harbor' and 'mist_signal' in row.completedEvents and P.granted(snapshot,'perception.acoustic_mapping_i'):
-				_text('雾港：声学映射记录\n这次我不是在看路——是在听。')
-				shown = true
+				records.append('雾港：声学映射记录\n这次我不是在看路——是在听。')
 			var complete = row.completed==true and row.firstCompletion==true and row.completedEvents.size()==3
 			for event in Content.EVENTS[world]:
 				complete = complete and event in row.completedEvents
 			if complete:
 				if world=='grey_hive':
-					_text('灰巢：归航记录\n灰巢信标已解析。检测到第二组低可信坐标：雾港余烬。')
-					shown = true
+					records.append('灰巢：归航记录\n灰巢信标已解析。检测到第二组低可信坐标：雾港余烬。')
 				elif world=='mist_harbor' and P.granted(snapshot,'perception.acoustic_mapping_i'):
-					_text('雾港：归航记录\n声学映射已固化。第三坐标的机械周期与信号高度同步。')
-					shown = true
+					records.append('雾港：归航记录\n声学映射已固化。第三坐标的机械周期与信号高度同步。')
 				elif world=='clockworks' and P.granted(snapshot,'mobility.air_step_i'):
-					_text('钟骨：归航记录\n三处坐标不是孤立事件。网络中仍存在未识别节点。')
-					_text('钟骨：尾声记录\n原来门一直不止三扇。')
-					shown = true
+					records.append('钟骨：归航记录\n三处坐标不是孤立事件。网络中仍存在未识别节点。')
+					records.append('钟骨：尾声记录\n原来门一直不止三扇。')
+			if records.is_empty():
+				continue
+			var world_card = _mission_card(stack,'archive_records_'+world,colors)
+			_mission_label(world_card,WORLDS[world],colors,'system',1.12)
+			for record in records:
+				_mission_label(world_card,record,colors)
+			shown = true
 		if not shown:
-			_text('尚无已确认档案')
+			_mission_label(stack,'尚无已确认档案',colors)
 	_exploration_resume()
 	_button('返回','back')
 func _save() -> void:
