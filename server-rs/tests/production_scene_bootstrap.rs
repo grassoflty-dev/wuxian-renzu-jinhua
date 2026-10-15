@@ -22,6 +22,7 @@ use wuxian_horror_ch1::{
     continuous_input::InputSample, formal_runtime::FormalRuntime,
     production_scene_bootstrap as production, save_v6, scene_registry::WorldRegistry,
     scene_route_commands, scene_runtime::SceneRuntimeError,
+    world_persistent_v1::{GreyHiveBeaconAction, GreyHiveBeaconStage},
 };
 
 const RUNTIME_MANIFEST: &str = include_str!("../../governance/assets/RUNTIME_ASSET_MANIFEST.json");
@@ -931,8 +932,30 @@ fn apply_transition(
     acknowledge_ready(runtime, runtime.snapshot().unwrap())
 }
 
-#[test]
-fn production_route_reaches_exit_and_records_extraction_after_lockdown() {
+fn assert_carried_beacon_receipts(save: &save_v6::SaveV6) {
+    let beacon = save
+        .world_persistent_v1
+        .grey_hive
+        .beacon
+        .as_ref()
+        .expect("real Carried Beacon receipt is persisted");
+    assert_eq!(beacon.state, GreyHiveBeaconStage::Carried);
+    let actions = beacon
+        .receipts
+        .iter()
+        .map(|receipt| receipt.action)
+        .collect::<Vec<_>>();
+    assert_eq!(actions, vec![GreyHiveBeaconAction::Collect]);
+    assert!(!actions.contains(&GreyHiveBeaconAction::Mount));
+}
+
+fn complete_earned_grey_hive_first_clear(
+    mount_beacon: bool,
+) -> (
+    FormalRuntime,
+    wuxian_horror_ch1::world_v3::WorldView,
+    PathBuf,
+) {
     let save_dir = save_root();
     let runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
     production::install(&runtime).unwrap();
@@ -987,6 +1010,7 @@ fn production_route_reaches_exit_and_records_extraction_after_lockdown() {
     let brute_save=save_v6::read_save(&save_dir).unwrap();
     let brute=brute_save.save.generic_actors.iter().find(|actor|actor.entity_id=="gh_gate_b_brute_01").unwrap();
     assert_eq!(brute.hp,0);assert_eq!(brute.state,wuxian_horror_ch1::world_v3::ActorAiState::Dead);
+    drop(runtime);
     let continued_runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
     production::install(&continued_runtime).unwrap();
     let mut continued = acknowledge_ready(&continued_runtime, continued_runtime.continue_saved().unwrap());
@@ -1066,7 +1090,20 @@ fn production_route_reaches_exit_and_records_extraction_after_lockdown() {
         continued.world_epoch,
     );
     assert_eq!(continued.scene_id, "gh_beacon");
-    continued = grey_hive_beacon_campaign::collect_and_mount(&continued_runtime, continued, &save_dir);
+    continued = if mount_beacon {
+        grey_hive_beacon_campaign::collect_and_mount(&continued_runtime, continued, &save_dir)
+    } else {
+        grey_hive_beacon_campaign::collect_carried(&continued_runtime, continued, &save_dir)
+    };
+    if !mount_beacon {
+        let beacon = continued
+            .grey_hive_beacon
+            .as_ref()
+            .expect("native public Beacon projection remains available");
+        assert_eq!(beacon.state, GreyHiveBeaconStage::Carried);
+        assert!(!beacon.legacy_completed_without_receipt);
+        assert_carried_beacon_receipts(&save_v6::read_save(&save_dir).unwrap());
+    }
     continued = walk_x(&continued_runtime, continued, 22.5);
     continued = apply_transition(
         &continued_runtime,
@@ -1092,6 +1129,13 @@ fn production_route_reaches_exit_and_records_extraction_after_lockdown() {
         .find(|world| world.world_id == "grey_hive")
         .unwrap();
     assert!(gh_progress.completed);
+    assert!(gh_progress.first_completion);
+    for event_id in ["hive_power", "hive_lockdown", "hive_extraction"] {
+        assert!(
+            gh_progress.completed_events.iter().any(|event| event == event_id),
+            "first-clear GH progress includes canonical event {event_id}"
+        );
+    }
     let spent_extraction_console = extraction
         .view
         .interactables
@@ -1107,18 +1151,89 @@ fn production_route_reaches_exit_and_records_extraction_after_lockdown() {
         .unwrap();
     assert_eq!(return_gate.kind, "world_gate");
     assert!(return_gate.active);
-    let returned = scene_route_commands::world_gate(
+    let return_receipt = scene_route_commands::world_gate(
         &continued_runtime,
         "gh_extraction_return_to_rs",
         "eleven-scene-return-to-station",
         extraction.view.world_epoch,
     )
     .unwrap();
-    assert_v3_receipt(&returned, "eleven-scene-return-to-station", true);
-    acknowledge_ready(&continued_runtime, continued_runtime.snapshot().unwrap());
-    assert_eq!(returned.snapshot.world_id, "return_station");
-    assert_eq!(returned.snapshot.scene_id, "rs_core_room");
-    let at_terminal = walk_to_compiled_target(&continued_runtime, continued_runtime.snapshot().unwrap(),
+    assert_v3_receipt(&return_receipt, "eleven-scene-return-to-station", true);
+    let returned = acknowledge_ready(&continued_runtime, continued_runtime.snapshot().unwrap());
+    assert_eq!(return_receipt.snapshot.world_id, "return_station");
+    assert_eq!(return_receipt.snapshot.scene_id, "rs_core_room");
+    assert_eq!(returned.world_id, "return_station");
+    assert_eq!(returned.scene_id, "rs_core_room");
+    (continued_runtime, returned, save_dir)
+}
+
+#[test]
+fn genuine_grey_hive_first_clear_with_carried_beacon_returns_and_unlocks_mist_harbor() {
+    let (runtime, at_return_station, save_dir) =
+        complete_earned_grey_hive_first_clear(false);
+    assert_eq!(at_return_station.world_id, "return_station");
+    assert_eq!(at_return_station.scene_id, "rs_core_room");
+
+    runtime.save().unwrap();
+    let persisted = save_v6::read_save(&save_dir).unwrap();
+    assert_eq!(persisted.save.world_id, "return_station");
+    assert_eq!(persisted.save.scene_id, "rs_core_room");
+    let persisted_gh = persisted
+        .save
+        .progression
+        .progress
+        .iter()
+        .find(|world| world.world_id == "grey_hive")
+        .unwrap();
+    assert!(persisted_gh.completed);
+    assert!(persisted_gh.first_completion);
+    for event_id in ["hive_power", "hive_lockdown", "hive_extraction"] {
+        assert!(
+            persisted_gh.completed_events.iter().any(|event| event == event_id),
+            "saved first-clear GH progress includes canonical event {event_id}"
+        );
+    }
+    assert_carried_beacon_receipts(&persisted);
+    drop(runtime);
+
+    let continued_runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&continued_runtime).unwrap();
+    let resumed = acknowledge_ready(
+        &continued_runtime,
+        continued_runtime.continue_saved().unwrap(),
+    );
+    assert_eq!(resumed.world_id, "return_station");
+    assert_eq!(resumed.scene_id, "rs_core_room");
+    let resumed_gh = resumed
+        .progression
+        .worlds
+        .iter()
+        .find(|world| world.world_id == "grey_hive")
+        .unwrap();
+    assert!(resumed_gh.completed);
+    assert!(resumed_gh.first_completion);
+    for event_id in ["hive_power", "hive_lockdown", "hive_extraction"] {
+        assert!(
+            resumed_gh.completed_events.iter().any(|event| event == event_id),
+            "Continue preserves canonical GH event {event_id}"
+        );
+    }
+    assert_carried_beacon_receipts(&save_v6::read_save(&save_dir).unwrap());
+
+    let mh_gate = resumed
+        .interactables
+        .iter()
+        .find(|item| item.entity_id == "rs_mh_world_gate_marker")
+        .unwrap();
+    assert_eq!(mh_gate.kind, "world_gate");
+    assert!(mh_gate.active);
+}
+
+#[test]
+fn production_route_reaches_exit_and_records_extraction_after_lockdown() {
+    let (continued_runtime, at_return_station, save_dir) =
+        complete_earned_grey_hive_first_clear(true);
+    let at_terminal = walk_to_compiled_target(&continued_runtime, at_return_station,
         "rs_core_room", "interactions", "rs_capability_terminal_marker");
     continued_runtime.capability_terminal_status("rs_capability_terminal_marker", "eleven-scene-evolution-terminal", at_terminal.world_epoch).unwrap();
     continued_runtime.pause_context_ordered(&wuxian_horror_ch1::formal_runtime::SessionContext {
