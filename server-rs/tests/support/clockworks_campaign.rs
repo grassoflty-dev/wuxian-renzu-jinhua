@@ -2609,3 +2609,368 @@ fn genuine_earned_shutdown_returns_durable_three_world_completion() {
     );
     drop(runtime);
 }
+const EARNED_THREE_WORLD_RETURN_STATION_V6: &str = include_str!("../fixtures/earned-three-world-return-station-v6.json");
+
+fn submit_and_confirm_public_context_traversal(
+    runtime: &FormalRuntime,
+    view: &WorldView,
+    aim: (f32, f32),
+) -> (WorldView, (f32, f32, f32), u64) {
+    const MAX_OWNER_TIME_MS: u64 = 3_000;
+    let epoch = view.world_epoch;
+    let start_position = view.player.transform.position_m;
+    let start = (start_position.x_m, start_position.y_m, start_position.z_m);
+    let owner_start_ms = view.server_time_ms;
+    let event_cursor = runtime
+        .presentation_events_since(epoch, 0)
+        .unwrap()
+        .iter()
+        .map(|event| event.event_id)
+        .max()
+        .unwrap_or(0);
+    let wall_start = std::time::Instant::now();
+    let mut observed = runtime
+        .submit_action(ActionCommandRequest {
+            protocol_version: 2,
+            world_epoch: epoch,
+            request_id: NEXT_COMBAT_REQUEST.fetch_add(1, Ordering::Relaxed),
+            client_time_ms: NEXT_TIME.fetch_add(17, Ordering::Relaxed),
+            kind: ActionKind::ContextTraversal,
+        })
+        .unwrap();
+    assert_eq!(observed.world_epoch, epoch);
+    let mut started = BTreeSet::new();
+    let mut completed = BTreeSet::new();
+    let mut blocked = BTreeSet::new();
+
+    for _ in 0..300 {
+        observed = runtime.snapshot().unwrap();
+        assert_eq!(observed.world_epoch, epoch, "ContextTraversal stays in its originating epoch");
+        for event in runtime.presentation_events_since(epoch, event_cursor).unwrap() {
+            if event.event_id <= event_cursor || event.world_epoch != epoch {
+                continue;
+            }
+            match event.kind.as_str() {
+                "ContextTraversalStarted" => { started.insert(event.event_id); }
+                "ContextTraversalCompleted" => { completed.insert(event.event_id); }
+                "ContextTraversalBlocked" => { blocked.insert(event.event_id); }
+                _ => {}
+            }
+        }
+        if !completed.is_empty() {
+            break;
+        }
+        if observed.server_time_ms.saturating_sub(owner_start_ms) >= MAX_OWNER_TIME_MS
+            || wall_start.elapsed() >= std::time::Duration::from_secs(3)
+        {
+            break;
+        }
+        observed = input(runtime, &observed, (0.0, 0.0), aim);
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+
+    let elapsed_owner_ms = observed.server_time_ms.saturating_sub(owner_start_ms);
+    assert_eq!(started.len(), 1, "one new authoritative ContextTraversalStarted must follow the cursor");
+    assert_eq!(completed.len(), 1, "one new authoritative ContextTraversalCompleted must follow the cursor");
+    assert!(blocked.is_empty(), "the selected authored traversal cannot be blocked");
+    assert!(started.iter().next().unwrap() < completed.iter().next().unwrap(),
+        "ContextTraversalStarted precedes ContextTraversalCompleted");
+    assert!(elapsed_owner_ms <= MAX_OWNER_TIME_MS,
+        "ContextTraversal must finish within three seconds of owner time: {elapsed_owner_ms}ms");
+    assert!(wall_start.elapsed() <= std::time::Duration::from_secs(3),
+        "ContextTraversal must finish within three seconds of wall time");
+    (observed, start, elapsed_owner_ms)
+}
+
+#[test]
+fn genuine_first_revisit_uses_earned_air_step_shortcut() {
+    let save_dir = save_root();
+    assert!(!save_dir.exists(), "the task-owned revisit save directory must be fresh");
+    std::fs::create_dir_all(&save_dir).unwrap();
+    let save_path = save_dir.join("formal-save-v6.json");
+    std::fs::write(&save_path, EARNED_THREE_WORLD_RETURN_STATION_V6.as_bytes()).unwrap();
+    let fixture_bytes = EARNED_THREE_WORLD_RETURN_STATION_V6.as_bytes().to_vec();
+    assert_eq!(std::fs::read(&save_path).unwrap(), fixture_bytes,
+        "the scenario begins with the exact admitted Return Station SaveV6");
+
+    let entry_save = save_v6::read_save(&save_dir).unwrap();
+    assert_eq!(entry_save.save.world_id, "return_station");
+    assert_eq!(entry_save.save.scene_id, "rs_core_room");
+    assert_eq!(entry_save.save.player.position_m.x_m, 4.0);
+    assert_eq!(entry_save.save.player.position_m.y_m, 0.0);
+    assert_eq!(entry_save.save.player.position_m.z_m, 8.0);
+    assert_eq!(entry_save.save.player.current_hp, 46);
+    assert_eq!(entry_save.save.player.current_energy, 28);
+    assert_eq!(entry_save.save.server_time_ms, 747_048);
+    assert_eq!(entry_save.save.checkpoint_id, None);
+    let completed_events = BTreeSet::from([
+        "clockworks_valves".to_owned(),
+        "clockworks_core".to_owned(),
+        "clockworks_shutdown".to_owned(),
+    ]);
+    let initial_clockworks = entry_save.save.progression.progress.iter()
+        .find(|row| row.world_id == "clockworks").expect("completed Clockworks progression is saved");
+    assert!(initial_clockworks.completed && initial_clockworks.first_completion);
+    assert_eq!(initial_clockworks.visit_id, 1);
+    assert_eq!(initial_clockworks.cycle_id, 1);
+    assert_eq!(initial_clockworks.revisit_count, 0);
+    assert_eq!(initial_clockworks.completed_events.iter().cloned().collect::<BTreeSet<_>>(), completed_events);
+    let initial_gh = entry_save.save.progression.progress.iter()
+        .find(|row| row.world_id == "grey_hive").unwrap().clone();
+    let initial_mh = entry_save.save.progression.progress.iter()
+        .find(|row| row.world_id == "mist_harbor").unwrap().clone();
+    assert!(initial_gh.completed && initial_gh.first_completion);
+    assert!(initial_mh.completed && initial_mh.first_completion);
+    let initial_effect_sources = entry_save.effect_sources.clone();
+    let initial_grants = entry_save.save.capabilities.grants.clone();
+    let initial_selection = entry_save.save.capabilities.selected.clone();
+    assert_eq!(initial_effect_sources.iter().filter(|source| source.source_id == CAP_AIR_STEP).count(), 1);
+    assert_eq!(initial_grants.iter().filter(|grant| grant.capability_id == CAP_AIR_STEP).count(), 1);
+    assert!(initial_selection.iter().any(|capability| capability == CAP_AIR_STEP));
+    assert!(entry_save.world_persistent_v1.clockworks.core_console_confirmed);
+    assert_eq!(entry_save.world_persistent_v1.clockworks.pressure_valve_ids.len(), 3);
+
+    // Requests advance beyond the seed's client timestamp without changing its saved clock.
+    NEXT_TIME.fetch_max(entry_save.save.last_client_time_ms.saturating_add(1), Ordering::Relaxed);
+    assert!(NEXT_TIME.load(Ordering::Relaxed) > entry_save.save.last_client_time_ms);
+    let runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&runtime).unwrap();
+    let prepared = runtime.continue_saved().unwrap();
+    let token = prepared.entry_token.as_ref().expect("normal Return Station readiness is required");
+    assert_eq!(token.world_id, "return_station");
+    assert_eq!(token.scene_id, "rs_core_room");
+    assert_eq!(token.world_epoch, prepared.world_epoch);
+    assert_eq!(prepared.player.transform.position_m.x_m, entry_save.save.player.position_m.x_m);
+    assert_eq!(prepared.player.transform.position_m.y_m, entry_save.save.player.position_m.y_m);
+    assert_eq!(prepared.player.transform.position_m.z_m, entry_save.save.player.position_m.z_m);
+    assert_eq!(prepared.player.current_hp, entry_save.save.player.current_hp);
+    assert_eq!(prepared.player.current_energy, entry_save.save.player.current_energy);
+    assert_eq!(prepared.server_time_ms, entry_save.save.server_time_ms);
+    assert_eq!(prepared.checkpoint_id, entry_save.save.checkpoint_id);
+    assert_eq!(std::fs::read(&save_path).unwrap(), fixture_bytes,
+        "Return Station Continue preparation cannot rewrite the admitted input");
+    let ready = acknowledge_ready(&runtime, prepared);
+    assert_eq!(ready.world_id, "return_station");
+    assert_eq!(ready.scene_id, "rs_core_room");
+    assert_eq!(ready.player.current_hp, 46);
+    assert_eq!(ready.player.current_energy, 28);
+    assert_eq!(ready.server_time_ms, 747_048);
+    assert_eq!(std::fs::read(&save_path).unwrap(), fixture_bytes,
+        "Return Station readiness cannot rewrite the admitted input");
+
+    let pre_rest_hp = ready.player.current_hp;
+    let pre_rest_energy = ready.player.current_energy;
+    let mut view = rest_and_enter(&runtime, "earned-first-cw-revisit");
+    assert_eq!(view.world_id, "clockworks");
+    assert_eq!(view.scene_id, "cw_entry_foundry");
+    assert!(view.player.current_hp > 0);
+    println!("Native Return Station rest and genuine gate entry: HP {pre_rest_hp}->{} and energy {pre_rest_energy}->{}; {}ms",
+        view.player.current_hp, view.player.current_energy, view.server_time_ms.saturating_sub(ready.server_time_ms));
+    let clockworks = view.progression.worlds.iter()
+        .find(|row| row.world_id == "clockworks").expect("revisited Clockworks progression is projected");
+    assert!(clockworks.completed && clockworks.first_completion);
+    assert_eq!(clockworks.visit_id, 2);
+    assert_eq!(clockworks.cycle_id, 1);
+    assert_eq!(clockworks.revisit_count, 1);
+    assert_eq!(clockworks.completed_events.iter().cloned().collect::<BTreeSet<_>>(), completed_events);
+    assert!(view.capabilities.items.iter().any(|item|
+        item.capability_id == CAP_AIR_STEP && item.granted && item.selected),
+        "the original earned AirStep remains both granted and selected on revisit");
+    for (world_id, expected) in [("grey_hive", &initial_gh), ("mist_harbor", &initial_mh)] {
+        let prior = view.progression.worlds.iter().find(|row| row.world_id == world_id)
+            .unwrap_or_else(|| panic!("missing retained {world_id} progress"));
+        assert!(prior.completed && prior.first_completion);
+        assert_eq!(prior.visit_id, expected.visit_id);
+        assert_eq!(prior.cycle_id, expected.cycle_id);
+        assert_eq!(prior.revisit_count, expected.revisit_count);
+        assert_eq!(prior.completed_events, expected.completed_events);
+    }
+
+    // The gate entry itself is typed and durable; no route award is repeated.
+    runtime.save().unwrap();
+    let gate_save = save_v6::read_save(&save_dir).unwrap();
+    assert_eq!(gate_save.save.scene_id, "cw_entry_foundry");
+    let gate_bytes = std::fs::read(&save_path).unwrap();
+    assert_ne!(gate_bytes, fixture_bytes, "the genuine gate-entry save replaces the admitted Return Station seed");
+    let gate_progress = gate_save.save.progression.progress.iter()
+        .find(|row| row.world_id == "clockworks").unwrap();
+    assert!(gate_progress.completed && gate_progress.first_completion);
+    assert_eq!(gate_progress.visit_id, 2);
+    assert_eq!(gate_progress.cycle_id, 1);
+    assert_eq!(gate_progress.revisit_count, 1);
+    assert_eq!(gate_progress.completed_events.iter().cloned().collect::<BTreeSet<_>>(), completed_events);
+    assert_eq!(gate_save.effect_sources, initial_effect_sources);
+    assert_eq!(gate_save.save.capabilities.grants, initial_grants);
+    assert_eq!(gate_save.save.capabilities.selected, initial_selection);
+    assert_eq!(gate_save.effect_sources.iter().filter(|source| source.source_id == CAP_AIR_STEP).count(), 1);
+    assert_eq!(gate_save.save.capabilities.grants.iter().filter(|grant| grant.capability_id == CAP_AIR_STEP).count(), 1);
+
+    // Reach Gear on the public, registered route. Each encountered roster is recorded and
+    // cleared only through the existing live ordinary-combat helper.
+    for &(scene_id, transition_id) in ROUTE.iter().take(4) {
+        assert_eq!(view.scene_id, scene_id);
+        let enemies_before = active_enemy_ids(&view);
+        println!("Revisit route {scene_id}: {} active enemies at {} HP/{} energy",
+            enemies_before.len(), view.player.current_hp, view.player.current_energy);
+        if scene_id != "cw_entry_foundry" {
+            assert!(!enemies_before.is_empty(), "the revisit must encounter the authored {scene_id} roster");
+        }
+        view = clear_live_enemies(&runtime, view);
+        assert!(view.player.current_hp > 0, "the ordinary {scene_id} encounter ends alive");
+        assert!(active_enemy_ids(&view).is_empty(), "the actual {scene_id} ordinary roster is cleared");
+        println!("Revisit route {scene_id} cleared: {} HP/{} energy",
+            view.player.current_hp, view.player.current_energy);
+
+        if scene_id == "cw_conveyor_bridge" {
+            let conveyor_scene = compiled_route_scene(scene_id);
+            let vault = conveyor_scene["logic"]["traversal"].as_array().unwrap().iter()
+                .find(|marker| marker["id"] == "cw_conveyor_context_vault")
+                .expect("the registered Conveyor vault is authored");
+            assert!(vault["requiredCapabilities"].as_array().unwrap().is_empty(),
+                "only the existing capability-free Conveyor vault supplies this route step");
+            let at_vault = walk_to_authored_traversal_start(
+                &runtime, view, scene_id, "cw_conveyor_context_vault");
+            let floor_start = at_vault.player.transform.position_m;
+            assert!((0.0..=0.1).contains(&floor_start.y_m));
+            let (vault_view, start, elapsed) = submit_and_confirm_public_context_traversal(
+                &runtime, &at_vault, (1.0, 0.0));
+            assert_eq!(vault_view.scene_id, "cw_conveyor_bridge");
+            assert!(vault_view.player.current_hp > 0);
+            let floor_end = vault_view.player.transform.position_m;
+            assert!((0.0..=0.1).contains(&floor_end.y_m), "the vault lands on its lower floor");
+            assert!(floor_end.x_m - start.0 >= 1.0,
+                "the completed vault has real forward displacement: {start:?} -> {:?}",
+                (floor_end.x_m, floor_end.y_m, floor_end.z_m));
+            println!("Capability-free Conveyor vault completed in {elapsed} owner ms with {:.2}m forward movement",
+                floor_end.x_m - start.0);
+            view = vault_view;
+        }
+
+        view = walk_to_compiled_target(&runtime, view, scene_id, "transitions", transition_id);
+        view = apply_transition(&runtime, transition_id,
+            &format!("earned-revisit-{transition_id}"), view.world_epoch);
+    }
+
+    assert_eq!(view.scene_id, "cw_gear_shaft");
+    let gear_enemies = active_enemy_ids(&view);
+    assert!(!gear_enemies.is_empty(), "the actual Gear ordinary roster spawns on entry");
+    println!("Gear revisit entry: {} authored enemies at {} HP/{} energy",
+        gear_enemies.len(), view.player.current_hp, view.player.current_energy);
+    view = clear_live_enemies(&runtime, view);
+    assert!(view.player.current_hp > 0);
+    assert!(active_enemy_ids(&view).is_empty());
+    println!("Gear ordinary encounter cleared alive at {} HP/{} energy",
+        view.player.current_hp, view.player.current_energy);
+
+    // Walk around the south edge and approach from the lower west side; never ride the lift.
+    view = gear_walk(&runtime, view, 12.0, 11.0);
+    assert!((0.0..=0.1).contains(&view.player.transform.position_m.y_m));
+    view = gear_walk(&runtime, view, 9.9, 11.0);
+    view = gear_walk(&runtime, view, 9.9, 8.0);
+    let lower_position = view.player.transform.position_m;
+    assert!((0.0..=0.1).contains(&lower_position.y_m), "AirStep must start on the lower floor");
+    assert!(!view.support_scene.as_ref().is_some_and(|support|
+        support.rider.support_id.as_deref() == Some("cw_gear_main_lift")),
+        "the approach cannot ride the main Gear lift");
+    let gear_scene = compiled_route_scene("cw_gear_shaft");
+    let shortcut = gear_scene["logic"]["traversal"].as_array().unwrap().iter()
+        .find(|marker| marker["id"] == "cw_gear_earned_air_step")
+        .expect("the earned ground-to-upper-dock AirStep marker is authored");
+    let from = shortcut["from"].as_array().unwrap();
+    let from_x = from[0].as_f64().unwrap() as f32;
+    let from_z = from[2].as_f64().unwrap() as f32;
+    let from_height = shortcut["fromHeightRangeM"].as_array().unwrap();
+    let min_height = from_height[0].as_f64().unwrap() as f32;
+    let max_height = from_height[1].as_f64().unwrap() as f32;
+    let range = shortcut["rangeM"].as_f64().unwrap() as f32;
+    let distance = (from_x - lower_position.x_m).hypot(from_z - lower_position.z_m);
+    assert!((min_height..=max_height).contains(&lower_position.y_m),
+        "the actual living body begins within the authored ground height range");
+    assert!(distance <= range,
+        "the actual ground position is in range of the compiled AirStep marker: {distance}m/{range}m");
+    let required = shortcut["requiredCapabilities"].as_array().unwrap().iter()
+        .filter_map(serde_json::Value::as_str).collect::<BTreeSet<_>>();
+    assert_eq!(required, BTreeSet::from([CAP_AIR_STEP]));
+    assert!(view.capabilities.items.iter().any(|item|
+        item.capability_id == CAP_AIR_STEP && item.granted && item.selected),
+        "the actual revisited owner still has the earned and selected AirStep");
+
+    let air_step_hp = view.player.current_hp;
+    let air_step_energy = view.player.current_energy;
+    let (upper_view, air_step_start, elapsed) =
+        submit_and_confirm_public_context_traversal(&runtime, &view, (1.0, 0.0));
+    assert_eq!(upper_view.scene_id, "cw_gear_shaft");
+    assert!(upper_view.player.current_hp > 0);
+    let upper_position = upper_view.player.transform.position_m;
+    assert!((1.9..=2.1).contains(&upper_position.y_m),
+        "the one real earned AirStep moves the body from ground to the two-meter dock: {air_step_start:?} -> ({}, {}, {})",
+        upper_position.x_m, upper_position.y_m, upper_position.z_m);
+    assert!(upper_position.x_m - air_step_start.0 >= 1.0,
+        "the real AirStep has forward displacement: {air_step_start:?} -> ({}, {}, {})",
+        upper_position.x_m, upper_position.y_m, upper_position.z_m);
+    let dock = gear_scene["standingDecks"].as_array().unwrap().iter()
+        .find(|surface| surface["id"] == "cw_gear_upper_dock")
+        .expect("the two-meter upper dock is an authored standing surface");
+    assert_eq!(dock["heightM"].as_f64().unwrap(), 2.0);
+    let support = upper_view.support_scene.as_ref().expect("Gear support contact is projected");
+    assert_eq!(support.rider.mode,
+        wuxian_horror_ch1::moving_support::SupportRiderMode::Surface);
+    assert_eq!(support.rider.support_id.as_deref(), Some("cw_gear_upper_dock"));
+    assert!((support.rider.position_m.y_m - upper_position.y_m).abs() <= 0.001);
+    let upper_pose = support.poses.iter().find(|pose| pose.support_id == "cw_gear_upper_dock")
+        .expect("the completed AirStep is supported by the authored upper dock");
+    assert!((upper_pose.height_m - 2.0).abs() <= 0.001);
+    println!("Earned AirStep revisit: ground ({:.2}, {:.2}, {:.2}) to upper dock ({:.2}, {:.2}, {:.2}) in {elapsed} owner ms; HP {air_step_hp}->{}, energy {air_step_energy}->{}",
+        air_step_start.0, air_step_start.1, air_step_start.2,
+        upper_position.x_m, upper_position.y_m, upper_position.z_m,
+        upper_view.player.current_hp, upper_view.player.current_energy);
+
+    // Pause and save the actual living AirStep result. Do not continue into the Furnace route.
+    let final_view = runtime.pause().unwrap();
+    assert_eq!(final_view.scene_id, "cw_gear_shaft");
+    assert!(final_view.player.current_hp > 0);
+    assert!((1.9..=2.1).contains(&final_view.player.transform.position_m.y_m));
+    let final_position = final_view.player.transform.position_m;
+    let final_checkpoint = final_view.checkpoint_id.clone();
+    runtime.save().unwrap();
+    let final_save = save_v6::read_save(&save_dir).unwrap();
+    assert_eq!(final_save.save.scene_id, "cw_gear_shaft");
+    assert_eq!(final_save.save.player.position_m.x_m, final_position.x_m);
+    assert_eq!(final_save.save.player.position_m.y_m, final_position.y_m);
+    assert_eq!(final_save.save.player.position_m.z_m, final_position.z_m);
+    assert_eq!(final_save.save.player.current_hp, final_view.player.current_hp);
+    assert_eq!(final_save.save.player.current_energy, final_view.player.current_energy);
+    assert_eq!(final_save.save.server_time_ms, final_view.server_time_ms);
+    assert_eq!(final_save.save.checkpoint_id, final_checkpoint,
+        "the actual checkpoint outcome is retained without earning one in the test");
+    assert!(final_save.save.moving_support_frame.as_ref().is_some_and(|frame|
+        frame.poses.iter().any(|pose| pose.support_id == "cw_gear_upper_dock"
+            && (pose.height_m - 2.0).abs() <= 0.001)),
+        "the paused saved body retains its actual upper-dock support frame");
+    let final_clockworks = final_save.save.progression.progress.iter()
+        .find(|row| row.world_id == "clockworks").expect("final Clockworks state is saved");
+    assert!(final_clockworks.completed && final_clockworks.first_completion);
+    assert_eq!(final_clockworks.visit_id, 2);
+    assert_eq!(final_clockworks.cycle_id, 1);
+    assert_eq!(final_clockworks.revisit_count, 1);
+    assert_eq!(final_clockworks.completed_events.iter().cloned().collect::<BTreeSet<_>>(), completed_events);
+    assert_eq!(final_save.save.progression.progress.iter()
+        .find(|row| row.world_id == "grey_hive").unwrap(), &initial_gh,
+        "Grey Hive progression remains byte-semantic-equivalent to the admitted save");
+    assert_eq!(final_save.save.progression.progress.iter()
+        .find(|row| row.world_id == "mist_harbor").unwrap(), &initial_mh,
+        "Mist Harbor progression remains byte-semantic-equivalent to the admitted save");
+    assert_eq!(final_save.effect_sources, initial_effect_sources,
+        "AirStep use on revisit cannot duplicate or change earned effect sources");
+    assert_eq!(final_save.save.capabilities.grants, initial_grants,
+        "AirStep use on revisit cannot duplicate or change capability grants");
+    assert_eq!(final_save.save.capabilities.selected, initial_selection,
+        "AirStep remains selected as in the admitted earned save");
+    assert_eq!(final_save.effect_sources.iter().filter(|source| source.source_id == CAP_AIR_STEP).count(), 1);
+    assert_eq!(final_save.save.capabilities.grants.iter().filter(|grant| grant.capability_id == CAP_AIR_STEP).count(), 1);
+    assert!(final_save.save.capabilities.selected.iter().any(|capability| capability == CAP_AIR_STEP));
+    println!("Paused earned AirStep revisit saved at {}: {} HP/{} energy, {}ms, checkpoint {:?}",
+        save_path.display(), final_view.player.current_hp, final_view.player.current_energy,
+        final_view.server_time_ms, final_checkpoint);
+    drop(runtime);
+}
