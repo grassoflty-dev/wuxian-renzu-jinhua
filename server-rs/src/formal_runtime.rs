@@ -77,6 +77,8 @@ mod rest_transaction_tests;
 mod reward_save_target_tests;
 #[cfg(test)]
 mod scene_history_runtime_regressions;
+#[cfg(test)]
+mod named_v6_overwrite_roundtrip_tests;
 pub(crate) mod warden_encounter;
 #[cfg(feature = "deterministic-replay")]
 mod replay;
