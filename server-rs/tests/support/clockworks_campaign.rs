@@ -1938,3 +1938,305 @@ fn genuine_earned_elite_defeat_reaches_durable_regulator_entry() {
     );
     drop(runtime);
 }
+
+// Exact qualified living regulator-entry SaveV6 from the earned elite first-kill route.
+const EARNED_CW_REGULATOR_ENTRY_V6: &str =
+    include_str!("../fixtures/earned-cw-regulator-entry-v6.json");
+
+#[test]
+fn genuine_earned_regulator_core_reaches_durable_shutdown_entry() {
+    let save_dir = save_root();
+    assert!(!save_dir.exists(), "task save directory must be fresh");
+    std::fs::create_dir_all(&save_dir).unwrap();
+    let save_path = save_dir.join("formal-save-v6.json");
+    std::fs::write(&save_path, EARNED_CW_REGULATOR_ENTRY_V6.as_bytes()).unwrap();
+
+    let entry_save = save_v6::read_save(&save_dir).unwrap();
+    assert_earned_valve_route_save(&entry_save, "cw_regulator_core");
+    assert_eq!(entry_save.save.checkpoint_id.as_deref(), None);
+    assert_eq!(entry_save.save.player.current_hp, 46);
+    assert_eq!(entry_save.save.player.current_energy, 28);
+    assert_eq!(entry_save.save.player.position_m.x_m, 3.0);
+    assert_eq!(entry_save.save.player.position_m.y_m, 0.0);
+    assert_eq!(entry_save.save.player.position_m.z_m, 8.0);
+    assert_eq!(entry_save.save.server_time_ms, 658_274);
+    assert_eq!(entry_save.save.generic_actors.len(), 1);
+    let living_regulator = &entry_save.save.generic_actors[0];
+    assert_eq!(living_regulator.entity_id, "cw_prime_regulator");
+    assert_eq!(living_regulator.entity_type, "enemy.clockworks.prime_regulator");
+    assert_eq!(living_regulator.hp, 600);
+    assert!(entry_save.world_persistent_v1.clockworks.forged_guard_elite_first_kill);
+    assert!(!entry_save.world_persistent_v1.clockworks.regulator_defeated);
+    assert!(!entry_save.world_persistent_v1.clockworks.core_console_confirmed);
+    let earned_effect_sources = entry_save.effect_sources.clone();
+    let earned_grants = entry_save.save.capabilities.grants.clone();
+
+    let runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&runtime).unwrap();
+    let prepared = runtime.continue_saved().unwrap();
+    let entry_epoch = prepared.world_epoch;
+    let token = prepared.entry_token.as_ref().expect("fresh regulator owner awaits normal readiness");
+    assert_eq!(token.world_id, "clockworks");
+    assert_eq!(token.scene_id, "cw_regulator_core");
+    assert_eq!(token.world_epoch, entry_epoch);
+    assert_earned_valve_route_view(&prepared, "cw_regulator_core");
+    assert_eq!(prepared.player.current_hp, 46);
+    assert_eq!(prepared.player.current_energy, 28);
+    assert_eq!(prepared.player.transform.position_m.x_m, 3.0);
+    assert_eq!(prepared.player.transform.position_m.z_m, 8.0);
+    assert_eq!(prepared.server_time_ms, 658_274);
+    assert_eq!(active_enemy_ids(&prepared), BTreeSet::from(["cw_prime_regulator".to_owned()]));
+    assert!(prepared.actors.iter().any(|actor|
+        actor.entity_id == "cw_prime_regulator" && actor.actor_kind == "enemy" && actor.active));
+    assert!(runtime.presentation_events_since(entry_epoch, 0).unwrap().iter().all(|event|
+        !matches!(event.kind.as_str(), "EnemyDeath" | "ForgedGuardEliteDeath" | "PrimeRegulatorDeath")),
+        "regulator-entry Continue preparation cannot replay an earlier defeat");
+    let continued_entry = acknowledge_ready(&runtime, prepared);
+    assert_earned_valve_route_view(&continued_entry, "cw_regulator_core");
+    assert_eq!(continued_entry.player.current_hp, 46);
+    assert_eq!(continued_entry.player.current_energy, 28);
+    assert_eq!(active_enemy_ids(&continued_entry), BTreeSet::from(["cw_prime_regulator".to_owned()]));
+    assert!(runtime.presentation_events_since(entry_epoch, 0).unwrap().iter().all(|event|
+        !matches!(event.kind.as_str(), "EnemyDeath" | "ForgedGuardEliteDeath" | "PrimeRegulatorDeath")),
+        "regulator-entry readiness cannot replay an earlier defeat");
+
+    let combat_cursor = runtime.presentation_events_since(entry_epoch, 0).unwrap().iter()
+        .map(|event| event.event_id).max().unwrap_or(0);
+    let defeated_view = clear_live_enemies(&runtime, continued_entry);
+    assert_eq!(defeated_view.world_epoch, entry_epoch, "the real boss defeat remains in the entered epoch");
+    assert_eq!(defeated_view.scene_id, "cw_regulator_core");
+    assert!(defeated_view.player.current_hp > 0, "earned regulator combat must finish alive");
+    assert!(active_enemy_ids(&defeated_view).is_empty(), "public combat must actually defeat the regulator");
+    let combat_events = runtime.presentation_events_since(entry_epoch, combat_cursor).unwrap();
+    let regulator_deaths = combat_events.iter().filter(|event|
+        event.kind == "PrimeRegulatorDeath" && event.world_epoch == entry_epoch).collect::<Vec<_>>();
+    assert_eq!(regulator_deaths.len(), 1,
+        "one same-epoch public PrimeRegulatorDeath must follow the observed combat cursor");
+
+    runtime.save().unwrap();
+    let defeated_save = save_v6::read_save(&save_dir).unwrap();
+    assert_eq!(defeated_save.save.world_id, "clockworks");
+    assert_eq!(defeated_save.save.scene_id, "cw_regulator_core");
+    let defeated_progress = defeated_save.save.progression.progress.iter()
+        .find(|row| row.world_id == "clockworks").expect("Clockworks progress is saved");
+    assert_eq!(defeated_progress.visit_id, 1);
+    assert_eq!(defeated_progress.cycle_id, 1);
+    assert_eq!(defeated_progress.revisit_count, 0);
+    assert!(!defeated_progress.completed && !defeated_progress.first_completion);
+    assert_eq!(defeated_progress.completed_events, vec!["clockworks_valves"]);
+    assert!(defeated_save.world_persistent_v1.clockworks.forged_guard_elite_first_kill);
+    assert!(defeated_save.world_persistent_v1.clockworks.regulator_defeated);
+    assert!(!defeated_save.world_persistent_v1.clockworks.core_console_confirmed);
+    assert_eq!(defeated_save.effect_sources, earned_effect_sources);
+    assert_eq!(defeated_save.save.capabilities.grants, earned_grants);
+    assert!(!defeated_save.save.capabilities.grants.iter()
+        .any(|grant| grant.capability_id == CAP_AIR_STEP));
+    assert_eq!(defeated_save.save.generic_actors.len(), 1);
+    let defeated_regulator = &defeated_save.save.generic_actors[0];
+    assert_eq!(defeated_regulator.entity_id, "cw_prime_regulator");
+    assert_eq!(defeated_regulator.entity_type, "enemy.clockworks.prime_regulator");
+    assert_eq!(defeated_regulator.hp, 0);
+    assert_eq!(defeated_save.save.player.current_hp, defeated_view.player.current_hp);
+    assert!(defeated_save.save.player.current_hp > 0);
+    assert_eq!(defeated_save.save.server_time_ms, defeated_view.server_time_ms);
+    let defeated_position = defeated_view.player.transform.position_m;
+    let defeated_hp = defeated_view.player.current_hp;
+    let defeated_energy = defeated_view.player.current_energy;
+    let defeated_time = defeated_view.server_time_ms;
+    let defeated_bytes = std::fs::read(&save_path).unwrap();
+    drop(runtime);
+
+    // A distinct full owner must continue the dead regulator before and after readiness.
+    let runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&runtime).unwrap();
+    let prepared = runtime.continue_saved().unwrap();
+    assert_ne!(prepared.world_epoch, entry_epoch, "defeat Continue creates a fresh owner epoch");
+    let token = prepared.entry_token.as_ref().expect("new regulator owner awaits readiness");
+    assert_eq!(token.world_id, "clockworks");
+    assert_eq!(token.scene_id, "cw_regulator_core");
+    assert_eq!(token.world_epoch, prepared.world_epoch);
+    assert_eq!(prepared.scene_id, "cw_regulator_core");
+    assert_eq!(prepared.player.transform.position_m, defeated_position);
+    assert_eq!(prepared.player.current_hp, defeated_hp);
+    assert_eq!(prepared.player.current_energy, defeated_energy);
+    assert_eq!(prepared.server_time_ms, defeated_time);
+    assert!(prepared.player.current_hp > 0);
+    assert!(active_enemy_ids(&prepared).is_empty(), "Continue retains the dead regulator");
+    assert!(prepared.actors.iter().any(|actor|
+        actor.entity_id == "cw_prime_regulator" && actor.actor_kind == "enemy" && !actor.active));
+    assert_earned_valve_route_view(&prepared, "cw_regulator_core");
+    assert_eq!(std::fs::read(&save_path).unwrap(), defeated_bytes,
+        "Continue preparation cannot rewrite the defeated SaveV6");
+    assert!(runtime.presentation_events_since(prepared.world_epoch, 0).unwrap().iter().all(|event|
+        !matches!(event.kind.as_str(), "EnemyDeath" | "ForgedGuardEliteDeath" | "PrimeRegulatorDeath")),
+        "new-owner preparation cannot replay the elite or regulator defeat");
+    let mut view = acknowledge_ready(&runtime, prepared);
+    assert_eq!(view.player.transform.position_m, defeated_position);
+    assert_eq!(view.player.current_hp, defeated_hp);
+    assert_eq!(view.player.current_energy, defeated_energy);
+    assert_eq!(view.server_time_ms, defeated_time);
+    assert!(active_enemy_ids(&view).is_empty());
+    assert_earned_valve_route_view(&view, "cw_regulator_core");
+    assert!(runtime.presentation_events_since(view.world_epoch, 0).unwrap().iter().all(|event|
+        !matches!(event.kind.as_str(), "EnemyDeath" | "ForgedGuardEliteDeath" | "PrimeRegulatorDeath")),
+        "new-owner readiness cannot replay the elite or regulator defeat");
+    let console_epoch = view.world_epoch;
+    view = interact(&runtime, view, "cw_regulator_core_console_staged", "genuine-cw-core");
+    assert_eq!(view.world_epoch, console_epoch, "the core receipt belongs to the current owner epoch");
+    assert_eq!(view.scene_id, "cw_regulator_core");
+    assert!(view.player.current_hp > 0);
+    assert!(active_enemy_ids(&view).is_empty());
+    assert_earned_clockworks_prefix(&view);
+    let core_progress = view.progression.worlds.iter().find(|row| row.world_id == "clockworks")
+        .expect("Clockworks core-stage progress remains projected");
+    assert_eq!(core_progress.visit_id, 1);
+    assert_eq!(core_progress.cycle_id, 1);
+    assert_eq!(core_progress.revisit_count, 0);
+    assert!(!core_progress.completed && !core_progress.first_completion);
+    assert_eq!(core_progress.completed_events,
+        vec!["clockworks_valves".to_owned(), "clockworks_core".to_owned()]);
+    assert!(runtime.presentation_events_since(console_epoch, 0).unwrap().iter().all(|event|
+        !matches!(event.kind.as_str(), "EnemyDeath" | "PrimeRegulatorDeath")),
+        "core confirmation cannot replay or duplicate the regulator defeat");
+    assert!(!view.capabilities.items.iter()
+        .any(|item| item.capability_id == CAP_AIR_STEP && item.granted));
+
+    let core_epoch = view.world_epoch;
+    let at_exit = walk_to_compiled_target(&runtime, view, "cw_regulator_core", "transitions",
+        "cw_regulator_core_to_shutdown_exit");
+    let exit_affordance = at_exit.interactables.iter()
+        .find(|item| item.entity_id == "cw_regulator_core_to_shutdown_exit")
+        .expect("authored shutdown transition is projected at the reached gate");
+    assert_eq!(exit_affordance.kind, "scene_transition");
+    assert!(exit_affordance.active,
+        "the actual core confirmation enables the authored transition when the player reaches it");
+    let mut shutdown_view = apply_transition(&runtime, "cw_regulator_core_to_shutdown_exit",
+        "genuine-cw-core-to-shutdown-entry", at_exit.world_epoch);
+    assert_ne!(shutdown_view.world_epoch, core_epoch, "the gated authored transition installs a fresh scene epoch");
+    assert_eq!(shutdown_view.world_id, "clockworks");
+    assert_eq!(shutdown_view.scene_id, "cw_shutdown_exit");
+    assert!(shutdown_view.player.current_hp > 0);
+    assert!((shutdown_view.player.transform.position_m.x_m - 3.0).abs() <= 0.1);
+    assert!((shutdown_view.player.transform.position_m.y_m - 0.0).abs() <= 0.1);
+    assert!((shutdown_view.player.transform.position_m.z_m - 8.0).abs() <= 0.1);
+    assert!(active_enemy_ids(&shutdown_view).is_empty());
+    assert_earned_clockworks_prefix(&shutdown_view);
+    let shutdown_progress = shutdown_view.progression.worlds.iter()
+        .find(|row| row.world_id == "clockworks").expect("Clockworks shutdown-entry progress remains projected");
+    assert_eq!(shutdown_progress.visit_id, 1);
+    assert_eq!(shutdown_progress.cycle_id, 1);
+    assert_eq!(shutdown_progress.revisit_count, 0);
+    assert!(!shutdown_progress.completed && !shutdown_progress.first_completion);
+    assert_eq!(shutdown_progress.completed_events,
+        vec!["clockworks_valves".to_owned(), "clockworks_core".to_owned()]);
+    assert!(shutdown_view.capabilities.items.iter()
+        .all(|item| item.capability_id != CAP_AIR_STEP || !item.granted));
+    assert!(runtime.presentation_events_since(shutdown_view.world_epoch, 0).unwrap().iter().all(|event|
+        !matches!(event.kind.as_str(), "EnemyDeath" | "ForgedGuardEliteDeath" | "PrimeRegulatorDeath")),
+        "shutdown-entry installation cannot replay either earned Boss defeat");
+    assert_eq!(shutdown_view.checkpoint_id.as_deref(), None,
+        "the authored transition enters at the lower spawn without activating the later checkpoint");
+
+    runtime.save().unwrap();
+    let shutdown_save = save_v6::read_save(&save_dir).unwrap();
+    assert_eq!(shutdown_save.save.world_id, "clockworks");
+    assert_eq!(shutdown_save.save.scene_id, "cw_shutdown_exit");
+    assert_eq!(shutdown_save.save.checkpoint_id.as_deref(), None);
+    assert_eq!(shutdown_save.save.player.position_m, shutdown_view.player.transform.position_m);
+    assert!(shutdown_save.save.player.current_hp > 0);
+    assert_eq!(shutdown_save.save.server_time_ms, shutdown_view.server_time_ms);
+    assert!(shutdown_save.world_persistent_v1.clockworks.forged_guard_elite_first_kill);
+    assert!(shutdown_save.world_persistent_v1.clockworks.regulator_defeated);
+    assert!(shutdown_save.world_persistent_v1.clockworks.core_console_confirmed);
+    assert_eq!(shutdown_save.world_persistent_v1.clockworks.pressure_valve_ids, vec![
+        "cw_pressure_valve_01_staged".to_owned(),
+        "cw_pressure_valve_02_staged".to_owned(),
+        "cw_pressure_valve_03_staged".to_owned(),
+    ]);
+    let shutdown_saved_progress = shutdown_save.save.progression.progress.iter()
+        .find(|row| row.world_id == "clockworks").expect("shutdown-entry progress is durable");
+    assert!(!shutdown_saved_progress.completed && !shutdown_saved_progress.first_completion);
+    assert_eq!(shutdown_saved_progress.completed_events,
+        vec!["clockworks_valves".to_owned(), "clockworks_core".to_owned()]);
+    assert_eq!(shutdown_save.effect_sources, earned_effect_sources);
+    assert_eq!(shutdown_save.save.capabilities.grants, earned_grants);
+    assert!(!shutdown_save.save.capabilities.grants.iter()
+        .any(|grant| grant.capability_id == CAP_AIR_STEP));
+    let shutdown_checkpoint = shutdown_save.save.checkpoint_id.clone();
+    let shutdown_bytes = std::fs::read(&save_path).unwrap();
+    let shutdown_position = shutdown_view.player.transform.position_m;
+    let shutdown_hp = shutdown_view.player.current_hp;
+    let shutdown_energy = shutdown_view.player.current_energy;
+    let shutdown_time = shutdown_view.server_time_ms;
+    let shutdown_epoch = shutdown_view.world_epoch;
+    drop(runtime);
+
+    // A final fresh owner proves the durable two-event shutdown entry is Continue-ready.
+    let runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&runtime).unwrap();
+    let prepared = runtime.continue_saved().unwrap();
+    assert_ne!(prepared.world_epoch, shutdown_epoch, "shutdown-entry Continue creates a fresh owner epoch");
+    let token = prepared.entry_token.as_ref().expect("shutdown-entry owner waits for normal readiness");
+    assert_eq!(token.world_id, "clockworks");
+    assert_eq!(token.scene_id, "cw_shutdown_exit");
+    assert_eq!(token.world_epoch, prepared.world_epoch);
+    assert_eq!(prepared.scene_id, "cw_shutdown_exit");
+    assert_eq!(prepared.player.transform.position_m, shutdown_position);
+    assert_eq!(prepared.player.current_hp, shutdown_hp);
+    assert_eq!(prepared.player.current_energy, shutdown_energy);
+    assert_eq!(prepared.server_time_ms, shutdown_time);
+    assert!(prepared.player.current_hp > 0);
+    assert!(active_enemy_ids(&prepared).is_empty());
+    assert_earned_clockworks_prefix(&prepared);
+    let prepared_progress = prepared.progression.worlds.iter()
+        .find(|row| row.world_id == "clockworks").unwrap();
+    assert_eq!(prepared_progress.completed_events,
+        vec!["clockworks_valves".to_owned(), "clockworks_core".to_owned()]);
+    assert!(!prepared_progress.completed && !prepared_progress.first_completion);
+    assert_eq!(std::fs::read(&save_path).unwrap(), shutdown_bytes,
+        "shutdown-entry Continue preparation cannot rewrite its durable save");
+    assert!(runtime.presentation_events_since(prepared.world_epoch, 0).unwrap().iter().all(|event|
+        !matches!(event.kind.as_str(), "EnemyDeath" | "ForgedGuardEliteDeath" | "PrimeRegulatorDeath")),
+        "shutdown-entry preparation cannot replay an earned defeat");
+    shutdown_view = acknowledge_ready(&runtime, prepared);
+    assert_eq!(shutdown_view.scene_id, "cw_shutdown_exit");
+    assert_eq!(shutdown_view.player.transform.position_m, shutdown_position);
+    assert_eq!(shutdown_view.player.current_hp, shutdown_hp);
+    assert_eq!(shutdown_view.player.current_energy, shutdown_energy);
+    assert_eq!(shutdown_view.server_time_ms, shutdown_time);
+    assert_eq!(shutdown_view.checkpoint_id, shutdown_checkpoint);
+    assert!(shutdown_view.player.current_hp > 0);
+    assert!(active_enemy_ids(&shutdown_view).is_empty());
+    assert_earned_clockworks_prefix(&shutdown_view);
+    assert!(runtime.presentation_events_since(shutdown_view.world_epoch, 0).unwrap().iter().all(|event|
+        !matches!(event.kind.as_str(), "EnemyDeath" | "ForgedGuardEliteDeath" | "PrimeRegulatorDeath")),
+        "shutdown-entry readiness cannot replay an earned defeat");
+    assert!(!shutdown_view.capabilities.items.iter()
+        .any(|item| item.capability_id == CAP_AIR_STEP && item.granted));
+    runtime.save().unwrap();
+    let final_save = save_v6::read_save(&save_dir).unwrap();
+    assert_eq!(final_save.save.scene_id, "cw_shutdown_exit");
+    assert_eq!(final_save.save.checkpoint_id, shutdown_checkpoint,
+        "final Continue save preserves the exact authored destination checkpoint state");
+    assert!(final_save.world_persistent_v1.clockworks.forged_guard_elite_first_kill);
+    assert!(final_save.world_persistent_v1.clockworks.regulator_defeated);
+    assert!(final_save.world_persistent_v1.clockworks.core_console_confirmed);
+    let final_progress = final_save.save.progression.progress.iter()
+        .find(|row| row.world_id == "clockworks").unwrap();
+    assert_eq!(final_progress.completed_events,
+        vec!["clockworks_valves".to_owned(), "clockworks_core".to_owned()]);
+    assert!(!final_progress.completed && !final_progress.first_completion);
+    assert!(!final_save.save.capabilities.grants.iter()
+        .any(|grant| grant.capability_id == CAP_AIR_STEP));
+    let final_bytes = std::fs::read(&save_path).unwrap();
+    println!(
+        "Earned Prime Regulator defeat, actual core confirmation, gated shutdown-entry transition, and fresh-owner Continue completed alive at {} HP/{} energy, time {}, checkpoint {:?}; final SaveV6 {} bytes at {}",
+        final_save.save.player.current_hp,
+        final_save.save.player.current_energy,
+        final_save.save.server_time_ms,
+        final_save.save.checkpoint_id,
+        final_bytes.len(),
+        save_path.display(),
+    );
+    drop(runtime);
+}
