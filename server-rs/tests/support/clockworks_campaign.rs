@@ -1608,3 +1608,333 @@ fn genuine_earned_furnace_encounter_reaches_durable_arena_entry() {
     );
     drop(runtime);
 }
+
+// Exact qualified SaveV6 for the living elite arena entry; preserve its actual resources and world history.
+const EARNED_CW_ARENA_ENTRY_V6: &str =
+    include_str!("../fixtures/earned-cw-arena-entry-v6.json");
+
+#[test]
+fn genuine_earned_elite_defeat_reaches_durable_regulator_entry() {
+    let save_dir = save_root();
+    assert!(!save_dir.exists(), "task save directory must be fresh");
+    std::fs::create_dir_all(&save_dir).unwrap();
+    let save_path = save_dir.join("formal-save-v6.json");
+    std::fs::write(&save_path, EARNED_CW_ARENA_ENTRY_V6.as_bytes()).unwrap();
+
+    let arena_save = save_v6::read_save(&save_dir).unwrap();
+    assert_earned_valve_route_save(&arena_save, "cw_forged_guard_arena");
+    assert_eq!(arena_save.save.checkpoint_id.as_deref(), None);
+    assert_eq!(arena_save.save.player.current_hp, 46);
+    assert_eq!(arena_save.save.player.current_energy, 28);
+    assert_eq!(arena_save.save.player.position_m.x_m, 3.0);
+    assert_eq!(arena_save.save.player.position_m.y_m, 0.0);
+    assert_eq!(arena_save.save.player.position_m.z_m, 8.0);
+    assert_eq!(arena_save.save.server_time_ms, 640_611);
+    assert_eq!(arena_save.save.last_client_time_ms, 0);
+    assert_eq!(arena_save.save.generic_actors.len(), 1);
+    let elite_row = &arena_save.save.generic_actors[0];
+    assert_eq!(elite_row.entity_id, "cw_forged_guard_elite");
+    assert_eq!(elite_row.entity_type, "enemy.clockworks.forged_guard_elite");
+    assert_eq!(elite_row.hp, 120);
+    assert!(!arena_save.world_persistent_v1.clockworks.forged_guard_elite_first_kill);
+    assert!(!arena_save.world_persistent_v1.clockworks.regulator_defeated);
+    assert!(!arena_save.world_persistent_v1.clockworks.core_console_confirmed);
+    let earned_effect_sources = arena_save.effect_sources.clone();
+    let earned_grants = arena_save.save.capabilities.grants.clone();
+    let arena_input_bytes = std::fs::read(&save_path).unwrap();
+    NEXT_TIME.fetch_max(arena_save.save.last_client_time_ms.saturating_add(1), Ordering::Relaxed);
+
+    let runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&runtime).unwrap();
+    let prepared = runtime.continue_saved().unwrap();
+    assert_eq!(prepared.world_id, "clockworks");
+    assert_eq!(prepared.scene_id, "cw_forged_guard_arena");
+    let token = prepared.entry_token.as_ref().expect("arena Continue waits for its normal readiness token");
+    assert_eq!(token.world_id, "clockworks");
+    assert_eq!(token.scene_id, "cw_forged_guard_arena");
+    assert_eq!(token.world_epoch, prepared.world_epoch);
+    assert_eq!(prepared.player.transform.position_m, arena_save.save.player.position_m);
+    assert_eq!(prepared.server_time_ms, arena_save.save.server_time_ms);
+    assert_eq!(prepared.player.current_hp, 46);
+    assert_eq!(prepared.player.current_energy, 28);
+    let expected_elite_ids = BTreeSet::from(["cw_forged_guard_elite".to_owned()]);
+    assert_eq!(active_enemy_ids(&prepared), expected_elite_ids);
+    assert_earned_valve_route_view(&prepared, "cw_forged_guard_arena");
+    let live_elite = prepared.actors.iter()
+        .find(|actor| actor.entity_id == "cw_forged_guard_elite")
+        .expect("the admitted canonical elite is projected at arena entry");
+    assert_eq!(live_elite.actor_kind, "enemy");
+    assert!(live_elite.active);
+    let arena_epoch = prepared.world_epoch;
+    assert_eq!(std::fs::read(&save_path).unwrap(), arena_input_bytes,
+        "Continue preparation cannot rewrite the qualified arena input");
+    assert!(runtime.presentation_events_since(arena_epoch, 0).unwrap().iter()
+        .all(|event| !matches!(event.kind.as_str(), "EnemyDeath" | "ForgedGuardEliteDeath")),
+        "arena Continue cannot replay a prior elite defeat");
+
+    let ready = acknowledge_ready(&runtime, prepared);
+    assert_earned_valve_route_view(&ready, "cw_forged_guard_arena");
+    assert_eq!(ready.player.transform.position_m, arena_save.save.player.position_m);
+    assert_eq!(ready.player.current_hp, 46);
+    assert_eq!(ready.player.current_energy, 28);
+    assert_eq!(ready.server_time_ms, arena_save.save.server_time_ms);
+    assert_eq!(active_enemy_ids(&ready), expected_elite_ids);
+    let event_cursor = runtime.presentation_events_since(ready.world_epoch, 0).unwrap().iter()
+        .map(|event| event.event_id).max().unwrap_or(0);
+
+    // Earn the one canonical elite defeat using the unchanged public combat driver.
+    let defeated = clear_live_enemies(&runtime, ready);
+    assert_eq!(defeated.world_id, "clockworks");
+    assert_eq!(defeated.scene_id, "cw_forged_guard_arena");
+    assert!(defeated.player.current_hp > 0, "the elite defeat must be earned alive");
+    assert!(active_enemy_ids(&defeated).is_empty());
+    assert_earned_valve_route_view(&defeated, "cw_forged_guard_arena");
+    let defeat_events = runtime.presentation_events_since(defeated.world_epoch, event_cursor).unwrap();
+    let elite_deaths = defeat_events.iter().filter(|event| {
+        event.world_epoch == defeated.world_epoch
+            && event.kind == "ForgedGuardEliteDeath"
+    }).collect::<Vec<_>>();
+    assert_eq!(elite_deaths.len(), 1, "lethal public combat emits one post-cursor elite first-kill event");
+    println!(
+        "Elite defeated by public combat: {} hit points remaining; observed one new ForgedGuardEliteDeath",
+        defeated.player.current_hp
+    );
+
+    let defeated_view = runtime.pause().unwrap();
+    assert_eq!(defeated_view.scene_id, "cw_forged_guard_arena");
+    assert!(defeated_view.player.current_hp > 0);
+    assert!(active_enemy_ids(&defeated_view).is_empty());
+    runtime.save().unwrap();
+    let defeated_save = save_v6::read_save(&save_dir).unwrap();
+    assert_earned_valve_route_save(&defeated_save, "cw_forged_guard_arena");
+    assert_eq!(defeated_save.save.checkpoint_id, arena_save.save.checkpoint_id);
+    assert_eq!(defeated_save.save.server_time_ms, defeated_view.server_time_ms);
+    assert_eq!(defeated_save.save.player.position_m, defeated_view.player.transform.position_m);
+    assert_eq!(defeated_save.save.player.current_hp, defeated_view.player.current_hp);
+    assert_eq!(defeated_save.save.player.current_energy, defeated_view.player.current_energy);
+    assert!(defeated_save.world_persistent_v1.clockworks.forged_guard_elite_first_kill);
+    assert!(!defeated_save.world_persistent_v1.clockworks.regulator_defeated);
+    assert!(!defeated_save.world_persistent_v1.clockworks.core_console_confirmed);
+    assert_eq!(defeated_save.effect_sources, earned_effect_sources);
+    assert_eq!(defeated_save.save.capabilities.grants, earned_grants);
+    assert_eq!(defeated_save.save.generic_actors.len(), 1);
+    let defeated_elite = defeated_save.save.generic_actors.iter()
+        .find(|actor| actor.entity_id == "cw_forged_guard_elite")
+        .expect("the first-kill SaveV6 retains the canonical elite row");
+    assert_eq!(defeated_elite.entity_type, "enemy.clockworks.forged_guard_elite");
+    assert_eq!(defeated_elite.hp, 0);
+    assert!(!defeated_save.save.capabilities.grants.iter()
+        .any(|grant| grant.capability_id == CAP_AIR_STEP));
+    let defeated_bytes = std::fs::read(&save_path).unwrap();
+    let defeated_position = defeated_view.player.transform.position_m;
+    let defeated_hp = defeated_view.player.current_hp;
+    let defeated_energy = defeated_view.player.current_energy;
+    let defeated_time = defeated_view.server_time_ms;
+    let defeated_epoch = defeated_view.world_epoch;
+    drop(runtime);
+
+    // A distinct full production owner must restore the first-kill route before readiness.
+    let runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&runtime).unwrap();
+    let prepared = runtime.continue_saved().unwrap();
+    assert_ne!(prepared.world_epoch, defeated_epoch, "first-kill Continue creates a new owner epoch");
+    let token = prepared.entry_token.as_ref().expect("fresh owner waits for its arena readiness token");
+    assert_eq!(token.world_id, "clockworks");
+    assert_eq!(token.scene_id, "cw_forged_guard_arena");
+    assert_eq!(token.world_epoch, prepared.world_epoch);
+    assert_eq!(prepared.world_id, "clockworks");
+    assert_eq!(prepared.scene_id, "cw_forged_guard_arena");
+    assert_eq!(prepared.player.transform.position_m, defeated_position);
+    assert_eq!(prepared.player.current_hp, defeated_hp);
+    assert_eq!(prepared.player.current_energy, defeated_energy);
+    assert_eq!(prepared.server_time_ms, defeated_time);
+    assert!(prepared.player.current_hp > 0);
+    assert!(active_enemy_ids(&prepared).is_empty(), "Continue keeps the saved elite dead");
+    assert!(prepared.actors.iter().all(|actor| {
+        actor.entity_id != "cw_forged_guard_elite" || !actor.active
+    }), "the stable elite ID remains inactive in the restored arena");
+    assert_earned_valve_route_view(&prepared, "cw_forged_guard_arena");
+    assert_eq!(std::fs::read(&save_path).unwrap(), defeated_bytes,
+        "first-kill Continue preparation cannot rewrite its SaveV6");
+    assert!(runtime.presentation_events_since(prepared.world_epoch, 0).unwrap().iter()
+        .all(|event| !matches!(event.kind.as_str(), "EnemyDeath" | "ForgedGuardEliteDeath")),
+        "fresh-owner preparation cannot replay the elite defeat");
+
+    let continued = acknowledge_ready(&runtime, prepared);
+    assert_earned_valve_route_view(&continued, "cw_forged_guard_arena");
+    assert_eq!(continued.player.transform.position_m, defeated_position);
+    assert_eq!(continued.player.current_hp, defeated_hp);
+    assert_eq!(continued.player.current_energy, defeated_energy);
+    assert_eq!(continued.server_time_ms, defeated_time);
+    assert!(continued.player.current_hp > 0);
+    assert!(active_enemy_ids(&continued).is_empty());
+    assert!(runtime.presentation_events_since(continued.world_epoch, 0).unwrap().iter()
+        .all(|event| !matches!(event.kind.as_str(), "EnemyDeath" | "ForgedGuardEliteDeath")),
+        "arena readiness cannot replay the elite defeat");
+
+    let arena_scene = compiled_route_scene("cw_forged_guard_arena");
+    let arena_transition = arena_scene["transitions"].as_array().unwrap().iter()
+        .find(|transition| transition["id"] == "cw_arena_to_regulator_core")
+        .expect("the authored arena-to-regulator transition exists");
+    assert_eq!(arena_transition["toSceneId"], "cw_regulator_core");
+    assert_eq!(arena_transition["spawnId"], "cw_regulator_core_spawn");
+    let regulator_scene = compiled_route_scene("cw_regulator_core");
+    let regulator_spawn = regulator_scene["spawns"].as_array().unwrap().iter()
+        .find(|spawn| spawn["id"] == "cw_regulator_core_spawn")
+        .expect("the registered regulator player spawn exists");
+    assert_eq!(regulator_spawn["kind"], "player");
+    assert_eq!(regulator_spawn["position"], serde_json::json!([3.0, 0.0, 8.0]));
+    let prime_spawn = regulator_scene["spawns"].as_array().unwrap().iter()
+        .find(|spawn| spawn["id"] == "cw_prime_regulator")
+        .expect("the authored regulator actor spawn exists");
+    assert_eq!(prime_spawn["kind"], "enemy");
+    assert_eq!(prime_spawn["entityType"], "enemy.clockworks.prime_regulator");
+
+    let route_event_cursor = runtime.presentation_events_since(continued.world_epoch, 0).unwrap().iter()
+        .map(|event| event.event_id).max().unwrap_or(0);
+    let approach = walk_to_compiled_target(
+        &runtime, continued, "cw_forged_guard_arena", "transitions", "cw_arena_to_regulator_core");
+    assert_eq!(approach.scene_id, "cw_forged_guard_arena");
+    assert!(approach.player.current_hp > 0);
+    assert!(active_enemy_ids(&approach).is_empty(), "the cleared arena stays clear during route traversal");
+    let affordance = approach.interactables.iter()
+        .find(|item| item.entity_id == "cw_arena_to_regulator_core")
+        .expect("the authored arena route is projected after first-kill Continue");
+    assert_eq!(affordance.kind, "scene_transition");
+    assert!(affordance.active, "the earned first-kill state opens the real arena route");
+    let arena_events = runtime.presentation_events_since(approach.world_epoch, route_event_cursor).unwrap();
+    assert!(arena_events.iter().all(|event| event.kind != "ForgedGuardEliteDeath"),
+        "walking through the unlocked route does not replay the elite defeat");
+    assert!(arena_events.iter().all(|event| event.kind != "PrimeRegulatorDeath"));
+    let before_transition_cursor = runtime.presentation_events_since(approach.world_epoch, 0).unwrap().iter()
+        .map(|event| event.event_id).max().unwrap_or(0);
+    let entry = apply_transition(
+        &runtime,
+        "cw_arena_to_regulator_core",
+        "genuine-elite-first-kill-to-regulator-entry",
+        approach.world_epoch,
+    );
+    assert_eq!(entry.world_id, "clockworks");
+    assert_eq!(entry.scene_id, "cw_regulator_core");
+    assert!(entry.player.current_hp > 0);
+    assert!((entry.player.transform.position_m.x_m - 3.0).abs() <= 0.1);
+    assert!((entry.player.transform.position_m.y_m - 0.0).abs() <= 0.1);
+    assert!((entry.player.transform.position_m.z_m - 8.0).abs() <= 0.1);
+    assert_earned_valve_route_view(&entry, "cw_regulator_core");
+    let expected_regulator_ids = BTreeSet::from(["cw_prime_regulator".to_owned()]);
+    assert_eq!(active_enemy_ids(&entry), expected_regulator_ids,
+        "the real transition loads only the living authored Prime Regulator");
+    let regulator_actor = entry.actors.iter()
+        .find(|actor| actor.entity_id == "cw_prime_regulator")
+        .expect("the canonical regulator ID is projected at entry");
+    assert_eq!(regulator_actor.actor_kind, "enemy");
+    assert!(regulator_actor.active);
+    let owner_events = runtime.presentation_events_since(entry.world_epoch, before_transition_cursor).unwrap();
+    assert!(owner_events.iter().filter(|event| event.world_epoch == entry.world_epoch)
+        .all(|event| event.kind != "ForgedGuardEliteDeath"),
+        "entering the regulator scene cannot replay the elite defeat");
+    assert!(owner_events.iter().all(|event| event.kind != "PrimeRegulatorDeath"),
+        "regulator combat has not started");
+    // Save and Continue the live regulator entry, then stop before attacking it or the core console.
+    let entry_view = runtime.pause().unwrap();
+    assert_earned_valve_route_view(&entry_view, "cw_regulator_core");
+    assert_eq!(active_enemy_ids(&entry_view), expected_regulator_ids);
+    runtime.save().unwrap();
+    let entry_save = save_v6::read_save(&save_dir).unwrap();
+    assert_earned_valve_route_save(&entry_save, "cw_regulator_core");
+    assert_eq!(entry_save.save.server_time_ms, entry_view.server_time_ms);
+    assert_eq!(entry_save.save.player.position_m, entry_view.player.transform.position_m);
+    assert_eq!(entry_save.save.player.current_hp, entry_view.player.current_hp);
+    assert_eq!(entry_save.save.player.current_energy, entry_view.player.current_energy);
+    assert!(entry_save.world_persistent_v1.clockworks.forged_guard_elite_first_kill);
+    assert!(!entry_save.world_persistent_v1.clockworks.regulator_defeated);
+    assert!(!entry_save.world_persistent_v1.clockworks.core_console_confirmed);
+    assert_eq!(entry_save.effect_sources, earned_effect_sources);
+    assert_eq!(entry_save.save.capabilities.grants, earned_grants);
+    assert_eq!(entry_save.save.generic_actors.len(), 1);
+    let saved_regulator = entry_save.save.generic_actors.iter()
+        .find(|actor| actor.entity_id == "cw_prime_regulator")
+        .expect("durable regulator entry retains its canonical actor row");
+    assert_eq!(saved_regulator.entity_type, "enemy.clockworks.prime_regulator");
+    assert!(saved_regulator.hp > 0, "the regulator remains alive in the entry save");
+    let entry_checkpoint = entry_save.save.checkpoint_id.clone();
+    let entry_bytes = std::fs::read(&save_path).unwrap();
+    let entry_position = entry_view.player.transform.position_m;
+    let entry_hp = entry_view.player.current_hp;
+    let entry_energy = entry_view.player.current_energy;
+    let entry_time = entry_view.server_time_ms;
+    let entry_epoch = entry_view.world_epoch;
+    drop(runtime);
+
+    let runtime = FormalRuntime::new_with_save_dir(save_dir.clone()).unwrap();
+    production::install(&runtime).unwrap();
+    let prepared = runtime.continue_saved().unwrap();
+    assert_ne!(prepared.world_epoch, entry_epoch, "regulator Continue creates a new owner epoch");
+    let token = prepared.entry_token.as_ref().expect("fresh regulator owner awaits normal readiness");
+    assert_eq!(token.world_id, "clockworks");
+    assert_eq!(token.scene_id, "cw_regulator_core");
+    assert_eq!(token.world_epoch, prepared.world_epoch);
+    assert_eq!(prepared.scene_id, "cw_regulator_core");
+    assert_eq!(prepared.player.transform.position_m, entry_position);
+    assert_eq!(prepared.player.current_hp, entry_hp);
+    assert_eq!(prepared.player.current_energy, entry_energy);
+    assert_eq!(prepared.server_time_ms, entry_time);
+    assert!(prepared.player.current_hp > 0);
+    assert_eq!(active_enemy_ids(&prepared), expected_regulator_ids);
+    assert!(prepared.actors.iter().any(|actor| actor.entity_id == "cw_prime_regulator" && actor.active));
+    assert_earned_valve_route_view(&prepared, "cw_regulator_core");
+    assert_eq!(std::fs::read(&save_path).unwrap(), entry_bytes,
+        "fresh regulator Continue preparation cannot rewrite the durable entry");
+    assert!(runtime.presentation_events_since(prepared.world_epoch, 0).unwrap().iter()
+        .all(|event| !matches!(event.kind.as_str(),
+            "EnemyDeath" | "ForgedGuardEliteDeath" | "PrimeRegulatorDeath")),
+        "fresh owner preparation cannot replay the elite or begin the regulator encounter");
+
+    let continued = acknowledge_ready(&runtime, prepared);
+    assert_earned_valve_route_view(&continued, "cw_regulator_core");
+    assert_eq!(continued.player.transform.position_m, entry_position);
+    assert_eq!(continued.player.current_hp, entry_hp);
+    assert_eq!(continued.player.current_energy, entry_energy);
+    assert_eq!(continued.server_time_ms, entry_time);
+    assert!(continued.player.current_hp > 0);
+    assert_eq!(active_enemy_ids(&continued), expected_regulator_ids);
+    assert!(runtime.presentation_events_since(continued.world_epoch, 0).unwrap().iter()
+        .all(|event| !matches!(event.kind.as_str(),
+            "EnemyDeath" | "ForgedGuardEliteDeath" | "PrimeRegulatorDeath")),
+        "readiness cannot replay the elite or start regulator combat");
+
+    let final_entry_view = runtime.pause().unwrap();
+    runtime.save().unwrap();
+    let final_save = save_v6::read_save(&save_dir).unwrap();
+    assert_earned_valve_route_save(&final_save, "cw_regulator_core");
+    assert_eq!(final_save.save.checkpoint_id, entry_checkpoint,
+        "fresh owner preserves the actual saved destination checkpoint semantics");
+    assert_eq!(final_save.save.server_time_ms, final_entry_view.server_time_ms);
+    assert_eq!(final_save.save.player.position_m, final_entry_view.player.transform.position_m);
+    assert_eq!(final_save.save.player.current_hp, final_entry_view.player.current_hp);
+    assert_eq!(final_save.save.player.current_energy, final_entry_view.player.current_energy);
+    assert!(final_save.world_persistent_v1.clockworks.forged_guard_elite_first_kill);
+    assert!(!final_save.world_persistent_v1.clockworks.regulator_defeated);
+    assert!(!final_save.world_persistent_v1.clockworks.core_console_confirmed);
+    assert_eq!(final_save.effect_sources, earned_effect_sources);
+    assert_eq!(final_save.save.capabilities.grants, earned_grants);
+    assert_eq!(final_save.save.generic_actors.len(), 1);
+    let final_regulator = final_save.save.generic_actors.iter()
+        .find(|actor| actor.entity_id == "cw_prime_regulator")
+        .expect("the final regulator-entry SaveV6 retains its canonical actor row");
+    assert_eq!(final_regulator.entity_type, "enemy.clockworks.prime_regulator");
+    assert!(final_regulator.hp > 0, "final Continue keeps the regulator alive");
+    let final_bytes = std::fs::read(&save_path).unwrap();
+    println!(
+        "Durable regulator entry survived fresh-owner Continue: {} HP/{} energy, actor {} ({} HP), time {}, checkpoint {:?}, final SaveV6 {} bytes at {}",
+        final_save.save.player.current_hp,
+        final_save.save.player.current_energy,
+        final_regulator.entity_id,
+        final_regulator.hp,
+        final_save.save.server_time_ms,
+        final_save.save.checkpoint_id,
+        final_bytes.len(),
+        save_path.display(),
+    );
+    drop(runtime);
+}
