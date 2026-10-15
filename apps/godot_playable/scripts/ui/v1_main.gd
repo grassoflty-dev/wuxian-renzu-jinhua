@@ -99,7 +99,7 @@ func _ready() -> void:
 	hud.name = 'GameHUD'
 	ui.add_child(hud)
 	renderer.safe_rect_provider = Callable(hud,'get_world_safe_rect')
-	hud.intent.connect(func(kind,value): _ui_intent(kind,value,_owner() if kind in ['interact_current','traverse_current','player_action_current','guard_current_begin','guard_current_end','movement_current_begin','movement_current_end'] else panels.page_owner.duplicate(true)))
+	hud.intent.connect(_hud_intent)
 	panels = Panels.new()
 	panels.name = 'Panels'
 	ui.add_child(panels)
@@ -468,6 +468,11 @@ func _back() -> void:
 		_show('pause')
 	else:
 		_show('start')
+func _hud_intent(kind: String, value) -> void:
+	# Background HUD navigation must not borrow an open modal page's owner.
+	if panels.visible and kind in ['mission','inventory','character','capability','map','pause']:
+		return
+	_ui_intent(kind,value,_owner() if kind in ['interact_current','traverse_current','player_action_current','guard_current_begin','guard_current_end','movement_current_begin','movement_current_end'] else panels.page_owner.duplicate(true))
 func _ui_intent(kind: String, value, owner: Dictionary) -> void:
 	if kind=='movement_current_end':
 		if _movement_identity_same(value,mouse_move_owner):
