@@ -239,7 +239,7 @@ func _add_player_action(buttons: HFlowContainer, action_id: String) -> void:
 	var state = {'button':button,'display':{},'press':{}}
 	player_action_states[action_id] = state
 	button.text = PLAYER_ACTION_LABELS[action_id]
-	button.tooltip_text = '尝试'+button.text+'；使用当前瞄准方向。'+('\n'+Icons.USE_TEXT[action_id] if Icons.USE_TEXT.has(action_id) else '')
+	button.tooltip_text = '尝试'+button.text+('；使用当前瞄准方向。' if action_id in ['primaryAttack','pierce'] else '。')+('\n'+Icons.USE_TEXT[action_id] if Icons.USE_TEXT.has(action_id) else '')
 	button.mouse_filter = Control.MOUSE_FILTER_STOP
 	button.focus_mode = Control.FOCUS_NONE
 	button.visible = false
