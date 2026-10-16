@@ -312,15 +312,25 @@ func _inventory() -> void:
 		box.remove_child(item_heading)
 		item_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		item_column.add_child(item_heading)
+		if snapshot.build.items.is_empty():
+			var empty_item_label = _text('背包投影中暂无物品。')
+			box.remove_child(empty_item_label)
+			empty_item_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			item_column.add_child(empty_item_label)
 		var equipment_heading = _text('装备')
 		box.remove_child(equipment_heading)
 		equipment_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		equipment_column.add_child(equipment_heading)
+		if snapshot.build.equipment.is_empty():
+			var empty_equipment_label = _text('装备投影中暂无已装备物品。')
+			box.remove_child(empty_equipment_label)
+			empty_equipment_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			equipment_column.add_child(empty_equipment_label)
 		var description_heading = _text('描述')
 		box.remove_child(description_heading)
 		description_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		description_column.add_child(description_heading)
-		var detail_label = _text('')
+		var detail_label = _text('暂无物品描述。' if snapshot.build.items.is_empty() else '物品描述将在选择后显示。')
 		box.remove_child(detail_label)
 		detail_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		description_column.add_child(detail_label)
