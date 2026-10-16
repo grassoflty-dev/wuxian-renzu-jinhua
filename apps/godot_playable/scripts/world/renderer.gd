@@ -12,6 +12,7 @@ const RsFloorVisual = preload('res://scripts/world/rs_floor_visual.gd')
 const GreyHiveStateProps = preload('res://scripts/world/grey_hive_state_props_visual.gd')
 const GhBioLockdownVisual = preload('res://scripts/world/gh_bio_lockdown_visual.gd')
 const GhSupplyCrateVisual = preload('res://scripts/world/gh_supply_crate_visual.gd')
+const GhPowerEnvironmentVisual = preload('res://scripts/world/gh_power_environment_visual.gd')
 const BaizhiPlaceholderVisual = preload('res://scripts/world/baizhi_placeholder_visual.gd')
 var baizhi_placeholder_visual
 const GH_CRATES = {
@@ -50,6 +51,7 @@ const CW_FURNACES = {
 var cw_furnace_visual
 var camera = Camera.new()
 var rs_environment_visual = RsEnvironmentVisual.new()
+var gh_power_environment_visual = GhPowerEnvironmentVisual.new()
 var rs_front_alpha: Dictionary = {}
 var cenyao_idle = CenYaoIdle.new()
 var registered_props = RegisteredProps.new()
@@ -199,8 +201,30 @@ func _draw() -> void:
 		rs_terminal_feet = _rs_terminal_feet()
 		rs_back_packets = rs_environment_visual.build_packets(scene,snapshot.worldId,snapshot.sceneId,camera,rs_terminal_feet,'back')
 		rs_active = not rs_back_packets.is_empty()
+	var gh_power_console_matches = 0
+	var gh_power_console_body: Dictionary = {}
+	var gh_power_light_state: String = 'unknown'
+	if snapshot.get('worldId')=='grey_hive' and snapshot.get('sceneId')=='gh_power_room' and scene.get('worldId')=='grey_hive' and scene.get('sceneId')=='gh_power_room' and P.counter(snapshot.get('worldEpoch'),1) and current_key==snapshot.worldId+':'+snapshot.sceneId+':'+str(snapshot.worldEpoch):
+		var gh_power_presentation = scene.get('presentation',{})
+		if gh_power_presentation is Dictionary:
+			var gh_power_sprites = gh_power_presentation.get('sprites')
+			if P.rows(gh_power_sprites,2048):
+				for gh_power_sprite in gh_power_sprites:
+					if gh_power_sprite is Dictionary and gh_power_sprite.get('id')=='power_console_off_on':
+						gh_power_console_matches += 1
+						if gh_power_console_matches==1:
+							gh_power_console_body = _gh_console_body(gh_power_sprite)
+		if gh_power_console_matches==1 and not gh_power_console_body.is_empty() and gh_power_console_body.get('id')=='power_console_off_on' and gh_power_console_body.get('kind')=='gh_console_body' and gh_power_console_body.get('p') is Vector3 and gh_power_console_body.p==Vector3(4,0,7) and gh_power_console_body.get('data') is Dictionary:
+			var validated_console_state = gh_power_console_body.data.get('state')
+			if validated_console_state in ['on','off']:
+				gh_power_light_state = validated_console_state
+	var gh_power_packets = gh_power_environment_visual.build_packets(scene,snapshot,current_key,camera,gh_power_light_state)
+	var gh_power_room_active = not gh_power_packets.is_empty()
+	var gh_power_pipe_detail_drawn = gh_power_room_active and gh_power_environment_visual.has_pipe_detail(gh_power_packets)
 	# Canonical static geometry is display only. No spawns, routes, navigation or hidden objectives.
 	for wall in scene.get('collision',[]):
+		if gh_power_room_active and wall is Dictionary and gh_power_environment_visual.is_wall_id(wall.get('id')):
+			continue
 		if wall is Dictionary and P.polygon(wall.get('polygon')):
 			if rs_active and rs_environment_visual.is_structure_id(wall.get('id')):
 				continue
@@ -222,7 +246,14 @@ func _draw() -> void:
 	for prop in scene.get('presentation',{}).get('sprites',[]):
 		if not prop is Dictionary or not prop.get('position') is Array or prop.position.size()!=3 or typeof(prop.get('assetId'))!=TYPE_STRING:
 			continue
-		var console_body = _gh_console_body(prop)
+		if gh_power_room_active and gh_power_pipe_detail_drawn and prop.get('id')=='power_room_pipes':
+			continue
+		var console_body: Dictionary = {}
+		if prop.get('id')=='power_console_off_on':
+			if gh_power_console_matches==1:
+				console_body = gh_power_console_body
+		else:
+			console_body = _gh_console_body(prop)
 		if not console_body.is_empty():
 			objects.append(console_body)
 			continue
@@ -258,6 +289,8 @@ func _draw() -> void:
 	var npc = baizhi_placeholder_visual.resolve(snapshot,scene) if baizhi_placeholder_visual!=null else {}
 	if not npc.is_empty():
 		objects.append({'id':npc.entityId,'p':Vector3(npc.position[0],npc.position[1],npc.position[2]),'kind':'npc','data':npc})
+	if gh_power_room_active:
+		_draw_gh_power_packets(gh_power_packets)
 	objects.sort_custom(func(a,b):
 		var ay = camera.project(Vector3(a.p.x,0,a.p.z)).y
 		var by = camera.project(Vector3(b.p.x,0,b.p.z)).y
@@ -298,6 +331,28 @@ func _rs_terminal_feet() -> Array:
 		if position is Vector3:
 			result.append({'id':prop.id,'position':position})
 	return result
+
+func _draw_gh_power_packets(packets: Array) -> void:
+	for packet in packets:
+		if not packet is Dictionary:
+			continue
+		var points = packet.get('points')
+		var color = packet.get('color')
+		if not points is PackedVector2Array or not color is Color:
+			continue
+		var filled = packet.get('filled')==true
+		if filled and points.size()>=3:
+			draw_colored_polygon(points,color)
+		elif not filled and points.size()>=2:
+			var width = float(packet.get('width',1.0))
+			if not is_finite(width) or width<=0.0:
+				continue
+			if points.size()==2:
+				draw_line(points[0],points[1],color,width,true)
+			else:
+				var outline: PackedVector2Array = points.duplicate()
+				outline.append(outline[0])
+				draw_polyline(outline,color,width,true)
 
 func _draw_rs_packets(packets: Array, phase: String) -> void:
 	for packet in packets:
