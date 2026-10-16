@@ -6,6 +6,7 @@ const CenYaoIdle = preload('res://scripts/world/cenyao_idle_visual.gd')
 const MhCwActor = preload('res://scripts/world/mh_cw_actor_visual.gd')
 const RsEnvironmentVisual = preload('res://scripts/world/rs_environment_visual.gd')
 const RsBulkheadModulesVisual = preload('res://scripts/world/rs_bulkhead_modules_visual.gd')
+const RsServicePipeVisual = preload('res://scripts/world/rs_service_pipe_visual.gd')
 const MH_CW_ROSTER = {"cw_entry_foundry_forged_guard_01":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_entry_foundry","authoring_type":"enemy.clockworks.forged_guard"},"mh_breakwater_signal_wraith_02":{"runtime_type":"enemy.mist_harbor.signal_wraith","world":"mist_harbor","key":"signal_wraith","scene":"mh_breakwater","authoring_type":"enemy.mist_harbor.signal_wraith"},"mh_tidal_warehouse_drowned_01":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_tidal_warehouse","authoring_type":"enemy.mist_harbor.drowned"},"mh_signal_yard_signal_wraith_03":{"runtime_type":"enemy.mist_harbor.signal_wraith","world":"mist_harbor","key":"signal_wraith","scene":"mh_signal_yard","authoring_type":"enemy.mist_harbor.signal_wraith"},"cw_pressure_hall_forged_guard_01":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_pressure_hall","authoring_type":"enemy.clockworks.forged_guard"},"mh_signal_yard_signal_wraith_02":{"runtime_type":"enemy.mist_harbor.signal_wraith","world":"mist_harbor","key":"signal_wraith","scene":"mh_signal_yard","authoring_type":"enemy.mist_harbor.signal_wraith"},"mh_resonance_tower_signal_wraith_01":{"runtime_type":"enemy.mist_harbor.signal_wraith","world":"mist_harbor","key":"signal_wraith","scene":"mh_resonance_tower","authoring_type":"enemy.mist_harbor.signal_wraith"},"mh_tidal_warehouse_drowned_02":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_tidal_warehouse","authoring_type":"enemy.mist_harbor.drowned"},"mh_drowned_quay_drowned_03":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_drowned_quay","authoring_type":"enemy.mist_harbor.drowned"},"mh_drowned_quay_drowned_02":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_drowned_quay","authoring_type":"enemy.mist_harbor.drowned"},"mh_drowned_quay_drowned_01":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_drowned_quay","authoring_type":"enemy.mist_harbor.drowned"},"mh_fog_pier_drowned_02":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_fog_pier","authoring_type":"enemy.mist_harbor.drowned"},"mh_drowned_quay_drowned_04":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_drowned_quay","authoring_type":"enemy.mist_harbor.drowned"},"mh_signal_yard_signal_wraith_01":{"runtime_type":"enemy.mist_harbor.signal_wraith","world":"mist_harbor","key":"signal_wraith","scene":"mh_signal_yard","authoring_type":"enemy.mist_harbor.signal_wraith"},"mh_pump_station_drowned_03":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_pump_station","authoring_type":"enemy.mist_harbor.drowned"},"mh_tidal_warehouse_signal_wraith_01":{"runtime_type":"enemy.mist_harbor.signal_wraith","world":"mist_harbor","key":"signal_wraith","scene":"mh_tidal_warehouse","authoring_type":"enemy.mist_harbor.signal_wraith"},"mh_breakwater_signal_wraith_01":{"runtime_type":"enemy.mist_harbor.signal_wraith","world":"mist_harbor","key":"signal_wraith","scene":"mh_breakwater","authoring_type":"enemy.mist_harbor.signal_wraith"},"mh_fog_pier_drowned_01":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_fog_pier","authoring_type":"enemy.mist_harbor.drowned"},"cw_furnace_heart_forged_guard_01":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_furnace_heart","authoring_type":"enemy.clockworks.forged_guard"},"cw_conveyor_bridge_forged_guard_01":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_conveyor_bridge","authoring_type":"enemy.clockworks.forged_guard"},"mh_resonance_tower_signal_wraith_02":{"runtime_type":"enemy.mist_harbor.signal_wraith","world":"mist_harbor","key":"signal_wraith","scene":"mh_resonance_tower","authoring_type":"enemy.mist_harbor.signal_wraith"},"mh_pump_station_drowned_02":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_pump_station","authoring_type":"enemy.mist_harbor.drowned"},"cw_pressure_hall_forged_guard_02":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_pressure_hall","authoring_type":"enemy.clockworks.forged_guard"},"cw_furnace_heart_forged_guard_02":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_furnace_heart","authoring_type":"enemy.clockworks.forged_guard"},"cw_gear_shaft_forged_guard_02":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_gear_shaft","authoring_type":"enemy.clockworks.forged_guard"},"mh_pump_station_drowned_01":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_pump_station","authoring_type":"enemy.mist_harbor.drowned"},"cw_gear_shaft_forged_guard_01":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_gear_shaft","authoring_type":"enemy.clockworks.forged_guard"},"mh_resonance_tower_signal_wraith_03":{"runtime_type":"enemy.mist_harbor.signal_wraith","world":"mist_harbor","key":"signal_wraith","scene":"mh_resonance_tower","authoring_type":"enemy.mist_harbor.signal_wraith"},"cw_entry_foundry_forged_guard_02":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_entry_foundry","authoring_type":"enemy.clockworks.forged_guard"},"cw_conveyor_bridge_forged_guard_02":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_conveyor_bridge","authoring_type":"enemy.clockworks.forged_guard"},"mh_resonance_tower_signal_wraith_04":{"runtime_type":"enemy.mist_harbor.signal_wraith","world":"mist_harbor","key":"signal_wraith","scene":"mh_resonance_tower","authoring_type":"enemy.mist_harbor.signal_wraith"},"mh_tidal_warehouse_drowned_03":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_tidal_warehouse","authoring_type":"enemy.mist_harbor.drowned"},"cw_conveyor_bridge_forged_guard_03":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_conveyor_bridge","authoring_type":"enemy.clockworks.forged_guard"}}
 const GreyHiveActor = preload('res://scripts/world/grey_hive_actor_visual.gd')
 const RegisteredProps = preload('res://scripts/world/registered_props_visual.gd')
@@ -55,6 +56,7 @@ var cw_furnace_visual
 var camera = Camera.new()
 var rs_environment_visual = RsEnvironmentVisual.new()
 var rs_bulkhead_modules_visual = RsBulkheadModulesVisual.new()
+var rs_service_pipe_visual = RsServicePipeVisual.new()
 var gh_power_environment_visual = GhPowerEnvironmentVisual.new()
 var cw_pressure_environment_visual = CwPressureEnvironmentVisual.new()
 var mh_pump_environment_visual = MhPumpEnvironmentVisual.new()
@@ -204,6 +206,7 @@ func _draw() -> void:
 	var rs_terminal_feet: Array = []
 	var rs_back_packets: Array = []
 	var rs_module_packets: Array = []
+	var rs_service_pipe_packet: Dictionary = {}
 	if rs_active:
 		rs_terminal_feet = _rs_terminal_feet()
 		rs_back_packets = rs_environment_visual.build_packets(scene,snapshot.worldId,snapshot.sceneId,camera,rs_terminal_feet,'back')
@@ -212,6 +215,7 @@ func _draw() -> void:
 		rs_module_packets = rs_bulkhead_modules_visual.build_packets(snapshot,scene,current_key,camera,rs_environment_visual)
 		if not rs_module_packets.is_empty():
 			rs_back_packets = rs_bulkhead_modules_visual.filter_legacy_bulkhead_packets(rs_back_packets)
+		rs_service_pipe_packet = rs_service_pipe_visual.build_packet(snapshot,scene,current_key,camera,rs_environment_visual)
 	var gh_power_console_matches = 0
 	var gh_power_console_body: Dictionary = {}
 	var gh_power_light_state: String = 'unknown'
@@ -263,6 +267,8 @@ func _draw() -> void:
 		_surfaces()
 	if mh_pump_room_active:
 		_draw_mh_pump_packets(mh_pump_packets)
+	if not rs_service_pipe_packet.is_empty() and _rect_intersects(viewport_rect,rs_service_pipe_packet.get('shadow_rect',Rect2())):
+		rs_service_pipe_visual.draw_contact_shadow(self,rs_service_pipe_packet)
 	var objects: Array = []
 	for module_packet in rs_module_packets:
 		objects.append({'id':module_packet.id,'p':module_packet.p,'kind':'rs_bulkhead_module','data':module_packet})
@@ -272,6 +278,9 @@ func _draw() -> void:
 		if gh_power_room_active and gh_power_pipe_detail_drawn and prop.get('id')=='power_room_pipes':
 			continue
 		if cw_pressure_room_active and cw_pressure_environment_visual.has_pipe_detail(cw_pressure_packets,str(prop.get('id',''))):
+			continue
+		if rs_active and not rs_service_pipe_packet.is_empty() and rs_service_pipe_visual.matches_authored_row(prop):
+			objects.append({'id':prop.id,'p':rs_service_pipe_packet.p,'kind':'rs_service_pipe','data':rs_service_pipe_packet})
 			continue
 		var console_body: Dictionary = {}
 		if prop.get('id')=='power_console_off_on':
@@ -557,6 +566,9 @@ func _object_culling_state(o: Dictionary, at: Vector2) -> Dictionary:
 	if o.get('kind')=='rs_bulkhead_module' and o.get('data') is Dictionary and o.data.get('body_rect') is Rect2:
 		var module_rect: Rect2 = o.data.body_rect
 		return {'furnaceKey':'','culled':not _rect_intersects(viewport_rect,module_rect),'bodyRect':module_rect,'fallbackRect':Rect2()}
+	if o.get('kind')=='rs_service_pipe' and o.get('data') is Dictionary and o.data.get('body_rect') is Rect2:
+		var pipe_rect: Rect2 = o.data.body_rect
+		return {'furnaceKey':'','culled':not _rect_intersects(viewport_rect,pipe_rect),'bodyRect':pipe_rect,'fallbackRect':Rect2()}
 	var furnace_key = ''
 	if o.get('kind')=='prop' and o.get('data') is Dictionary:
 		furnace_key = _cw_furnace_key(o.data)
@@ -579,6 +591,9 @@ func _draw_object(o: Dictionary, interaction_caption: String = '') -> void:
 		'rs_bulkhead_module':
 			var module_alpha: float = float(rs_front_alpha.get(o.data.get('fade_group',''),1.0))
 			rs_bulkhead_modules_visual.draw_module(self,o.data,camera.ppm,module_alpha)
+		'rs_service_pipe':
+			if not rs_service_pipe_visual.draw_body(self,o.data):
+				draw_rect(_prop_placeholder_rect(at,camera.ppm),Color('#65716d'))
 		'gh_story_prop':
 			var body_drawn = false
 			if o.data.image_allowed and gh_bio_lockdown_visual!=null:
