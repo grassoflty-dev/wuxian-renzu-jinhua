@@ -35,6 +35,7 @@ const GH_STORY_PLACEMENTS = {
 var gh_bio_lockdown_visual
 const CwPressureValveVisual = preload('res://scripts/world/cw_pressure_valve_visual.gd')
 const CwPressureEnvironmentVisual = preload('res://scripts/world/cw_pressure_environment_visual.gd')
+const MhPumpEnvironmentVisual = preload('res://scripts/world/mh_pump_environment_visual.gd')
 const CW_PRESSURE_VALVES = {
 	'cw_pressure_valve_visual_01':Vector3(8,0,7),
 	'cw_pressure_valve_visual_02':Vector3(12,0,7),
@@ -54,6 +55,7 @@ var camera = Camera.new()
 var rs_environment_visual = RsEnvironmentVisual.new()
 var gh_power_environment_visual = GhPowerEnvironmentVisual.new()
 var cw_pressure_environment_visual = CwPressureEnvironmentVisual.new()
+var mh_pump_environment_visual = MhPumpEnvironmentVisual.new()
 var rs_front_alpha: Dictionary = {}
 var cenyao_idle = CenYaoIdle.new()
 var registered_props = RegisteredProps.new()
@@ -225,11 +227,15 @@ func _draw() -> void:
 	var gh_power_pipe_detail_drawn = gh_power_room_active and gh_power_environment_visual.has_pipe_detail(gh_power_packets)
 	var cw_pressure_packets = cw_pressure_environment_visual.build_packets(scene,snapshot,current_key,camera)
 	var cw_pressure_room_active = not cw_pressure_packets.is_empty()
+	var mh_pump_packets = mh_pump_environment_visual.build_packets(scene,snapshot,current_key,camera)
+	var mh_pump_room_active = not mh_pump_packets.is_empty()
 	# Canonical static geometry is display only. No spawns, routes, navigation or hidden objectives.
 	for wall in scene.get('collision',[]):
 		if gh_power_room_active and wall is Dictionary and gh_power_environment_visual.is_wall_id(wall.get('id')):
 			continue
 		if cw_pressure_room_active and wall is Dictionary and cw_pressure_environment_visual.is_wall_id(wall.get('id')):
+			continue
+		if mh_pump_room_active and wall is Dictionary and mh_pump_environment_visual.is_wall_id(wall.get('id')):
 			continue
 		if wall is Dictionary and P.polygon(wall.get('polygon')):
 			if rs_active and rs_environment_visual.is_structure_id(wall.get('id')):
@@ -248,6 +254,8 @@ func _draw() -> void:
 	if not rs_active:
 		_supports()
 		_surfaces()
+	if mh_pump_room_active:
+		_draw_mh_pump_packets(mh_pump_packets)
 	var objects: Array = []
 	for prop in scene.get('presentation',{}).get('sprites',[]):
 		if not prop is Dictionary or not prop.get('position') is Array or prop.position.size()!=3 or typeof(prop.get('assetId'))!=TYPE_STRING:
@@ -365,6 +373,27 @@ func _draw_gh_power_packets(packets: Array) -> void:
 				draw_polyline(outline,color,width,true)
 
 func _draw_cw_pressure_packets(packets: Array) -> void:
+	for packet in packets:
+		if not packet is Dictionary:
+			continue
+		var points = packet.get('points')
+		var color = packet.get('color')
+		if not points is PackedVector2Array or not color is Color:
+			continue
+		if packet.get('filled')==true and points.size()>=3:
+			draw_colored_polygon(points,color)
+		elif points.size()>=2:
+			var width = float(packet.get('width',1.0))
+			if not is_finite(width) or width<=0.0:
+				continue
+			if points.size()==2:
+				draw_line(points[0],points[1],color,width,true)
+			else:
+				var outline: PackedVector2Array = points.duplicate()
+				outline.append(outline[0])
+				draw_polyline(outline,color,width,true)
+
+func _draw_mh_pump_packets(packets: Array) -> void:
 	for packet in packets:
 		if not packet is Dictionary:
 			continue
