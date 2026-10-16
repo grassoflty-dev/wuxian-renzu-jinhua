@@ -1,0 +1,45 @@
+{
+  "schema": "wuxian.gh-entry-floor-material.internal-use/v1",
+  "registeredSourceReuse": true,
+  "approval": "INTERNAL_REGISTERED_SOURCE_REUSE",
+  "consumerStatus": "NOT_RUN",
+  "publicRelease": "NOT_ESTABLISHED",
+  "sourceAsset": {
+    "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.grey_hive.floor_tiles.v1.png",
+    "assetId": "runtime2d.grey_hive.floor_tiles.v1",
+    "bytes": 1315059,
+    "sha256": "4c93e192505e71d6ec4e414aeb5c9b76376b7407d677017b31b8eba5e24e744f",
+    "canvas": [1434, 980],
+    "format": "RGBA8",
+    "admission": "release_approved",
+    "runtimeStatus": "ADOPT"
+  },
+  "runtimeAsset": {
+    "path": "res://assets/props/grey_hive/floor_tiles.png",
+    "bytes": 1315059,
+    "sha256": "4c93e192505e71d6ec4e414aeb5c9b76376b7407d677017b31b8eba5e24e744f",
+    "canvas": [1434, 980],
+    "format": "RGBA8"
+  },
+  "selection": {
+    "kind": "affine_top_face",
+    "pixelCenterCorners": [[187, 184], [345, 305], [185, 426], [27, 305]],
+    "uvConvention": "(sourcePixelCenter + 0.5) / canvasSize",
+    "interiorAlphaRange": [251, 254]
+  },
+  "installation": {
+    "installationKind": "visual-only-flat-ground",
+    "worldId": "grey_hive",
+    "sceneId": "gh_entry_maintenance",
+    "rowId": "approved_floor_atlas",
+    "assetId": "runtime2d.grey_hive.floor_tiles.v1",
+    "layer": "visual.floor",
+    "anchorM": [10, 0, 7],
+    "cellSizeM": [2, 2],
+    "gridCells": [10, 7],
+    "cellCount": 70,
+    "vertexGrid": [11, 8],
+    "groundY": 0,
+    "orientation": "A:x,z;B:x+2,z;C:x+2,z+2;D:x,z+2"
+  }
+}
