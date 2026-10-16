@@ -1,0 +1,49 @@
+{
+  "schema": "wuxian.gh-bio-wall-modules.internal-use/v1",
+  "registeredSourceReuse": true,
+  "approval": "INTERNAL_REGISTERED_SOURCE_REUSE",
+  "GodotDisplay": "NOT_RUN",
+  "publicRelease": "NOT_ESTABLISHED",
+  "sourceAsset": {
+    "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.grey_hive.wall_tiles.v1.png",
+    "bytes": 1673423,
+    "sha256": "c5a18cae9a3ddc95c8515f6b342cb7ca3be12c23ff502ab5b3f16000bb4c9a5b",
+    "canvas": [1418, 1028],
+    "format": "RGBA8"
+  },
+  "asset": {
+    "path": "res://assets/props/return_station/bulkhead_tiles.png",
+    "bytes": 1673423,
+    "sha256": "c5a18cae9a3ddc95c8515f6b342cb7ca3be12c23ff502ab5b3f16000bb4c9a5b",
+    "format": "RGBA8",
+    "canvas": [1418, 1028],
+    "frame": [0, 0, 355, 480],
+    "paintedBounds": [41, 6, 299, 457],
+    "groundFeetPx": [[50, 322], [300, 460]]
+  },
+  "installation": {
+    "worldId": "grey_hive",
+    "sceneId": "gh_bio_isolation",
+    "rowId": "bio_wall_reuse",
+    "assetId": "runtime2d.grey_hive.wall_tiles.v1",
+    "layer": "visual.props_back",
+    "positionM": [12, 0, 1],
+    "runIds": [
+      "north", "south", "west_north", "west_south", "east_north", "east_south"
+    ],
+    "runs": [
+      {"id":"north", "startM":[0,0,0.25], "endM":[24,0,0.25]},
+      {"id":"south", "startM":[0,0,15.75], "endM":[24,0,15.75]},
+      {"id":"west_north", "startM":[0.25,0,0.5], "endM":[0.25,0,6.5]},
+      {"id":"west_south", "startM":[0.25,0,9.5], "endM":[0.25,0,15.5]},
+      {"id":"east_north", "startM":[23.75,0,0.5], "endM":[23.75,0,6.5]},
+      {"id":"east_south", "startM":[23.75,0,9.5], "endM":[23.75,0,15.5]}
+    ],
+    "cadenceM": 1,
+    "maxModules": 96,
+    "maxExtentPxAt48": 96,
+    "shadowAlpha": 0.18,
+    "fadeTo": 0.25,
+    "fadeDurationMs": 200
+  }
+}
