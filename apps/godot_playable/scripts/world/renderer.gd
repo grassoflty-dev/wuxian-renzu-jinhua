@@ -4,6 +4,7 @@ const V = preload('res://scripts/world/presentation.gd')
 const Camera = preload('res://scripts/world/projection.gd')
 const CenYaoIdle = preload('res://scripts/world/cenyao_idle_visual.gd')
 const MhCwActor = preload('res://scripts/world/mh_cw_actor_visual.gd')
+const RsEnvironmentVisual = preload('res://scripts/world/rs_environment_visual.gd')
 const MH_CW_ROSTER = {"cw_entry_foundry_forged_guard_01":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_entry_foundry","authoring_type":"enemy.clockworks.forged_guard"},"mh_breakwater_signal_wraith_02":{"runtime_type":"enemy.mist_harbor.signal_wraith","world":"mist_harbor","key":"signal_wraith","scene":"mh_breakwater","authoring_type":"enemy.mist_harbor.signal_wraith"},"mh_tidal_warehouse_drowned_01":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_tidal_warehouse","authoring_type":"enemy.mist_harbor.drowned"},"mh_signal_yard_signal_wraith_03":{"runtime_type":"enemy.mist_harbor.signal_wraith","world":"mist_harbor","key":"signal_wraith","scene":"mh_signal_yard","authoring_type":"enemy.mist_harbor.signal_wraith"},"cw_pressure_hall_forged_guard_01":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_pressure_hall","authoring_type":"enemy.clockworks.forged_guard"},"mh_signal_yard_signal_wraith_02":{"runtime_type":"enemy.mist_harbor.signal_wraith","world":"mist_harbor","key":"signal_wraith","scene":"mh_signal_yard","authoring_type":"enemy.mist_harbor.signal_wraith"},"mh_resonance_tower_signal_wraith_01":{"runtime_type":"enemy.mist_harbor.signal_wraith","world":"mist_harbor","key":"signal_wraith","scene":"mh_resonance_tower","authoring_type":"enemy.mist_harbor.signal_wraith"},"mh_tidal_warehouse_drowned_02":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_tidal_warehouse","authoring_type":"enemy.mist_harbor.drowned"},"mh_drowned_quay_drowned_03":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_drowned_quay","authoring_type":"enemy.mist_harbor.drowned"},"mh_drowned_quay_drowned_02":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_drowned_quay","authoring_type":"enemy.mist_harbor.drowned"},"mh_drowned_quay_drowned_01":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_drowned_quay","authoring_type":"enemy.mist_harbor.drowned"},"mh_fog_pier_drowned_02":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_fog_pier","authoring_type":"enemy.mist_harbor.drowned"},"mh_drowned_quay_drowned_04":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_drowned_quay","authoring_type":"enemy.mist_harbor.drowned"},"mh_signal_yard_signal_wraith_01":{"runtime_type":"enemy.mist_harbor.signal_wraith","world":"mist_harbor","key":"signal_wraith","scene":"mh_signal_yard","authoring_type":"enemy.mist_harbor.signal_wraith"},"mh_pump_station_drowned_03":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_pump_station","authoring_type":"enemy.mist_harbor.drowned"},"mh_tidal_warehouse_signal_wraith_01":{"runtime_type":"enemy.mist_harbor.signal_wraith","world":"mist_harbor","key":"signal_wraith","scene":"mh_tidal_warehouse","authoring_type":"enemy.mist_harbor.signal_wraith"},"mh_breakwater_signal_wraith_01":{"runtime_type":"enemy.mist_harbor.signal_wraith","world":"mist_harbor","key":"signal_wraith","scene":"mh_breakwater","authoring_type":"enemy.mist_harbor.signal_wraith"},"mh_fog_pier_drowned_01":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_fog_pier","authoring_type":"enemy.mist_harbor.drowned"},"cw_furnace_heart_forged_guard_01":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_furnace_heart","authoring_type":"enemy.clockworks.forged_guard"},"cw_conveyor_bridge_forged_guard_01":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_conveyor_bridge","authoring_type":"enemy.clockworks.forged_guard"},"mh_resonance_tower_signal_wraith_02":{"runtime_type":"enemy.mist_harbor.signal_wraith","world":"mist_harbor","key":"signal_wraith","scene":"mh_resonance_tower","authoring_type":"enemy.mist_harbor.signal_wraith"},"mh_pump_station_drowned_02":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_pump_station","authoring_type":"enemy.mist_harbor.drowned"},"cw_pressure_hall_forged_guard_02":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_pressure_hall","authoring_type":"enemy.clockworks.forged_guard"},"cw_furnace_heart_forged_guard_02":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_furnace_heart","authoring_type":"enemy.clockworks.forged_guard"},"cw_gear_shaft_forged_guard_02":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_gear_shaft","authoring_type":"enemy.clockworks.forged_guard"},"mh_pump_station_drowned_01":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_pump_station","authoring_type":"enemy.mist_harbor.drowned"},"cw_gear_shaft_forged_guard_01":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_gear_shaft","authoring_type":"enemy.clockworks.forged_guard"},"mh_resonance_tower_signal_wraith_03":{"runtime_type":"enemy.mist_harbor.signal_wraith","world":"mist_harbor","key":"signal_wraith","scene":"mh_resonance_tower","authoring_type":"enemy.mist_harbor.signal_wraith"},"cw_entry_foundry_forged_guard_02":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_entry_foundry","authoring_type":"enemy.clockworks.forged_guard"},"cw_conveyor_bridge_forged_guard_02":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_conveyor_bridge","authoring_type":"enemy.clockworks.forged_guard"},"mh_resonance_tower_signal_wraith_04":{"runtime_type":"enemy.mist_harbor.signal_wraith","world":"mist_harbor","key":"signal_wraith","scene":"mh_resonance_tower","authoring_type":"enemy.mist_harbor.signal_wraith"},"mh_tidal_warehouse_drowned_03":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_tidal_warehouse","authoring_type":"enemy.mist_harbor.drowned"},"cw_conveyor_bridge_forged_guard_03":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_conveyor_bridge","authoring_type":"enemy.clockworks.forged_guard"}}
 const GreyHiveActor = preload('res://scripts/world/grey_hive_actor_visual.gd')
 const RegisteredProps = preload('res://scripts/world/registered_props_visual.gd')
@@ -48,6 +49,8 @@ const CW_FURNACES = {
 }
 var cw_furnace_visual
 var camera = Camera.new()
+var rs_environment_visual = RsEnvironmentVisual.new()
+var rs_front_alpha: Dictionary = {}
 var cenyao_idle = CenYaoIdle.new()
 var registered_props = RegisteredProps.new()
 var rs_floor_visual = RsFloorVisual.new()
@@ -94,6 +97,7 @@ func commit(s: Dictionary, data: Dictionary, hash: String) -> void:
 		sound.clear()
 		displayed.clear()
 		occluder_alpha.clear()
+		rs_front_alpha.clear()
 		current_key = key
 	snapshot = s
 	scene = data
@@ -152,6 +156,7 @@ func _process(delta: float) -> void:
 					safe_rect = clipped
 	camera.update(snapshot,scene,full.size,maxf(0,delta),safe_rect)
 	viewport_rect = full
+	_update_rs_front_alpha(maxf(0,delta))
 	_update_occlusion(delta)
 	queue_redraw()
 func visible_point(p: Vector3) -> bool:
@@ -187,11 +192,22 @@ func _draw() -> void:
 		for corner in floor_poly:
 			floor_points.append(camera.project(Vector3(corner[0],0,corner[1])))
 		rs_floor_visual.draw_floor(self,snapshot,scene,floor_points)
+	var rs_active = _rs_environment_context()
+	var rs_terminal_feet: Array = []
+	var rs_back_packets: Array = []
+	if rs_active:
+		rs_terminal_feet = _rs_terminal_feet()
+		rs_back_packets = rs_environment_visual.build_packets(scene,snapshot.worldId,snapshot.sceneId,camera,rs_terminal_feet,'back')
+		rs_active = not rs_back_packets.is_empty()
 	# Canonical static geometry is display only. No spawns, routes, navigation or hidden objectives.
 	for wall in scene.get('collision',[]):
 		if wall is Dictionary and P.polygon(wall.get('polygon')):
+			if rs_active and rs_environment_visual.is_structure_id(wall.get('id')):
+				continue
 			_poly(wall.polygon,0,Color('#4b5659'),true)
 			_poly(wall.polygon,0,Color('#819092'),false)
+	if rs_active:
+		_draw_rs_packets(rs_back_packets,'back')
 	for region in scene.get('terrainRegions',[]):
 		if region is Dictionary and P.polygon(region.get('polygon')):
 			var tag = region.get('tag','')
@@ -199,8 +215,9 @@ func _draw() -> void:
 			var drained = pump is Dictionary and pump.get('state')=='drained' and region.get('id') in ['mh_pump_east_channel_water','mh_water_depth_region']
 			var c = Color(0.16,0.4,0.5,0.16 if drained else 0.32) if 'water' in tag else Color(0.36,0.29,0.2,0.24)
 			_poly(region.polygon,0,c,true)
-	_supports()
-	_surfaces()
+	if not rs_active:
+		_supports()
+		_surfaces()
 	var objects: Array = []
 	for prop in scene.get('presentation',{}).get('sprites',[]):
 		if not prop is Dictionary or not prop.get('position') is Array or prop.position.size()!=3 or typeof(prop.get('assetId'))!=TYPE_STRING:
@@ -247,7 +264,14 @@ func _draw() -> void:
 		return a.id<b.id if is_equal_approx(ay,by) else ay<by)
 	var interaction_captions = _interaction_captions()
 	for o in objects:
-		_draw_object(o,interaction_captions.get(o.id,''))
+		var caption: String = interaction_captions.get(o.id,'')
+		if rs_active and o.kind=='interaction':
+			caption = ''
+		_draw_object(o,caption)
+	if rs_active:
+		var rs_front_packets = rs_environment_visual.build_packets(scene,snapshot.worldId,snapshot.sceneId,camera,rs_terminal_feet,'front')
+		_draw_rs_packets(rs_front_packets,'front')
+		_draw_rs_interaction_captions(objects,interaction_captions)
 	_hazards()
 	_beacon()
 	_boss_warning()
@@ -261,6 +285,57 @@ func _draw() -> void:
 	if reported_key!=current_key:
 		reported_key = current_key
 		call_deferred('_report_frame',current_key)
+
+func _rs_environment_context() -> bool:
+	return snapshot.get('worldId')=='return_station' and snapshot.get('sceneId')=='rs_core_room' and scene.get('worldId')=='return_station' and scene.get('sceneId')=='rs_core_room' and current_key=='return_station:rs_core_room:'+str(snapshot.get('worldEpoch'))
+
+func _rs_terminal_feet() -> Array:
+	var result: Array = []
+	for prop in scene.get('presentation',{}).get('sprites',[]):
+		if not prop is Dictionary:
+			continue
+		var position = _terminal_position(prop)
+		if position is Vector3:
+			result.append({'id':prop.id,'position':position})
+	return result
+
+func _draw_rs_packets(packets: Array, phase: String) -> void:
+	for packet in packets:
+		if not packet is Dictionary or packet.get('kind')!='polygon' or not packet.get('points') is PackedVector2Array:
+			continue
+		var points: PackedVector2Array = packet.points
+		var color: Color = packet.color
+		if phase=='front':
+			var fade_group = packet.get('fade_group',packet.get('id'))
+			color.a *= clampf(float(rs_front_alpha.get(fade_group,1.0)),0.25,1.0)
+		if packet.get('filled')==true:
+			draw_colored_polygon(points,color)
+		else:
+			draw_polyline(points,color,maxf(0.5,float(packet.get('width',1.0))),true)
+
+func _draw_rs_interaction_captions(objects: Array, captions: Dictionary) -> void:
+	var scale: float = camera.ppm/48.0
+	for object in objects:
+		if not object is Dictionary or object.get('kind')!='interaction' or not captions.has(object.get('id')):
+			continue
+		var caption = captions.get(object.id,'')
+		if typeof(caption)==TYPE_STRING and not caption.is_empty() and object.get('p') is Vector3:
+			_label(camera.project(object.p)-Vector2(0,20)*scale,caption)
+
+func _update_rs_front_alpha(delta: float) -> void:
+	if not _rs_environment_context():
+		rs_front_alpha.clear()
+		return
+	var feet = _rs_terminal_feet()
+	var packets = rs_environment_visual.build_packets(scene,snapshot.worldId,snapshot.sceneId,camera,feet,'front')
+	if packets.is_empty():
+		rs_front_alpha.clear()
+		return
+	var factor: float = (104.0/560.0)*(camera.ppm/48.0)
+	var foot: Vector2 = camera.project(P.vector(snapshot.player.transform.positionM))
+	var player_rect = Rect2(foot-Vector2(168,551)*factor,Vector2(336,560)*factor)
+	rs_front_alpha = rs_environment_visual.front_fade_alphas(packets,rs_front_alpha,player_rect,delta,reduced_motion)
+
 func _poly(points: Array, height: float, color: Color, filled: bool) -> void:
 	var p = PackedVector2Array()
 	for a in points:
