@@ -721,7 +721,8 @@ func _save() -> void:
 			_button('返回并保存：'+slot.displayName,'return_slot',{'slotId':slot.slotId,'displayName':slot.displayName,'create':false},connected)
 	var entry = LineEdit.new()
 	entry.placeholder_text = '新存档名称'
-	entry.max_length = 80
+	entry.tooltip_text = '存档名称最多 48 个字符；不能全部为空白。'
+	entry.max_length = 48
 	entry.add_theme_font_size_override('font_size',int(18*font_scale))
 	box.add_child(entry)
 	var captured = page_owner.duplicate(true)
