@@ -304,6 +304,8 @@ func _release() -> void:
 		if _key_held(key):
 			blocked_keys[key] = true
 func _event_key(event: InputEventKey) -> int:
+	if event.keycode==KEY_ESCAPE and event.physical_keycode!=0 and not event.physical_keycode in TRACE_KEYS:
+		return KEY_ESCAPE
 	if event.physical_keycode!=0:
 		return event.physical_keycode
 	return event.keycode if event.keycode in [KEY_W,KEY_A,KEY_S,KEY_D,KEY_UP,KEY_DOWN,KEY_LEFT,KEY_RIGHT,KEY_J,KEY_SHIFT,KEY_SPACE,KEY_Q,KEY_E,KEY_R,KEY_F,KEY_T,KEY_M,KEY_ESCAPE] else 0
