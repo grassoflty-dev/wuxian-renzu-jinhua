@@ -1,0 +1,34 @@
+{
+  "schema": "wuxian.rs-bulkhead-modules.internal-use/v1",
+  "registeredSourceReuse": true,
+  "approval": "INTERNAL_REGISTERED_SOURCE_REUSE",
+  "GodotDisplay": "NOT_RUN",
+  "publicRelease": "NOT_ESTABLISHED",
+  "sourceAsset": {
+    "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.grey_hive.wall_tiles.v1.png",
+    "bytes": 1673423,
+    "sha256": "c5a18cae9a3ddc95c8515f6b342cb7ca3be12c23ff502ab5b3f16000bb4c9a5b",
+    "canvas": [1418, 1028],
+    "format": "RGBA8"
+  },
+  "asset": {
+    "path": "res://assets/props/return_station/bulkhead_tiles.png",
+    "bytes": 1673423,
+    "sha256": "c5a18cae9a3ddc95c8515f6b342cb7ca3be12c23ff502ab5b3f16000bb4c9a5b",
+    "format": "RGBA8",
+    "canvas": [1418, 1028],
+    "frame": [0, 0, 355, 480],
+    "paintedBounds": [41, 6, 299, 457],
+    "groundFeetPx": [[50, 322], [300, 460]]
+  },
+  "installation": {
+    "worldId": "return_station",
+    "sceneId": "rs_core_room",
+    "runIds": ["north_bulkhead", "south_bulkhead", "west_bulkhead_north", "west_bulkhead_south", "east_bulkhead_north", "east_bulkhead_south"],
+    "cadenceM": 1.0,
+    "terminalM": 0.5,
+    "maxModules": 128,
+    "maxExtentPxAt48": 96.0,
+    "maxLateralFootprintM": 0.5
+  }
+}
