@@ -34,6 +34,7 @@ const GH_STORY_PLACEMENTS = {
 }
 var gh_bio_lockdown_visual
 const CwPressureValveVisual = preload('res://scripts/world/cw_pressure_valve_visual.gd')
+const CwPressureEnvironmentVisual = preload('res://scripts/world/cw_pressure_environment_visual.gd')
 const CW_PRESSURE_VALVES = {
 	'cw_pressure_valve_visual_01':Vector3(8,0,7),
 	'cw_pressure_valve_visual_02':Vector3(12,0,7),
@@ -52,6 +53,7 @@ var cw_furnace_visual
 var camera = Camera.new()
 var rs_environment_visual = RsEnvironmentVisual.new()
 var gh_power_environment_visual = GhPowerEnvironmentVisual.new()
+var cw_pressure_environment_visual = CwPressureEnvironmentVisual.new()
 var rs_front_alpha: Dictionary = {}
 var cenyao_idle = CenYaoIdle.new()
 var registered_props = RegisteredProps.new()
@@ -221,9 +223,13 @@ func _draw() -> void:
 	var gh_power_packets = gh_power_environment_visual.build_packets(scene,snapshot,current_key,camera,gh_power_light_state)
 	var gh_power_room_active = not gh_power_packets.is_empty()
 	var gh_power_pipe_detail_drawn = gh_power_room_active and gh_power_environment_visual.has_pipe_detail(gh_power_packets)
+	var cw_pressure_packets = cw_pressure_environment_visual.build_packets(scene,snapshot,current_key,camera)
+	var cw_pressure_room_active = not cw_pressure_packets.is_empty()
 	# Canonical static geometry is display only. No spawns, routes, navigation or hidden objectives.
 	for wall in scene.get('collision',[]):
 		if gh_power_room_active and wall is Dictionary and gh_power_environment_visual.is_wall_id(wall.get('id')):
+			continue
+		if cw_pressure_room_active and wall is Dictionary and cw_pressure_environment_visual.is_wall_id(wall.get('id')):
 			continue
 		if wall is Dictionary and P.polygon(wall.get('polygon')):
 			if rs_active and rs_environment_visual.is_structure_id(wall.get('id')):
@@ -247,6 +253,8 @@ func _draw() -> void:
 		if not prop is Dictionary or not prop.get('position') is Array or prop.position.size()!=3 or typeof(prop.get('assetId'))!=TYPE_STRING:
 			continue
 		if gh_power_room_active and gh_power_pipe_detail_drawn and prop.get('id')=='power_room_pipes':
+			continue
+		if cw_pressure_room_active and cw_pressure_environment_visual.has_pipe_detail(cw_pressure_packets,str(prop.get('id',''))):
 			continue
 		var console_body: Dictionary = {}
 		if prop.get('id')=='power_console_off_on':
@@ -291,6 +299,8 @@ func _draw() -> void:
 		objects.append({'id':npc.entityId,'p':Vector3(npc.position[0],npc.position[1],npc.position[2]),'kind':'npc','data':npc})
 	if gh_power_room_active:
 		_draw_gh_power_packets(gh_power_packets)
+	if cw_pressure_room_active:
+		_draw_cw_pressure_packets(cw_pressure_packets)
 	objects.sort_custom(func(a,b):
 		var ay = camera.project(Vector3(a.p.x,0,a.p.z)).y
 		var by = camera.project(Vector3(b.p.x,0,b.p.z)).y
@@ -344,6 +354,27 @@ func _draw_gh_power_packets(packets: Array) -> void:
 		if filled and points.size()>=3:
 			draw_colored_polygon(points,color)
 		elif not filled and points.size()>=2:
+			var width = float(packet.get('width',1.0))
+			if not is_finite(width) or width<=0.0:
+				continue
+			if points.size()==2:
+				draw_line(points[0],points[1],color,width,true)
+			else:
+				var outline: PackedVector2Array = points.duplicate()
+				outline.append(outline[0])
+				draw_polyline(outline,color,width,true)
+
+func _draw_cw_pressure_packets(packets: Array) -> void:
+	for packet in packets:
+		if not packet is Dictionary:
+			continue
+		var points = packet.get('points')
+		var color = packet.get('color')
+		if not points is PackedVector2Array or not color is Color:
+			continue
+		if packet.get('filled')==true and points.size()>=3:
+			draw_colored_polygon(points,color)
+		elif points.size()>=2:
 			var width = float(packet.get('width',1.0))
 			if not is_finite(width) or width<=0.0:
 				continue
