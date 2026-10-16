@@ -1,0 +1,46 @@
+{
+  "schema": "wuxian.rs-service-pipe.internal-use/v1",
+  "registeredSourceReuse": true,
+  "approval": "INTERNAL_REGISTERED_SOURCE_REUSE",
+  "GodotDisplay": "NOT_RUN",
+  "publicRelease": "NOT_ESTABLISHED",
+  "sourceAsset": {
+    "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.grey_hive.pipes_cables.v1.png",
+    "assetId": "runtime2d.grey_hive.pipes_cables.v1",
+    "bytes": 1049893,
+    "sha256": "7f3c67879398e89adc9026fc2aca5fbe7792b1dc360b73c737c1b2299eac96da",
+    "canvas": [1414, 1047],
+    "format": "RGBA8",
+    "admission": "release_approved",
+    "runtimeStatus": "ADOPT"
+  },
+  "runtimeAsset": {
+    "path": "res://assets/props/return_station/service_pipes.png",
+    "bytes": 1049893,
+    "sha256": "7f3c67879398e89adc9026fc2aca5fbe7792b1dc360b73c737c1b2299eac96da",
+    "canvas": [1414, 1047],
+    "format": "RGBA8"
+  },
+  "selection": {
+    "framePx": [0, 219, 388, 270],
+    "seedPx": [100, 320],
+    "componentBoundsPx": [0, 219, 388, 270],
+    "connectedAlphaPixels": 46171,
+    "contactsPx": [[50, 345], [325, 482]]
+  },
+  "installation": {
+    "worldId": "return_station",
+    "sceneId": "rs_core_room",
+    "rowId": "approved_facility_pipes",
+    "assetId": "runtime2d.grey_hive.pipes_cables.v1",
+    "layer": "visual.props_back",
+    "positionM": [10, 0, 1],
+    "contactsM": [[9.5, 0, 1], [10.5, 0, 1]],
+    "spanM": 1.0,
+    "shadow": {
+      "centerM": [10, 0, 1],
+      "radiiM": [0.6, 0.16],
+      "alpha": 0.18
+    }
+  }
+}
