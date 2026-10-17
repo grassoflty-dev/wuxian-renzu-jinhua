@@ -1,6 +1,7 @@
 extends RefCounted
 
 const P = preload('res://scripts/bridge/protocol.gd')
+const ProjectionScript = preload('res://scripts/world/projection.gd')
 const RELIEF_PIXELS = 12.0
 const MAX_PACKETS = 160
 const PIPE_ASSET = 'runtime2d.world.clockworks.pressure_pipes.v1'
@@ -109,14 +110,14 @@ func _add_wall(packets: Array, wall: Dictionary, projection) -> bool:
 		cap.append(projection.project(Vector3(float(point[0]),0.0,float(point[1])))-Vector2(0,relief))
 	if not _push(packets,wall.id+':cap','wall_cap',cap,Color(0.31,0.29,0.25),true,wall.id,wall.footprint):
 		return false
-	if not _push(packets,wall.id+':edge','wall_edge',cap,Color(0.48,0.45,0.39,0.78),false,wall.id,wall.footprint,1.1*scale):
+	if not _push(packets,wall.id+':edge','wall_edge',cap,Color(0.48,0.45,0.39,0.50),false,wall.id,wall.footprint,1.1*scale):
 		return false
 	for index in range(1,int(wall.seams)+1):
 		var t = float(index)/float(int(wall.seams)+1)
 		var room_point = a.lerp(b,t)
 		var foot: Vector2 = projection.project(Vector3(room_point.x,0.0,room_point.y))
 		var raised = foot-Vector2(0,relief)
-		if not _push(packets,wall.id+':seam:'+str(index),'panel_seam',PackedVector2Array([foot,raised]),Color(0.39,0.39,0.36,0.8),false,wall.id,wall.footprint,0.9*scale):
+		if not _push(packets,wall.id+':seam:'+str(index),'panel_seam',PackedVector2Array([foot,raised]),Color(0.39,0.39,0.36,0.55),false,wall.id,wall.footprint,0.9*scale):
 			return false
 		if not _add_fastener(packets,wall.id+':fastener:'+str(index),foot.lerp(raised,0.72),1.25*scale,wall.id,wall.footprint):
 			return false
@@ -127,7 +128,7 @@ func _add_fastener(packets: Array, packet_id: String, center: Vector2, radius: f
 	for index in range(6):
 		var angle = TAU*float(index)/6.0
 		points.append(center+Vector2(cos(angle),sin(angle))*radius)
-	return _push(packets,packet_id,'fastener',points,Color(0.52,0.48,0.40,0.84),true,wall_id,footprint)
+	return _push(packets,packet_id,'fastener',points,Color(0.52,0.48,0.40,0.60),true,wall_id,footprint)
 
 func _pipe_anchor_valid(scene_data: Dictionary, source_id: String) -> bool:
 	var presentation = scene_data.get('presentation')
@@ -213,3 +214,115 @@ func _push(packets: Array, packet_id: String, role: String, points: PackedVector
 		packet['source_id'] = source_id
 	packets.append(packet)
 	return packets.size()<=MAX_PACKETS
+
+func draw_floor_treatment(canvas, scene_data: Dictionary, snapshot: Dictionary, current_key: String, projection, viewport: Rect2) -> bool:
+	if not canvas is Node2D or not is_instance_valid(canvas) or canvas.is_queued_for_deletion() or not canvas.is_inside_tree():
+		return false
+	if not P.snapshot(snapshot) or not _ensure_layout(scene_data,snapshot,current_key) or not _registered_art_rows_valid(scene_data):
+		return false
+	if not _floor_projection_valid(projection) or not _floor_viewport_valid(viewport):
+		return false
+	var draw_quads: Array = []
+	for row in range(8):
+		for column in range(12):
+			var x0: float = float(column*2)
+			var x1: float = float(column*2+2)
+			var z0: float = float(row*2)
+			var z1: float = float(row*2+2)
+			var x_values: Array[float] = [x0,x1,x1,x0]
+			var z_values: Array[float] = [z0,z0,z1,z1]
+			var points := PackedVector2Array()
+			var edge_colors := PackedColorArray()
+			var focus_colors := PackedColorArray()
+			for vertex_index in range(4):
+				var world_x: float = x_values[vertex_index]
+				var world_z: float = z_values[vertex_index]
+				var screen_point: Vector2 = projection.project(Vector3(world_x,0.0,world_z))
+				if not is_finite(screen_point.x) or not is_finite(screen_point.y):
+					return false
+				points.append(screen_point)
+				var edge_distance: float = minf(minf(world_x,24.0-world_x),minf(world_z,16.0-world_z))
+				var edge_t: float = clampf(edge_distance/2.0,0.0,1.0)
+				var edge_smooth: float = edge_t*edge_t*(3.0-2.0*edge_t)
+				var edge_weight: float = 1.0-edge_smooth
+				var focus_x: float = (world_x-12.0)/6.0
+				var focus_z: float = (world_z-7.0)/2.5
+				var focus_radius: float = sqrt(focus_x*focus_x+focus_z*focus_z)
+				var focus_t: float = clampf(focus_radius,0.0,1.0)
+				var focus_smooth: float = focus_t*focus_t*(3.0-2.0*focus_t)
+				var focus_weight: float = 1.0-focus_smooth
+				var edge_color: Color = Color(16.0/255.0,25.0/255.0,35.0/255.0,0.12*edge_weight)
+				var focus_color: Color = Color(185.0/255.0,180.0/255.0,166.0/255.0,0.05*focus_weight)
+				if not _floor_color_finite(edge_color) or not _floor_color_finite(focus_color):
+					return false
+				edge_colors.append(edge_color)
+				focus_colors.append(focus_color)
+			if not _floor_quad_valid(points,edge_colors) or not _floor_quad_valid(points,focus_colors):
+				return false
+			draw_quads.append({'points':points,'edge':edge_colors,'focus':focus_colors})
+	if draw_quads.size()!=96:
+		return false
+	for quad in draw_quads:
+		canvas.draw_polygon(quad.points,quad.edge)
+	for quad in draw_quads:
+		canvas.draw_polygon(quad.points,quad.focus)
+	return true
+
+func _registered_art_rows_valid(scene_data: Dictionary) -> bool:
+	var presentation: Variant = scene_data.get('presentation')
+	if not presentation is Dictionary:
+		return false
+	var sprites: Variant = presentation.get('sprites')
+	if not P.rows(sprites,2048):
+		return false
+	for source_id in PIPE_ROWS:
+		var matches: Array = []
+		for candidate in sprites:
+			if candidate is Dictionary and candidate.get('id')==source_id:
+				matches.append(candidate)
+		if matches.size()!=1:
+			return false
+		var row: Dictionary = matches[0]
+		var expected: Dictionary = PIPE_ROWS[source_id]
+		if row.get('assetId')!=PIPE_ASSET or row.get('layer')!='visual.props_back' or not _authored_position(row.get('position'),expected.anchor):
+			return false
+	for source_id in VALVES:
+		var valve_matches: Array = []
+		for valve_candidate in sprites:
+			if valve_candidate is Dictionary and valve_candidate.get('id')==source_id:
+				valve_matches.append(valve_candidate)
+		if valve_matches.size()!=1:
+			return false
+		var valve_row: Dictionary = valve_matches[0]
+		if valve_row.get('assetId')!='runtime2d.world.clockworks.pressure_pipe_valve.v1' or valve_row.get('layer')!='visual.props_dynamic' or not _authored_position(valve_row.get('position'),VALVES[source_id]):
+			return false
+	return true
+
+func _floor_projection_valid(projection) -> bool:
+	if projection==null or not projection is RefCounted or not is_instance_valid(projection) or projection.get_script()!=ProjectionScript:
+		return false
+	var ppm_value: Variant = projection.get('ppm')
+	var origin_value: Variant = projection.get('origin')
+	var center_value: Variant = projection.get('screen_center')
+	if not P.number(ppm_value,0.0,256.0) or float(ppm_value)<=0.0 or not origin_value is Vector3 or not center_value is Vector2:
+		return false
+	var ppm: float = float(ppm_value)
+	var origin: Vector3 = origin_value
+	var center: Vector2 = center_value
+	return is_finite(ppm) and is_finite(origin.x) and is_finite(origin.y) and is_finite(origin.z) and is_finite(center.x) and is_finite(center.y)
+
+func _floor_viewport_valid(viewport: Rect2) -> bool:
+	var end: Vector2 = viewport.end
+	return is_finite(viewport.position.x) and is_finite(viewport.position.y) and is_finite(viewport.size.x) and is_finite(viewport.size.y) and viewport.size.x>0.0 and viewport.size.y>0.0 and is_finite(end.x) and is_finite(end.y)
+
+func _floor_color_finite(color: Color) -> bool:
+	return is_finite(color.r) and is_finite(color.g) and is_finite(color.b) and is_finite(color.a)
+
+func _floor_quad_valid(points: PackedVector2Array, colors: PackedColorArray) -> bool:
+	if points.size()!=4 or colors.size()!=4:
+		return false
+	for index in range(4):
+		var point: Vector2 = points[index]
+		if not is_finite(point.x) or not is_finite(point.y) or not _floor_color_finite(colors[index]):
+			return false
+	return true
