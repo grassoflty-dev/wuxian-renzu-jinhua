@@ -212,6 +212,8 @@ func _material_references_valid(scene_data: Dictionary) -> bool:
 	var walkable_value: Variant = scene_data.get('walkablePolygons')
 	if not P.rows(walkable_value,16) or walkable_value.size()!=1:
 		return false
+	if not walkable_value[0] is Dictionary:
+		return false
 	var walkable_row: Dictionary = walkable_value[0]
 	if typeof(walkable_row.get('id'))!=TYPE_STRING or walkable_row.get('id')!='mh_pump_station_walkable_area' or not _matches_polygon(walkable_row.get('polygon'),[[0.5,0.5],[23.5,0.5],[23.5,15.5],[0.5,15.5]]):
 		return false
@@ -220,6 +222,8 @@ func _material_references_valid(scene_data: Dictionary) -> bool:
 		return false
 	var deep_water_count: int = 0
 	for terrain_item: Variant in terrain_value:
+		if not terrain_item is Dictionary:
+			return false
 		var terrain_row: Dictionary = terrain_item
 		if terrain_row.get('tag')=='terrain.water_deep':
 			deep_water_count += 1
@@ -236,6 +240,8 @@ func _material_references_valid(scene_data: Dictionary) -> bool:
 		return false
 	var floor_reference_count: int = 0
 	for sprite_item: Variant in sprites_value:
+		if not sprite_item is Dictionary:
+			return false
 		var sprite_row: Dictionary = sprite_item
 		var sprite_id: Variant = sprite_row.get('id')
 		var asset_id: Variant = sprite_row.get('assetId')
