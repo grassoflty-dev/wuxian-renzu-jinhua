@@ -808,6 +808,74 @@ func _object_culling_state(o: Dictionary, at: Vector2) -> Dictionary:
 	var body_visible = _rect_intersects(viewport_rect,body_rect)
 	var fallback_visible = _rect_intersects(viewport_rect,fallback_rect)
 	return {'furnaceKey':furnace_key,'culled':not (body_visible or fallback_visible),'bodyRect':body_rect,'fallbackRect':fallback_rect}
+func _gh_bio_log_art_caption_offset(o: Dictionary) -> float:
+	var terminal_foot := Vector3(20,0,8)
+	if not P.snapshot(snapshot) or snapshot.get('entryToken')!=null:
+		return 0.0
+	if snapshot.get('worldId')!='grey_hive' or snapshot.get('sceneId')!='gh_bio_isolation' or scene.get('worldId')!='grey_hive' or scene.get('sceneId')!='gh_bio_isolation':
+		return 0.0
+	if typeof(current_key)!=TYPE_STRING or current_key!='grey_hive:gh_bio_isolation:'+str(snapshot.worldEpoch):
+		return 0.0
+	if camera==null:
+		return 0.0
+	var ppm_type: int = typeof(camera.ppm)
+	if ppm_type!=TYPE_INT and ppm_type!=TYPE_FLOAT:
+		return 0.0
+	var ppm: float = float(camera.ppm)
+	if not is_finite(ppm) or ppm<=0.0:
+		return 0.0
+	if o.get('kind')!='interaction' or o.get('id')!='gh_bio_log_terminal' or not o.get('p') is Vector3 or o.get('p')!=terminal_foot:
+		return 0.0
+	var current_rows = snapshot.get('interactables')
+	if not P.rows(current_rows,2048) or not P.unique(current_rows,'entityId'):
+		return 0.0
+	var current_matches: Array = current_rows.filter(func(row): return row.get('entityId')=='gh_bio_log_terminal')
+	if current_matches.size()!=1:
+		return 0.0
+	var current_row: Dictionary = current_matches[0]
+	if current_row.get('kind')!='bio_log_terminal' or typeof(current_row.get('active'))!=TYPE_BOOL or not current_row.active or not P.transform(current_row.get('transform')) or P.vector(current_row.transform.positionM)!=terminal_foot or o.get('data')!=current_row:
+		return 0.0
+	var authored_rows = scene.get('interactions')
+	if not P.rows(authored_rows,2048) or not P.unique(authored_rows,'id'):
+		return 0.0
+	var authored_matches: Array = authored_rows.filter(func(row): return row.get('id')=='gh_bio_log_terminal')
+	if authored_matches.size()!=1:
+		return 0.0
+	var authored_row: Dictionary = authored_matches[0]
+	if typeof(authored_row.get('kind'))!=TYPE_STRING or authored_row.kind!='bio_log_terminal' or not authored_row.has('event') or authored_row.get('event')!=null or not _gh_authored_position(authored_row.get('position'),terminal_foot):
+		return 0.0
+	var presentation = scene.get('presentation')
+	if not presentation is Dictionary:
+		return 0.0
+	var sprite_rows = presentation.get('sprites')
+	if not P.rows(sprite_rows,2048) or not P.unique(sprite_rows,'id'):
+		return 0.0
+	var story_matches: Array = sprite_rows.filter(func(row): return row.get('id')=='bio_log_terminal_approved')
+	if story_matches.size()!=1:
+		return 0.0
+	var resolved_story: Dictionary = _gh_story_prop(story_matches[0])
+	if resolved_story.is_empty() or resolved_story.get('id')!='bio_log_terminal_approved' or resolved_story.get('kind')!='gh_story_prop' or resolved_story.get('p')!=terminal_foot or not resolved_story.get('data') is Dictionary or resolved_story.data.get('key')!='lockdown_terminal' or typeof(resolved_story.data.get('image_allowed'))!=TYPE_BOOL or not resolved_story.data.image_allowed:
+		return 0.0
+	var terminal_config = GhBioLockdownVisual.CONFIG.get('lockdown_terminal')
+	if not terminal_config is Dictionary:
+		return 0.0
+	var configured_height = terminal_config.get('height_m')
+	if typeof(configured_height)!=TYPE_INT and typeof(configured_height)!=TYPE_FLOAT:
+		return 0.0
+	var expected_height: float = float(configured_height)*ppm
+	if not is_finite(expected_height) or expected_height<=0.0 or not prop_bodies_drawn.has('bio_log_terminal_approved'):
+		return 0.0
+	var cached_height = prop_bodies_drawn.get('bio_log_terminal_approved')
+	if typeof(cached_height)!=TYPE_INT and typeof(cached_height)!=TYPE_FLOAT:
+		return 0.0
+	var cached_height_number: float = float(cached_height)
+	if not is_finite(cached_height_number) or cached_height_number<=0.0 or cached_height_number!=expected_height:
+		return 0.0
+	var offset: float = expected_height+4.0*(ppm/48.0)
+	if not is_finite(offset) or offset<=0.0:
+		return 0.0
+	return offset
+
 func _draw_object(o: Dictionary, interaction_caption: String = '') -> void:
 	var at = camera.project(o.p)
 	var culling = _object_culling_state(o,at)
@@ -846,6 +914,8 @@ func _draw_object(o: Dictionary, interaction_caption: String = '') -> void:
 			var body_drawn = false
 			if o.data.image_allowed and gh_bio_lockdown_visual!=null:
 				body_drawn = gh_bio_lockdown_visual.draw_body(self,o.data.key,at,camera.ppm)
+			if body_drawn and o.get('id')=='bio_log_terminal_approved' and o.get('data') is Dictionary and o.data.get('key')=='lockdown_terminal' and o.get('p') is Vector3 and o.p==Vector3(20,0,8):
+				prop_bodies_drawn['bio_log_terminal_approved'] = float(GhBioLockdownVisual.CONFIG['lockdown_terminal']['height_m'])*camera.ppm
 			if not body_drawn:
 				draw_rect(Rect2(at-Vector2(16,24)*scale,Vector2(32,24)*scale),Color('#65716d'))
 		'registered_terminal':
@@ -933,9 +1003,14 @@ func _draw_object(o: Dictionary, interaction_caption: String = '') -> void:
 			var caption_height = grey_hive_state_props.body_height(selection.key,camera.ppm)+4*scale if drawn else 46*scale
 			_label(at-Vector2(0,caption_height),'开启' if d.open else ('锁定' if d.locked else '关闭'),c)
 		'interaction':
-			draw_rect(Rect2(at-Vector2(8,16)*scale,Vector2(16,16)*scale),Color('#72b9cb'))
+			var art_caption_offset: float = _gh_bio_log_art_caption_offset(o)
+			if art_caption_offset<=0.0:
+				draw_rect(Rect2(at-Vector2(8,16)*scale,Vector2(16,16)*scale),Color('#72b9cb'))
 			if not interaction_caption.is_empty():
-				_label(at-Vector2(0,20)*scale,interaction_caption)
+				if art_caption_offset>0.0:
+					_label(at-Vector2(0,art_caption_offset),interaction_caption)
+				else:
+					_label(at-Vector2(0,20)*scale,interaction_caption)
 		'npc':
 			if not is_finite(camera.ppm) or camera.ppm<=0 or not is_finite(at.x) or not is_finite(at.y) or not is_finite(1.7*camera.ppm+5*scale):
 				return
