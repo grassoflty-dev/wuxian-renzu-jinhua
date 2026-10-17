@@ -1,0 +1,36 @@
+{
+  "schema": "wuxian.gh-sentinel-arena-floor.internal-use/v1",
+  "registeredSourceReuse": true,
+  "approval": "INTERNAL_REGISTERED_SOURCE_REUSE",
+  "GodotDisplay": "NOT_RUN",
+  "publicRelease": "NOT_ESTABLISHED",
+  "asset": {
+    "assetId": "runtime2d.grey_hive.floor_tiles.v1",
+    "path": "res://assets/props/grey_hive/floor_tiles.png",
+    "bytes": 1315059,
+    "sha256": "4c93e192505e71d6ec4e414aeb5c9b76376b7407d677017b31b8eba5e24e744f",
+    "canvas": [1434, 980],
+    "format": "RGBA8"
+  },
+  "selection": {
+    "kind": "affine_top_face",
+    "pixelCenterCorners": [[187,184],[345,305],[185,426],[27,305]],
+    "uvConvention": "(sourcePixelCenter + 0.5) / canvasSize",
+    "cornerRGBA": [[61,55,59,252],[36,38,40,252],[59,62,64,253],[182,179,171,252]]
+  },
+  "installation": {
+    "kind": "visual_only_ground_material",
+    "worldId": "grey_hive",
+    "sceneId": "gh_sentinel_arena",
+    "rowId": "sentinel_arena_floor",
+    "layer": "visual.floor",
+    "position": [12,0,8],
+    "boundsM": [0,0,24,16],
+    "groundY": 0,
+    "patchSizeM": [2,2],
+    "grid": [12,8],
+    "patchCount": 96,
+    "tint": [1,1,1,1]
+  }
+}
+
