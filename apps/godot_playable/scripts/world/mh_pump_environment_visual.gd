@@ -1,6 +1,7 @@
 extends RefCounted
 
 const P = preload('res://scripts/bridge/protocol.gd')
+const ProjectionScript: Script = preload('res://scripts/world/projection.gd')
 const RELIEF_PIXELS = 12.0
 const MAX_PACKETS = 160
 const SCENE_ID = 'mh_pump_station'
@@ -155,3 +156,260 @@ func _push(packets: Array, packet_id: String, role: String, points: PackedVector
 		packet['source_id'] = source_id
 	packets.append(packet)
 	return packets.size()<MAX_PACKETS
+
+func draw_land_material(canvas: Variant, snapshot_value: Variant, scene_value: Variant, current_key_value: Variant, projection_value: Variant, viewport_value: Variant) -> bool:
+	if not _material_context_valid(canvas,snapshot_value,scene_value,current_key_value,projection_value,viewport_value):
+		return false
+	var commands: Array[Dictionary] = _build_land_material_commands(projection_value)
+	if not _material_commands_valid(commands,40,true):
+		return false
+	var canvas_item: CanvasItem = canvas
+	_draw_material_commands(canvas_item,commands)
+	return true
+
+func draw_channel_material(canvas: Variant, snapshot_value: Variant, scene_value: Variant, current_key_value: Variant, projection_value: Variant, viewport_value: Variant) -> bool:
+	if not _material_context_valid(canvas,snapshot_value,scene_value,current_key_value,projection_value,viewport_value):
+		return false
+	var reflection_rects: Array[Rect2] = [
+		Rect2(18.25,6.1,1.95,0.25),
+		Rect2(20.65,8.0,2.2,0.15),
+		Rect2(18.6,9.6,1.4,0.2)
+	]
+	var reflection_color: Color = Color(0.28,0.56,0.62,0.07)
+	var commands: Array[Dictionary] = []
+	for reflection_rect: Rect2 in reflection_rects:
+		var points: PackedVector2Array = _project_land_rectangle(projection_value,reflection_rect)
+		if points.size()!=4 or not _material_points_finite(points) or not _material_color_finite(reflection_color):
+			return false
+		commands.append({'kind':'polygon','points':points,'color':reflection_color})
+	if not _material_commands_valid(commands,3,false):
+		return false
+	var canvas_item: CanvasItem = canvas
+	_draw_material_commands(canvas_item,commands)
+	return true
+
+func _material_context_valid(canvas: Variant, snapshot_value: Variant, scene_value: Variant, current_key_value: Variant, projection_value: Variant, viewport_value: Variant) -> bool:
+	if not canvas is CanvasItem or not is_instance_valid(canvas) or canvas.is_queued_for_deletion() or not canvas.is_inside_tree():
+		return false
+	if not snapshot_value is Dictionary or not P.snapshot(snapshot_value) or not scene_value is Dictionary:
+		return false
+	var snapshot_data: Dictionary = snapshot_value
+	var scene_data: Dictionary = scene_value
+	if typeof(snapshot_data.get('worldId'))!=TYPE_STRING or snapshot_data.get('worldId')!='mist_harbor' or typeof(snapshot_data.get('sceneId'))!=TYPE_STRING or snapshot_data.get('sceneId')!=SCENE_ID:
+		return false
+	if typeof(scene_data.get('worldId'))!=TYPE_STRING or scene_data.get('worldId')!='mist_harbor' or typeof(scene_data.get('sceneId'))!=TYPE_STRING or scene_data.get('sceneId')!=SCENE_ID:
+		return false
+	if not P.number(scene_data.get('schemaVersion'),1.0,1.0) or typeof(current_key_value)!=TYPE_STRING:
+		return false
+	var current_key: String = str(current_key_value)
+	if not _ensure_layout(scene_data,snapshot_data,current_key) or not _material_references_valid(scene_data):
+		return false
+	if not _material_projection_valid(projection_value) or not _material_viewport_valid(viewport_value):
+		return false
+	return true
+
+func _material_references_valid(scene_data: Dictionary) -> bool:
+	var walkable_value: Variant = scene_data.get('walkablePolygons')
+	if not P.rows(walkable_value,16) or walkable_value.size()!=1:
+		return false
+	var walkable_row: Dictionary = walkable_value[0]
+	if typeof(walkable_row.get('id'))!=TYPE_STRING or walkable_row.get('id')!='mh_pump_station_walkable_area' or not _matches_polygon(walkable_row.get('polygon'),[[0.5,0.5],[23.5,0.5],[23.5,15.5],[0.5,15.5]]):
+		return false
+	var terrain_value: Variant = scene_data.get('terrainRegions')
+	if not P.rows(terrain_value,128):
+		return false
+	var deep_water_count: int = 0
+	for terrain_item: Variant in terrain_value:
+		var terrain_row: Dictionary = terrain_item
+		if terrain_row.get('tag')=='terrain.water_deep':
+			deep_water_count += 1
+			if typeof(terrain_row.get('id'))!=TYPE_STRING or terrain_row.get('id')!=CHANNEL_ID or not _matches_polygon(terrain_row.get('polygon'),CHANNEL_POLYGON):
+				return false
+	if deep_water_count!=1:
+		return false
+	var presentation_value: Variant = scene_data.get('presentation')
+	if not presentation_value is Dictionary:
+		return false
+	var presentation_data: Dictionary = presentation_value
+	var sprites_value: Variant = presentation_data.get('sprites')
+	if not P.rows(sprites_value,64):
+		return false
+	var floor_reference_count: int = 0
+	for sprite_item: Variant in sprites_value:
+		var sprite_row: Dictionary = sprite_item
+		var sprite_id: Variant = sprite_row.get('id')
+		var asset_id: Variant = sprite_row.get('assetId')
+		if sprite_id=='approved_pump_station_stone_water_module' or asset_id=='runtime2d.world.mistharbor.water_edge_stone.v1':
+			floor_reference_count += 1
+			if typeof(sprite_id)!=TYPE_STRING or sprite_id!='approved_pump_station_stone_water_module' or typeof(asset_id)!=TYPE_STRING or asset_id!='runtime2d.world.mistharbor.water_edge_stone.v1' or sprite_row.get('layer')!='visual.floor' or not _material_position_matches(sprite_row.get('position'),Vector3(12.0,0.0,8.0)):
+				return false
+	return floor_reference_count==1
+
+func _material_projection_valid(projection_value: Variant) -> bool:
+	if not projection_value is RefCounted or not is_instance_valid(projection_value):
+		return false
+	var projection: RefCounted = projection_value
+	if projection.get_script()!=ProjectionScript:
+		return false
+	var origin_value: Variant = projection.get('origin')
+	var center_value: Variant = projection.get('screen_center')
+	var projection_viewport_value: Variant = projection.get('viewport')
+	var ppm_value: Variant = projection.get('ppm')
+	var initialized_value: Variant = projection.get('initialized')
+	if not _material_vector3_finite(origin_value) or not _material_vector2_finite(center_value) or not _material_vector2_finite(projection_viewport_value):
+		return false
+	var projection_viewport: Vector2 = projection_viewport_value
+	if projection_viewport.x<=0.0 or projection_viewport.y<=0.0 or not P.number(ppm_value,0.000001,256.0):
+		return false
+	return typeof(initialized_value)==TYPE_BOOL and initialized_value
+
+func _material_viewport_valid(viewport_value: Variant) -> bool:
+	if typeof(viewport_value)!=TYPE_RECT2:
+		return false
+	var viewport: Rect2 = viewport_value
+	return _material_vector2_finite(viewport.position) and _material_vector2_finite(viewport.size) and _material_vector2_finite(viewport.end) and viewport.size.x>0.0 and viewport.size.y>0.0
+
+func _material_position_matches(value: Variant, expected: Vector3) -> bool:
+	if not value is Array or value.size()!=3:
+		return false
+	return P.number(value[0],expected.x,expected.x) and P.number(value[1],expected.y,expected.y) and P.number(value[2],expected.z,expected.z)
+
+func _build_land_material_commands(projection_value: Variant) -> Array[Dictionary]:
+	var commands: Array[Dictionary] = []
+	var regions: Array[Rect2] = [Rect2(0.0,0.0,18.0,16.0),Rect2(18.0,0.0,6.0,5.5),Rect2(18.0,10.5,6.0,5.5),Rect2(23.5,5.5,0.5,5.0)]
+	var base_color: Color = Color('#243943')
+	var face_count: int = 0
+	for region: Rect2 in regions:
+		var first_x: int = floori(region.position.x/4.0)
+		var last_x: int = ceili(region.end.x/4.0)
+		var first_z: int = floori(region.position.y/4.0)
+		var last_z: int = ceili(region.end.y/4.0)
+		for gx: int in range(first_x,last_x):
+			var x0: float = maxf(region.position.x,float(gx)*4.0)
+			var x1: float = minf(region.end.x,float(gx+1)*4.0)
+			for gz: int in range(first_z,last_z):
+				var z0: float = maxf(region.position.y,float(gz)*4.0)
+				var z1: float = minf(region.end.y,float(gz+1)*4.0)
+				if x1<=x0 or z1<=z0:
+					continue
+				var face_rect: Rect2 = Rect2(x0,z0,x1-x0,z1-z0)
+				var face_points: PackedVector2Array = _project_land_rectangle(projection_value,face_rect)
+				if face_points.size()!=4 or not _material_points_finite(face_points):
+					return []
+				var variation_step: int = ((gx+2*gz)%3)-1
+				var delta: float = float(variation_step)*0.006
+				var face_color: Color = Color(base_color.r+delta,base_color.g+delta,base_color.b+delta,1.0)
+				if not _material_color_finite(face_color):
+					return []
+				commands.append({'kind':'polygon','points':face_points,'color':face_color})
+				face_count += 1
+				if commands.size()>64:
+					return []
+	if face_count!=30:
+		return []
+	var ppm: float = float(projection_value.get('ppm'))
+	var joint_width: float = 0.6*ppm/48.0
+	var joint_color: Color = Color(0.04,0.08,0.10,0.14)
+	var joint_count: int = 0
+	var full_x_joints: Array[float] = [4.0,8.0,12.0,16.0]
+	for x: float in full_x_joints:
+		if not _append_material_line(commands,projection_value,Vector3(x,0.0,0.0),Vector3(x,0.0,16.0),joint_color,joint_width):
+			return []
+		joint_count += 1
+	if not _append_material_line(commands,projection_value,Vector3(20.0,0.0,0.0),Vector3(20.0,0.0,5.5),joint_color,joint_width):
+		return []
+	joint_count += 1
+	if not _append_material_line(commands,projection_value,Vector3(20.0,0.0,10.5),Vector3(20.0,0.0,16.0),joint_color,joint_width):
+		return []
+	joint_count += 1
+	if not _append_material_line(commands,projection_value,Vector3(0.0,0.0,4.0),Vector3(24.0,0.0,4.0),joint_color,joint_width):
+		return []
+	joint_count += 1
+	if not _append_material_line(commands,projection_value,Vector3(0.0,0.0,8.0),Vector3(18.0,0.0,8.0),joint_color,joint_width):
+		return []
+	joint_count += 1
+	if not _append_material_line(commands,projection_value,Vector3(23.5,0.0,8.0),Vector3(24.0,0.0,8.0),joint_color,joint_width):
+		return []
+	joint_count += 1
+	if not _append_material_line(commands,projection_value,Vector3(0.0,0.0,12.0),Vector3(24.0,0.0,12.0),joint_color,joint_width):
+		return []
+	joint_count += 1
+	return commands if joint_count==10 and _material_commands_valid(commands,40,true) else []
+
+func _append_material_line(commands: Array[Dictionary], projection_value: Variant, start_point: Vector3, end_point: Vector3, color: Color, width: float) -> bool:
+	if not _material_color_finite(color) or not is_finite(width) or width<=0.0 or width>8.0:
+		return false
+	var start_value: Variant = projection_value.call('project',start_point)
+	var end_value: Variant = projection_value.call('project',end_point)
+	if not _material_vector2_finite(start_value) or not _material_vector2_finite(end_value):
+		return false
+	var line_points: PackedVector2Array = PackedVector2Array([start_value,end_value])
+	commands.append({'kind':'line','points':line_points,'color':color,'width':width})
+	return commands.size()<=64
+
+func _project_land_rectangle(projection_value: Variant, rectangle: Rect2) -> PackedVector2Array:
+	var world_corners: Array[Vector2] = [rectangle.position,Vector2(rectangle.end.x,rectangle.position.y),rectangle.end,Vector2(rectangle.position.x,rectangle.end.y)]
+	var points: PackedVector2Array = PackedVector2Array()
+	for world_corner: Vector2 in world_corners:
+		var projected_value: Variant = projection_value.call('project',Vector3(world_corner.x,0.0,world_corner.y))
+		if not _material_vector2_finite(projected_value):
+			return PackedVector2Array()
+		points.append(projected_value)
+	return points
+
+func _material_commands_valid(commands: Array[Dictionary], expected_count: int, allow_lines: bool) -> bool:
+	if commands.size()!=expected_count or commands.is_empty() or commands.size()>64:
+		return false
+	for command: Dictionary in commands:
+		var kind_value: Variant = command.get('kind')
+		var points_value: Variant = command.get('points')
+		var color_value: Variant = command.get('color')
+		if typeof(kind_value)!=TYPE_STRING or typeof(points_value)!=TYPE_PACKED_VECTOR2_ARRAY or typeof(color_value)!=TYPE_COLOR:
+			return false
+		var points: PackedVector2Array = points_value
+		var color: Color = color_value
+		if not _material_points_finite(points) or not _material_color_finite(color):
+			return false
+		if kind_value=='polygon':
+			if points.size()!=4:
+				return false
+		elif kind_value=='line' and allow_lines:
+			var width_value: Variant = command.get('width')
+			if points.size()!=2 or not P.number(width_value,0.000001,8.0):
+				return false
+		else:
+			return false
+	return true
+
+func _draw_material_commands(canvas: CanvasItem, commands: Array[Dictionary]) -> void:
+	for command: Dictionary in commands:
+		var points: PackedVector2Array = command.get('points')
+		var color: Color = command.get('color')
+		if command.get('kind')=='polygon':
+			canvas.draw_colored_polygon(points,color)
+		else:
+			var width: float = float(command.get('width'))
+			canvas.draw_line(points[0],points[1],color,width)
+
+func _material_points_finite(points: PackedVector2Array) -> bool:
+	if points.is_empty():
+		return false
+	for point: Vector2 in points:
+		if not is_finite(point.x) or not is_finite(point.y):
+			return false
+	return true
+
+func _material_vector2_finite(value: Variant) -> bool:
+	if typeof(value)!=TYPE_VECTOR2:
+		return false
+	var point: Vector2 = value
+	return is_finite(point.x) and is_finite(point.y)
+
+func _material_vector3_finite(value: Variant) -> bool:
+	if typeof(value)!=TYPE_VECTOR3:
+		return false
+	var point: Vector3 = value
+	return is_finite(point.x) and is_finite(point.y) and is_finite(point.z)
+
+func _material_color_finite(color: Color) -> bool:
+	return is_finite(color.r) and is_finite(color.g) and is_finite(color.b) and is_finite(color.a)
