@@ -4,6 +4,7 @@ const V = preload('res://scripts/world/presentation.gd')
 const Camera = preload('res://scripts/world/projection.gd')
 const MhFogPierGroundVisual = preload('res://scripts/world/mh_fog_pier_ground_visual.gd')
 const MhFogPierStoneMaterialVisual = preload('res://scripts/world/mh_fog_pier_stone_material_visual.gd')
+const MhFogPierLayeredFogVisual = preload('res://scripts/world/mh_fog_pier_layered_fog_visual.gd')
 const CenYaoIdle = preload('res://scripts/world/cenyao_idle_visual.gd')
 const MhCwActor = preload('res://scripts/world/mh_cw_actor_visual.gd')
 const RsEnvironmentVisual = preload('res://scripts/world/rs_environment_visual.gd')
@@ -66,6 +67,7 @@ var cw_furnace_visual
 var camera = Camera.new()
 var mh_fog_pier_ground_visual = MhFogPierGroundVisual.new()
 var mh_fog_pier_stone_material_visual = MhFogPierStoneMaterialVisual.new()
+var mh_fog_pier_layered_fog_visual = MhFogPierLayeredFogVisual.new()
 var rs_environment_visual = RsEnvironmentVisual.new()
 var rs_bulkhead_modules_visual = RsBulkheadModulesVisual.new()
 var rs_service_pipe_visual = RsServicePipeVisual.new()
@@ -110,6 +112,9 @@ var occluder_alpha = {}
 var viewport_rect = Rect2()
 var safe_rect_provider: Callable
 var interaction_focus: Dictionary = {}
+var mh_fog_pier_phase_seconds: float = 0.0
+var mh_fog_pier_defer_labels: bool = false
+var mh_fog_pier_deferred_labels: Array = []
 func _ready() -> void:
 	baizhi_placeholder_visual = BaizhiPlaceholderVisual.new()
 	cw_furnace_visual = CwFurnaceVisual.new()
@@ -133,6 +138,9 @@ func commit(s: Dictionary, data: Dictionary, hash: String) -> void:
 		rs_front_alpha.clear()
 		gh_bio_wall_alpha.clear()
 		gh_entry_wall_alpha.clear()
+		mh_fog_pier_phase_seconds = 0.0
+		mh_fog_pier_defer_labels = false
+		mh_fog_pier_deferred_labels.clear()
 		current_key = key
 	snapshot = s
 	scene = data
@@ -179,7 +187,12 @@ func set_interaction_focus(target: Dictionary, s: Dictionary, eligible: bool, ex
 	queue_redraw()
 func _process(delta: float) -> void:
 	if snapshot.is_empty() or scene.is_empty():
+		mh_fog_pier_phase_seconds = 0.0
 		return
+	if P.snapshot(snapshot) and snapshot.get('worldId')=='mist_harbor' and snapshot.get('sceneId')=='mh_fog_pier' and scene.get('worldId')=='mist_harbor' and scene.get('sceneId')=='mh_fog_pier' and current_key=='mist_harbor:mh_fog_pier:'+str(snapshot.get('worldEpoch')):
+		mh_fog_pier_phase_seconds = mh_fog_pier_layered_fog_visual.advance_visual_time(mh_fog_pier_phase_seconds,delta,reduced_motion)
+	else:
+		mh_fog_pier_phase_seconds = 0.0
 	var full = get_viewport_rect()
 	var safe_rect = full
 	if snapshot.worldId=='return_station' and snapshot.sceneId=='rs_core_room' and safe_rect_provider.is_valid():
@@ -215,6 +228,8 @@ func actor_visible(id: String, allow_dead: bool = false) -> bool:
 					return true
 	return false
 func _draw() -> void:
+	mh_fog_pier_deferred_labels.clear()
+	mh_fog_pier_defer_labels = false
 	prop_bodies_drawn.clear()
 	draw_rect(get_viewport_rect(),Color('#0b121a'))
 	if snapshot.is_empty() or scene.is_empty():
@@ -228,6 +243,9 @@ func _draw() -> void:
 	mh_fog_pier_ground_visual.draw_packet(self,mh_fog_pier_ground_packet,snapshot,scene,current_key,camera,get_viewport_rect())
 	var mh_fog_pier_stone_material_packet = mh_fog_pier_stone_material_visual.build_packet(snapshot,scene,current_key,camera)
 	mh_fog_pier_stone_material_visual.draw_packet(self,mh_fog_pier_stone_material_packet,snapshot,scene,current_key,camera,get_viewport_rect())
+	var mh_fog_pier_layered_packet: Dictionary = mh_fog_pier_layered_fog_visual.build_packet(snapshot,scene,current_key,camera,mh_fog_pier_phase_seconds,reduced_motion)
+	var mh_fog_pier_fog_viewport: Rect2 = get_viewport_rect()
+	var mh_fog_pier_back_drawn: bool = mh_fog_pier_layered_fog_visual.draw_phase(self,mh_fog_pier_layered_packet,snapshot,scene,current_key,camera,mh_fog_pier_phase_seconds,reduced_motion,mh_fog_pier_fog_viewport,'back')
 	var gh_bio_floor_packets = gh_bio_floor_material_visual.build_packets(snapshot,scene,current_key,camera,gh_bio_wall_modules_visual)
 	gh_bio_floor_material_visual.draw_tiles(self,gh_bio_floor_packets,get_viewport_rect())
 	var gh_entry_floor_packets = gh_entry_floor_material_visual.build_packets(snapshot,scene,current_key,camera)
@@ -352,6 +370,9 @@ func _draw() -> void:
 		gh_bio_clutter_visual.draw_contact_shadow(self,gh_bio_clutter_packet,viewport_rect)
 	if not gh_entry_clutter_packet.is_empty() and not gh_entry_clutter_visual.draw_contact_shadow(self,gh_entry_clutter_packet,viewport_rect,snapshot,scene,current_key,camera,gh_entry_wall_modules_visual):
 		gh_entry_clutter_packet.clear()
+	var mh_fog_pier_mid_drawn: bool = mh_fog_pier_layered_fog_visual.draw_phase(self,mh_fog_pier_layered_packet,snapshot,scene,current_key,camera,mh_fog_pier_phase_seconds,reduced_motion,mh_fog_pier_fog_viewport,'mid')
+	if not mh_fog_pier_layered_packet.is_empty() and mh_fog_pier_back_drawn and mh_fog_pier_mid_drawn:
+		mh_fog_pier_defer_labels = true
 	var objects: Array = []
 	for module_packet in gh_bio_wall_packets:
 		objects.append({'id':module_packet.id,'p':module_packet.p,'kind':'gh_bio_wall_module','data':module_packet})
@@ -447,13 +468,20 @@ func _draw() -> void:
 			rs_front_packets = rs_bulkhead_modules_visual.filter_legacy_bulkhead_packets(rs_front_packets)
 		_draw_rs_packets(rs_front_packets,'front')
 		_draw_rs_interaction_captions(objects,interaction_captions)
+	var mh_fog_pier_front_drawn: bool = mh_fog_pier_layered_fog_visual.draw_phase(self,mh_fog_pier_layered_packet,snapshot,scene,current_key,camera,mh_fog_pier_phase_seconds,reduced_motion,mh_fog_pier_fog_viewport,'front')
+	mh_fog_pier_defer_labels = false
+	var mh_fog_pier_queued_labels: Array = mh_fog_pier_deferred_labels
+	mh_fog_pier_deferred_labels = []
+	for mh_fog_pier_label in mh_fog_pier_queued_labels:
+		_label(mh_fog_pier_label.p,mh_fog_pier_label.text,mh_fog_pier_label.color)
+	var mh_fog_pier_suppressed_bank_ids: Array = mh_fog_pier_layered_fog_visual.suppressed_bank_ids(mh_fog_pier_layered_packet,snapshot,scene,current_key,camera,mh_fog_pier_phase_seconds,reduced_motion,[mh_fog_pier_back_drawn,mh_fog_pier_mid_drawn,mh_fog_pier_front_drawn])
 	_hazards()
 	_beacon()
 	_boss_warning()
 	_action()
 	_event_draw()
 	_occlusion()
-	_atmosphere()
+	_atmosphere(mh_fog_pier_suppressed_bank_ids)
 	_world_ui()
 	_draw_interaction_focus()
 	_rear_view()
@@ -646,6 +674,9 @@ func _corridor(p: Vector3, yaw: float, length: float, half_width: float, c: Colo
 	var side = Vector2(cos(yaw),-sin(yaw))*half_width
 	_poly([[p.x+side.x,p.z+side.y],[p.x+d.x+side.x,p.z+d.y+side.y],[p.x+d.x-side.x,p.z+d.y-side.y],[p.x-side.x,p.z-side.y]],p.y,c,false)
 func _label(p: Vector2, text: String, c: Color = Color('#e7edf2')) -> void:
+	if mh_fog_pier_defer_labels:
+		mh_fog_pier_deferred_labels.append({'p':p,'text':text,'color':c})
+		return
 	var font = ThemeDB.fallback_font
 	var size = int(15*text_scale)
 	var width = font.get_string_size(text,HORIZONTAL_ALIGNMENT_LEFT,-1,size).x
@@ -1097,10 +1128,14 @@ func _draw_interaction_focus() -> void:
 	if not viewport_rect.encloses(rect):
 		return
 	draw_rect(rect,Color('#D9AD58'),false,2.0)
-func _atmosphere() -> void:
+func _atmosphere(suppressed_bank_ids: Array = []) -> void:
 	if snapshot.worldId=='mist_harbor':
 		for prop in scene.get('presentation',{}).get('sprites',[]):
 			if prop is Dictionary and prop.get('assetId') in ['runtime2d.world.mistharbor.fog_bank.v1','runtime2d.world.mistharbor.fog_vfx.v1'] and prop.get('position') is Array and prop.position.size()==3:
+				var bank_id = prop.get('id')
+				var bank_position = prop.get('position')
+				if prop.get('assetId')=='runtime2d.world.mistharbor.fog_bank.v1' and typeof(bank_id)==TYPE_STRING and bank_id in suppressed_bank_ids and prop.get('layer')=='visual.props_back' and ((bank_id=='approved_fog_bank_north' and bank_position==[13,0,2.5]) or (bank_id=='approved_fog_bank_east' and bank_position==[20,0,11])):
+					continue
 				var at = camera.project(Vector3(prop.position[0],prop.position[1],prop.position[2]))
 				draw_circle(at,80*camera.ppm/48,Color(0.6,0.7,0.74,0.055))
 		var pump = snapshot.get('mistHarborPump')
