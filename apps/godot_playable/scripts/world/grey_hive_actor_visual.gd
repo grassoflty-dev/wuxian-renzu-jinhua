@@ -58,17 +58,26 @@ func _load_once() -> void:
 		var texture = ImageTexture.create_from_image(image)
 		if texture!=null:
 			textures[key] = texture
-func draw_body(canvas: CanvasItem, key: String, foot: Vector2, ppm: float) -> bool:
+func canvas_rect(key: String, foot: Vector2, ppm: float) -> Rect2:
 	if not CONFIG.has(key) or not is_finite(foot.x) or not is_finite(foot.y) or not is_finite(ppm) or ppm<=0:
+		return Rect2()
+	var c: Dictionary = CONFIG[key]
+	var factor = float(c.height)*ppm/float(c.rect[3])
+	var size = Vector2(c.rect[2],c.rect[3])*factor
+	var origin = foot-Vector2(c.foot[0]-c.rect[0],c.foot[1]-c.rect[1])*factor
+	if not is_finite(factor) or factor<=0 or not is_finite(size.x) or not is_finite(size.y) or size.x<=0 or size.y<=0 or not is_finite(origin.x) or not is_finite(origin.y):
+		return Rect2()
+	var body_rect = Rect2(origin,size)
+	if not is_finite(body_rect.end.x) or not is_finite(body_rect.end.y):
+		return Rect2()
+	return body_rect
+func draw_body(canvas: CanvasItem, key: String, foot: Vector2, ppm: float) -> bool:
+	var body_rect = canvas_rect(key,foot,ppm)
+	if body_rect.size.x<=0 or body_rect.size.y<=0:
 		return false
 	_load_once()
 	if not textures.has(key):
 		return false
 	var c: Dictionary = CONFIG[key]
-	var factor = float(c.height)*ppm/float(c.rect[3])
-	var size = Vector2(c.rect[2],c.rect[3])*factor
-	var origin = foot-Vector2(c.foot[0]-c.rect[0],c.foot[1]-c.rect[1])*factor
-	if not is_finite(factor) or factor<=0 or not is_finite(origin.x) or not is_finite(origin.y) or not is_finite(size.x) or not is_finite(size.y) or size.x<=0 or size.y<=0:
-		return false
-	canvas.draw_texture_rect_region(textures[key],Rect2(origin,size),Rect2(c.rect[0],c.rect[1],c.rect[2],c.rect[3]),Color.WHITE,false,true)
+	canvas.draw_texture_rect_region(textures[key],body_rect,Rect2(c.rect[0],c.rect[1],c.rect[2],c.rect[3]),Color.WHITE,false,true)
 	return true

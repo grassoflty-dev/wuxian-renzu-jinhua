@@ -791,6 +791,12 @@ func _object_culling_state(o: Dictionary, at: Vector2) -> Dictionary:
 			var gate_body_rect: Rect2 = grey_hive_state_props.canvas_rect(gate_body_selection.key,gate_body_selection.state,at,camera.ppm)
 			if _rect_intersects(viewport_rect,gate_body_rect):
 				return {'furnaceKey':'','culled':false,'bodyRect':gate_body_rect,'fallbackRect':Rect2()}
+	if o.get('kind')=='actor' and o.get('data') is Dictionary and grey_hive_actor!=null and o.get('p') is Vector3:
+		var gh_actor_edge_key: String = _grey_hive_body_key(o.data)
+		if not gh_actor_edge_key.is_empty() and o.p==P.vector(o.data.transform.positionM) and not _occluded(o.p):
+			var gh_actor_edge_rect: Rect2 = grey_hive_actor.canvas_rect(gh_actor_edge_key,at,camera.ppm)
+			if _rect_intersects(viewport_rect,gh_actor_edge_rect):
+				return {'furnaceKey':'','culled':false,'bodyRect':gh_actor_edge_rect,'fallbackRect':Rect2()}
 	var furnace_key = ''
 	if o.get('kind')=='prop' and o.get('data') is Dictionary:
 		furnace_key = _cw_furnace_key(o.data)
@@ -899,7 +905,7 @@ func _draw_object(o: Dictionary, interaction_caption: String = '') -> void:
 			else:
 				var body_key = _grey_hive_body_key(a)
 				var body_drawn = false
-				if grey_hive_actor!=null and not body_key.is_empty() and actor_visible(a.entityId):
+				if grey_hive_actor!=null and not body_key.is_empty() and (actor_visible(a.entityId) or (_rect_intersects(viewport_rect,culling.bodyRect) and not _occluded(o.p))):
 					body_drawn = grey_hive_actor.draw_body(self,body_key,at,camera.ppm)
 				if not body_drawn and mh_cw_actor!=null and actor_visible(a.entityId):
 					var mh_cw_key = _mh_cw_body_key(a)
