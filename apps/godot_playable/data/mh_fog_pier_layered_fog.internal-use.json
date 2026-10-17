@@ -1,0 +1,77 @@
+{
+  "schema": "wuxian.mh-fog-pier-layered-fog.internal-use/v1",
+  "registeredSourceReuse": true,
+  "approval": "INTERNAL_REGISTERED_SOURCE_REUSE",
+  "GodotDisplay": "NOT_RUN",
+  "publicRelease": "NOT_ESTABLISHED",
+  "asset": {
+    "assetId": "runtime2d.world.mistharbor.fog_bank.v1",
+    "path": "res://assets/props/mist_harbor/fog_pier_fog_bank_source.png",
+    "bytes": 684960,
+    "sha256": "9bbbfd9783f70a8b1f6ffeaabd44e568074f4c20f1f7500d7ef4f0e534edeac2",
+    "canvas": [1254, 1236],
+    "format": "RGBA8"
+  },
+  "frame": {
+    "kind": "authored_display_crop",
+    "xywh": [27, 370, 1201, 498],
+    "sourcePixelEdgeCorners": [[27, 370], [1228, 370], [1228, 868], [27, 868]],
+    "uvConvention": "sourcePixelEdge / standaloneCanvasSize",
+    "omitsFaintAlphaOutliers": true,
+    "atlasOffsetUsed": false
+  },
+  "rows": [
+    {
+      "id": "approved_fog_bank_north",
+      "assetId": "runtime2d.world.mistharbor.fog_bank.v1",
+      "layer": "visual.props_back",
+      "position": [13, 0, 2.5],
+      "driftSign": 1
+    },
+    {
+      "id": "approved_fog_bank_east",
+      "assetId": "runtime2d.world.mistharbor.fog_bank.v1",
+      "layer": "visual.props_back",
+      "position": [20, 0, 11],
+      "driftSign": -1
+    }
+  ],
+  "bands": [
+    {
+      "band": "back",
+      "widthPerPpm": 9,
+      "centerOffsetPerPpm": [0, -1.2],
+      "rgbMultiplier": [0.70, 0.79, 0.83],
+      "alphaMultiplier": 0.080,
+      "driftAmplitudePerPpm": [0.30, 0.08],
+      "cyclesPer120Seconds": 1
+    },
+    {
+      "band": "mid",
+      "widthPerPpm": 7,
+      "centerOffsetPerPpm": [-0.6, -0.4],
+      "rgbMultiplier": [0.70, 0.79, 0.83],
+      "alphaMultiplier": 0.055,
+      "driftAmplitudePerPpm": [0.22, 0.06],
+      "cyclesPer120Seconds": 2
+    },
+    {
+      "band": "front",
+      "widthPerPpm": 5,
+      "centerOffsetPerPpm": [0.5, 0.35],
+      "rgbMultiplier": [0.70, 0.79, 0.83],
+      "alphaMultiplier": 0.035,
+      "driftAmplitudePerPpm": [0.14, 0.04],
+      "cyclesPer120Seconds": 3
+    }
+  ],
+  "animation": {
+    "owner": "existing Renderer _process(delta)",
+    "periodSeconds": 120,
+    "deltaCapSeconds": 0.25,
+    "reducedMotion": "hold accumulator; static phase zero",
+    "contextChange": "reset0",
+    "serverAuthority": false
+  },
+  "densityAlphaCap": 0.30
+}
