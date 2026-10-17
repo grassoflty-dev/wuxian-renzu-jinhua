@@ -1,0 +1,39 @@
+{
+  "schema": "wuxian.mh-fog-pier-stone-material.internal-use/v1",
+  "registeredSourceReuse": true,
+  "approval": "INTERNAL_REGISTERED_SOURCE_REUSE",
+  "GodotDisplay": "NOT_RUN",
+  "publicRelease": "NOT_ESTABLISHED",
+  "asset": {
+    "assetId": "runtime2d.world.mistharbor.water_edge_stone.v1",
+    "derivedRelative": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.mistharbor.water_edge_stone.v1.png",
+    "sourceRelative": "batch07/02_runtime2d.world.mistharbor.water_edge_stone.v1.png",
+    "sourceSha256": "dc09452bf3f55c57cca1a93bb09f169ef441af90321dff47d91c4be7e62d3a83",
+    "path": "res://assets/props/mist_harbor/fog_pier_stone_source.png",
+    "bytes": 1983603,
+    "sha256": "e823434b3fbc420fc14270200f81e0a459e594597304b1323d336e532a924f9d",
+    "canvas": [1228, 1254],
+    "format": "RGBA8"
+  },
+  "selection": {
+    "kind": "affine_top_plane",
+    "sourcePixelEdgeCorners": [[820, 240], [1032, 342], [392, 627], [180, 525]],
+    "uvConvention": "sourcePixelEdge / canvasSize"
+  },
+  "installation": {
+    "kind": "visual_only_ground_material",
+    "worldId": "mist_harbor",
+    "sceneId": "mh_fog_pier",
+    "rowId": "approved_stone_water_module",
+    "layer": "visual.floor",
+    "position": [12, 0, 8],
+    "boundsM": [0, 0, 24, 16],
+    "walkableId": "mh_fog_pier_walkable_area",
+    "walkablePolygon": [[0.5, 0.5], [23.5, 0.5], [23.5, 15.5], [0.5, 15.5]],
+    "groundY": 0,
+    "patchSizeM": [1, 3],
+    "grid": [23, 5],
+    "patchCount": 115,
+    "tint": [0.55, 0.67, 0.80, 1.0]
+  }
+}
