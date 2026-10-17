@@ -100,6 +100,7 @@ var mh_cw_actor
 var grey_hive_actor
 var grey_hive_state_props
 var prop_bodies_drawn: Dictionary = {}
+var gh_vital_body_records: Dictionary = {}
 var snapshot: Dictionary = {}
 var scene: Dictionary = {}
 var scene_hash = ''
@@ -138,6 +139,7 @@ func commit(s: Dictionary, data: Dictionary, hash: String) -> void:
 	var key = s.worldId+':'+s.sceneId+':'+str(s.worldEpoch)
 	if key!=current_key:
 		camera.reset()
+		_clear_gh_vital_body_records()
 		events.clear()
 		sound.clear()
 		displayed.clear()
@@ -235,6 +237,7 @@ func actor_visible(id: String, allow_dead: bool = false) -> bool:
 					return true
 	return false
 func _draw() -> void:
+	_clear_gh_vital_body_records()
 	mh_fog_pier_deferred_labels.clear()
 	mh_fog_pier_defer_labels = false
 	prop_bodies_drawn.clear()
@@ -978,6 +981,8 @@ func _draw_object(o: Dictionary, interaction_caption: String = '') -> void:
 				var body_drawn = false
 				if grey_hive_actor!=null and not body_key.is_empty() and (actor_visible(a.entityId) or (_rect_intersects(viewport_rect,culling.bodyRect) and not _occluded(o.p))):
 					body_drawn = grey_hive_actor.draw_body(self,body_key,at,camera.ppm)
+					if body_drawn:
+						_record_gh_vital_body(a,body_key,at)
 				if not body_drawn and mh_cw_actor!=null and actor_visible(a.entityId):
 					var mh_cw_key = _mh_cw_body_key(a)
 					if not mh_cw_key.is_empty():
@@ -1171,7 +1176,7 @@ func _world_ui() -> void:
 				for a in snapshot.actors:
 					var enemy = a.actorKind=='enemy' or a.actorKind=='sentinel' and a.entityType=='enemy.grey_hive.sentinel' and a.entityId=='gh_sentinel_arena_sentinel_01' and snapshot.worldId=='grey_hive' and snapshot.sceneId=='gh_sentinel_arena'
 					if a.entityId==v.entityId and a.active and enemy and P.transform(a.transform):
-						_label(camera.project(P.vector(a.transform.positionM))-Vector2(0,55*text_scale),{'healthy':'健康','wounded':'受伤','severelyWounded':'重伤','critical':'濒危'}[v.tier])
+						_label(_gh_vital_caption_position(a,camera.project(P.vector(a.transform.positionM))-Vector2(0,55*text_scale)),{'healthy':'健康','wounded':'受伤','severelyWounded':'重伤','critical':'濒危'}[v.tier])
 	if not sound.is_empty() and V.mapping(snapshot):
 		var dir = Vector2(sin(sound.directionRad)-cos(sound.directionRad),sin(sound.directionRad)+cos(sound.directionRad)).normalized()
 		var at = camera.project(P.vector(snapshot.player.transform.positionM))+dir*70
@@ -1431,6 +1436,97 @@ func _grey_hive_body_key(actor: Dictionary) -> String:
 	if matches.size()!=1 or matches[0].get('kind')!='enemy' or matches[0].get('entityType')!=authoring_type:
 		return ''
 	return key
+
+func _clear_gh_vital_body_records() -> void:
+	gh_vital_body_records.clear()
+
+func _gh_vital_record_rect_valid(body_rect: Rect2, foot: Vector2) -> bool:
+	return is_finite(body_rect.position.x) and is_finite(body_rect.position.y) and is_finite(body_rect.size.x) and is_finite(body_rect.size.y) and is_finite(body_rect.end.x) and is_finite(body_rect.end.y) and body_rect.size.x>0.0 and body_rect.size.y>0.0 and is_finite(foot.x) and is_finite(foot.y) and body_rect.position.y<foot.y
+
+func _record_gh_vital_body(actor: Dictionary, selected_key: String, projected_foot: Vector2) -> void:
+	var actor_id: Variant = actor.get('entityId')
+	if typeof(actor_id)==TYPE_STRING:
+		gh_vital_body_records.erase(actor_id)
+	if grey_hive_actor==null or camera==null or camera.get_script()!=Camera or not camera.initialized or not is_finite(camera.ppm) or camera.ppm<=0.0:
+		return
+	if snapshot.get('worldId')!='grey_hive' or scene.get('worldId')!='grey_hive' or snapshot.get('sceneId')!=scene.get('sceneId') or not P.ident(snapshot.get('sceneId')) or not P.counter(snapshot.get('worldEpoch'),1):
+		return
+	var expected_key: String = 'grey_hive:'+snapshot.get('sceneId')+':'+str(snapshot.get('worldEpoch'))
+	if current_key!=expected_key:
+		return
+	var canonical_key: String = _grey_hive_body_key(actor)
+	if canonical_key.is_empty() or canonical_key!=selected_key:
+		return
+	var actor_transform: Variant = actor.get('transform')
+	if not P.transform(actor_transform):
+		return
+	var actual_foot: Vector2 = camera.project(P.vector(actor_transform.positionM))
+	if not is_finite(actual_foot.x) or not is_finite(actual_foot.y) or actual_foot!=projected_foot:
+		return
+	var body_rect: Rect2 = grey_hive_actor.canvas_rect(canonical_key,actual_foot,camera.ppm)
+	if not _gh_vital_record_rect_valid(body_rect,actual_foot) or typeof(actor_id)!=TYPE_STRING or not P.ident(actor_id):
+		return
+	gh_vital_body_records[actor_id] = {'current_key':current_key,'actor_id':actor_id,'selected_key':canonical_key,'projected_foot':actual_foot,'ppm':camera.ppm,'body_rect':body_rect}
+
+func _gh_vital_caption_position(actor: Dictionary, fallback: Vector2) -> Vector2:
+	if not is_finite(fallback.x) or not is_finite(fallback.y) or grey_hive_actor==null or camera==null or camera.get_script()!=Camera or not camera.initialized or not is_finite(camera.ppm) or camera.ppm<=0.0:
+		return fallback
+	if snapshot.get('worldId')!='grey_hive' or scene.get('worldId')!='grey_hive' or snapshot.get('sceneId')!=scene.get('sceneId') or not P.ident(snapshot.get('sceneId')) or not P.counter(snapshot.get('worldEpoch'),1):
+		return fallback
+	var expected_key: String = 'grey_hive:'+snapshot.get('sceneId')+':'+str(snapshot.get('worldEpoch'))
+	if current_key!=expected_key:
+		return fallback
+	var actor_id: Variant = actor.get('entityId')
+	if typeof(actor_id)!=TYPE_STRING or not P.ident(actor_id):
+		return fallback
+	var canonical_key: String = _grey_hive_body_key(actor)
+	if canonical_key.is_empty():
+		return fallback
+	var record_value: Variant = gh_vital_body_records.get(actor_id)
+	if not record_value is Dictionary:
+		return fallback
+	var record: Dictionary = record_value
+	if record.size()!=6 or record.get('current_key')!=current_key or record.get('actor_id')!=actor_id or record.get('selected_key')!=canonical_key:
+		return fallback
+	var recorded_foot_value: Variant = record.get('projected_foot')
+	var recorded_ppm_value: Variant = record.get('ppm')
+	var recorded_rect_value: Variant = record.get('body_rect')
+	if not recorded_foot_value is Vector2 or (typeof(recorded_ppm_value)!=TYPE_INT and typeof(recorded_ppm_value)!=TYPE_FLOAT) or not recorded_rect_value is Rect2:
+		return fallback
+	var recorded_foot: Vector2 = recorded_foot_value
+	var recorded_ppm: float = float(recorded_ppm_value)
+	var recorded_rect: Rect2 = recorded_rect_value
+	if not is_finite(recorded_ppm) or recorded_ppm!=camera.ppm or not _gh_vital_record_rect_valid(recorded_rect,recorded_foot):
+		return fallback
+	var actor_transform: Variant = actor.get('transform')
+	if not P.transform(actor_transform):
+		return fallback
+	var actual_foot: Vector2 = camera.project(P.vector(actor_transform.positionM))
+	if not is_finite(actual_foot.x) or not is_finite(actual_foot.y) or recorded_foot!=actual_foot:
+		return fallback
+	var expected_rect: Rect2 = grey_hive_actor.canvas_rect(canonical_key,actual_foot,camera.ppm)
+	if not _gh_vital_record_rect_valid(expected_rect,actual_foot) or recorded_rect!=expected_rect:
+		return fallback
+	if typeof(text_scale)!=TYPE_INT and typeof(text_scale)!=TYPE_FLOAT:
+		return fallback
+	var safe_text_scale: float = float(text_scale)
+	if not is_finite(safe_text_scale) or safe_text_scale<=0.0:
+		return fallback
+	var fallback_font: Font = ThemeDB.fallback_font
+	if fallback_font==null:
+		return fallback
+	var font_size: int = int(15.0*safe_text_scale)
+	if font_size<=0:
+		return fallback
+	var descent: float = fallback_font.get_descent(font_size)
+	var gap: float = 4.0*camera.ppm/48.0
+	if not is_finite(descent) or descent<0.0 or not is_finite(gap) or gap<=0.0:
+		return fallback
+	var baseline_y: float = minf(fallback.y,expected_rect.position.y-descent-gap)
+	if not is_finite(baseline_y):
+		return fallback
+	return Vector2(actual_foot.x,baseline_y)
+
 func _mh_cw_body_key(actor: Dictionary) -> String:
 	if not P.ident(actor.get('entityId')) or not MH_CW_ROSTER.has(actor.entityId) or actor.get('actorKind')!='enemy' or typeof(actor.get('active'))!=TYPE_BOOL or not actor.active or not P.transform(actor.get('transform')):
 		return ''
