@@ -1,0 +1,37 @@
+{
+  "schema": "wuxian.cw-pressure-floor-material.internal-use/v1",
+  "registeredSourceReuse": true,
+  "approval": "INTERNAL_REGISTERED_SOURCE_REUSE",
+  "GodotDisplay": "NOT_RUN",
+  "publicRelease": "NOT_ESTABLISHED",
+  "asset": {
+    "assetId": "runtime2d.world.clockworks.floor_steel.v1",
+    "derivedRelative": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.clockworks.floor_steel.v1.png",
+    "sourceRelative": "batch07/05_runtime2d.world.clockworks.floor_steel.v1.png",
+    "sourceSha256": "1a01e851654d9f5c98b5486cbe489f357ed99c55ffc601c492af63044d90b190",
+    "path": "res://assets/props/clockworks/pressure_hall_steel_floor_source.png",
+    "bytes": 1610704,
+    "sha256": "0b4555021799ac849756e0f11c207d4e9309df19f4b8f68d0f4e8177f5204043",
+    "canvas": [1197, 1132],
+    "format": "RGBA8"
+  },
+  "selection": {
+    "kind": "affine_top_plane",
+    "sourcePixelEdgeCorners": [[510, 200], [970, 460], [600, 740], [140, 480]],
+    "uvConvention": "sourcePixelEdge / standaloneCanvasSize"
+  },
+  "installation": {
+    "kind": "visual_only_ground_material",
+    "worldId": "clockworks",
+    "sceneId": "cw_pressure_hall",
+    "rowId": "cw_pressure_hall_steel_floor",
+    "layer": "visual.floor",
+    "position": [12, 0, 8],
+    "boundsM": [0, 0, 24, 16],
+    "groundY": 0,
+    "patchSizeM": [2, 2],
+    "grid": [12, 8],
+    "patchCount": 96,
+    "tint": [1, 1, 1, 1]
+  }
+}
