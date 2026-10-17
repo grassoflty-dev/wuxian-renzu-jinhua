@@ -2,6 +2,7 @@ extends Node2D
 const P = preload('res://scripts/bridge/protocol.gd')
 const V = preload('res://scripts/world/presentation.gd')
 const Camera = preload('res://scripts/world/projection.gd')
+const MhFogPierGroundVisual = preload('res://scripts/world/mh_fog_pier_ground_visual.gd')
 const CenYaoIdle = preload('res://scripts/world/cenyao_idle_visual.gd')
 const MhCwActor = preload('res://scripts/world/mh_cw_actor_visual.gd')
 const RsEnvironmentVisual = preload('res://scripts/world/rs_environment_visual.gd')
@@ -62,6 +63,7 @@ const CW_FURNACES = {
 }
 var cw_furnace_visual
 var camera = Camera.new()
+var mh_fog_pier_ground_visual = MhFogPierGroundVisual.new()
 var rs_environment_visual = RsEnvironmentVisual.new()
 var rs_bulkhead_modules_visual = RsBulkheadModulesVisual.new()
 var rs_service_pipe_visual = RsServicePipeVisual.new()
@@ -220,6 +222,8 @@ func _draw() -> void:
 	var floor_poly = [[b.x,b.z],[b.x+b.width,b.z],[b.x+b.width,b.z+b.depth],[b.x,b.z+b.depth]]
 	var floor_color = {'return_station':Color('#233c47'),'grey_hive':Color('#263634'),'mist_harbor':Color('#203742'),'clockworks':Color('#40362c')}.get(snapshot.worldId,Color('#263634'))
 	_poly(floor_poly,0,floor_color,true)
+	var mh_fog_pier_ground_packet = mh_fog_pier_ground_visual.build_packet(snapshot,scene,current_key,camera)
+	mh_fog_pier_ground_visual.draw_packet(self,mh_fog_pier_ground_packet,snapshot,scene,current_key,camera,get_viewport_rect())
 	var gh_bio_floor_packets = gh_bio_floor_material_visual.build_packets(snapshot,scene,current_key,camera,gh_bio_wall_modules_visual)
 	gh_bio_floor_material_visual.draw_tiles(self,gh_bio_floor_packets,get_viewport_rect())
 	var gh_entry_floor_packets = gh_entry_floor_material_visual.build_packets(snapshot,scene,current_key,camera)
