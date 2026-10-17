@@ -56,21 +56,29 @@ func _load_once() -> void:
 		var texture = ImageTexture.create_from_image(image)
 		if texture!=null:
 			textures[key] = texture
-func body_height(key: String, ppm: float) -> float:
-	return float(CONFIG[key].heightM)*ppm if CONFIG.has(key) and is_finite(ppm) and ppm>0 else 0.0
-func draw_body(canvas: CanvasItem, key: String, state: String, foot: Vector2, ppm: float) -> bool:
+func canvas_rect(key: String, state: String, foot: Vector2, ppm: float) -> Rect2:
 	if not CONFIG.has(key) or not CONFIG[key].states.has(state) or not is_finite(foot.x) or not is_finite(foot.y) or not is_finite(ppm) or ppm<=0:
-		return false
-	_load_once()
-	if not textures.has(key):
-		return false
+		return Rect2()
 	var c: Dictionary = CONFIG[key]
 	var region: Array = c.states[state]
 	var factor = float(c.heightM)*ppm/float(region[3])
 	var size = Vector2(region[2],region[3])*factor
 	var origin = foot-Vector2(region[2]*0.5,region[3])*factor
 	if not is_finite(factor) or factor<=0 or not is_finite(size.x) or not is_finite(size.y) or size.x<=0 or size.y<=0 or not is_finite(origin.x) or not is_finite(origin.y):
+		return Rect2()
+	var rect = Rect2(origin,size)
+	return rect if is_finite(rect.end.x) and is_finite(rect.end.y) else Rect2()
+func body_height(key: String, ppm: float) -> float:
+	return float(CONFIG[key].heightM)*ppm if CONFIG.has(key) and is_finite(ppm) and ppm>0 else 0.0
+func draw_body(canvas: CanvasItem, key: String, state: String, foot: Vector2, ppm: float) -> bool:
+	var rect: Rect2 = canvas_rect(key,state,foot,ppm)
+	if rect.size.x<=0 or rect.size.y<=0:
 		return false
+	_load_once()
+	if not textures.has(key):
+		return false
+	var c: Dictionary = CONFIG[key]
+	var region: Array = c.states[state]
 	var texture: ImageTexture = textures[key]
-	canvas.draw_texture_rect_region(texture,Rect2(origin,size),Rect2(region[0],region[1],region[2],region[3]),Color.WHITE,false,true)
+	canvas.draw_texture_rect_region(texture,rect,Rect2(region[0],region[1],region[2],region[3]),Color.WHITE,false,true)
 	return true

@@ -785,6 +785,12 @@ func _object_culling_state(o: Dictionary, at: Vector2) -> Dictionary:
 		var gh_entry_clutter_body_visible: bool = _rect_intersects(viewport_rect,gh_entry_clutter_rect)
 		var gh_entry_clutter_fallback_visible: bool = _rect_intersects(viewport_rect,gh_entry_clutter_fallback)
 		return {'furnaceKey':'','culled':not (gh_entry_clutter_body_visible or gh_entry_clutter_fallback_visible),'bodyRect':gh_entry_clutter_rect,'fallbackRect':gh_entry_clutter_fallback}
+	if o.get('kind')=='door' and o.get('data') is Dictionary and grey_hive_state_props!=null:
+		var gate_body_selection: Dictionary = _gh_door_body(o.data)
+		if not gate_body_selection.is_empty():
+			var gate_body_rect: Rect2 = grey_hive_state_props.canvas_rect(gate_body_selection.key,gate_body_selection.state,at,camera.ppm)
+			if _rect_intersects(viewport_rect,gate_body_rect):
+				return {'furnaceKey':'','culled':false,'bodyRect':gate_body_rect,'fallbackRect':Rect2()}
 	var furnace_key = ''
 	if o.get('kind')=='prop' and o.get('data') is Dictionary:
 		furnace_key = _cw_furnace_key(o.data)
