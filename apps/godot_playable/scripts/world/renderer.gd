@@ -46,6 +46,7 @@ const Content = preload('res://scripts/ui/content_model.gd')
 const GH_STORY_PLACEMENTS = {
 	'bio_pod_approved':{'key':'bio_pod','scene':'gh_bio_isolation','asset':'runtime2d.prop.bio_pod.v1','position':Vector3(8,0,7)},
 	'medical_station_approved':{'key':'medical_station','scene':'gh_bio_isolation','asset':'runtime2d.prop.medical_station.v1','position':Vector3(16,0,5)},
+	'bio_log_terminal_approved':{'key':'lockdown_terminal','scene':'gh_bio_isolation','asset':'runtime2d.prop.lockdown_terminal.v1','position':Vector3(20,0,8)},
 	'lockdown_terminal_visual':{'key':'lockdown_terminal','scene':'gh_lockdown','asset':'runtime2d.prop.lockdown_terminal.v1','position':Vector3(4,0,8)}
 }
 var gh_bio_lockdown_visual
@@ -1253,7 +1254,7 @@ func _gh_story_prop(prop: Dictionary) -> Dictionary:
 		return {}
 	var foot: Vector3 = selected.position
 	var image_allowed = true
-	if selected.key=='lockdown_terminal':
+	if prop.id=='lockdown_terminal_visual':
 		var authored = scene.get('interactions')
 		if not P.rows(authored,2048):
 			return {}
