@@ -20,6 +20,7 @@ const RsFloorVisual = preload('res://scripts/world/rs_floor_visual.gd')
 const GreyHiveStateProps = preload('res://scripts/world/grey_hive_state_props_visual.gd')
 const GhBioLockdownVisual = preload('res://scripts/world/gh_bio_lockdown_visual.gd')
 const GhBioClutterVisual = preload('res://scripts/world/gh_bio_clutter_visual.gd')
+const GhEntryClutterVisual = preload('res://scripts/world/gh_entry_clutter_visual.gd')
 const GhSupplyCrateVisual = preload('res://scripts/world/gh_supply_crate_visual.gd')
 const GhPowerEnvironmentVisual = preload('res://scripts/world/gh_power_environment_visual.gd')
 const BaizhiPlaceholderVisual = preload('res://scripts/world/baizhi_placeholder_visual.gd')
@@ -71,6 +72,7 @@ var gh_entry_floor_material_visual = GhEntryFloorMaterialVisual.new()
 var gh_entry_wall_modules_visual = GhEntryWallModulesVisual.new()
 var gh_entry_service_pipe_visual = GhEntryServicePipeVisual.new()
 var gh_bio_clutter_visual = GhBioClutterVisual.new()
+var gh_entry_clutter_visual = GhEntryClutterVisual.new()
 var gh_power_environment_visual = GhPowerEnvironmentVisual.new()
 var cw_pressure_environment_visual = CwPressureEnvironmentVisual.new()
 var mh_pump_environment_visual = MhPumpEnvironmentVisual.new()
@@ -242,6 +244,7 @@ func _draw() -> void:
 	gh_entry_wall_draw_failed = false
 	var gh_bio_service_pipe_packet: Dictionary = {}
 	var gh_bio_clutter_packet: Dictionary = {}
+	var gh_entry_clutter_packet: Dictionary = {}
 	if rs_active:
 		rs_terminal_feet = _rs_terminal_feet()
 		rs_back_packets = rs_environment_visual.build_packets(scene,snapshot.worldId,snapshot.sceneId,camera,rs_terminal_feet,'back')
@@ -271,6 +274,7 @@ func _draw() -> void:
 	var gh_entry_service_pipe_packet: Dictionary = gh_entry_service_pipe_visual.build_packet(snapshot,scene,current_key,camera,gh_entry_wall_modules_visual)
 	gh_bio_service_pipe_packet = gh_bio_service_pipe_visual.build_packet(snapshot,scene,current_key,camera,gh_bio_wall_modules_visual)
 	gh_bio_clutter_packet = gh_bio_clutter_visual.build_packet(snapshot,scene,current_key,camera,gh_bio_wall_modules_visual)
+	gh_entry_clutter_packet = gh_entry_clutter_visual.build_packet(snapshot,scene,current_key,camera,gh_entry_wall_modules_visual)
 	var gh_power_console_matches = 0
 	var gh_power_console_body: Dictionary = {}
 	var gh_power_light_state: String = 'unknown'
@@ -338,6 +342,8 @@ func _draw() -> void:
 		gh_entry_service_pipe_packet.clear()
 	if not gh_bio_clutter_packet.is_empty() and _rect_intersects(viewport_rect,gh_bio_clutter_packet.get('shadow_rect',Rect2())):
 		gh_bio_clutter_visual.draw_contact_shadow(self,gh_bio_clutter_packet,viewport_rect)
+	if not gh_entry_clutter_packet.is_empty() and not gh_entry_clutter_visual.draw_contact_shadow(self,gh_entry_clutter_packet,viewport_rect,snapshot,scene,current_key,camera,gh_entry_wall_modules_visual):
+		gh_entry_clutter_packet.clear()
 	var objects: Array = []
 	for module_packet in gh_bio_wall_packets:
 		objects.append({'id':module_packet.id,'p':module_packet.p,'kind':'gh_bio_wall_module','data':module_packet})
@@ -363,6 +369,9 @@ func _draw() -> void:
 			continue
 		if not gh_bio_clutter_packet.is_empty() and gh_bio_clutter_visual.matches_authored_row(prop):
 			objects.append({'id':prop.id,'p':gh_bio_clutter_packet.p,'kind':'gh_bio_clutter','data':gh_bio_clutter_packet})
+			continue
+		if not gh_entry_clutter_packet.is_empty() and gh_entry_clutter_visual.matches_authored_row(prop):
+			objects.append({'id':prop.id,'p':gh_entry_clutter_packet.p,'kind':'gh_entry_clutter','data':gh_entry_clutter_packet})
 			continue
 		var console_body: Dictionary = {}
 		if prop.get('id')=='power_console_off_on':
@@ -719,6 +728,12 @@ func _object_culling_state(o: Dictionary, at: Vector2) -> Dictionary:
 		var gh_clutter_body_visible: bool = _rect_intersects(viewport_rect,gh_clutter_rect)
 		var gh_clutter_fallback_visible: bool = _rect_intersects(viewport_rect,gh_clutter_fallback)
 		return {'furnaceKey':'','culled':not (gh_clutter_body_visible or gh_clutter_fallback_visible),'bodyRect':gh_clutter_rect,'fallbackRect':gh_clutter_fallback}
+	if o.get('kind')=='gh_entry_clutter' and o.get('data') is Dictionary and o.data.get('body_rect') is Rect2:
+		var gh_entry_clutter_rect: Rect2 = o.data.body_rect
+		var gh_entry_clutter_fallback: Rect2 = _prop_placeholder_rect(at,camera.ppm)
+		var gh_entry_clutter_body_visible: bool = _rect_intersects(viewport_rect,gh_entry_clutter_rect)
+		var gh_entry_clutter_fallback_visible: bool = _rect_intersects(viewport_rect,gh_entry_clutter_fallback)
+		return {'furnaceKey':'','culled':not (gh_entry_clutter_body_visible or gh_entry_clutter_fallback_visible),'bodyRect':gh_entry_clutter_rect,'fallbackRect':gh_entry_clutter_fallback}
 	var furnace_key = ''
 	if o.get('kind')=='prop' and o.get('data') is Dictionary:
 		furnace_key = _cw_furnace_key(o.data)
@@ -759,6 +774,9 @@ func _draw_object(o: Dictionary, interaction_caption: String = '') -> void:
 				draw_rect(culling.fallbackRect,Color('#65716d'))
 		'gh_bio_clutter':
 			if not gh_bio_clutter_visual.draw_body(self,o.data):
+				draw_rect(culling.fallbackRect,Color('#65716d'))
+		'gh_entry_clutter':
+			if not gh_entry_clutter_visual.draw_body(self,o.data,snapshot,scene,current_key,camera,gh_entry_wall_modules_visual):
 				draw_rect(culling.fallbackRect,Color('#65716d'))
 		'gh_story_prop':
 			var body_drawn = false
