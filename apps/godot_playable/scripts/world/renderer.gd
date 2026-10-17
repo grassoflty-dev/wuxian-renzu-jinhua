@@ -5,6 +5,7 @@ const Camera = preload('res://scripts/world/projection.gd')
 const MhFogPierGroundVisual = preload('res://scripts/world/mh_fog_pier_ground_visual.gd')
 const MhFogPierStoneMaterialVisual = preload('res://scripts/world/mh_fog_pier_stone_material_visual.gd')
 const MhFogPierLayeredFogVisual = preload('res://scripts/world/mh_fog_pier_layered_fog_visual.gd')
+const MhFogPierEnvironmentVisual = preload('res://scripts/world/mh_fog_pier_environment_visual.gd')
 const CenYaoIdle = preload('res://scripts/world/cenyao_idle_visual.gd')
 const MhCwActor = preload('res://scripts/world/mh_cw_actor_visual.gd')
 const RsEnvironmentVisual = preload('res://scripts/world/rs_environment_visual.gd')
@@ -73,6 +74,7 @@ var camera = Camera.new()
 var mh_fog_pier_ground_visual = MhFogPierGroundVisual.new()
 var mh_fog_pier_stone_material_visual = MhFogPierStoneMaterialVisual.new()
 var mh_fog_pier_layered_fog_visual = MhFogPierLayeredFogVisual.new()
+var mh_fog_pier_environment_visual = MhFogPierEnvironmentVisual.new()
 var rs_environment_visual = RsEnvironmentVisual.new()
 var rs_bulkhead_modules_visual = RsBulkheadModulesVisual.new()
 var rs_service_pipe_visual = RsServicePipeVisual.new()
@@ -363,6 +365,8 @@ func _draw() -> void:
 			continue
 		if wall is Dictionary and P.polygon(wall.get('polygon')):
 			if rs_active and rs_environment_visual.is_structure_id(wall.get('id')):
+				continue
+			if mh_fog_pier_environment_visual.draw_wall(self,snapshot,scene,current_key,camera,wall,viewport_rect):
 				continue
 			_poly(wall.polygon,0,Color('#4b5659'),true)
 			_poly(wall.polygon,0,Color('#819092'),false)
@@ -1248,7 +1252,7 @@ func _atmosphere(suppressed_bank_ids: Array = []) -> void:
 			if prop is Dictionary and prop.get('assetId') in ['runtime2d.world.mistharbor.fog_bank.v1','runtime2d.world.mistharbor.fog_vfx.v1'] and prop.get('position') is Array and prop.position.size()==3:
 				var bank_id = prop.get('id')
 				var bank_position = prop.get('position')
-				if prop.get('assetId')=='runtime2d.world.mistharbor.fog_bank.v1' and typeof(bank_id)==TYPE_STRING and bank_id in suppressed_bank_ids and prop.get('layer')=='visual.props_back' and ((bank_id=='approved_fog_bank_north' and bank_position==[13,0,2.5]) or (bank_id=='approved_fog_bank_east' and bank_position==[20,0,11])):
+				if prop.get('assetId')=='runtime2d.world.mistharbor.fog_bank.v1' and typeof(bank_id)==TYPE_STRING and bank_id in suppressed_bank_ids and prop.get('layer')=='visual.props_back' and ((bank_id=='approved_fog_bank_north' and P.number(bank_position[0],13.0,13.0) and P.number(bank_position[1],0.0,0.0) and P.number(bank_position[2],2.5,2.5)) or (bank_id=='approved_fog_bank_east' and P.number(bank_position[0],20.0,20.0) and P.number(bank_position[1],0.0,0.0) and P.number(bank_position[2],11.0,11.0))):
 					continue
 				var at = camera.project(Vector3(prop.position[0],prop.position[1],prop.position[2]))
 				draw_circle(at,80*camera.ppm/48,Color(0.6,0.7,0.74,0.055))
