@@ -65,6 +65,7 @@ const CW_PRESSURE_VALVES = {
 }
 var cw_pressure_valve_visual
 const CwFurnaceVisual = preload('res://scripts/world/cw_furnace_visual.gd')
+const CwBoilerEnvironmentVisual = preload('res://scripts/world/cw_boiler_environment_visual.gd')
 const CW_FURNACES = {
 	'cw_entry_furnace':['cw_entry_foundry','furnace_v2','runtime2d.world.clockworks.furnace.v2','visual.props_back',Vector3(19,0,6)],
 	'cw_boiler_furnace':['cw_boiler_chamber','furnace_v2','runtime2d.world.clockworks.furnace.v2','visual.props_back',Vector3(16,0,6)],
@@ -73,6 +74,7 @@ const CW_FURNACES = {
 	'cw_heart_furnace_v2':['cw_furnace_heart','furnace_v2','runtime2d.world.clockworks.furnace.v2','visual.props_dynamic',Vector3(16,0,8)]
 }
 var cw_furnace_visual
+var cw_boiler_environment_visual = CwBoilerEnvironmentVisual.new()
 var camera = Camera.new()
 var mh_fog_pier_ground_visual = MhFogPierGroundVisual.new()
 var mh_fog_pier_stone_material_visual = MhFogPierStoneMaterialVisual.new()
@@ -262,6 +264,7 @@ func _draw() -> void:
 	var floor_poly = [[b.x,b.z],[b.x+b.width,b.z],[b.x+b.width,b.z+b.depth],[b.x,b.z+b.depth]]
 	var floor_color = {'return_station':Color('#233c47'),'grey_hive':Color('#263634'),'mist_harbor':Color('#203742'),'clockworks':Color('#40362c')}.get(snapshot.worldId,Color('#263634'))
 	_poly(floor_poly,0,floor_color,true)
+	cw_boiler_environment_visual.draw_floor(self,snapshot,scene,current_key,camera,viewport_rect,cw_furnace_visual)
 	cw_conveyor_environment_visual.draw_floor(self,snapshot,scene,current_key,camera,viewport_rect)
 	gh_beacon_environment_visual.draw_floor(self,snapshot,scene,current_key,camera,viewport_rect)
 	mh_pump_environment_visual.draw_land_material(self,snapshot,scene,current_key,camera,viewport_rect)
@@ -380,6 +383,8 @@ func _draw() -> void:
 			if gh_beacon_environment_visual.draw_wall(self,snapshot,scene,current_key,camera,wall,viewport_rect):
 				continue
 			if cw_conveyor_environment_visual.draw_wall(self,snapshot,scene,current_key,camera,wall,viewport_rect):
+				continue
+			if cw_boiler_environment_visual.draw_wall(self,snapshot,scene,current_key,camera,wall,viewport_rect):
 				continue
 			_poly(wall.polygon,0,Color('#4b5659'),true)
 			_poly(wall.polygon,0,Color('#819092'),false)
