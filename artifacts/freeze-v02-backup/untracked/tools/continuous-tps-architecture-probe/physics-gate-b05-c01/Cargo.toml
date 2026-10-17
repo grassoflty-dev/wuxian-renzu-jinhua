@@ -1,9 +1,0 @@
-[package]
-name = "physics-gate-b05-c01-ag42"
-version = "0.1.0"
-edition = "2021"
-publish = false
-
-[dependencies]
-rapier3d = "0.22.0"
-serde_json = "1"
