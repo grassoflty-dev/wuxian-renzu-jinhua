@@ -19,6 +19,7 @@ const GhSentinelFloorMaterialVisual = preload('res://scripts/world/gh_sentinel_f
 const GhPowerFloorMaterialVisual = preload('res://scripts/world/gh_power_floor_material_visual.gd')
 const GhEntryWallModulesVisual = preload('res://scripts/world/gh_entry_wall_modules_visual.gd')
 const GhEntryServicePipeVisual = preload('res://scripts/world/gh_entry_service_pipe_visual.gd')
+const GhEntryAmbientVisual = preload('res://scripts/world/gh_entry_ambient_visual.gd')
 const MH_CW_ROSTER = {"cw_entry_foundry_forged_guard_01":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_entry_foundry","authoring_type":"enemy.clockworks.forged_guard"},"mh_breakwater_signal_wraith_02":{"runtime_type":"enemy.mist_harbor.signal_wraith","world":"mist_harbor","key":"signal_wraith","scene":"mh_breakwater","authoring_type":"enemy.mist_harbor.signal_wraith"},"mh_tidal_warehouse_drowned_01":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_tidal_warehouse","authoring_type":"enemy.mist_harbor.drowned"},"mh_signal_yard_signal_wraith_03":{"runtime_type":"enemy.mist_harbor.signal_wraith","world":"mist_harbor","key":"signal_wraith","scene":"mh_signal_yard","authoring_type":"enemy.mist_harbor.signal_wraith"},"cw_pressure_hall_forged_guard_01":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_pressure_hall","authoring_type":"enemy.clockworks.forged_guard"},"mh_signal_yard_signal_wraith_02":{"runtime_type":"enemy.mist_harbor.signal_wraith","world":"mist_harbor","key":"signal_wraith","scene":"mh_signal_yard","authoring_type":"enemy.mist_harbor.signal_wraith"},"mh_resonance_tower_signal_wraith_01":{"runtime_type":"enemy.mist_harbor.signal_wraith","world":"mist_harbor","key":"signal_wraith","scene":"mh_resonance_tower","authoring_type":"enemy.mist_harbor.signal_wraith"},"mh_tidal_warehouse_drowned_02":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_tidal_warehouse","authoring_type":"enemy.mist_harbor.drowned"},"mh_drowned_quay_drowned_03":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_drowned_quay","authoring_type":"enemy.mist_harbor.drowned"},"mh_drowned_quay_drowned_02":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_drowned_quay","authoring_type":"enemy.mist_harbor.drowned"},"mh_drowned_quay_drowned_01":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_drowned_quay","authoring_type":"enemy.mist_harbor.drowned"},"mh_fog_pier_drowned_02":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_fog_pier","authoring_type":"enemy.mist_harbor.drowned"},"mh_drowned_quay_drowned_04":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_drowned_quay","authoring_type":"enemy.mist_harbor.drowned"},"mh_signal_yard_signal_wraith_01":{"runtime_type":"enemy.mist_harbor.signal_wraith","world":"mist_harbor","key":"signal_wraith","scene":"mh_signal_yard","authoring_type":"enemy.mist_harbor.signal_wraith"},"mh_pump_station_drowned_03":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_pump_station","authoring_type":"enemy.mist_harbor.drowned"},"mh_tidal_warehouse_signal_wraith_01":{"runtime_type":"enemy.mist_harbor.signal_wraith","world":"mist_harbor","key":"signal_wraith","scene":"mh_tidal_warehouse","authoring_type":"enemy.mist_harbor.signal_wraith"},"mh_breakwater_signal_wraith_01":{"runtime_type":"enemy.mist_harbor.signal_wraith","world":"mist_harbor","key":"signal_wraith","scene":"mh_breakwater","authoring_type":"enemy.mist_harbor.signal_wraith"},"mh_fog_pier_drowned_01":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_fog_pier","authoring_type":"enemy.mist_harbor.drowned"},"cw_furnace_heart_forged_guard_01":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_furnace_heart","authoring_type":"enemy.clockworks.forged_guard"},"cw_conveyor_bridge_forged_guard_01":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_conveyor_bridge","authoring_type":"enemy.clockworks.forged_guard"},"mh_resonance_tower_signal_wraith_02":{"runtime_type":"enemy.mist_harbor.signal_wraith","world":"mist_harbor","key":"signal_wraith","scene":"mh_resonance_tower","authoring_type":"enemy.mist_harbor.signal_wraith"},"mh_pump_station_drowned_02":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_pump_station","authoring_type":"enemy.mist_harbor.drowned"},"cw_pressure_hall_forged_guard_02":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_pressure_hall","authoring_type":"enemy.clockworks.forged_guard"},"cw_furnace_heart_forged_guard_02":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_furnace_heart","authoring_type":"enemy.clockworks.forged_guard"},"cw_gear_shaft_forged_guard_02":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_gear_shaft","authoring_type":"enemy.clockworks.forged_guard"},"mh_pump_station_drowned_01":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_pump_station","authoring_type":"enemy.mist_harbor.drowned"},"cw_gear_shaft_forged_guard_01":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_gear_shaft","authoring_type":"enemy.clockworks.forged_guard"},"mh_resonance_tower_signal_wraith_03":{"runtime_type":"enemy.mist_harbor.signal_wraith","world":"mist_harbor","key":"signal_wraith","scene":"mh_resonance_tower","authoring_type":"enemy.mist_harbor.signal_wraith"},"cw_entry_foundry_forged_guard_02":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_entry_foundry","authoring_type":"enemy.clockworks.forged_guard"},"cw_conveyor_bridge_forged_guard_02":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_conveyor_bridge","authoring_type":"enemy.clockworks.forged_guard"},"mh_resonance_tower_signal_wraith_04":{"runtime_type":"enemy.mist_harbor.signal_wraith","world":"mist_harbor","key":"signal_wraith","scene":"mh_resonance_tower","authoring_type":"enemy.mist_harbor.signal_wraith"},"mh_tidal_warehouse_drowned_03":{"runtime_type":"runtime2d.enemy.mistharbor.drowned.v2","world":"mist_harbor","key":"drowned","scene":"mh_tidal_warehouse","authoring_type":"enemy.mist_harbor.drowned"},"cw_conveyor_bridge_forged_guard_03":{"runtime_type":"runtime2d.enemy.clockworks.forged_guard.v2","world":"clockworks","key":"forged_guard","scene":"cw_conveyor_bridge","authoring_type":"enemy.clockworks.forged_guard"}}
 const GreyHiveActor = preload('res://scripts/world/grey_hive_actor_visual.gd')
 const RegisteredProps = preload('res://scripts/world/registered_props_visual.gd')
@@ -84,6 +85,7 @@ var gh_sentinel_floor_material_visual = GhSentinelFloorMaterialVisual.new()
 var gh_power_floor_material_visual = GhPowerFloorMaterialVisual.new()
 var gh_entry_wall_modules_visual = GhEntryWallModulesVisual.new()
 var gh_entry_service_pipe_visual = GhEntryServicePipeVisual.new()
+var gh_entry_ambient_visual
 var gh_bio_clutter_visual = GhBioClutterVisual.new()
 var gh_entry_clutter_visual = GhEntryClutterVisual.new()
 var gh_power_environment_visual = GhPowerEnvironmentVisual.new()
@@ -124,6 +126,7 @@ var mh_fog_pier_phase_seconds: float = 0.0
 var mh_fog_pier_defer_labels: bool = false
 var mh_fog_pier_deferred_labels: Array = []
 func _ready() -> void:
+	gh_entry_ambient_visual = GhEntryAmbientVisual.new()
 	baizhi_placeholder_visual = BaizhiPlaceholderVisual.new()
 	cw_furnace_visual = CwFurnaceVisual.new()
 	cw_pressure_valve_visual = CwPressureValveVisual.new()
@@ -139,6 +142,8 @@ func commit(s: Dictionary, data: Dictionary, hash: String) -> void:
 	var key = s.worldId+':'+s.sceneId+':'+str(s.worldEpoch)
 	if key!=current_key:
 		camera.reset()
+		if gh_entry_ambient_visual!=null:
+			gh_entry_ambient_visual.reset()
 		_clear_gh_vital_body_records()
 		events.clear()
 		sound.clear()
@@ -202,6 +207,8 @@ func _process(delta: float) -> void:
 		mh_fog_pier_phase_seconds = mh_fog_pier_layered_fog_visual.advance_visual_time(mh_fog_pier_phase_seconds,delta,reduced_motion)
 	else:
 		mh_fog_pier_phase_seconds = 0.0
+	if P.snapshot(snapshot) and snapshot.get('worldId')=='grey_hive' and snapshot.get('sceneId')=='gh_entry_maintenance' and scene.get('worldId')=='grey_hive' and scene.get('sceneId')=='gh_entry_maintenance' and current_key=='grey_hive:gh_entry_maintenance:'+str(snapshot.get('worldEpoch')):
+		gh_entry_ambient_visual.advance_visual(delta,reduced_motion)
 	var full = get_viewport_rect()
 	var safe_rect = full
 	if snapshot.worldId=='return_station' and snapshot.sceneId=='rs_core_room' and safe_rect_provider.is_valid():
@@ -266,6 +273,7 @@ func _draw() -> void:
 	gh_bio_floor_material_visual.draw_tiles(self,gh_bio_floor_packets,get_viewport_rect())
 	var gh_entry_floor_packets = gh_entry_floor_material_visual.build_packets(snapshot,scene,current_key,camera)
 	gh_entry_floor_material_visual.draw_tiles(self,gh_entry_floor_packets,get_viewport_rect())
+	gh_entry_ambient_visual.draw_floor(self,snapshot,scene,camera)
 	if rs_floor_visual.matches_context(snapshot,scene):
 		var floor_points = PackedVector2Array()
 		for corner in floor_poly:
@@ -473,6 +481,7 @@ func _draw() -> void:
 		if rs_active and o.kind=='interaction':
 			caption = ''
 		_draw_object(o,caption)
+	gh_entry_ambient_visual.draw_air(self,snapshot,scene,camera)
 	if gh_entry_wall_draw_failed:
 		for wall in scene.get('collision',[]):
 			if wall is Dictionary and typeof(wall.get('id')) == TYPE_STRING and wall.id in ['gh_entry_wall_north','gh_entry_wall_south','gh_entry_wall_west','gh_entry_wall_east_north','gh_entry_wall_east_south'] and P.polygon(wall.get('polygon')):
