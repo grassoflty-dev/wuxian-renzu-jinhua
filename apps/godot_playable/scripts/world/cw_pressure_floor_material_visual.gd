@@ -7,6 +7,15 @@ const TEXTURE_RESOURCE = "res://assets/props/clockworks/pressure_hall_steel_floo
 const WORLD_ID = "clockworks"
 const SCENE_ID = "cw_pressure_hall"
 const ROW_ID = "cw_pressure_hall_steel_floor"
+const FURNACE_HEART_SCENE_ID = "cw_furnace_heart"
+const FURNACE_HEART_ROW_ID = "cw_furnace_heart_steel_floor"
+const FURNACE_HEART_DEFINITION_RESOURCE = "res://data/cw_furnace_heart_floor_material.internal-use.json"
+const PRESSURE_SCHEMA = "wuxian.cw-pressure-floor-material.internal-use/v1"
+const FURNACE_HEART_SCHEMA = "wuxian.cw-furnace-heart-floor-material.internal-use/v1"
+const PRESSURE_PACKET_KIND = "cw_pressure_hall_steel_floor_v1"
+const FURNACE_HEART_PACKET_KIND = "cw_furnace_heart_steel_floor_v1"
+const PRESSURE_PATCH_PREFIX = "cw_pressure_hall_steel"
+const FURNACE_HEART_PATCH_PREFIX = "cw_furnace_heart_steel"
 const ASSET_ID = "runtime2d.world.clockworks.floor_steel.v1"
 const DEFINITION_BYTES_MAX = 16384
 const SOURCE_BYTES = 1610704
@@ -24,29 +33,37 @@ const EXPECTED_COLLISION = [
 	{"id": "cw_pressure_hall_wall_east_south", "polygon": [[23.5, 9.5], [24, 9.5], [24, 15.5], [23.5, 15.5]]}
 ]
 
-var _definition_checked: bool = false
-var _definition_valid: bool = false
-var _definition: Dictionary = {}
+var _definition_checked_by_scene: Dictionary = {}
+var _definition_valid_by_scene: Dictionary = {}
+var _definition_by_scene: Dictionary = {}
 var _floor_texture: ImageTexture
 
 func is_definition_valid(value) -> bool:
-	return _definition_matches(value)
+	if not value is Dictionary:
+		return false
+	var installation = value.get("installation")
+	if not installation is Dictionary:
+		return false
+	var profile = _profile_for_scene(installation.get("sceneId"))
+	return not profile.is_empty() and _definition_matches(value, profile)
 
 func build_packet(snapshot, scene: Dictionary, current_key: String, projection) -> Dictionary:
-	if not _valid_context(snapshot, scene, current_key, projection):
+	var profile = _context_profile(snapshot, scene, current_key, projection)
+	if profile.is_empty():
 		return {}
-	if not _load_definition():
+	if not _load_definition(profile):
 		return {}
-	return _build_valid_packet(snapshot, current_key, projection)
+	return _build_valid_packet(snapshot, current_key, projection, profile)
 
 func is_packet_valid(packet, snapshot, scene: Dictionary, current_key: String, projection) -> bool:
-	if not _valid_context(snapshot, scene, current_key, projection):
+	var profile = _context_profile(snapshot, scene, current_key, projection)
+	if profile.is_empty():
 		return false
-	if not _packet_shape_valid(packet):
+	if not _packet_shape_valid(packet, profile):
 		return false
-	if not _load_definition():
+	if not _load_definition(profile):
 		return false
-	var expected := _build_valid_packet(snapshot, current_key, projection)
+	var expected := _build_valid_packet(snapshot, current_key, projection, profile)
 	return not expected.is_empty() and packet == expected
 
 func visible_patches(packet, snapshot, scene: Dictionary, current_key: String, projection, viewport) -> Array:
@@ -88,20 +105,46 @@ func draw_packet(canvas, packet, snapshot, scene: Dictionary, current_key: Strin
 		canvas.draw_polygon(patch.screenPoints, patch.tint, patch.uvs, texture)
 	return true
 
-func _valid_context(snapshot, scene: Dictionary, current_key: String, projection) -> bool:
+func _context_profile(snapshot, scene: Dictionary, current_key: String, projection) -> Dictionary:
 	if not P.context(snapshot) or not P.counter(snapshot.get("worldEpoch"), 1):
-		return false
-	if snapshot.get("worldId") != WORLD_ID or snapshot.get("sceneId") != SCENE_ID:
-		return false
-	if current_key != WORLD_ID + ":" + SCENE_ID + ":" + str(snapshot.get("worldEpoch")):
-		return false
+		return {}
+	var profile = _profile_for_scene(snapshot.get("sceneId"))
+	if profile.is_empty() or snapshot.get("worldId") != WORLD_ID:
+		return {}
+	if current_key != WORLD_ID + ":" + profile.sceneId + ":" + str(snapshot.get("worldEpoch")):
+		return {}
 	if typeof(scene.get("worldId")) != TYPE_STRING or scene.get("worldId") != WORLD_ID:
-		return false
-	if typeof(scene.get("sceneId")) != TYPE_STRING or scene.get("sceneId") != SCENE_ID:
-		return false
+		return {}
+	if typeof(scene.get("sceneId")) != TYPE_STRING or scene.get("sceneId") != profile.sceneId:
+		return {}
 	if not _valid_projection(projection):
-		return false
-	return _valid_scene_layout(scene)
+		return {}
+	if not _valid_scene_layout(scene, profile):
+		return {}
+	return profile
+
+func _profile_for_scene(scene_id):
+	if typeof(scene_id) != TYPE_STRING:
+		return {}
+	if scene_id == SCENE_ID:
+		return {
+			"sceneId": SCENE_ID,
+			"rowId": ROW_ID,
+			"definitionResource": DEFINITION_RESOURCE,
+			"schema": PRESSURE_SCHEMA,
+			"packetKind": PRESSURE_PACKET_KIND,
+			"patchPrefix": PRESSURE_PATCH_PREFIX
+		}
+	if scene_id == FURNACE_HEART_SCENE_ID:
+		return {
+			"sceneId": FURNACE_HEART_SCENE_ID,
+			"rowId": FURNACE_HEART_ROW_ID,
+			"definitionResource": FURNACE_HEART_DEFINITION_RESOURCE,
+			"schema": FURNACE_HEART_SCHEMA,
+			"packetKind": FURNACE_HEART_PACKET_KIND,
+			"patchPrefix": FURNACE_HEART_PATCH_PREFIX
+		}
+	return {}
 
 func _valid_projection(projection) -> bool:
 	if projection == null or not projection is RefCounted or projection.get_script() != ProjectionScript:
@@ -111,7 +154,7 @@ func _valid_projection(projection) -> bool:
 	var center = projection.get("screen_center")
 	return P.number(ppm, 0.0, 256.0) and float(ppm) > 0.0 and _finite_vector3(origin) and _finite_vector2(center)
 
-func _valid_scene_layout(scene: Dictionary) -> bool:
+func _valid_scene_layout(scene: Dictionary, profile: Dictionary) -> bool:
 	var bounds = scene.get("boundsM")
 	if not bounds is Dictionary or not _keys_are(bounds, ["x", "z", "width", "depth"]):
 		return false
@@ -124,8 +167,9 @@ func _valid_scene_layout(scene: Dictionary) -> bool:
 		return false
 	for expected in EXPECTED_COLLISION:
 		var found = false
+		var expected_id: String = str(expected.id).replace(SCENE_ID, profile.sceneId)
 		for row in collision:
-			if row.get("id") == expected.id:
+			if row.get("id") == expected_id:
 				if not _keys_are(row, ["id", "polygon"]) or not _number_tree_equals(row.get("polygon"), expected.polygon):
 					return false
 				found = true
@@ -140,14 +184,14 @@ func _valid_scene_layout(scene: Dictionary) -> bool:
 		return false
 	var candidates: Array = []
 	for row in sprites:
-		if row.get("id") == ROW_ID or row.get("assetId") == ASSET_ID:
+		if row.get("id") == profile.rowId or row.get("assetId") == ASSET_ID:
 			candidates.append(row)
-	return candidates.size() == 1 and _registered_row_matches(candidates[0])
+	return candidates.size() == 1 and _registered_row_matches(candidates[0], profile)
 
-func _registered_row_matches(row) -> bool:
+func _registered_row_matches(row, profile: Dictionary) -> bool:
 	if not row is Dictionary or not _keys_are(row, ["id", "assetId", "layer", "position"]):
 		return false
-	if typeof(row.get("id")) != TYPE_STRING or row.get("id") != ROW_ID:
+	if typeof(row.get("id")) != TYPE_STRING or row.get("id") != profile.rowId:
 		return false
 	if typeof(row.get("assetId")) != TYPE_STRING or row.get("assetId") != ASSET_ID:
 		return false
@@ -155,11 +199,13 @@ func _registered_row_matches(row) -> bool:
 		return false
 	return _number_tree_equals(row.get("position"), [12, 0, 8])
 
-func _load_definition() -> bool:
-	if _definition_checked:
-		return _definition_valid
-	_definition_checked = true
-	var file := FileAccess.open(DEFINITION_RESOURCE, FileAccess.READ)
+func _load_definition(profile: Dictionary) -> bool:
+	var scene_id: String = profile.sceneId
+	if _definition_checked_by_scene.get(scene_id, false):
+		return _definition_valid_by_scene.get(scene_id, false)
+	_definition_checked_by_scene[scene_id] = true
+	_definition_valid_by_scene[scene_id] = false
+	var file := FileAccess.open(profile.definitionResource, FileAccess.READ)
 	if file == null or file.get_length() <= 0 or file.get_length() > DEFINITION_BYTES_MAX:
 		return false
 	var bytes := file.get_buffer(file.get_length())
@@ -168,16 +214,16 @@ func _load_definition() -> bool:
 	if text.to_utf8_buffer() != bytes:
 		return false
 	var parsed = JSON.parse_string(text)
-	if not _definition_matches(parsed):
+	if not _definition_matches(parsed, profile):
 		return false
-	_definition = parsed
-	_definition_valid = true
+	_definition_by_scene[scene_id] = parsed
+	_definition_valid_by_scene[scene_id] = true
 	return true
 
-func _definition_matches(value) -> bool:
+func _definition_matches(value, profile: Dictionary) -> bool:
 	if not value is Dictionary or not _keys_are(value, ["schema", "registeredSourceReuse", "approval", "GodotDisplay", "publicRelease", "asset", "selection", "installation"]):
 		return false
-	if not _string_equals(value.get("schema"), "wuxian.cw-pressure-floor-material.internal-use/v1"):
+	if not _string_equals(value.get("schema"), profile.schema):
 		return false
 	if typeof(value.get("registeredSourceReuse")) != TYPE_BOOL or value.get("registeredSourceReuse") != true:
 		return false
@@ -216,7 +262,7 @@ func _definition_matches(value) -> bool:
 		return false
 	if not _string_equals(installation.get("kind"), "visual_only_ground_material") or not _string_equals(installation.get("worldId"), WORLD_ID):
 		return false
-	if not _string_equals(installation.get("sceneId"), SCENE_ID) or not _string_equals(installation.get("rowId"), ROW_ID):
+	if not _string_equals(installation.get("sceneId"), profile.sceneId) or not _string_equals(installation.get("rowId"), profile.rowId):
 		return false
 	if not _string_equals(installation.get("layer"), "visual.floor") or not _number_tree_equals(installation.get("position"), [12, 0, 8]):
 		return false
@@ -228,7 +274,7 @@ func _definition_matches(value) -> bool:
 		return false
 	return true
 
-func _build_valid_packet(snapshot: Dictionary, current_key: String, projection) -> Dictionary:
+func _build_valid_packet(snapshot: Dictionary, current_key: String, projection, profile: Dictionary) -> Dictionary:
 	var patches: Array = []
 	var uvs := _source_uvs()
 	var tint := PackedColorArray([Color.WHITE, Color.WHITE, Color.WHITE, Color.WHITE])
@@ -252,7 +298,7 @@ func _build_valid_packet(snapshot: Dictionary, current_key: String, projection) 
 			if not _valid_rect(screen_bounds):
 				return {}
 			patches.append({
-				"id": "cw_pressure_hall_steel_r%d_c%d" % [row, column],
+				"id": "%s_r%d_c%d" % [profile.patchPrefix, row, column],
 				"row": row,
 				"column": column,
 				"worldCorners": corners,
@@ -264,23 +310,23 @@ func _build_valid_packet(snapshot: Dictionary, current_key: String, projection) 
 	if patches.size() != 96:
 		return {}
 	return {
-		"kind": "cw_pressure_hall_steel_floor_v1",
+		"kind": profile.packetKind,
 		"worldId": WORLD_ID,
-		"sceneId": SCENE_ID,
+		"sceneId": profile.sceneId,
 		"worldEpoch": snapshot.get("worldEpoch"),
 		"currentKey": current_key,
 		"ppm": float(projection.get("ppm")),
 		"patches": patches
 	}
 
-func _packet_shape_valid(packet) -> bool:
+func _packet_shape_valid(packet, profile: Dictionary) -> bool:
 	if not packet is Dictionary or not _keys_are(packet, ["kind", "worldId", "sceneId", "worldEpoch", "currentKey", "ppm", "patches"]):
 		return false
-	if not _string_equals(packet.get("kind"), "cw_pressure_hall_steel_floor_v1"):
+	if not _string_equals(packet.get("kind"), profile.packetKind):
 		return false
-	if not _string_equals(packet.get("worldId"), WORLD_ID) or not _string_equals(packet.get("sceneId"), SCENE_ID):
+	if not _string_equals(packet.get("worldId"), WORLD_ID) or not _string_equals(packet.get("sceneId"), profile.sceneId):
 		return false
-	if not P.counter(packet.get("worldEpoch"), 1) or not _string_equals(packet.get("currentKey"), WORLD_ID + ":" + SCENE_ID + ":" + str(packet.get("worldEpoch"))):
+	if not P.counter(packet.get("worldEpoch"), 1) or not _string_equals(packet.get("currentKey"), WORLD_ID + ":" + profile.sceneId + ":" + str(packet.get("worldEpoch"))):
 		return false
 	if not P.number(packet.get("ppm"), 0.0, 256.0) or float(packet.get("ppm")) <= 0.0:
 		return false
