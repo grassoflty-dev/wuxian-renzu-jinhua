@@ -9,6 +9,8 @@ const SOURCE_SHA256 = "4c93e192505e71d6ec4e414aeb5c9b76376b7407d677017b31b8eba5e
 const CANVAS_SIZE = Vector2(1434.0, 980.0)
 const WORLD_ID = "grey_hive"
 const SCENE_ID = "gh_power_room"
+const GATE_SCENE_ID = "gh_gate_a"
+const GATE_MAP_RESOURCE = "res://data/gh_gate_a_floor_material.internal-use.json"
 const ROW_ID = "approved_floor_atlas"
 const ASSET_ID = "runtime2d.grey_hive.floor_tiles.v1"
 const MAX_PPM = 256.0
@@ -22,15 +24,21 @@ const WALLS = [
 	["gh_power_wall_east_south", [[19.5, 8.5], [20, 8.5], [20, 13.5], [19.5, 13.5]]]
 ]
 
-var definition_attempted: bool = false
-var definition_valid: bool = false
+var definition_attempted_by_scene: Dictionary = {}
+var definition_valid_by_scene: Dictionary = {}
 var texture_attempted: bool = false
 var floor_texture: ImageTexture
 
 func is_definition_valid(value) -> bool:
+	if not value is Dictionary or not value.get("installation") is Dictionary:
+		return false
+	var profile: Dictionary = _profile_for_scene(value.installation.get("sceneId"))
+	return not profile.is_empty() and _definition_matches(value, profile)
+
+func _definition_matches(value, profile: Dictionary) -> bool:
 	if not value is Dictionary or not _keys_are(value, ["schema", "registeredSourceReuse", "approval", "GodotDisplay", "publicRelease", "asset", "selection", "installation"]):
 		return false
-	if typeof(value.get("schema")) != TYPE_STRING or value.get("schema") != "wuxian.gh-power-room-floor.internal-use/v1":
+	if typeof(value.get("schema")) != TYPE_STRING or value.get("schema") != profile.schema:
 		return false
 	if typeof(value.get("registeredSourceReuse")) != TYPE_BOOL or value.get("registeredSourceReuse") != true:
 		return false
@@ -69,7 +77,7 @@ func is_definition_valid(value) -> bool:
 		return false
 	if typeof(installation.get("worldId")) != TYPE_STRING or installation.get("worldId") != WORLD_ID:
 		return false
-	if typeof(installation.get("sceneId")) != TYPE_STRING or installation.get("sceneId") != SCENE_ID:
+	if typeof(installation.get("sceneId")) != TYPE_STRING or installation.get("sceneId") != profile.sceneId:
 		return false
 	if typeof(installation.get("rowId")) != TYPE_STRING or installation.get("rowId") != ROW_ID:
 		return false
@@ -88,16 +96,16 @@ func is_definition_valid(value) -> bool:
 func build_packet(snapshot, scene_data, current_key, projection) -> Dictionary:
 	if not _valid_context(snapshot, scene_data, current_key, projection):
 		return {}
-	_load_definition_once()
-	if not definition_valid:
+	_load_definition_once(snapshot.sceneId)
+	if not definition_valid_by_scene.get(snapshot.sceneId, false):
 		return {}
 	return _build_canonical_packet(snapshot, scene_data, current_key, projection)
 
 func is_packet_valid(packet, snapshot, scene_data, current_key, projection) -> bool:
 	if not _valid_context(snapshot, scene_data, current_key, projection) or not _packet_shape_is_native(packet):
 		return false
-	_load_definition_once()
-	if not definition_valid:
+	_load_definition_once(snapshot.sceneId)
+	if not definition_valid_by_scene.get(snapshot.sceneId, false):
 		return false
 	var expected := _build_canonical_packet(snapshot, scene_data, current_key, projection)
 	return not expected.is_empty() and packet == expected
@@ -142,16 +150,16 @@ func _valid_context(snapshot, scene_data, current_key, projection) -> bool:
 		return false
 	if typeof(snapshot.get("worldId")) != TYPE_STRING or snapshot.get("worldId") != WORLD_ID:
 		return false
-	if typeof(snapshot.get("sceneId")) != TYPE_STRING or snapshot.get("sceneId") != SCENE_ID:
+	if typeof(snapshot.get("sceneId")) != TYPE_STRING or _profile_for_scene(snapshot.get("sceneId")).is_empty():
 		return false
 	var epoch = snapshot.get("worldEpoch")
 	if not P.counter(epoch, 1):
 		return false
-	if typeof(current_key) != TYPE_STRING or current_key != WORLD_ID + ":" + SCENE_ID + ":" + str(epoch):
+	if typeof(current_key) != TYPE_STRING or current_key != WORLD_ID + ":" + snapshot.sceneId + ":" + str(epoch):
 		return false
 	if not scene_data is Dictionary or typeof(scene_data.get("worldId")) != TYPE_STRING or scene_data.get("worldId") != WORLD_ID:
 		return false
-	if typeof(scene_data.get("sceneId")) != TYPE_STRING or scene_data.get("sceneId") != SCENE_ID or not _valid_scene_layout(scene_data):
+	if typeof(scene_data.get("sceneId")) != TYPE_STRING or scene_data.get("sceneId") != snapshot.sceneId or not _valid_scene_layout(scene_data, _profile_for_scene(snapshot.sceneId)):
 		return false
 	var presentation = scene_data.get("presentation")
 	if not presentation is Dictionary:
@@ -173,6 +181,15 @@ func _valid_context(snapshot, scene_data, current_key, projection) -> bool:
 			candidates.append(row)
 	return candidates.size() == 1 and _matches_authored_row(candidates[0])
 
+func _profile_for_scene(scene_id) -> Dictionary:
+	if typeof(scene_id) != TYPE_STRING:
+		return {}
+	if scene_id == SCENE_ID:
+		return {"sceneId": SCENE_ID, "mapResource": MAP_RESOURCE, "schema": "wuxian.gh-power-room-floor.internal-use/v1", "packetKind": "gh_power_room_floor_v1", "patchPrefix": "gh_power_floor", "wallIds": ["gh_power_wall_north", "gh_power_wall_south", "gh_power_wall_west_north", "gh_power_wall_west_south", "gh_power_wall_east_north", "gh_power_wall_east_south"]}
+	if scene_id == GATE_SCENE_ID:
+		return {"sceneId": GATE_SCENE_ID, "mapResource": GATE_MAP_RESOURCE, "schema": "wuxian.gh-gate-a-floor.internal-use/v1", "packetKind": "gh_gate_a_floor_v1", "patchPrefix": "gh_gate_a_floor", "wallIds": ["gh_gate_wall_north", "gh_gate_wall_south", "gh_gate_wall_west_north", "gh_gate_wall_west_south", "gh_gate_wall_east_north", "gh_gate_wall_east_south"]}
+	return {}
+
 func _valid_projection(projection) -> bool:
 	if projection == null or not projection is RefCounted or not is_instance_valid(projection):
 		return false
@@ -190,7 +207,7 @@ func _valid_projection(projection) -> bool:
 		return false
 	return P.number(ppm, 0.000001, MAX_PPM)
 
-func _valid_scene_layout(scene_data: Dictionary) -> bool:
+func _valid_scene_layout(scene_data: Dictionary, profile: Dictionary) -> bool:
 	if not P.counter(scene_data.get("schemaVersion"), 1, 1):
 		return false
 	var bounds = scene_data.get("boundsM")
@@ -199,15 +216,25 @@ func _valid_scene_layout(scene_data: Dictionary) -> bool:
 	if not _numbers_equal([bounds.get("x"), bounds.get("z"), bounds.get("width"), bounds.get("depth")], [0, 0, 20, 14]):
 		return false
 	var collision = scene_data.get("collision")
-	if not collision is Array or collision.size() != 6 or not P.unique(collision, "id"):
+	if not collision is Array or collision.size() != (7 if profile.sceneId == GATE_SCENE_ID else 6) or not P.unique(collision, "id"):
 		return false
 	for index in range(WALLS.size()):
 		var row = collision[index]
 		if not row is Dictionary or not _keys_are(row, ["id", "polygon"]):
 			return false
-		if typeof(row.get("id")) != TYPE_STRING or row.get("id") != WALLS[index][0]:
+		if typeof(row.get("id")) != TYPE_STRING or row.get("id") != profile.wallIds[index]:
 			return false
 		if not _numbers_equal(row.get("polygon"), WALLS[index][1]):
+			return false
+	if profile.sceneId == GATE_SCENE_ID:
+		var barrier = collision[6]
+		if not barrier is Dictionary or not _keys_are(barrier, ["id", "polygon", "requiresEvent"]):
+			return false
+		if typeof(barrier.get("id")) != TYPE_STRING or barrier.id != "gh_gate_a_closed_barrier":
+			return false
+		if typeof(barrier.get("requiresEvent")) != TYPE_STRING or barrier.requiresEvent != "hive_power":
+			return false
+		if not _numbers_equal(barrier.get("polygon"), [[9.5, 0.5], [10.5, 0.5], [10.5, 13.5], [9.5, 13.5]]):
 			return false
 	return true
 
@@ -222,11 +249,15 @@ func _matches_authored_row(row) -> bool:
 		return false
 	return _numbers_equal(row.get("position"), [10, 0, 7])
 
-func _load_definition_once() -> void:
-	if definition_attempted:
+func _load_definition_once(scene_id: String) -> void:
+	if definition_attempted_by_scene.get(scene_id, false):
 		return
-	definition_attempted = true
-	var file = FileAccess.open(MAP_RESOURCE, FileAccess.READ)
+	definition_attempted_by_scene[scene_id] = true
+	definition_valid_by_scene[scene_id] = false
+	var profile: Dictionary = _profile_for_scene(scene_id)
+	if profile.is_empty():
+		return
+	var file = FileAccess.open(profile.mapResource, FileAccess.READ)
 	if file == null or file.get_length() <= 0 or file.get_length() > 16384:
 		return
 	var bytes: PackedByteArray = file.get_buffer(file.get_length())
@@ -234,7 +265,7 @@ func _load_definition_once() -> void:
 	var text: String = bytes.get_string_from_utf8()
 	if text.to_utf8_buffer() != bytes:
 		return
-	definition_valid = is_definition_valid(JSON.parse_string(text))
+	definition_valid_by_scene[scene_id] = _definition_matches(JSON.parse_string(text), profile)
 
 func _load_texture_once() -> bool:
 	if texture_attempted:
@@ -254,6 +285,7 @@ func _load_texture_once() -> bool:
 	return floor_texture != null
 
 func _build_canonical_packet(snapshot: Dictionary, scene_data: Dictionary, current_key: String, projection) -> Dictionary:
+	var profile: Dictionary = _profile_for_scene(snapshot.sceneId)
 	var patches: Array = []
 	var uvs := _uv_corners()
 	for row in range(7):
@@ -278,7 +310,7 @@ func _build_canonical_packet(snapshot: Dictionary, scene_data: Dictionary, curre
 			if not _valid_rect(bounds):
 				return {}
 			patches.append({
-				"id": "gh_power_floor_r%d_c%d" % [row, column],
+				"id": "%s_r%d_c%d" % [profile.patchPrefix, row, column],
 				"row": row,
 				"column": column,
 				"worldCorners": corners,
@@ -290,9 +322,9 @@ func _build_canonical_packet(snapshot: Dictionary, scene_data: Dictionary, curre
 	if patches.size() != 70:
 		return {}
 	return {
-		"kind": "gh_power_room_floor_v1",
+		"kind": profile.packetKind,
 		"worldId": WORLD_ID,
-		"sceneId": SCENE_ID,
+		"sceneId": profile.sceneId,
 		"worldEpoch": snapshot.get("worldEpoch"),
 		"currentKey": current_key,
 		"ppm": projection.get("ppm"),
@@ -302,11 +334,11 @@ func _build_canonical_packet(snapshot: Dictionary, scene_data: Dictionary, curre
 func _packet_shape_is_native(packet) -> bool:
 	if not packet is Dictionary or not _keys_are(packet, ["kind", "worldId", "sceneId", "worldEpoch", "currentKey", "ppm", "patches"]):
 		return false
-	if typeof(packet.get("kind")) != TYPE_STRING or packet.get("kind") != "gh_power_room_floor_v1":
+	if typeof(packet.get("kind")) != TYPE_STRING or packet.get("kind") != _profile_for_scene(packet.get("sceneId")).get("packetKind"):
 		return false
 	if typeof(packet.get("worldId")) != TYPE_STRING or packet.get("worldId") != WORLD_ID:
 		return false
-	if typeof(packet.get("sceneId")) != TYPE_STRING or packet.get("sceneId") != SCENE_ID:
+	if typeof(packet.get("sceneId")) != TYPE_STRING or _profile_for_scene(packet.get("sceneId")).is_empty():
 		return false
 	if not P.counter(packet.get("worldEpoch"), 1) or typeof(packet.get("currentKey")) != TYPE_STRING:
 		return false
