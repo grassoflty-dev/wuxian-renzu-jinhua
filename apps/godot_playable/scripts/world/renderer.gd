@@ -263,7 +263,9 @@ func _draw() -> void:
 	var gh_sentinel_floor_packet = gh_sentinel_floor_material_visual.build_packet(snapshot,scene,current_key,camera)
 	gh_sentinel_floor_material_visual.draw_packet(self,gh_sentinel_floor_packet,snapshot,scene,current_key,camera,get_viewport_rect())
 	var cw_pressure_floor_packet = cw_pressure_floor_material_visual.build_packet(snapshot,scene,current_key,camera)
-	cw_pressure_floor_material_visual.draw_packet(self,cw_pressure_floor_packet,snapshot,scene,current_key,camera,get_viewport_rect())
+	var cw_pressure_floor_drawn: bool = cw_pressure_floor_material_visual.draw_packet(self,cw_pressure_floor_packet,snapshot,scene,current_key,camera,get_viewport_rect())
+	if cw_pressure_floor_drawn:
+		cw_pressure_environment_visual.draw_floor_treatment(self,scene,snapshot,current_key,camera,get_viewport_rect())
 	var mh_fog_pier_ground_packet = mh_fog_pier_ground_visual.build_packet(snapshot,scene,current_key,camera)
 	mh_fog_pier_ground_visual.draw_packet(self,mh_fog_pier_ground_packet,snapshot,scene,current_key,camera,get_viewport_rect())
 	var mh_fog_pier_stone_material_packet = mh_fog_pier_stone_material_visual.build_packet(snapshot,scene,current_key,camera)
