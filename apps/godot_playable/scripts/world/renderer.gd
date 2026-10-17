@@ -258,6 +258,7 @@ func _draw() -> void:
 	var floor_poly = [[b.x,b.z],[b.x+b.width,b.z],[b.x+b.width,b.z+b.depth],[b.x,b.z+b.depth]]
 	var floor_color = {'return_station':Color('#233c47'),'grey_hive':Color('#263634'),'mist_harbor':Color('#203742'),'clockworks':Color('#40362c')}.get(snapshot.worldId,Color('#263634'))
 	_poly(floor_poly,0,floor_color,true)
+	mh_pump_environment_visual.draw_land_material(self,snapshot,scene,current_key,camera,viewport_rect)
 	var gh_power_floor_packet = gh_power_floor_material_visual.build_packet(snapshot,scene,current_key,camera)
 	gh_power_floor_material_visual.draw_packet(self,gh_power_floor_packet,snapshot,scene,current_key,camera,get_viewport_rect())
 	var gh_sentinel_floor_packet = gh_sentinel_floor_material_visual.build_packet(snapshot,scene,current_key,camera)
@@ -389,6 +390,7 @@ func _draw() -> void:
 		_supports()
 		_surfaces()
 	if mh_pump_room_active:
+		mh_pump_environment_visual.draw_channel_material(self,snapshot,scene,current_key,camera,viewport_rect)
 		_draw_mh_pump_packets(mh_pump_packets)
 	if not rs_service_pipe_packet.is_empty() and _rect_intersects(viewport_rect,rs_service_pipe_packet.get('shadow_rect',Rect2())):
 		rs_service_pipe_visual.draw_contact_shadow(self,rs_service_pipe_packet)
