@@ -1,0 +1,62 @@
+{
+  "schema": "wuxian.gh-entry-clutter.internal-use/v1",
+  "registeredSourceReuse": true,
+  "approval": "INTERNAL_REGISTERED_SOURCE_REUSE",
+  "consumerStatus": "NOT_RUN",
+  "publicRelease": "NOT_ESTABLISHED",
+  "originalAsset": {
+    "path": "assets/source/approved/batch03/04_runtime2d.grey_hive.clutter.v1.png",
+    "bytes": 1894441,
+    "sha256": "d9b7f424d0ac278c9029d7ddc2ad9559f08a3c56562770eefc7ed301d9094a6c",
+    "admission": "release_approved"
+  },
+  "sourceAsset": {
+    "path": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.grey_hive.clutter.v1.png",
+    "assetId": "runtime2d.grey_hive.clutter.v1",
+    "bytes": 1857722,
+    "sha256": "4743030e58286fdac5c4e119941608763d1ceb1d3bbed79ca1d7361ceab97ebe",
+    "canvas": [1428, 1061],
+    "format": "RGBA8",
+    "admission": "release_approved",
+    "runtimeStatus": "ADOPT"
+  },
+  "runtimeAsset": {
+    "path": "res://assets/props/grey_hive/clutter.png",
+    "bytes": 1857722,
+    "sha256": "4743030e58286fdac5c4e119941608763d1ceb1d3bbed79ca1d7361ceab97ebe",
+    "canvas": [1428, 1061],
+    "format": "RGBA8"
+  },
+  "selection": {
+    "framePx": [40, 716, 347, 287],
+    "seedPx": [150, 800],
+    "seedLocalPx": [110, 84],
+    "componentBoundsLocalPx": [0, 0, 347, 287],
+    "connectedAlphaPixels": 73359,
+    "disconnectedFrameAlphaPixels": 168,
+    "contactsSourcePx": [[50, 929], [369, 898]],
+    "contactsLocalPx": [[10, 213], [329, 182]],
+    "localOriginConvention": "frameTopLeft"
+  },
+  "installation": {
+    "worldId": "grey_hive",
+    "sceneId": "gh_entry_maintenance",
+    "rowId": "entry_clutter",
+    "assetId": "runtime2d.grey_hive.clutter.v1",
+    "layer": "visual.props_back",
+    "positionM": [14, 0, 10],
+    "contactsM": [[13.625, 0, 10.5], [14.375, 0, 9.5]],
+    "spanM": 1.25,
+    "geometry": {
+      "transform": "positive-uniform-scale-small-rotation",
+      "maximumRotationRadians": 0.06,
+      "maxExtentPxAt48": 96.0
+    },
+    "shadow": {
+      "centerM": [14, 0, 10],
+      "radiiM": [0.5, 0.55],
+      "alpha": 0.16
+    },
+    "registrationMeaning": "visualOnlyNoPhysicalDimensionsOrCollision"
+  }
+}
