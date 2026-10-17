@@ -1,0 +1,34 @@
+{
+  "schema": "wuxian.gh-power-room-floor.internal-use/v1",
+  "registeredSourceReuse": true,
+  "approval": "INTERNAL_REGISTERED_SOURCE_REUSE",
+  "GodotDisplay": "NOT_RUN",
+  "publicRelease": "NOT_ESTABLISHED",
+  "asset": {
+    "assetId": "runtime2d.grey_hive.floor_tiles.v1",
+    "path": "res://assets/props/grey_hive/floor_tiles.png",
+    "bytes": 1315059,
+    "sha256": "4c93e192505e71d6ec4e414aeb5c9b76376b7407d677017b31b8eba5e24e744f",
+    "canvas": [1434, 980],
+    "format": "RGBA8"
+  },
+  "selection": {
+    "kind": "affine_top_face",
+    "pixelCenterCorners": [[187,184],[345,305],[185,426],[27,305]],
+    "uvConvention": "(sourcePixelCenter + 0.5) / canvasSize"
+  },
+  "installation": {
+    "kind": "visual_only_ground_material",
+    "worldId": "grey_hive",
+    "sceneId": "gh_power_room",
+    "rowId": "approved_floor_atlas",
+    "layer": "visual.floor",
+    "position": [10,0,7],
+    "boundsM": [0,0,20,14],
+    "groundY": 0,
+    "patchSizeM": [2,2],
+    "grid": [10,7],
+    "patchCount": 70,
+    "tint": [1,1,1,1]
+  }
+}
