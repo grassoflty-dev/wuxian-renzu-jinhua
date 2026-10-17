@@ -16,6 +16,7 @@ const GhBioServicePipeVisual = preload('res://scripts/world/gh_bio_service_pipe_
 const GhBioFloorMaterialVisual = preload('res://scripts/world/gh_bio_floor_material_visual.gd')
 const GhEntryFloorMaterialVisual = preload('res://scripts/world/gh_entry_floor_material_visual.gd')
 const CwPressureFloorMaterialVisual = preload('res://scripts/world/cw_pressure_floor_material_visual.gd')
+const CwConveyorEnvironmentVisual = preload('res://scripts/world/cw_conveyor_environment_visual.gd')
 const GhSentinelFloorMaterialVisual = preload('res://scripts/world/gh_sentinel_floor_material_visual.gd')
 const GhPowerFloorMaterialVisual = preload('res://scripts/world/gh_power_floor_material_visual.gd')
 const GhEntryWallModulesVisual = preload('res://scripts/world/gh_entry_wall_modules_visual.gd')
@@ -94,6 +95,7 @@ var gh_bio_clutter_visual = GhBioClutterVisual.new()
 var gh_entry_clutter_visual = GhEntryClutterVisual.new()
 var gh_power_environment_visual = GhPowerEnvironmentVisual.new()
 var cw_pressure_environment_visual = CwPressureEnvironmentVisual.new()
+var cw_conveyor_environment_visual = CwConveyorEnvironmentVisual.new()
 var mh_pump_environment_visual = MhPumpEnvironmentVisual.new()
 var rs_front_alpha: Dictionary = {}
 var gh_bio_wall_alpha: Dictionary = {}
@@ -260,6 +262,7 @@ func _draw() -> void:
 	var floor_poly = [[b.x,b.z],[b.x+b.width,b.z],[b.x+b.width,b.z+b.depth],[b.x,b.z+b.depth]]
 	var floor_color = {'return_station':Color('#233c47'),'grey_hive':Color('#263634'),'mist_harbor':Color('#203742'),'clockworks':Color('#40362c')}.get(snapshot.worldId,Color('#263634'))
 	_poly(floor_poly,0,floor_color,true)
+	cw_conveyor_environment_visual.draw_floor(self,snapshot,scene,current_key,camera,viewport_rect)
 	gh_beacon_environment_visual.draw_floor(self,snapshot,scene,current_key,camera,viewport_rect)
 	mh_pump_environment_visual.draw_land_material(self,snapshot,scene,current_key,camera,viewport_rect)
 	var gh_power_floor_packet = gh_power_floor_material_visual.build_packet(snapshot,scene,current_key,camera)
@@ -376,6 +379,8 @@ func _draw() -> void:
 				continue
 			if gh_beacon_environment_visual.draw_wall(self,snapshot,scene,current_key,camera,wall,viewport_rect):
 				continue
+			if cw_conveyor_environment_visual.draw_wall(self,snapshot,scene,current_key,camera,wall,viewport_rect):
+				continue
 			_poly(wall.polygon,0,Color('#4b5659'),true)
 			_poly(wall.polygon,0,Color('#819092'),false)
 	if gh_bio_wall_active:
@@ -391,6 +396,7 @@ func _draw() -> void:
 			var drained = pump is Dictionary and pump.get('state')=='drained' and region.get('id') in ['mh_pump_east_channel_water','mh_water_depth_region']
 			var c = Color(0.16,0.4,0.5,0.16 if drained else 0.32) if 'water' in tag else Color(0.36,0.29,0.2,0.24)
 			_poly(region.polygon,0,c,true)
+	cw_conveyor_environment_visual.draw_conveyor(self,snapshot,scene,current_key,camera,viewport_rect)
 	if not rs_active:
 		_supports()
 		_surfaces()
