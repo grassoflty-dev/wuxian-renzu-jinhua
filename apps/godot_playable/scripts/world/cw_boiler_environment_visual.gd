@@ -359,6 +359,18 @@ func draw_wall(canvas_value, snapshot_value, scene_value, current_key_value, pro
 	var top_a: Vector2 = _project_point(projection,first_x,wall_height,first_z)
 	var top_b: Vector2 = _project_point(projection,second_x,wall_height,second_z)
 	var side_points: PackedVector2Array = PackedVector2Array([ground_a,ground_b,top_b,top_a])
+	if id_value == 'cw_boiler_chamber_wall_east_south' or id_value == 'cw_boiler_chamber_wall_west_south':
+		# Clip only the lower corner hidden by the existing 0.22m south cap.
+		var south_height: float = 0.22
+		var clipped_ground: Vector2 = _project_point(projection,second_x,0.0,second_z-south_height)
+		var cap_intersection: Vector2 = _project_point(projection,second_x,south_height,second_z)
+		if not _finite_vector2(clipped_ground) or not _finite_vector2(cap_intersection):
+			return false
+		side_points = PackedVector2Array([ground_a,clipped_ground,cap_intersection])
+		if high_wall:
+			# West is taller than the south cap: retain its visible upper end.
+			side_points.append(top_b)
+		side_points.append(top_a)
 	var cap_points: PackedVector2Array = _project_polygon(projection,expected_polygon_value,wall_height)
 	if not _finite_vector2(ground_a) or not _finite_vector2(ground_b) or not _finite_vector2(top_a) or not _finite_vector2(top_b) or cap_points.size() != 4 or not _finite_color(WALL_SIDE) or not _finite_color(WALL_CAP) or not _finite_color(FLOOR_CONTACT):
 		return false
