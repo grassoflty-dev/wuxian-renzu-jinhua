@@ -90,6 +90,7 @@ func _ready() -> void:
 	get_window().min_size = Vector2i(720,480)
 	renderer = Renderer.new()
 	renderer.name = 'World'
+	renderer.locomotion_state_provider = Callable(self,'_locomotion_presentation_state')
 	add_child(renderer)
 	renderer.frame_committed.connect(_scene_frame_committed)
 	var ui = CanvasLayer.new()
@@ -142,6 +143,7 @@ func _id(prefix: String) -> String:
 	request_sequence += 1
 	return prefix+'-'+str(generation)+'-'+str(request_sequence)
 func _connection(connected: bool, code: String) -> void:
+	_suspend_locomotion()
 	if connected:
 		close_confirmed = false
 	if close_confirmed:
@@ -167,7 +169,39 @@ func _connection(connected: bool, code: String) -> void:
 		_refresh_saves()
 func _eligible() -> bool:
 	return not close_attempted and journey_started and rpc.authenticated and focused and not uncertain and critical.is_empty() and not panels.visible and not snapshot.is_empty() and not status.is_empty() and P.same(status,snapshot) and not status.paused and status.get('entryToken')==null and snapshot.get('entryToken')==null and ready_pending.is_empty() and snapshot.player.currentHp>0 and Time.get_ticks_msec()-last_snapshot_at<1000 and Time.get_ticks_msec()-last_status_at<1000
+func _suspend_locomotion() -> void:
+	if is_instance_valid(renderer):
+		renderer.suspend_locomotion()
+func _refresh_locomotion() -> void:
+	if is_instance_valid(renderer):
+		renderer.refresh_locomotion()
+func _locomotion_hurt_active(s: Dictionary, now_ms: int) -> bool:
+	# Only EventView's retained, accepted events; never raw/deferred responses.
+	for e in event_view.active:
+		if not e is Dictionary or e.get('kind')!='Damaged' or e.get('worldEpoch')!=s.worldEpoch:
+			continue
+		if not P.counter(e.get('serverTick')) or not P.counter(e.get('_accepted')) or not P.number(e.get('_initial_age'),0) or not P.number(e.get('_duration'),0.001,2000):
+			return true
+		if now_ms<e._accepted:
+			return true
+		var age = maxf((s.serverTick-e.serverTick)*1000.0/60,e._initial_age+now_ms-e._accepted)
+		if age<e._duration and event_view._authorized(e,s,renderer):
+			return true
+	return false
+func _locomotion_presentation_state(expected: Dictionary) -> Dictionary:
+	# Evaluated anew for every commit/sample/draw, not a cached eligibility grant.
+	if not is_inside_tree() or not can_process() or not is_instance_valid(rpc) or not is_instance_valid(panels) or not P.snapshot(snapshot) or expected!=snapshot:
+		return {}
+	var now = Time.get_ticks_msec()
+	var connected = rpc.peer.get_status()==StreamPeerTCP.STATUS_CONNECTED and not rpc.transport_stopped and rpc.terminal_code.is_empty() and not rpc.closing_expected
+	return {
+		'generation':generation,'connection_generation':rpc.connection_generation,
+		'presentation_allowed':connected and _eligible() and now>=last_snapshot_at and now>=last_status_at,
+		'reduced_motion':preferences.reduced,
+		'hurt_active':_locomotion_hurt_active(snapshot,now)
+	}
 func _process(delta: float) -> void:
+	_refresh_locomotion()
 	_observe_mouse_movement()
 	_observe_mouse_guard()
 	_trace_tick()
@@ -201,6 +235,7 @@ func _process(delta: float) -> void:
 			blocked_keys.erase(key)
 	if not snapshot.is_empty():
 		renderer.events = event_view.project(snapshot,renderer,eligible)
+		_refresh_locomotion()
 		renderer.sound = event_view.sound
 	var nearest = _nearest()
 	var hint = audio.status_text if audio.failed else last_feedback
@@ -289,6 +324,7 @@ func _end_guard() -> void:
 		guard_active = false
 		_action('guardEnd',true)
 func _release() -> void:
+	_suspend_locomotion()
 	if is_instance_valid(renderer):
 		renderer.clear_interaction_focus()
 	_clear_mouse_movement()
@@ -385,6 +421,8 @@ func _input(event: InputEvent) -> void:
 		guard_blocked = false
 		_end_guard()
 func _notification(what: int) -> void:
+	if what in [NOTIFICATION_APPLICATION_FOCUS_OUT,NOTIFICATION_WM_CLOSE_REQUEST,NOTIFICATION_PAUSED,NOTIFICATION_DISABLED,NOTIFICATION_VISIBILITY_CHANGED]:
+		_suspend_locomotion()
 	if what==NOTIFICATION_WM_CLOSE_REQUEST and (not is_instance_valid(rpc) or not rpc.authenticated):
 		get_tree().quit()
 		return
@@ -422,6 +460,7 @@ func _escape() -> void:
 	if _eligible():
 		_open_paused('pause')
 func _show(page: String, extra: Dictionary = {}, blocked: bool = false, refresh_saves: bool = true) -> void:
+	_suspend_locomotion()
 	for key in logical_down:
 		if ACTION_KEYS.has(key) or key in [KEY_F,KEY_T,KEY_M]:
 			blocked_keys[key] = true
@@ -499,6 +538,7 @@ func _ui_intent(kind: String, value, owner: Dictionary) -> void:
 		return
 	if kind=='apply_preferences':
 		if value is Dictionary and value.get('scale') in [1.0,1.25,1.5] and typeof(value.get('fullscreen'))==TYPE_BOOL and typeof(value.get('color'))==TYPE_BOOL and typeof(value.get('reduced'))==TYPE_BOOL and typeof(value.get('muted'))==TYPE_BOOL and P.number(value.get('volume'),0,1) and value.size()==6:
+			_suspend_locomotion()
 			preferences = value.duplicate(true)
 			audio.configure(preferences.muted,preferences.volume)
 			audio.ui_cue('confirm',focused)
@@ -980,6 +1020,7 @@ func _response(_rpc_id: int, method: String, result, association: Dictionary) ->
 		return
 	if purpose=='status':
 		if not P.status(result):
+			_suspend_locomotion()
 			status.clear()
 			if journey_started:
 				_hold('E_SESSION_STATUS')
@@ -989,6 +1030,7 @@ func _response(_rpc_id: int, method: String, result, association: Dictionary) ->
 		if result.lastLifecycleCommandSequence<lifecycle_sequence:
 			return
 		status = result
+		_refresh_locomotion()
 		if not _eligible():
 			audio.suspend_world()
 		last_status_at = Time.get_ticks_msec()
@@ -1008,6 +1050,7 @@ func _response(_rpc_id: int, method: String, result, association: Dictionary) ->
 	if purpose=='events':
 		if not snapshot.is_empty():
 			event_view.accept(result,snapshot,renderer)
+			_refresh_locomotion()
 			audio.accept_events(result,snapshot,generation,_eligible())
 		return
 	if purpose=='sound':
@@ -1111,6 +1154,7 @@ func _response(_rpc_id: int, method: String, result, association: Dictionary) ->
 			panels.close_page()
 			_release()
 		'ready':
+			_suspend_locomotion()
 			ready_pending.clear()
 			status.clear()
 			_request('bridge_session_status',{},'status')
@@ -1160,6 +1204,7 @@ func _response(_rpc_id: int, method: String, result, association: Dictionary) ->
 			_request('bridge_session_status',{},'status')
 		'interaction': _interaction_result(association,r)
 func _accept_snapshot(s: Dictionary, permit_transition: bool = false) -> bool:
+	_refresh_locomotion()
 	if not P.snapshot(s) or not catalog.manifest.has(s.sceneId):
 		_hold('E_REQUIRED_SNAPSHOT')
 		return false
@@ -1177,6 +1222,7 @@ func _accept_snapshot(s: Dictionary, permit_transition: bool = false) -> bool:
 			_hold('E_UNASSOCIATED_EPOCH')
 			return false
 	if changed:
+		_suspend_locomotion()
 		audio.suspend_world()
 		# The core transition already neutralized the old epoch. Do not send stale input.
 		guard_active = false
@@ -1463,6 +1509,7 @@ func _advance_lifecycle() -> bool:
 	return true
 
 func _exit_tree() -> void:
+	_suspend_locomotion()
 	if is_instance_valid(audio):
 		audio.stop_all()
 

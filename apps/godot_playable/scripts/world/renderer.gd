@@ -15,6 +15,8 @@ const MhFogPierStoneMaterialVisual = preload('res://scripts/world/mh_fog_pier_st
 const MhFogPierLayeredFogVisual = preload('res://scripts/world/mh_fog_pier_layered_fog_visual.gd')
 const MhFogPierEnvironmentVisual = preload('res://scripts/world/mh_fog_pier_environment_visual.gd')
 const CenYaoIdle = preload('res://scripts/world/cenyao_idle_visual.gd')
+const CenYaoActionClip = preload('res://scripts/world/cenyao_action_clip.gd')
+const CenYaoLocomotionClip = preload('res://scripts/world/cenyao_locomotion_clip.gd')
 const MhCwActor = preload('res://scripts/world/mh_cw_actor_visual.gd')
 const RsEnvironmentVisual = preload('res://scripts/world/rs_environment_visual.gd')
 const RsBulkheadModulesVisual = preload('res://scripts/world/rs_bulkhead_modules_visual.gd')
@@ -140,6 +142,12 @@ var gh_bio_wall_alpha: Dictionary = {}
 var gh_entry_wall_alpha: Dictionary = {}
 var gh_entry_wall_draw_failed: bool = false
 var cenyao_idle = CenYaoIdle.new()
+# Both helpers remain unconfigured; no atlas or source admission here.
+var cenyao_action_clip = CenYaoActionClip.new()
+var cenyao_locomotion_clip = CenYaoLocomotionClip.new()
+var locomotion_state_provider: Callable
+var _locomotion_lifetime: Array = []
+var _locomotion_window: Window
 var registered_props = RegisteredProps.new()
 var rs_floor_visual = RsFloorVisual.new()
 var mh_cw_actor
@@ -190,10 +198,77 @@ func _ready() -> void:
 	mh_warden_arena_environment_visual.prepare()
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	texture_repeat = CanvasItem.TEXTURE_REPEAT_DISABLED
+func _enter_tree() -> void:
+	suspend_locomotion()
+	_locomotion_window = get_window()
+	if is_instance_valid(_locomotion_window):
+		_locomotion_window.visibility_changed.connect(suspend_locomotion)
+		_locomotion_window.focus_exited.connect(suspend_locomotion)
+		_locomotion_window.size_changed.connect(suspend_locomotion)
+func _exit_tree() -> void:
+	suspend_locomotion()
+	if is_instance_valid(_locomotion_window):
+		_locomotion_window.visibility_changed.disconnect(suspend_locomotion)
+		_locomotion_window.focus_exited.disconnect(suspend_locomotion)
+		_locomotion_window.size_changed.disconnect(suspend_locomotion)
+	_locomotion_window = null
+func _notification(what: int) -> void:
+	if what in [NOTIFICATION_VISIBILITY_CHANGED,NOTIFICATION_EXIT_CANVAS,NOTIFICATION_PAUSED,NOTIFICATION_DISABLED,NOTIFICATION_APPLICATION_FOCUS_OUT,NOTIFICATION_WM_CLOSE_REQUEST]:
+		suspend_locomotion()
+func suspend_locomotion() -> void:
+	# Retain helper high-water marks: an old snapshot cannot restart after resume.
+	if cenyao_locomotion_clip!=null:
+		cenyao_locomotion_clip.suspend()
+func _locomotion_state() -> Dictionary:
+	if not locomotion_state_provider.is_valid():
+		return {}
+	var state = locomotion_state_provider.call(snapshot)
+	if not state is Dictionary or not P.counter(state.get('generation')) or not P.counter(state.get('connection_generation')):
+		return {}
+	for flag in ['presentation_allowed','reduced_motion','hurt_active']:
+		if typeof(state.get(flag))!=TYPE_BOOL:
+			return {}
+	return state
+func _locomotion_visible() -> bool:
+	if not is_inside_tree() or not can_process() or not is_visible_in_tree() or not is_instance_valid(_locomotion_window) or not _locomotion_window.visible or not _locomotion_window.has_focus() or _locomotion_window.mode==Window.MODE_MINIMIZED:
+		return false
+	if not P.snapshot(snapshot) or scene.is_empty() or scene.get('worldId')!=snapshot.worldId or scene.get('sceneId')!=snapshot.sceneId or current_key!=snapshot.worldId+':'+snapshot.sceneId+':'+str(snapshot.worldEpoch):
+		return false
+	if camera==null or not camera.initialized or not P.number(camera.ppm,0.001,3072):
+		return false
+	if not is_finite(viewport_rect.size.x) or not is_finite(viewport_rect.size.y) or viewport_rect.size.x<=0 or viewport_rect.size.y<=0 or viewport_rect!=get_viewport_rect():
+		return false
+	var p = P.vector(snapshot.player.transform.positionM)
+	var at = camera.project(p)
+	if not is_finite(at.x) or not is_finite(at.y):
+		return false
+	var object = {'kind':'player','id':snapshot.player.entityId,'data':snapshot.player,'p':p}
+	return not _object_culling_state(object,at).culled
+func _locomotion_gate() -> Dictionary:
+	if not P.snapshot(snapshot):
+		return {}
+	var state = _locomotion_state()
+	if state.is_empty() or [state.generation,state.connection_generation]!=_locomotion_lifetime:
+		return {}
+	return {
+		'worldId':snapshot.worldId,'sceneId':snapshot.sceneId,'worldEpoch':snapshot.worldEpoch,
+		'serverTick':snapshot.serverTick,'authorityRevision':snapshot.authorityRevision,
+		'player_id':snapshot.player.entityId,'presentation_allowed':state.presentation_allowed,
+		'visible':_locomotion_visible(),'reduced_motion':state.reduced_motion or reduced_motion,
+		'higher_priority_body':state.hurt_active or snapshot.player.get('actionState')!='idle' or snapshot.player.get('actionPresentation')!=null
+	}
+func refresh_locomotion() -> void:
+	var gate = _locomotion_gate()
+	if gate.is_empty() or not gate.presentation_allowed or not gate.visible or gate.reduced_motion or gate.higher_priority_body:
+		suspend_locomotion()
+		return
+	# Negative/stale checks only. sample_native never observes or adds phase.
+	cenyao_locomotion_clip.sample_native(snapshot,Time.get_ticks_msec(),gate)
 func commit(s: Dictionary, data: Dictionary, hash: String) -> void:
 	clear_interaction_focus()
 	var key = s.worldId+':'+s.sceneId+':'+str(s.worldEpoch)
 	if key!=current_key:
+		suspend_locomotion()
 		camera.reset()
 		if gh_entry_ambient_visual!=null:
 			gh_entry_ambient_visual.reset()
@@ -227,6 +302,13 @@ func commit(s: Dictionary, data: Dictionary, hash: String) -> void:
 	gh_central_shaft_environment_visual.prepare(snapshot,scene,current_key,scene_hash)
 	gh_exit_environment_visual.prepare(snapshot,scene,current_key,scene_hash)
 	last_snapshot_at = Time.get_ticks_msec()
+	var state = _locomotion_state()
+	var lifetime: Array = [] if state.is_empty() else [state.generation,state.connection_generation]
+	if lifetime!=_locomotion_lifetime:
+		suspend_locomotion()
+	_locomotion_lifetime = lifetime
+	cenyao_action_clip.observe(s,last_snapshot_at)
+	cenyao_locomotion_clip.observe_native(s,last_snapshot_at,_locomotion_gate())
 	var ap = s.player.get('actionPresentation')
 	if ap is Dictionary:
 		var akey = str([s.serverTick,ap.get('requestId'),ap.get('elapsedMs'),ap.get('phase')])
@@ -268,6 +350,7 @@ func set_interaction_focus(target: Dictionary, s: Dictionary, eligible: bool, ex
 	queue_redraw()
 func _process(delta: float) -> void:
 	if snapshot.is_empty() or scene.is_empty():
+		suspend_locomotion()
 		mh_fog_pier_phase_seconds = 0.0
 		return
 	if P.snapshot(snapshot) and snapshot.get('worldId')=='mist_harbor' and snapshot.get('sceneId')=='mh_fog_pier' and scene.get('worldId')=='mist_harbor' and scene.get('sceneId')=='mh_fog_pier' and current_key=='mist_harbor:mh_fog_pier:'+str(snapshot.get('worldEpoch')):
@@ -287,6 +370,7 @@ func _process(delta: float) -> void:
 					safe_rect = clipped
 	camera.update(snapshot,scene,full.size,maxf(0,delta),safe_rect)
 	viewport_rect = full
+	refresh_locomotion()
 	_update_rs_front_alpha(maxf(0,delta))
 	_update_gh_bio_wall_alpha(maxf(0,delta))
 	_update_gh_entry_wall_alpha(maxf(0,delta))
@@ -311,6 +395,7 @@ func actor_visible(id: String, allow_dead: bool = false) -> bool:
 					return true
 	return false
 func _draw() -> void:
+	refresh_locomotion()
 	mh_warden_arena_last_draw_report = {'ground_drawn':false,'wall_ids':[],'bank_ids':[],'ambient_polygons':0}
 	_clear_gh_vital_body_records()
 	mh_fog_pier_deferred_labels.clear()
@@ -1121,6 +1206,8 @@ func _draw_object(o: Dictionary, interaction_caption: String = '') -> void:
 	var at = camera.project(o.p)
 	var culling = _object_culling_state(o,at)
 	if culling.culled:
+		if o.get('kind')=='player':
+			suspend_locomotion()
 		return
 	var furnace_key: String = culling.furnaceKey
 	var scale = camera.ppm/48.0
@@ -1201,7 +1288,14 @@ func _draw_object(o: Dictionary, interaction_caption: String = '') -> void:
 			draw_circle(at,12*scale,c)
 			var body_drawn = false
 			if o.id==snapshot.player.entityId and o.data==snapshot.player and snapshot.player.currentHp>0:
-				body_drawn = cenyao_idle.draw_body(self,at,o.data,camera.ppm)
+				var now = Time.get_ticks_msec()
+				var gate = _locomotion_gate()
+				if not gate.is_empty() and gate.presentation_allowed and gate.visible and not gate.reduced_motion:
+					body_drawn = cenyao_action_clip.draw_body(self,at,o.data,snapshot,camera.ppm,gate.reduced_motion,now)
+				if not body_drawn:
+					body_drawn = cenyao_locomotion_clip.draw_body_native(self,at,snapshot,camera.ppm,now,gate)
+				if not body_drawn:
+					body_drawn = cenyao_idle.draw_body(self,at,o.data,camera.ppm)
 			if not body_drawn:
 				draw_line(at,at-Vector2(0,34)*scale,c,9*scale,true)
 			var f = Vector3(float(o.data.facingX),0,float(o.data.facingZ))
