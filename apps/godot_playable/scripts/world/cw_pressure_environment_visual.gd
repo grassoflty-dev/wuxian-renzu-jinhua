@@ -102,7 +102,11 @@ func _add_wall(packets: Array, wall: Dictionary, projection) -> bool:
 	var ground_b: Vector2 = projection.project(Vector3(b.x,0.0,b.y))
 	var top_a = ground_a-Vector2(0,relief)
 	var top_b = ground_b-Vector2(0,relief)
-	var face = PackedVector2Array([ground_a,ground_b,top_b,top_a])
+	var visible_ground_b: Vector2 = ground_b
+	if wall.id in ['cw_pressure_hall_wall_west_south','cw_pressure_hall_wall_east_south']:
+		# Only the lower end is hidden by the adjacent south cap; keep top/seams fixed.
+		visible_ground_b = projection.project(Vector3(b.x,0.0,b.y-RELIEF_PIXELS/48.0))
+	var face = PackedVector2Array([ground_a,visible_ground_b,top_b,top_a])
 	if not _push(packets,wall.id+':face','wall_face',face,Color(0.19,0.22,0.23),true,wall.id,wall.footprint):
 		return false
 	var cap = PackedVector2Array()
