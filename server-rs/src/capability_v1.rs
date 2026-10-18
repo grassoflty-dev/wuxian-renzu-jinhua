@@ -137,6 +137,18 @@ impl CapabilityState {
         Ok(())
     }
 
+    /// Restore rebases epochs only; saved tick/revision counters must not lead the owner.
+    /// Compare copies in that epoch without mutating or normalizing persisted state.
+    pub(crate) fn validate_saved_revisions(&self, owner: WorldRevision) -> Result<(), CapabilityError> {
+        for saved in std::iter::once(self.current_revision).chain(self.last_tick_revision) {
+            let restored = WorldRevision { world_epoch: owner.world_epoch, ..saved };
+            if !revision_at_least(owner, restored) {
+                return Err(CapabilityError::StaleRevision);
+            }
+        }
+        Ok(())
+    }
+
     pub fn current_revision(&self) -> WorldRevision {
         self.current_revision
     }
