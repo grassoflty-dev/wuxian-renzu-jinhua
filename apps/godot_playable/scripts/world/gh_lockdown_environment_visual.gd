@@ -49,9 +49,9 @@ const MAX_PPM = 256.0
 const SHADOW_STEPS = 24
 const FLOOR_UV_CORNERS = [[187, 184], [345, 305], [185, 426], [27, 305]]
 const WALL_IDS = [
-	"gh_lockdown_wall_north", "gh_lockdown_wall_south",
-	"gh_lockdown_wall_west_north", "gh_lockdown_wall_west_south",
-	"gh_lockdown_wall_east_north", "gh_lockdown_wall_east_south"
+	"lockdown_wall_north", "lockdown_wall_south",
+	"lockdown_wall_west_north", "lockdown_wall_west_south",
+	"lockdown_wall_east_north", "lockdown_wall_east_south"
 ]
 
 var _static_attempted: bool = false
@@ -663,17 +663,17 @@ func _valid_packet(packet, snapshot, scene_data, current_key, projection) -> boo
 
 func _wall_spec(wall_id: String) -> Dictionary:
 	match wall_id:
-		"gh_lockdown_wall_north":
+		"lockdown_wall_north":
 			return {"inner_a": Vector2(0.0, 0.5), "inner_b": Vector2(24.0, 0.5), "inset": Vector2(0.0, -0.04), "height": 0.9}
-		"gh_lockdown_wall_south":
+		"lockdown_wall_south":
 			return {"inner_a": Vector2(0.0, 15.5), "inner_b": Vector2(24.0, 15.5), "inset": Vector2(0.0, 0.04), "height": 0.18}
-		"gh_lockdown_wall_west_north":
-			return {"inner_a": Vector2(0.5, 0.5), "inner_b": Vector2(0.5, 6.0), "inset": Vector2(-0.04, 0.0), "height": 0.9}
-		"gh_lockdown_wall_west_south":
+		"lockdown_wall_west_north":
+			return {"inner_a": Vector2(0.5, 0.5), "inner_b": Vector2(0.5, 6.5), "inset": Vector2(-0.04, 0.0), "height": 0.9}
+		"lockdown_wall_west_south":
 			return {"inner_a": Vector2(0.5, 9.5), "inner_b": Vector2(0.5, 15.5), "inset": Vector2(-0.04, 0.0), "height": 0.9}
-		"gh_lockdown_wall_east_north":
-			return {"inner_a": Vector2(23.5, 0.5), "inner_b": Vector2(23.5, 6.0), "inset": Vector2(0.04, 0.0), "height": 0.18}
-		"gh_lockdown_wall_east_south":
+		"lockdown_wall_east_north":
+			return {"inner_a": Vector2(23.5, 0.5), "inner_b": Vector2(23.5, 6.5), "inset": Vector2(0.04, 0.0), "height": 0.18}
+		"lockdown_wall_east_south":
 			return {"inner_a": Vector2(23.5, 9.5), "inner_b": Vector2(23.5, 15.5), "inset": Vector2(0.04, 0.0), "height": 0.18}
 	return {}
 
