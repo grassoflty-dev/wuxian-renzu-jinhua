@@ -1,5 +1,7 @@
 extends Node2D
 const P = preload('res://scripts/bridge/protocol.gd')
+const MhTidalWarehouseEnvironmentVisual = preload('res://scripts/world/mh_tidal_warehouse_environment_visual.gd')
+var mh_tidal_warehouse_environment_visual = MhTidalWarehouseEnvironmentVisual.new()
 const V = preload('res://scripts/world/presentation.gd')
 const Camera = preload('res://scripts/world/projection.gd')
 const MhFogPierGroundVisual = preload('res://scripts/world/mh_fog_pier_ground_visual.gd')
@@ -175,6 +177,8 @@ func commit(s: Dictionary, data: Dictionary, hash: String) -> void:
 	snapshot = s
 	scene = data
 	scene_hash = hash
+	if snapshot.get('worldId')=='mist_harbor' and snapshot.get('sceneId')=='mh_tidal_warehouse':
+		mh_tidal_warehouse_environment_visual.prepare_resources(snapshot,scene,current_key)
 	last_snapshot_at = Time.get_ticks_msec()
 	var ap = s.player.get('actionPresentation')
 	if ap is Dictionary:
@@ -272,6 +276,9 @@ func _draw() -> void:
 	var floor_poly = [[b.x,b.z],[b.x+b.width,b.z],[b.x+b.width,b.z+b.depth],[b.x,b.z+b.depth]]
 	var floor_color = {'return_station':Color('#233c47'),'grey_hive':Color('#263634'),'mist_harbor':Color('#203742'),'clockworks':Color('#40362c')}.get(snapshot.worldId,Color('#263634'))
 	_poly(floor_poly,0,floor_color,true)
+	var warehouse_frame: Dictionary = mh_tidal_warehouse_environment_visual.build_frame(snapshot,scene,current_key,camera,viewport_rect)
+	var warehouse_consumed_ids: Array = []
+	mh_tidal_warehouse_environment_visual.draw_floor(self,warehouse_frame,snapshot,scene,current_key,camera,viewport_rect)
 	cw_regulator_environment_visual.draw_floor(self,snapshot,scene,current_key,camera,viewport_rect,cw_furnace_visual)
 	gh_gate_b_environment_visual.draw_floor(self,snapshot,scene,current_key,camera,viewport_rect,grey_hive_state_props,gh_supply_crate_visual)
 	cw_boiler_environment_visual.draw_floor(self,snapshot,scene,current_key,camera,viewport_rect,cw_furnace_visual)
@@ -400,6 +407,8 @@ func _draw() -> void:
 				continue
 			if cw_regulator_environment_visual.draw_wall(self,snapshot,scene,current_key,camera,wall,viewport_rect):
 				continue
+			if mh_tidal_warehouse_environment_visual.draw_wall(self,warehouse_frame,wall,snapshot,scene,current_key,camera,viewport_rect):
+				continue
 			_poly(wall.polygon,0,Color('#4b5659'),true)
 			_poly(wall.polygon,0,Color('#819092'),false)
 	if gh_bio_wall_active:
@@ -436,6 +445,8 @@ func _draw() -> void:
 	if not mh_fog_pier_layered_packet.is_empty() and mh_fog_pier_back_drawn and mh_fog_pier_mid_drawn:
 		mh_fog_pier_defer_labels = true
 	gh_deep_decon_air_visual.draw_air(self,snapshot,scene,current_key,camera,viewport_rect)
+	if mh_tidal_warehouse_environment_visual.draw_bank(self,warehouse_frame,'warehouse_inner_fog_bank',snapshot,scene,current_key,camera,viewport_rect):
+		warehouse_consumed_ids.append('warehouse_inner_fog_bank')
 	var objects: Array = []
 	for module_packet in gh_bio_wall_packets:
 		objects.append({'id':module_packet.id,'p':module_packet.p,'kind':'gh_bio_wall_module','data':module_packet})
@@ -520,6 +531,8 @@ func _draw() -> void:
 		if rs_active and o.kind=='interaction':
 			caption = ''
 		_draw_object(o,caption)
+	if mh_tidal_warehouse_environment_visual.draw_bank(self,warehouse_frame,'warehouse_fog_bank_foreground',snapshot,scene,current_key,camera,viewport_rect):
+		warehouse_consumed_ids.append('warehouse_fog_bank_foreground')
 	gh_entry_ambient_visual.draw_air(self,snapshot,scene,camera)
 	if gh_entry_wall_draw_failed:
 		for wall in scene.get('collision',[]):
@@ -539,6 +552,7 @@ func _draw() -> void:
 	for mh_fog_pier_label in mh_fog_pier_queued_labels:
 		_label(mh_fog_pier_label.p,mh_fog_pier_label.text,mh_fog_pier_label.color)
 	var mh_fog_pier_suppressed_bank_ids: Array = mh_fog_pier_layered_fog_visual.suppressed_bank_ids(mh_fog_pier_layered_packet,snapshot,scene,current_key,camera,mh_fog_pier_phase_seconds,reduced_motion,[mh_fog_pier_back_drawn,mh_fog_pier_mid_drawn,mh_fog_pier_front_drawn])
+	mh_fog_pier_suppressed_bank_ids.append_array(warehouse_consumed_ids)
 	_hazards()
 	_beacon()
 	_boss_warning()
@@ -1289,6 +1303,8 @@ func _atmosphere(suppressed_bank_ids: Array = []) -> void:
 			if prop is Dictionary and prop.get('assetId') in ['runtime2d.world.mistharbor.fog_bank.v1','runtime2d.world.mistharbor.fog_vfx.v1'] and prop.get('position') is Array and prop.position.size()==3:
 				var bank_id = prop.get('id')
 				var bank_position = prop.get('position')
+				if mh_tidal_warehouse_environment_visual.legacy_bank_consumed(prop,snapshot,scene,current_key,camera,viewport_rect,suppressed_bank_ids):
+					continue
 				if prop.get('assetId')=='runtime2d.world.mistharbor.fog_bank.v1' and typeof(bank_id)==TYPE_STRING and bank_id in suppressed_bank_ids and prop.get('layer')=='visual.props_back' and ((bank_id=='approved_fog_bank_north' and P.number(bank_position[0],13.0,13.0) and P.number(bank_position[1],0.0,0.0) and P.number(bank_position[2],2.5,2.5)) or (bank_id=='approved_fog_bank_east' and P.number(bank_position[0],20.0,20.0) and P.number(bank_position[1],0.0,0.0) and P.number(bank_position[2],11.0,11.0))):
 					continue
 				var at = camera.project(Vector3(prop.position[0],prop.position[1],prop.position[2]))

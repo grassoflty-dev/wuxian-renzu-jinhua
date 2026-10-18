@@ -4,7 +4,7 @@ const CONFIG = {"drowned":{"path":"res://assets/enemies/mist_harbor/drowned.png"
 var attempted = false
 var textures: Dictionary = {}
 func _canvas(v, expected: Array) -> bool:
-	return v is Array and v.size()==2 and P.counter(v[0],1,4096) and P.counter(v[1],1,4096) and v==expected
+	return v is Array and v.size()==2 and P.counter(v[0],1,4096) and P.counter(v[1],1,4096) and P.counter(v[0],expected[0],expected[0]) and P.counter(v[1],expected[1],expected[1])
 func _anchor(v) -> bool:
 	return v is Array and v.size()==2 and P.number(v[0],0.5,0.5) and P.number(v[1],1,1)
 func _load_once() -> void:
