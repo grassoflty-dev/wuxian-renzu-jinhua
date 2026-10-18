@@ -36,13 +36,15 @@ func accept(rows, s: Dictionary, renderer) -> void:
 			ordered.append(row)
 	ordered.sort_custom(func(a,b): return a.get('eventId',0)<b.get('eventId',0) if a is Dictionary and b is Dictionary else false)
 	var seed_only = not seeded
+	var future_barrier = false
 	for e in ordered:
 		if not envelope(e) or e.worldEpoch!=epoch or e.eventId<=cursor:
 			continue
-		if e.serverTick>s.serverTick and not seed_only:
+		if not seed_only and (future_barrier or e.serverTick>s.serverTick):
+			future_barrier = true
 			if deferred.size()<256:
 				deferred.append(e)
-			break
+			continue
 		cursor = int(e.eventId)
 		if seed_only or not _authorized(e,s,renderer):
 			continue
