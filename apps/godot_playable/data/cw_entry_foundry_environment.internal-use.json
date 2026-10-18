@@ -1,0 +1,77 @@
+{
+  "schema": "wuxian.cw-entry-foundry-environment.internal-use/v1",
+  "registeredSourceReuse": true,
+  "approval": "INTERNAL_REGISTERED_SOURCE_REUSE",
+  "GodotDisplay": "NOT_RUN",
+  "publicRelease": "NOT_ESTABLISHED",
+  "roomUse": "MAIN_ADMITTED_CW_ENTRY_FOUNDRY_ONLY",
+  "sourceContracts": [
+    {
+      "path": "res://data/cw_furnaces.internal-use.json",
+      "bytes": 1670,
+      "sha256": "c797ea5392842aeb0427df01bad7b8562b2e626b05398df6e624c04d88a480d6"
+    },
+    {
+      "path": "res://data/cw_pressure_floor_material.internal-use.json",
+      "bytes": 1391,
+      "sha256": "746dbb35f40af89c300d1043322f634663a1f58bb6130a8711a84c972b35015a"
+    }
+  ],
+  "asset": {
+    "assetId": "runtime2d.world.clockworks.floor_steel.v1",
+    "derivedRelative": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.clockworks.floor_steel.v1.png",
+    "sourceRelative": "batch07/05_runtime2d.world.clockworks.floor_steel.v1.png",
+    "sourceSha256": "1a01e851654d9f5c98b5486cbe489f357ed99c55ffc601c492af63044d90b190",
+    "path": "res://assets/props/clockworks/pressure_hall_steel_floor_source.png",
+    "bytes": 1610704,
+    "sha256": "0b4555021799ac849756e0f11c207d4e9309df19f4b8f68d0f4e8177f5204043",
+    "canvas": [1197, 1132],
+    "format": "RGBA8"
+  },
+  "installation": {
+    "worldId": "clockworks",
+    "sceneId": "cw_entry_foundry",
+    "boundsM": [0, 0, 24, 16],
+    "rowId": "cw_entry_foundry_steel_floor",
+    "layer": "visual.floor",
+    "position": [12, 0, 8],
+    "groundY": 0
+  },
+  "steel": {
+    "sourcePixelEdgeCorners": [[510, 200], [970, 460], [600, 740], [140, 480]],
+    "uvConvention": "sourcePixelEdge / standaloneCanvasSize",
+    "patchSizeM": [3, 3],
+    "grid": [8, 6],
+    "patchCount": 48,
+    "lastRowUvDepthFraction": 0.3333333333333333,
+    "edgeCells": "CLIP_WORLD_AND_UV_FRACTIONS_NOT_STRETCH",
+    "tint": [0.35, 0.4, 0.43, 1]
+  },
+  "walls": {
+    "segments": [
+      {"id":"cw_entry_foundry_wall_north","polygon":[[0,0],[24,0],[24,0.5],[0,0.5]],"displayHeightM":1},
+      {"id":"cw_entry_foundry_wall_south","polygon":[[0,15.5],[24,15.5],[24,16],[0,16]],"displayHeightM":0.18},
+      {"id":"cw_entry_foundry_wall_west_north","polygon":[[0,0.5],[0.5,0.5],[0.5,6],[0,6]],"displayHeightM":1},
+      {"id":"cw_entry_foundry_wall_west_south","polygon":[[0,9.5],[0.5,9.5],[0.5,15.5],[0,15.5]],"displayHeightM":1},
+      {"id":"cw_entry_foundry_wall_east_north","polygon":[[23.5,0.5],[24,0.5],[24,6],[23.5,6]],"displayHeightM":0.18},
+      {"id":"cw_entry_foundry_wall_east_south","polygon":[[23.5,9.5],[24,9.5],[24,15.5],[23.5,15.5]],"displayHeightM":0.18}
+    ],
+    "sideColor": [0.18, 0.22, 0.24, 1],
+    "capColor": [0.25, 0.29, 0.31, 1],
+    "contactColor": [0.04, 0.06, 0.065, 0.12],
+    "contactWidthM": 0.05,
+    "buttJoints": true,
+    "openingsRemainUnfilled": true
+  },
+  "furnaceGroundCue": {
+    "rowId": "cw_entry_furnace",
+    "key": "furnace_v2",
+    "position": [19, 0, 6],
+    "radiiM": [[1.25, 0.55], [0.9, 0.38], [0.45, 0.2]],
+    "color": [0.62, 0.42, 0.25],
+    "alphas": [0.02, 0.035, 0.045],
+    "verticesPerRing": 24,
+    "static": true,
+    "requiresExistingCacheAndCanvasRect": true
+  }
+}

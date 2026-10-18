@@ -73,6 +73,7 @@ var cw_pressure_valve_visual
 const CwFurnaceVisual = preload('res://scripts/world/cw_furnace_visual.gd')
 const CwBoilerEnvironmentVisual = preload('res://scripts/world/cw_boiler_environment_visual.gd')
 const CwRegulatorEnvironmentVisual = preload('res://scripts/world/cw_regulator_environment_visual.gd')
+const CwEntryFoundryEnvironmentVisual = preload('res://scripts/world/cw_entry_foundry_environment_visual.gd')
 const CW_FURNACES = {
 	'cw_regulator_furnace_v2':['cw_regulator_core','furnace_v2','runtime2d.world.clockworks.furnace.v2','visual.props_back',Vector3(16,0,6)],
 	'cw_regulator_furnace_v2_side':['cw_regulator_core','furnace_v2','runtime2d.world.clockworks.furnace.v2','visual.props_dynamic',Vector3(12,0,12)],
@@ -83,6 +84,7 @@ const CW_FURNACES = {
 	'cw_heart_furnace_v2':['cw_furnace_heart','furnace_v2','runtime2d.world.clockworks.furnace.v2','visual.props_dynamic',Vector3(16,0,8)]
 }
 var cw_furnace_visual
+var cw_entry_foundry_environment_visual = CwEntryFoundryEnvironmentVisual.new()
 var cw_boiler_environment_visual = CwBoilerEnvironmentVisual.new()
 var cw_regulator_environment_visual = CwRegulatorEnvironmentVisual.new()
 var camera = Camera.new()
@@ -180,6 +182,8 @@ func commit(s: Dictionary, data: Dictionary, hash: String) -> void:
 	scene = data
 	scene_hash = hash
 	mh_signal_yard_environment_visual.prepare(snapshot,scene,current_key)
+	if snapshot.get('worldId')=='clockworks' and snapshot.get('sceneId')=='cw_entry_foundry':
+		cw_entry_foundry_environment_visual.prepare(snapshot,scene,current_key,scene_hash)
 	if snapshot.get('worldId')=='mist_harbor' and snapshot.get('sceneId')=='mh_tidal_warehouse':
 		mh_tidal_warehouse_environment_visual.prepare_resources(snapshot,scene,current_key)
 	last_snapshot_at = Time.get_ticks_msec()
@@ -279,6 +283,7 @@ func _draw() -> void:
 	var floor_poly = [[b.x,b.z],[b.x+b.width,b.z],[b.x+b.width,b.z+b.depth],[b.x,b.z+b.depth]]
 	var floor_color = {'return_station':Color('#233c47'),'grey_hive':Color('#263634'),'mist_harbor':Color('#203742'),'clockworks':Color('#40362c')}.get(snapshot.worldId,Color('#263634'))
 	_poly(floor_poly,0,floor_color,true)
+	cw_entry_foundry_environment_visual.draw_floor(self,snapshot,scene,current_key,camera,get_viewport_rect(),cw_furnace_visual)
 	mh_signal_yard_environment_visual.draw_floor(self,snapshot,scene,current_key,camera,viewport_rect)
 	var warehouse_frame: Dictionary = mh_tidal_warehouse_environment_visual.build_frame(snapshot,scene,current_key,camera,viewport_rect)
 	var warehouse_consumed_ids: Array = []
@@ -410,6 +415,8 @@ func _draw() -> void:
 			if gh_gate_b_environment_visual.draw_wall(self,snapshot,scene,current_key,camera,wall,viewport_rect):
 				continue
 			if cw_regulator_environment_visual.draw_wall(self,snapshot,scene,current_key,camera,wall,viewport_rect):
+				continue
+			if cw_entry_foundry_environment_visual.draw_wall(self,wall,snapshot,scene,current_key,camera,viewport_rect):
 				continue
 			if mh_tidal_warehouse_environment_visual.draw_wall(self,warehouse_frame,wall,snapshot,scene,current_key,camera,viewport_rect):
 				continue
