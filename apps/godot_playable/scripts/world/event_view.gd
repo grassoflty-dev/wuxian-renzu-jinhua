@@ -173,8 +173,11 @@ func accept_sound(rows, s: Dictionary) -> void:
 	for e in rows:
 		if not e is Dictionary or not P.counter(e.get('protocolVersion'),1,1) or not P.counter(e.get('eventId'),1) or e.get('worldEpoch')!=s.worldEpoch or not P.counter(e.get('serverTick')) or e.eventId<=sound_cursor:
 			continue
+		# Leave the future cue and later IDs available for the next snapshot poll.
+		if e.serverTick>s.serverTick and not seed_only:
+			break
 		sound_cursor = int(e.eventId)
-		if seed_only or e.serverTick>s.serverTick or not V.mapping(s) or e.get('worldId')!=s.worldId or e.get('sceneId')!=s.sceneId or not e.get('kind') in ['signal_ping','warden_true_call'] or not P.number(e.get('directionRad'),-PI,PI) or not P.number(e.get('distanceM'),0,10000) or e.kind=='warden_true_call' and (s.worldId!='mist_harbor' or s.sceneId!='mh_warden_arena'):
+		if seed_only or not V.mapping(s) or e.get('worldId')!=s.worldId or e.get('sceneId')!=s.sceneId or not e.get('kind') in ['signal_ping','warden_true_call'] or not P.number(e.get('directionRad'),-PI,PI) or not P.number(e.get('distanceM'),0,10000) or e.kind=='warden_true_call' and (s.worldId!='mist_harbor' or s.sceneId!='mh_warden_arena'):
 			continue
 		sound = e.duplicate(true)
 		sound['_until'] = Time.get_ticks_msec()+2400
