@@ -183,11 +183,11 @@ func _handle(v) -> void:
 	if item.generation!=connection_generation or item.method=='session_close' and queue.any(func(row): return row.id==id):
 		_drop('E_RESPONSE_PROTOCOL')
 		return
-	pending.erase(id)
 	if not v.ok:
 		if not v.error is Dictionary or typeof(v.error.get('code'))!=TYPE_STRING or v.error.code.length()>128:
 			_drop('E_RESPONSE_PROTOCOL')
 			return
+		pending.erase(id)
 		if item.method=='hello':
 			_drop('E_HANDSHAKE_REJECTED')
 			return
@@ -196,6 +196,7 @@ func _handle(v) -> void:
 	if v.error!=null:
 		_drop('E_RESPONSE_PROTOCOL')
 		return
+	pending.erase(id)
 	if item.method=='hello':
 		if not v.result is Dictionary or not P.counter(v.result.get('protocolVersion'),1,1) or v.result.get('service')!='wuxian-v1-formal' or not P.counter(v.result.get('snapshotProtocolVersion'),3,3):
 			_drop('E_HANDSHAKE_VERSION')
