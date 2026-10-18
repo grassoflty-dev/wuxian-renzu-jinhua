@@ -279,6 +279,10 @@ func _build_wall_commands(projection_value: Variant, wall: Dictionary) -> Array[
 	if typeof(contact_value)!=TYPE_RECT2:
 		return []
 	var contact_rect: Rect2 = contact_value
+	var south_join: bool = wall.get('id') in ['cw_conveyor_bridge_wall_west_south','cw_conveyor_bridge_wall_east_south']
+	if south_join:
+		# Rect2 is a value copy; canonical contact/layout constants stay unchanged.
+		contact_rect.size.y -= 12.0/48.0
 	var contact_points: PackedVector2Array = _project_rectangle(projection_value,contact_rect,0.0)
 	if contact_points.size()!=4 or not _points_finite(contact_points):
 		return []
@@ -307,7 +311,11 @@ func _build_wall_commands(projection_value: Variant, wall: Dictionary) -> Array[
 		return []
 	var first_raised: Vector2 = first_ground-Vector2(0.0,relief)
 	var second_raised: Vector2 = second_ground-Vector2(0.0,relief)
-	var side_points: PackedVector2Array = PackedVector2Array([first_ground,second_ground,second_raised,first_raised])
+	var visible_second_ground: Vector2 = second_ground
+	if south_join:
+		# Keep the original raised end/cap; remove only the south-cap-hidden corner.
+		visible_second_ground = projection.project(Vector3(float(second[0]),0.0,float(second[1])-12.0/48.0))
+	var side_points: PackedVector2Array = PackedVector2Array([first_ground,visible_second_ground,second_raised,first_raised])
 	commands.append({'kind':'polygon','points':side_points,'color':Color('#303633')})
 	var cap_points: PackedVector2Array = _project_polygon(projection_value,polygon_value,relief)
 	if cap_points.size()!=4 or not _points_finite(cap_points):
