@@ -23,6 +23,7 @@ const GhBioFloorMaterialVisual = preload('res://scripts/world/gh_bio_floor_mater
 const GhEntryFloorMaterialVisual = preload('res://scripts/world/gh_entry_floor_material_visual.gd')
 const CwPressureFloorMaterialVisual = preload('res://scripts/world/cw_pressure_floor_material_visual.gd')
 const CwConveyorEnvironmentVisual = preload('res://scripts/world/cw_conveyor_environment_visual.gd')
+const CwGearShaftEnvironmentVisual = preload('res://scripts/world/cw_gear_shaft_environment_visual.gd')
 const GhSentinelFloorMaterialVisual = preload('res://scripts/world/gh_sentinel_floor_material_visual.gd')
 const GhPowerFloorMaterialVisual = preload('res://scripts/world/gh_power_floor_material_visual.gd')
 const GhEntryWallModulesVisual = preload('res://scripts/world/gh_entry_wall_modules_visual.gd')
@@ -151,6 +152,7 @@ var action_at = 0
 signal frame_committed(key)
 var reported_key = ''
 var current_key = ''
+var cw_gear_shaft_environment_visual = CwGearShaftEnvironmentVisual.new()
 var displayed = {}
 var occluder_alpha = {}
 var viewport_rect = Rect2()
@@ -193,6 +195,7 @@ func commit(s: Dictionary, data: Dictionary, hash: String) -> void:
 	snapshot = s
 	scene = data
 	scene_hash = hash
+	cw_gear_shaft_environment_visual.prepare(snapshot,scene,current_key,scene_hash)
 	mh_drowned_quay_environment_visual.prepare(snapshot,scene,current_key,scene_hash)
 	cw_forged_guard_arena_environment_visual.prepare(snapshot,scene,current_key,scene_hash)
 	gh_lockdown_environment_visual.prepare(snapshot,scene,current_key,scene_hash)
@@ -300,6 +303,7 @@ func _draw() -> void:
 	var floor_poly = [[b.x,b.z],[b.x+b.width,b.z],[b.x+b.width,b.z+b.depth],[b.x,b.z+b.depth]]
 	var floor_color = {'return_station':Color('#233c47'),'grey_hive':Color('#263634'),'mist_harbor':Color('#203742'),'clockworks':Color('#40362c')}.get(snapshot.worldId,Color('#263634'))
 	_poly(floor_poly,0,floor_color,true)
+	cw_gear_shaft_environment_visual.draw_floor(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
 	mh_drowned_quay_environment_visual.draw_ground(self,snapshot,scene,current_key,camera,viewport_rect)
 	cw_forged_guard_arena_environment_visual.draw_floor(self,snapshot,scene,current_key,camera,viewport_rect,cw_furnace_visual,_cw_furnace_key(cw_forged_guard_arena_environment_visual.furnace_row(scene)))
 	gh_central_shaft_environment_visual.draw_floor(self,snapshot,scene,current_key,camera,viewport_rect)
@@ -456,6 +460,8 @@ func _draw() -> void:
 			if gh_lockdown_environment_visual.draw_wall(self,snapshot,scene,current_key,wall,camera,viewport_rect):
 				if typeof(wall.get('id')) == TYPE_STRING:
 					gh_lockdown_wall_drawn_ids.append(wall.get('id'))
+				continue
+			if cw_gear_shaft_environment_visual.draw_wall(self,wall,snapshot,scene,current_key,scene_hash,camera,viewport_rect):
 				continue
 			_poly(wall.polygon,0,Color('#4b5659'),true)
 			_poly(wall.polygon,0,Color('#819092'),false)
@@ -1212,6 +1218,7 @@ func _draw_object(o: Dictionary, interaction_caption: String = '') -> void:
 			_label(at-Vector2(0,1.7*camera.ppm+5*scale),'白芷')
 func _supports() -> void:
 	var poses = V.support(snapshot.get('supportScene'),snapshot,scene_hash)
+	var cw_gear_drawn_support_ids: Array[String] = cw_gear_shaft_environment_visual.draw_supports(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
 	for field in ['standingDecks','movingSupports']:
 		for d in scene.get(field,[]):
 			if not d is Dictionary or not P.polygon(d.get('polygon')):
@@ -1222,6 +1229,8 @@ func _supports() -> void:
 			if field=='standingDecks' and (not P.number(d.get('heightM'),0,3) or abs(d.heightM-height)>0.0001):
 				continue
 			if P.number(height,0,3):
+				if cw_gear_shaft_environment_visual.should_skip_legacy_support(self,d,field,poses,cw_gear_drawn_support_ids,snapshot,scene,current_key,scene_hash,camera,viewport_rect):
+					continue
 				_poly(d.polygon,height,Color('#6c7464'),true)
 				_poly(d.polygon,height,Color('#c7cbb4'),false)
 func _surfaces() -> void:
