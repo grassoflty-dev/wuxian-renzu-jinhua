@@ -24,6 +24,7 @@ const GhEntryFloorMaterialVisual = preload('res://scripts/world/gh_entry_floor_m
 const CwPressureFloorMaterialVisual = preload('res://scripts/world/cw_pressure_floor_material_visual.gd')
 const CwConveyorEnvironmentVisual = preload('res://scripts/world/cw_conveyor_environment_visual.gd')
 const CwGearShaftEnvironmentVisual = preload('res://scripts/world/cw_gear_shaft_environment_visual.gd')
+const MhBreakwaterEnvironmentVisual = preload('res://scripts/world/mh_breakwater_environment_visual.gd')
 const GhSentinelFloorMaterialVisual = preload('res://scripts/world/gh_sentinel_floor_material_visual.gd')
 const GhPowerFloorMaterialVisual = preload('res://scripts/world/gh_power_floor_material_visual.gd')
 const GhEntryWallModulesVisual = preload('res://scripts/world/gh_entry_wall_modules_visual.gd')
@@ -153,6 +154,7 @@ signal frame_committed(key)
 var reported_key = ''
 var current_key = ''
 var cw_gear_shaft_environment_visual = CwGearShaftEnvironmentVisual.new()
+var mh_breakwater_environment_visual = MhBreakwaterEnvironmentVisual.new()
 var displayed = {}
 var occluder_alpha = {}
 var viewport_rect = Rect2()
@@ -195,6 +197,7 @@ func commit(s: Dictionary, data: Dictionary, hash: String) -> void:
 	snapshot = s
 	scene = data
 	scene_hash = hash
+	mh_breakwater_environment_visual.prepare(snapshot,scene,current_key,scene_hash)
 	cw_gear_shaft_environment_visual.prepare(snapshot,scene,current_key,scene_hash)
 	mh_drowned_quay_environment_visual.prepare(snapshot,scene,current_key,scene_hash)
 	cw_forged_guard_arena_environment_visual.prepare(snapshot,scene,current_key,scene_hash)
@@ -303,6 +306,7 @@ func _draw() -> void:
 	var floor_poly = [[b.x,b.z],[b.x+b.width,b.z],[b.x+b.width,b.z+b.depth],[b.x,b.z+b.depth]]
 	var floor_color = {'return_station':Color('#233c47'),'grey_hive':Color('#263634'),'mist_harbor':Color('#203742'),'clockworks':Color('#40362c')}.get(snapshot.worldId,Color('#263634'))
 	_poly(floor_poly,0,floor_color,true)
+	mh_breakwater_environment_visual.draw_ground(self,snapshot,scene,current_key,camera,viewport_rect)
 	cw_gear_shaft_environment_visual.draw_floor(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
 	mh_drowned_quay_environment_visual.draw_ground(self,snapshot,scene,current_key,camera,viewport_rect)
 	cw_forged_guard_arena_environment_visual.draw_floor(self,snapshot,scene,current_key,camera,viewport_rect,cw_furnace_visual,_cw_furnace_key(cw_forged_guard_arena_environment_visual.furnace_row(scene)))
@@ -463,6 +467,8 @@ func _draw() -> void:
 				continue
 			if cw_gear_shaft_environment_visual.draw_wall(self,wall,snapshot,scene,current_key,scene_hash,camera,viewport_rect):
 				continue
+			if mh_breakwater_environment_visual.draw_wall(self,wall,snapshot,scene,current_key,camera,viewport_rect):
+				continue
 			_poly(wall.polygon,0,Color('#4b5659'),true)
 			_poly(wall.polygon,0,Color('#819092'),false)
 	if gh_bio_wall_active:
@@ -521,6 +527,7 @@ func _draw() -> void:
 	var quay_bank_drawn_ids: Array = []
 	if mh_drowned_quay_environment_visual.draw_back_bank(self,snapshot,scene,current_key,camera,viewport_rect):
 		quay_bank_drawn_ids.append('quay_north_fog_bank')
+	var breakwater_bank_drawn_ids: Array[String] = mh_breakwater_environment_visual.draw_bank(self,'back',snapshot,scene,current_key,camera,viewport_rect)
 	var objects: Array = []
 	var gh_exit_dressing_packets: Array[Dictionary] = gh_exit_environment_visual.build_dressing(snapshot,scene,current_key,camera,viewport_rect)
 	for gh_exit_shadow_packet: Dictionary in gh_exit_dressing_packets:
@@ -653,10 +660,12 @@ func _draw() -> void:
 	mh_fog_pier_deferred_labels = []
 	for mh_fog_pier_label in mh_fog_pier_queued_labels:
 		_label(mh_fog_pier_label.p,mh_fog_pier_label.text,mh_fog_pier_label.color)
+	breakwater_bank_drawn_ids.append_array(mh_breakwater_environment_visual.draw_bank(self,'front',snapshot,scene,current_key,camera,viewport_rect))
 	var mh_fog_pier_suppressed_bank_ids: Array = mh_fog_pier_layered_fog_visual.suppressed_bank_ids(mh_fog_pier_layered_packet,snapshot,scene,current_key,camera,mh_fog_pier_phase_seconds,reduced_motion,[mh_fog_pier_back_drawn,mh_fog_pier_mid_drawn,mh_fog_pier_front_drawn])
 	mh_fog_pier_suppressed_bank_ids.append_array(warehouse_consumed_ids)
 	mh_fog_pier_suppressed_bank_ids.append_array(yard_drawn_bank_ids)
 	mh_fog_pier_suppressed_bank_ids.append_array(quay_bank_drawn_ids)
+	mh_fog_pier_suppressed_bank_ids.append_array(breakwater_bank_drawn_ids)
 	_hazards()
 	_beacon()
 	_boss_warning()
@@ -1435,6 +1444,8 @@ func _atmosphere(suppressed_bank_ids: Array = []) -> void:
 			if prop is Dictionary and prop.get('assetId') in ['runtime2d.world.mistharbor.fog_bank.v1','runtime2d.world.mistharbor.fog_vfx.v1'] and prop.get('position') is Array and prop.position.size()==3:
 				var bank_id = prop.get('id')
 				var bank_position = prop.get('position')
+				if mh_breakwater_environment_visual.legacy_bank_consumed(self,prop,snapshot,scene,current_key,camera,viewport_rect,suppressed_bank_ids):
+					continue
 				if mh_drowned_quay_environment_visual.legacy_bank_consumed(self,prop,snapshot,scene,current_key,camera,viewport_rect,suppressed_bank_ids):
 					continue
 				if mh_signal_yard_environment_visual.should_suppress_bank(prop,snapshot,scene,current_key,camera,viewport_rect,suppressed_bank_ids):
