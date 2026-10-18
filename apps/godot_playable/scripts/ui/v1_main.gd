@@ -48,6 +48,7 @@ var poll_accumulator = 0.0
 var input_accumulator = 0.0
 var last_snapshot_at = 0
 var ready_pending: Dictionary = {}
+var entry_wait_owner: Dictionary = {}
 var ready_sent = {}
 var frame_key = ''
 var pause_owned: Dictionary = {}
@@ -200,6 +201,47 @@ func _locomotion_presentation_state(expected: Dictionary) -> Dictionary:
 		'reduced_motion':preferences.reduced,
 		'hurt_active':_locomotion_hurt_active(snapshot,now)
 	}
+func _clear_entry_wait() -> void:
+	if is_instance_valid(hud):
+		hud.set_entry_wait_text('')
+func _entry_wait_text() -> String:
+	# Presentation only: no loading percentage, timer or scene-ready mutation.
+	if not is_inside_tree() or not can_process() or not is_visible_in_tree() or not is_instance_valid(rpc) or not is_instance_valid(panels):
+		return ''
+	var window = get_window()
+	if not is_instance_valid(window) or not window.visible or not window.has_focus() or window.mode==Window.MODE_MINIMIZED or not focused:
+		return ''
+	if close_attempted or not journey_started or uncertain or panels.visible or not pause_owned.is_empty() or not ticket.is_empty() or not rpc.authenticated:
+		return ''
+	if rpc.peer.get_status()!=StreamPeerTCP.STATUS_CONNECTED or rpc.transport_stopped or not rpc.terminal_code.is_empty() or rpc.closing_expected:
+		return ''
+	if not P.snapshot(snapshot) or snapshot.player.currentHp<=0 or not Content.WORLD_NAMES.has(snapshot.worldId):
+		return ''
+	var now = Time.get_ticks_msec()
+	if now<last_snapshot_at or now-last_snapshot_at>=1000:
+		return ''
+	var token = snapshot.get('entryToken')
+	if not P.token(token) or not P.same(token,snapshot) or ready_pending!=token or entry_wait_owner.get('token')!=token or entry_wait_owner.get('generation')!=generation or entry_wait_owner.get('connection_generation')!=rpc.connection_generation:
+		return ''
+	var key = snapshot.worldId+':'+snapshot.sceneId+':'+str(snapshot.worldEpoch)
+	if catalog.current.get('worldId')!=snapshot.worldId or catalog.current.get('sceneId')!=snapshot.sceneId or renderer.current_key!=key:
+		return ''
+	if not status.is_empty() and P.same(status,snapshot) and status.get('entryToken')==null and status.get('paused')==true:
+		return ''
+	var name: String = Content.WORLD_NAMES[snapshot.worldId]
+	if critical.is_empty() and frame_key!=key:
+		return name+' · 等待目标场景首帧'
+	if critical=='formal_scene_ready':
+		for item in rpc.pending.values():
+			if not item is Dictionary or item.get('method')!='formal_scene_ready' or item.get('generation')!=rpc.connection_generation:
+				continue
+			var association = item.get('association')
+			if association is Dictionary and association.get('purpose')=='ready' and association.get('generation')==generation and association.get('token')==token and P.context(association.get('context')) and P.same(association.context,snapshot) and association.get('remainPaused')==false:
+				return name+' · 等待进入确认'
+	return ''
+func _refresh_entry_wait() -> void:
+	if is_instance_valid(hud):
+		hud.set_entry_wait_text(_entry_wait_text())
 func _process(delta: float) -> void:
 	_refresh_locomotion()
 	_observe_mouse_movement()
@@ -244,6 +286,7 @@ func _process(delta: float) -> void:
 	var current_interaction = _current_hud_interaction()
 	renderer.set_interaction_focus(current_interaction,snapshot,eligible,generation)
 	hud.update_view(snapshot,connection_text,eligible,hint,preferences.scale,current_interaction,_current_hud_traversal(),_current_hud_actions(),_current_hud_guard(),_current_hud_movements())
+	_refresh_entry_wait()
 func _sample(neutral: bool) -> bool:
 	if close_attempted:
 		return false
@@ -324,6 +367,7 @@ func _end_guard() -> void:
 		guard_active = false
 		_action('guardEnd',true)
 func _release() -> void:
+	_clear_entry_wait()
 	_suspend_locomotion()
 	if is_instance_valid(renderer):
 		renderer.clear_interaction_focus()
@@ -422,6 +466,7 @@ func _input(event: InputEvent) -> void:
 		_end_guard()
 func _notification(what: int) -> void:
 	if what in [NOTIFICATION_APPLICATION_FOCUS_OUT,NOTIFICATION_WM_CLOSE_REQUEST,NOTIFICATION_PAUSED,NOTIFICATION_DISABLED,NOTIFICATION_VISIBILITY_CHANGED]:
+		_clear_entry_wait()
 		_suspend_locomotion()
 	if what==NOTIFICATION_WM_CLOSE_REQUEST and (not is_instance_valid(rpc) or not rpc.authenticated):
 		get_tree().quit()
@@ -460,6 +505,7 @@ func _escape() -> void:
 	if _eligible():
 		_open_paused('pause')
 func _show(page: String, extra: Dictionary = {}, blocked: bool = false, refresh_saves: bool = true) -> void:
+	_clear_entry_wait()
 	_suspend_locomotion()
 	for key in logical_down:
 		if ACTION_KEYS.has(key) or key in [KEY_F,KEY_T,KEY_M]:
@@ -1131,7 +1177,7 @@ func _response(_rpc_id: int, method: String, result, association: Dictionary) ->
 			return
 		journey_started = true
 		panels.close_page()
-	if not _accept_snapshot(r.snapshot,transition):
+	if not _accept_snapshot(r.snapshot,transition,purpose=='journey'):
 		return
 	match purpose:
 		'journey':
@@ -1203,7 +1249,7 @@ func _response(_rpc_id: int, method: String, result, association: Dictionary) ->
 			panels.close_page()
 			_request('bridge_session_status',{},'status')
 		'interaction': _interaction_result(association,r)
-func _accept_snapshot(s: Dictionary, permit_transition: bool = false) -> bool:
+func _accept_snapshot(s: Dictionary, permit_transition: bool = false, journey_entry: bool = false) -> bool:
 	_refresh_locomotion()
 	if not P.snapshot(s) or not catalog.manifest.has(s.sceneId):
 		_hold('E_REQUIRED_SNAPSHOT')
@@ -1250,6 +1296,12 @@ func _accept_snapshot(s: Dictionary, permit_transition: bool = false) -> bool:
 	if not catalog.contains(P.vector(s.player.transform.positionM)):
 		_hold('E_PLAYER_PROJECTION_BOUNDS')
 		return false
+	if journey_entry or snapshot.get('entryToken')!=s.get('entryToken') or not P.same(snapshot,s):
+		_clear_entry_wait()
+		entry_wait_owner.clear()
+		# Only confirmed journey admission or a real change of world owns loading text.
+		if P.token(s.get('entryToken')) and (journey_entry or P.snapshot(snapshot) and snapshot.worldId!=s.worldId):
+			entry_wait_owner = {'generation':generation,'connection_generation':rpc.connection_generation,'token':s.entryToken.duplicate(true)}
 	snapshot = s
 	if changed:
 		last_feedback = ''
@@ -1509,6 +1561,7 @@ func _advance_lifecycle() -> bool:
 	return true
 
 func _exit_tree() -> void:
+	_clear_entry_wait()
 	_suspend_locomotion()
 	if is_instance_valid(audio):
 		audio.stop_all()

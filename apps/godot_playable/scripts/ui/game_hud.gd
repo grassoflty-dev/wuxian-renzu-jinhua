@@ -28,6 +28,7 @@ var hp_label: Label
 var energy_label: Label
 var objectives: Label
 var hint: Label
+var entry_wait_label: Label
 var mechanism: Label
 var checkpoint: Label
 var icons
@@ -97,6 +98,11 @@ func _ready() -> void:
 	side.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	side.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bottom_content.add_child(side)
+	entry_wait_label = Label.new()
+	entry_wait_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	entry_wait_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	entry_wait_label.visible = false
+	side.add_child(entry_wait_label)
 	hint = Label.new()
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -180,6 +186,14 @@ func _ready() -> void:
 	resized.connect(_queue_bottom_layout)
 	bottom.resized.connect(_queue_bottom_layout)
 	bottom_content.minimum_size_changed.connect(_queue_bottom_layout)
+	_queue_bottom_layout()
+func set_entry_wait_text(value: String) -> void:
+	if not is_instance_valid(entry_wait_label):
+		return
+	if entry_wait_label.text==value and entry_wait_label.visible==(not value.is_empty()):
+		return
+	entry_wait_label.text = value
+	entry_wait_label.visible = not value.is_empty()
 	_queue_bottom_layout()
 func _queue_bottom_layout() -> void:
 	if layout_queued or layout_busy:
@@ -419,7 +433,7 @@ func update_view(s: Dictionary, connection: String, eligible: bool, interaction:
 	mechanism.visible = not mechanism.text.is_empty()
 	checkpoint.text = CheckpointStatus.project(s,eligible)
 	checkpoint.visible = not checkpoint.text.is_empty()
-	for label in [portrait,status_label,hp_label,energy_label,objectives,hint,mechanism,checkpoint]:
+	for label in [portrait,status_label,hp_label,energy_label,objectives,hint,entry_wait_label,mechanism,checkpoint]:
 		label.add_theme_font_size_override('font_size',int(16*scale))
 	for button in button_nodes:
 		button.add_theme_font_size_override('font_size',int(16*scale))
