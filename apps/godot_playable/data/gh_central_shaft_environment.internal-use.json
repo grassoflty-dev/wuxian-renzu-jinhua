@@ -1,0 +1,100 @@
+{
+  "schema": "wuxian.gh-central-shaft-environment.internal-use/v1",
+  "registeredSourceReuse": true,
+  "approval": "INTERNAL_REGISTERED_SOURCE_REUSE",
+  "GodotDisplay": "NOT_RUN",
+  "publicRelease": "NOT_ESTABLISHED",
+  "worldId": "grey_hive",
+  "sceneId": "gh_central_shaft",
+  "canonicalScene": {
+    "path": "res://data/scenes/gh_central_shaft.json",
+    "bytes": 10328,
+    "sha256": "806ef2be417d59ab7041002cecfb26c1fc383db920157feb29c2669c343df5da"
+  },
+  "floor": {
+    "assetId": "runtime2d.grey_hive.floor_tiles.v1",
+    "path": "res://assets/props/grey_hive/floor_tiles.png",
+    "bytes": 1315059,
+    "sha256": "4c93e192505e71d6ec4e414aeb5c9b76376b7407d677017b31b8eba5e24e744f",
+    "canvas": [1434, 980],
+    "format": "RGBA8",
+    "selection": {
+      "kind": "affine_top_face",
+      "pixelCenterCorners": [[187, 184], [345, 305], [185, 426], [27, 305]],
+      "uvConvention": "(sourcePixelCenter + 0.5) / canvasSize",
+      "interiorAlphaRange": [251, 254]
+    },
+    "rowId": "shaft_approved_floor",
+    "layer": "visual.floor",
+    "positionM": [12, 0, 8],
+    "boundsXZWH": [0, 0, 24, 16],
+    "cellSizeM": [2, 2],
+    "grid": [12, 8],
+    "patchCount": 96,
+    "tint": [0.62, 0.66, 0.64, 1],
+    "tileability": "NOT_ESTABLISHED; observe actual seams, do not promise seamless"
+  },
+  "wall": {
+    "rowId": "shaft_back_wall",
+    "assetId": "runtime2d.grey_hive.wall_tiles.v1",
+    "layer": "visual.props_back",
+    "positionM": [12, 0, 1],
+    "path": "res://assets/props/return_station/bulkhead_tiles.png",
+    "bytes": 1673423,
+    "sha256": "c5a18cae9a3ddc95c8515f6b342cb7ca3be12c23ff502ab5b3f16000bb4c9a5b",
+    "canvas": [1418, 1028],
+    "format": "RGBA8",
+    "framePx": [0, 0, 355, 480],
+    "paintedBoundsPx": [41, 6, 299, 457],
+    "groundFeetPx": [[50, 322], [300, 460]],
+    "texturedRuns": [
+      {"id": "north", "collisionId": "shaft_wall_north", "startM": [0, 0, 0.25], "endM": [24, 0, 0.25], "cadenceM": 1, "count": 24}
+    ],
+    "maxExtentPxAt48": 96,
+    "tint": [0.72, 0.76, 0.73, 1],
+    "rearOnly": true
+  },
+  "pipe": {
+    "assetId": "runtime2d.grey_hive.pipes_cables.v1",
+    "path": "res://assets/props/return_station/service_pipes.png",
+    "bytes": 1049893,
+    "sha256": "7f3c67879398e89adc9026fc2aca5fbe7792b1dc360b73c737c1b2299eac96da",
+    "canvas": [1414, 1047],
+    "format": "RGBA8",
+    "selection": {
+      "framePx": [0, 219, 388, 270],
+      "seedPx": [100, 320],
+      "componentBoundsPx": [0, 219, 388, 270],
+      "connectedAlphaPixels": 46171,
+      "contactsPx": [[50, 345], [325, 482]]
+    },
+    "rowId": "shaft_cable_risers",
+    "layer": "visual.props_back",
+    "positionM": [10, 0, 3],
+    "contactsM": [[9.5, 0, 3], [10.5, 0, 3]],
+    "spanM": 1,
+    "maximumRotationRadians": 0.025,
+    "maxExtentPxAt48": 80,
+    "shadowRadiiM": [0.6, 0.16],
+    "shadowAlpha": 0.18
+  },
+  "cutaway": {
+    "exteriorHeightM": 0.35,
+    "columnHeightM": 0.55,
+    "footprintPolicy": "exact canonical collision polygons only",
+    "cap": "#687773",
+    "faceX": "#394943",
+    "faceZ": "#45554f",
+    "contactAlpha": 0.12
+  },
+  "ambient": {
+    "kind": "static floor-bound tonal wash",
+    "maxPolygons": 3,
+    "maxAlpha": 0.035,
+    "color": "#77918b",
+    "emitterOrGameplayState": false
+  },
+  "occlusion": "Unmodified canonical beam polygons/fadeTo and existing Renderer _update_occlusion/_occlusion only; no new occluder/fade/timer",
+  "temporal": "NONE; identical new decoration for reduced_motion true/false",
+  "registrationMeaning": "Exact existing pixel selections plus PROPOSED room-specific display contacts, not measured room dimensions; MAIN future admission required"
+}
