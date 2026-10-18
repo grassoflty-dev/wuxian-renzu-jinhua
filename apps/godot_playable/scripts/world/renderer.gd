@@ -594,6 +594,8 @@ func _draw() -> void:
 				continue
 			if _gh_gate_a_open_barrier(wall):
 				continue
+			if _gh_gate_b_open_barrier(wall):
+				continue
 			_poly(wall.polygon,0,Color('#4b5659'),true)
 			_poly(wall.polygon,0,Color('#819092'),false)
 	if gh_bio_wall_active:
@@ -2007,6 +2009,41 @@ func _gh_gate_a_open_barrier(wall: Dictionary) -> bool:
 		return false
 	var position: Dictionary = state.transform.positionM
 	return P.number(position.xM,10,10) and P.number(position.yM,0,0) and P.number(position.zM,7,7)
+
+func _gh_gate_b_open_barrier(wall: Dictionary) -> bool:
+	# Only the canonical closed strip follows the current native Gate B door.
+	if not _gh_state_context('gh_gate_b') or not P.counter(scene.get('schemaVersion'),1,1) or not P.counter(snapshot.get('worldEpoch'),1) or current_key!='grey_hive:gh_gate_b:'+str(snapshot.worldEpoch):
+		return false
+	if wall.size()!=3 or wall.get('id')!='gh_gate_b_gate_barrier' or wall.get('requiresEvent')!='hive_lockdown':
+		return false
+	var polygon = wall.get('polygon')
+	var expected = [[11.5,0.5],[12.5,0.5],[12.5,15.5],[11.5,15.5]]
+	if not polygon is Array or polygon.size()!=expected.size():
+		return false
+	for index in range(expected.size()):
+		if not polygon[index] is Array or polygon[index].size()!=2:
+			return false
+		for axis in range(2):
+			if not P.number(polygon[index][axis],expected[index][axis],expected[index][axis]):
+				return false
+	var collision = scene.get('collision')
+	var doors = scene.get('doors')
+	var current = snapshot.get('doors')
+	if not P.rows(collision,2048) or not P.unique(collision,'id') or not P.rows(doors,2048) or not P.unique(doors,'id') or not P.rows(current,2048) or not P.unique(current,'doorId'):
+		return false
+	var barriers = collision.filter(func(row): return row.get('id')=='gh_gate_b_gate_barrier')
+	var authored = doors.filter(func(row): return row.get('id')=='gh_gate_b')
+	var native = current.filter(func(row): return row.get('doorId')=='gh_gate_b')
+	if barriers.size()!=1 or barriers[0]!=wall or authored.size()!=1 or native.size()!=1:
+		return false
+	var door: Dictionary = authored[0]
+	if door.size()!=4 or door.get('requiresEvent')!='hive_lockdown' or door.get('assetId')!='runtime2d.prop.gate_b.v1' or not _gh_state_authored_position(door.get('position'),[12,0,8]):
+		return false
+	var state: Dictionary = native[0]
+	if typeof(state.get('open'))!=TYPE_BOOL or not state.open or typeof(state.get('locked'))!=TYPE_BOOL or state.locked or not P.transform(state.get('transform')):
+		return false
+	var position: Dictionary = state.transform.positionM
+	return P.number(position.xM,12,12) and P.number(position.yM,0,0) and P.number(position.zM,8,8)
 
 func _gh_door_body(d: Dictionary) -> Dictionary:
 	var key = 'gate_a' if d.get('doorId')=='gh_gate_a' else 'gate_b' if d.get('doorId')=='gh_gate_b' else ''
