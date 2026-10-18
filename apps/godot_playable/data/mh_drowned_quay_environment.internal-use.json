@@ -1,0 +1,465 @@
+{
+  "schema": "wuxian.mh-drowned-quay-environment.internal-use/v1",
+  "registeredSourceReuse": true,
+  "approval": "INTERNAL_REGISTERED_SOURCE_REUSE",
+  "roomUse": "ONLY_EXPLICIT_MAIN_ADMITTED_MH_DROWNED_QUAY_SCOPE",
+  "GodotDisplay": "NOT_RUN",
+  "publicRelease": "NOT_ESTABLISHED",
+  "worldId": "mist_harbor",
+  "sceneId": "mh_drowned_quay",
+  "scene": {
+    "path": "res://data/scenes/mh_drowned_quay.json",
+    "bytes": 8840,
+    "sha256": "e315ef1be88ab2f1ff8defcf7050beef439b7793cda3d121e4e97b4bdf9b41a9"
+  },
+  "upstream": {
+    "stone": {
+      "path": "res://data/mh_fog_pier_stone_material.internal-use.json",
+      "bytes": 1517,
+      "sha256": "c56ad7549a49809341e2aea6efcbe7fbe0477eb51026e776c4a49fa03077585a"
+    },
+    "fog": {
+      "path": "res://data/mh_fog_pier_layered_fog.internal-use.json",
+      "bytes": 2270,
+      "sha256": "027980b44e5f92aa5e7759611eeffe69d6ae59be90a4ae4e0858a96123d2bee0"
+    }
+  },
+  "assets": {
+    "stone": {
+      "assetId": "runtime2d.world.mistharbor.water_edge_stone.v1",
+      "path": "res://assets/props/mist_harbor/fog_pier_stone_source.png",
+      "bytes": 1983603,
+      "sha256": "e823434b3fbc420fc14270200f81e0a459e594597304b1323d336e532a924f9d",
+      "canvas": [
+        1228,
+        1254
+      ],
+      "format": "RGBA8",
+      "sourceRelative": "batch07/02_runtime2d.world.mistharbor.water_edge_stone.v1.png",
+      "sourceSha256": "dc09452bf3f55c57cca1a93bb09f169ef441af90321dff47d91c4be7e62d3a83"
+    },
+    "fog": {
+      "assetId": "runtime2d.world.mistharbor.fog_bank.v1",
+      "path": "res://assets/props/mist_harbor/fog_pier_fog_bank_source.png",
+      "bytes": 684960,
+      "sha256": "9bbbfd9783f70a8b1f6ffeaabd44e568074f4c20f1f7500d7ef4f0e534edeac2",
+      "canvas": [
+        1254,
+        1236
+      ],
+      "format": "RGBA8",
+      "crop": [
+        27,
+        370,
+        1201,
+        498
+      ]
+    }
+  },
+  "source": {
+    "bounds": {
+      "depth": 16,
+      "width": 24,
+      "x": 0,
+      "z": 0
+    },
+    "walkable": [
+      {
+        "id": "mh_drowned_quay_walkable_area",
+        "polygon": [
+          [
+            0.5,
+            0.5
+          ],
+          [
+            23.5,
+            0.5
+          ],
+          [
+            23.5,
+            15.5
+          ],
+          [
+            0.5,
+            15.5
+          ]
+        ]
+      }
+    ],
+    "walls": [
+      {
+        "id": "quay_wall_north",
+        "polygon": [
+          [
+            0,
+            0
+          ],
+          [
+            24,
+            0
+          ],
+          [
+            24,
+            0.5
+          ],
+          [
+            0,
+            0.5
+          ]
+        ]
+      },
+      {
+        "id": "quay_wall_south",
+        "polygon": [
+          [
+            0,
+            15.5
+          ],
+          [
+            24,
+            15.5
+          ],
+          [
+            24,
+            16
+          ],
+          [
+            0,
+            16
+          ]
+        ]
+      },
+      {
+        "id": "quay_wall_west_north",
+        "polygon": [
+          [
+            0,
+            0.5
+          ],
+          [
+            0.5,
+            0.5
+          ],
+          [
+            0.5,
+            6
+          ],
+          [
+            0,
+            6
+          ]
+        ]
+      },
+      {
+        "id": "quay_wall_west_south",
+        "polygon": [
+          [
+            0,
+            9.5
+          ],
+          [
+            0.5,
+            9.5
+          ],
+          [
+            0.5,
+            15.5
+          ],
+          [
+            0,
+            15.5
+          ]
+        ]
+      },
+      {
+        "id": "quay_wall_east_north",
+        "polygon": [
+          [
+            23.5,
+            0.5
+          ],
+          [
+            24,
+            0.5
+          ],
+          [
+            24,
+            6
+          ],
+          [
+            23.5,
+            6
+          ]
+        ]
+      },
+      {
+        "id": "quay_wall_east_south",
+        "polygon": [
+          [
+            23.5,
+            9.5
+          ],
+          [
+            24,
+            9.5
+          ],
+          [
+            24,
+            15.5
+          ],
+          [
+            23.5,
+            15.5
+          ]
+        ]
+      }
+    ],
+    "terrain": [
+      {
+        "id": "mh_water_depth_region",
+        "polygon": [
+          [
+            13,
+            5
+          ],
+          [
+            19,
+            5
+          ],
+          [
+            19,
+            11
+          ],
+          [
+            13,
+            11
+          ]
+        ],
+        "tag": "terrain.water_shallow"
+      }
+    ],
+    "hazards": [
+      {
+        "id": "mh_water_depth_region",
+        "kind": "water_depth_slowdown",
+        "polygon": [
+          [
+            13,
+            5
+          ],
+          [
+            19,
+            5
+          ],
+          [
+            19,
+            11
+          ],
+          [
+            13,
+            11
+          ]
+        ],
+        "terrainTag": "terrain.water_shallow"
+      }
+    ],
+    "sprites": [
+      {
+        "assetId": "runtime2d.world.mistharbor.water_edge_stone.v1",
+        "id": "approved_submerged_stone_path",
+        "layer": "visual.floor",
+        "position": [
+          12,
+          0,
+          8
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.mistharbor.water_edge.v1",
+        "id": "quay_open_waterline",
+        "layer": "visual.props_back",
+        "position": [
+          12,
+          0,
+          14.5
+        ]
+      },
+      {
+        "assetId": "runtime2d.world.mistharbor.fog_bank.v1",
+        "id": "quay_north_fog_bank",
+        "layer": "visual.props_back",
+        "position": [
+          19,
+          0,
+          3
+        ]
+      }
+    ]
+  },
+  "floor": {
+    "rowId": "approved_submerged_stone_path",
+    "selection": "affine_top_plane",
+    "sourcePixelEdgeCorners": [
+      [
+        820,
+        240
+      ],
+      [
+        1032,
+        342
+      ],
+      [
+        392,
+        627
+      ],
+      [
+        180,
+        525
+      ]
+    ],
+    "uvConvention": "sourcePixelEdge / standaloneCanvasSize",
+    "bounds": [
+      0.5,
+      0.5,
+      23.5,
+      15.5
+    ],
+    "patchSize": [
+      4,
+      4
+    ],
+    "grid": [
+      6,
+      4
+    ],
+    "patchCount": 24,
+    "clipWorldAndUV": true,
+    "tint": [
+      0.42,
+      0.54,
+      0.58,
+      1
+    ],
+    "scaleBasis": "ART_DIRECTION_NOT_SOURCE_MEASURED"
+  },
+  "walls": {
+    "displayHeight": 0.25,
+    "face": "#33494f",
+    "cap": "#58717a",
+    "contact": [
+      0.025,
+      0.032,
+      0.035,
+      0.1
+    ],
+    "geometry": "EXACT_SOURCE_FOOTPRINT_ONLY"
+  },
+  "water": {
+    "id": "mh_water_depth_region",
+    "style": [
+      {
+        "rect": [
+          13,
+          5,
+          19,
+          11
+        ],
+        "color": "#2c5865",
+        "alpha": 0.32
+      },
+      {
+        "rect": [
+          13.12,
+          5.12,
+          18.88,
+          10.88
+        ],
+        "color": "#315e6a",
+        "alpha": 0.1
+      },
+      {
+        "rect": [
+          13.35,
+          5.35,
+          18.65,
+          10.65
+        ],
+        "color": "#426e78",
+        "alpha": 0.05
+      },
+      {
+        "rect": [
+          14,
+          6.25,
+          17,
+          6.34
+        ],
+        "color": "#73929a",
+        "alpha": 0.045
+      },
+      {
+        "rect": [
+          15,
+          8.05,
+          18,
+          8.14
+        ],
+        "color": "#73929a",
+        "alpha": 0.045
+      },
+      {
+        "rect": [
+          13.8,
+          9.55,
+          16.8,
+          9.64
+        ],
+        "color": "#73929a",
+        "alpha": 0.045
+      }
+    ],
+    "polygons": 6,
+    "groundY": 0,
+    "noAnimation": true,
+    "noShoreline": true
+  },
+  "bank": {
+    "rowId": "quay_north_fog_bank",
+    "center": [
+      19,
+      0,
+      3
+    ],
+    "anchor": [
+      0.5,
+      0.5
+    ],
+    "screenWidthPpmFactor": 6,
+    "cropAspect": [
+      1201,
+      498
+    ],
+    "tint": [
+      0.8,
+      0.88,
+      0.92,
+      0.22
+    ],
+    "order": "BEFORE_ALL_SORTED_BODIES",
+    "normalAlpha": true,
+    "staticReducedMotionIdentical": true,
+    "receipt": "FRESH_SAME_DRAW_SUCCESS_ONLY"
+  },
+  "sampling": "linear",
+  "repeat": false,
+  "blend": "normal_alpha",
+  "excluded": [
+    "quay_open_waterline_HOLD_NOT_REGISTERED",
+    "all_fog_vfx_rows",
+    "Tidebound_alias",
+    "old_FogPier_UV_layout_timing",
+    "actor_body_calibration_culling_and_labels",
+    "shoreline_fender_new_geometry",
+    "native_gameplay_animation_ripple"
+  ]
+}
