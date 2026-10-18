@@ -1,0 +1,176 @@
+{
+  "schema": "wuxian.mh-signal-yard-environment.internal-use/v1",
+  "registeredSourceReuse": true,
+  "approval": "INTERNAL_REGISTERED_SOURCE_REUSE",
+  "GodotDisplay": "NOT_RUN",
+  "publicRelease": "NOT_ESTABLISHED",
+  "worldId": "mist_harbor",
+  "sceneId": "mh_signal_yard",
+  "references": {
+    "stoneDefinition": "res://data/mh_fog_pier_stone_material.internal-use.json",
+    "stoneDefinitionSha256": "c56ad7549a49809341e2aea6efcbe7fbe0477eb51026e776c4a49fa03077585a",
+    "fogDefinition": "res://data/mh_fog_pier_layered_fog.internal-use.json",
+    "fogDefinitionSha256": "027980b44e5f92aa5e7759611eeffe69d6ae59be90a4ae4e0858a96123d2bee0"
+  },
+  "stone": {
+    "assetId": "runtime2d.world.mistharbor.water_edge_stone.v1",
+    "path": "res://assets/props/mist_harbor/fog_pier_stone_source.png",
+    "bytes": 1983603,
+    "sha256": "e823434b3fbc420fc14270200f81e0a459e594597304b1323d336e532a924f9d",
+    "canvas": [
+      1228,
+      1254
+    ],
+    "format": "RGBA8",
+    "sourceRelative": "batch07/02_runtime2d.world.mistharbor.water_edge_stone.v1.png",
+    "sourceSha256": "dc09452bf3f55c57cca1a93bb09f169ef441af90321dff47d91c4be7e62d3a83",
+    "pixelEdgeCorners": [
+      [
+        820,
+        240
+      ],
+      [
+        1032,
+        342
+      ],
+      [
+        392,
+        627
+      ],
+      [
+        180,
+        525
+      ]
+    ],
+    "uvConvention": "sourcePixelEdge / standaloneCanvasSize",
+    "rowId": "approved_stone_water_surface",
+    "layer": "visual.floor",
+    "position": [
+      12,
+      0,
+      8
+    ],
+    "walkableId": "mh_signal_yard_walkable_area",
+    "walkablePolygon": [
+      [
+        0.5,
+        0.5
+      ],
+      [
+        23.5,
+        0.5
+      ],
+      [
+        23.5,
+        15.5
+      ],
+      [
+        0.5,
+        15.5
+      ]
+    ],
+    "patchSizeM": [
+      2,
+      6
+    ],
+    "grid": [
+      12,
+      3
+    ],
+    "patchCount": 36,
+    "groundY": 0,
+    "tint": [
+      0.46,
+      0.55,
+      0.6,
+      1
+    ],
+    "seamlessTileability": "NOT_ESTABLISHED"
+  },
+  "fog": {
+    "assetId": "runtime2d.world.mistharbor.fog_bank.v1",
+    "path": "res://assets/props/mist_harbor/fog_pier_fog_bank_source.png",
+    "bytes": 684960,
+    "sha256": "9bbbfd9783f70a8b1f6ffeaabd44e568074f4c20f1f7500d7ef4f0e534edeac2",
+    "canvas": [
+      1254,
+      1236
+    ],
+    "format": "RGBA8",
+    "cropXYWH": [
+      27,
+      370,
+      1201,
+      498
+    ],
+    "uvConvention": "sourcePixelEdge / standaloneCanvasSize",
+    "rowId": "yard_north_fog_bank",
+    "layer": "visual.props_back",
+    "position": [
+      8,
+      0,
+      3
+    ],
+    "widthPerPpm": 10,
+    "centerOffsetPerPpm": [
+      0,
+      -1
+    ],
+    "modulate": [
+      0.78,
+      0.86,
+      0.9,
+      0.18
+    ],
+    "sampling": "linear",
+    "repeat": false,
+    "blend": "normal-alpha",
+    "temporal": "STATIC"
+  },
+  "air": {
+    "kind": "static_decorative_interference_air",
+    "hazardId": "mh_signal_interference_region",
+    "sourceKind": "signal_interference_zone",
+    "polygon": [
+      [
+        13,
+        5
+      ],
+      [
+        19,
+        5
+      ],
+      [
+        19,
+        10
+      ],
+      [
+        13,
+        10
+      ]
+    ],
+    "ribbonZ": [
+      5.7,
+      7.5,
+      9.3
+    ],
+    "xRange": [
+      13.35,
+      18.65
+    ],
+    "heightCapM": 0.4,
+    "perRibbonLayers": 2,
+    "polygonCap": 6,
+    "verticesCap": 10,
+    "rgb": [
+      0.52,
+      0.64,
+      0.69
+    ],
+    "layerAlpha": [
+      0.04,
+      0.055
+    ],
+    "temporal": "STATIC"
+  }
+}
