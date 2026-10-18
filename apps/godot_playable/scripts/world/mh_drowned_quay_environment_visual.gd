@@ -702,13 +702,18 @@ func draw_wall(canvas: Variant, snapshot_value: Variant, scene_value: Variant, k
 func draw_water(canvas: Variant, snapshot_value: Variant, scene_value: Variant, key: Variant, camera: Variant, region: Variant, viewport: Variant) -> bool:
 	if not _context(canvas,snapshot_value,scene_value,key,camera,viewport) or not region is Dictionary or not _same(region,DEFINITION.source.terrain[0]):
 		return false
+	var pump: Variant = snapshot_value.get('mistHarborPump')
+	var drained: bool = pump is Dictionary and pump.get('state') == 'drained'
+	# Halve each layer, preserving the legacy base alpha (0.32 -> 0.16).
+	# Accent layers dim too; stacked opacity is not a single half-opacity pass.
+	var alpha_scale: float = 0.5 if drained else 1.0
 	var plan: Array[Dictionary] = []
 	for style: Dictionary in DEFINITION.water.style:
 		var points: PackedVector2Array = _quad(camera,style.rect,0)
 		if points.is_empty():
 			return false
 		var color: Color = Color(style.color)
-		color.a = float(style.alpha)
+		color.a = float(style.alpha) * alpha_scale
 		plan.append({'points':points,'color':color})
 	_emit(canvas,plan)
 	return true
