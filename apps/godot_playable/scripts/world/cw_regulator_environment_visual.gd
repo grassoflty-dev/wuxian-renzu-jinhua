@@ -238,8 +238,14 @@ func draw_wall(canvas: Variant, snapshot: Variant, scene: Variant, current_key: 
 	var b: Vector2 = Vector2(definition[2][0],definition[2][1])
 	var outward: Vector2 = Vector2(definition[3][0],definition[3][1])*0.05
 	var height: float = float(definition[4])
-	var contact: Array[Vector3] = [Vector3(a.x,0,a.y),Vector3(b.x,0,b.y),Vector3(b.x+outward.x,0,b.y+outward.y),Vector3(a.x+outward.x,0,a.y+outward.y)]
-	var side: Array[Vector3] = [Vector3(a.x,0,a.y),Vector3(b.x,0,b.y),Vector3(b.x,height,b.y),Vector3(a.x,height,a.y)]
+	var ground_end: Vector2 = b
+	if id_value == 'cw_regulator_core_wall_east_south':
+		# The adjacent south cap hides these lower fragments under this projection.
+		# Keep the top endpoint/cap; clip only the contact and side's ground endpoint.
+		var south: Array = WALLS['cw_regulator_core_wall_south']
+		ground_end.y = float(south[1][1])-float(south[4])
+	var contact: Array[Vector3] = [Vector3(a.x,0,a.y),Vector3(ground_end.x,0,ground_end.y),Vector3(ground_end.x+outward.x,0,ground_end.y+outward.y),Vector3(a.x+outward.x,0,a.y+outward.y)]
+	var side: Array[Vector3] = [Vector3(a.x,0,a.y),Vector3(ground_end.x,0,ground_end.y),Vector3(b.x,height,b.y),Vector3(a.x,height,a.y)]
 	var cap: Array[Vector3] = []
 	var polygon: Array = definition[0]
 	for point: Array in polygon:
