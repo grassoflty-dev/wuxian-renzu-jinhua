@@ -26,6 +26,7 @@ const CwConveyorEnvironmentVisual = preload('res://scripts/world/cw_conveyor_env
 const CwGearShaftEnvironmentVisual = preload('res://scripts/world/cw_gear_shaft_environment_visual.gd')
 const MhBreakwaterEnvironmentVisual = preload('res://scripts/world/mh_breakwater_environment_visual.gd')
 const MhResonanceTowerEnvironmentVisual = preload('res://scripts/world/mh_resonance_tower_environment_visual.gd')
+const MhExtractionEnvironmentVisual = preload('res://scripts/world/mh_extraction_environment_visual.gd')
 const GhSentinelFloorMaterialVisual = preload('res://scripts/world/gh_sentinel_floor_material_visual.gd')
 const GhPowerFloorMaterialVisual = preload('res://scripts/world/gh_power_floor_material_visual.gd')
 const GhEntryWallModulesVisual = preload('res://scripts/world/gh_entry_wall_modules_visual.gd')
@@ -157,6 +158,7 @@ var current_key = ''
 var cw_gear_shaft_environment_visual = CwGearShaftEnvironmentVisual.new()
 var mh_breakwater_environment_visual = MhBreakwaterEnvironmentVisual.new()
 var mh_resonance_tower_environment_visual = MhResonanceTowerEnvironmentVisual.new()
+var mh_extraction_environment_visual = MhExtractionEnvironmentVisual.new()
 var displayed = {}
 var occluder_alpha = {}
 var viewport_rect = Rect2()
@@ -199,6 +201,7 @@ func commit(s: Dictionary, data: Dictionary, hash: String) -> void:
 	snapshot = s
 	scene = data
 	scene_hash = hash
+	mh_extraction_environment_visual.prepare(snapshot,scene,current_key,scene_hash)
 	mh_resonance_tower_environment_visual.prepare(snapshot,scene,current_key,scene_hash)
 	mh_breakwater_environment_visual.prepare(snapshot,scene,current_key,scene_hash)
 	cw_gear_shaft_environment_visual.prepare(snapshot,scene,current_key,scene_hash)
@@ -309,6 +312,7 @@ func _draw() -> void:
 	var floor_poly = [[b.x,b.z],[b.x+b.width,b.z],[b.x+b.width,b.z+b.depth],[b.x,b.z+b.depth]]
 	var floor_color = {'return_station':Color('#233c47'),'grey_hive':Color('#263634'),'mist_harbor':Color('#203742'),'clockworks':Color('#40362c')}.get(snapshot.worldId,Color('#263634'))
 	_poly(floor_poly,0,floor_color,true)
+	mh_extraction_environment_visual.draw_ground(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
 	mh_resonance_tower_environment_visual.draw_ground(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
 	mh_breakwater_environment_visual.draw_ground(self,snapshot,scene,current_key,camera,viewport_rect)
 	cw_gear_shaft_environment_visual.draw_floor(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
@@ -475,6 +479,8 @@ func _draw() -> void:
 				continue
 			if mh_resonance_tower_environment_visual.draw_wall(self,wall,snapshot,scene,current_key,scene_hash,camera,viewport_rect):
 				continue
+			if mh_extraction_environment_visual.draw_wall(self,wall,snapshot,scene,current_key,scene_hash,camera,viewport_rect):
+				continue
 			_poly(wall.polygon,0,Color('#4b5659'),true)
 			_poly(wall.polygon,0,Color('#819092'),false)
 	if gh_bio_wall_active:
@@ -535,6 +541,8 @@ func _draw() -> void:
 		quay_bank_drawn_ids.append('quay_north_fog_bank')
 	var breakwater_bank_drawn_ids: Array[String] = mh_breakwater_environment_visual.draw_bank(self,'back',snapshot,scene,current_key,camera,viewport_rect)
 	var resonance_tower_bank_drawn_ids: Array[String] = mh_resonance_tower_environment_visual.draw_back_bank(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
+	var extraction_bank_drawn_ids: Array[String] = mh_extraction_environment_visual.draw_bank(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
+	mh_extraction_environment_visual.draw_air(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
 	var objects: Array = []
 	var gh_exit_dressing_packets: Array[Dictionary] = gh_exit_environment_visual.build_dressing(snapshot,scene,current_key,camera,viewport_rect)
 	for gh_exit_shadow_packet: Dictionary in gh_exit_dressing_packets:
@@ -674,6 +682,7 @@ func _draw() -> void:
 	mh_fog_pier_suppressed_bank_ids.append_array(quay_bank_drawn_ids)
 	mh_fog_pier_suppressed_bank_ids.append_array(breakwater_bank_drawn_ids)
 	mh_fog_pier_suppressed_bank_ids.append_array(resonance_tower_bank_drawn_ids)
+	mh_fog_pier_suppressed_bank_ids.append_array(extraction_bank_drawn_ids)
 	_hazards()
 	_beacon()
 	_boss_warning()
@@ -1452,6 +1461,8 @@ func _atmosphere(suppressed_bank_ids: Array = []) -> void:
 			if prop is Dictionary and prop.get('assetId') in ['runtime2d.world.mistharbor.fog_bank.v1','runtime2d.world.mistharbor.fog_vfx.v1'] and prop.get('position') is Array and prop.position.size()==3:
 				var bank_id = prop.get('id')
 				var bank_position = prop.get('position')
+				if mh_extraction_environment_visual.legacy_bank_consumed(self,prop,snapshot,scene,current_key,scene_hash,camera,viewport_rect,suppressed_bank_ids):
+					continue
 				if mh_resonance_tower_environment_visual.legacy_bank_consumed(self,prop,snapshot,scene,current_key,scene_hash,camera,viewport_rect,suppressed_bank_ids):
 					continue
 				if mh_breakwater_environment_visual.legacy_bank_consumed(self,prop,snapshot,scene,current_key,camera,viewport_rect,suppressed_bank_ids):
