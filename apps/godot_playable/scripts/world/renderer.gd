@@ -596,6 +596,8 @@ func _draw() -> void:
 				continue
 			if _gh_gate_b_open_barrier(wall):
 				continue
+			if _gh_lockdown_open_seal(wall):
+				continue
 			_poly(wall.polygon,0,Color('#4b5659'),true)
 			_poly(wall.polygon,0,Color('#819092'),false)
 	if gh_bio_wall_active:
@@ -2044,6 +2046,39 @@ func _gh_gate_b_open_barrier(wall: Dictionary) -> bool:
 		return false
 	var position: Dictionary = state.transform.positionM
 	return P.number(position.xM,12,12) and P.number(position.yM,0,0) and P.number(position.zM,8,8)
+
+func _gh_lockdown_open_seal(wall: Dictionary) -> bool:
+	# The canonical seal follows the same current route event as native collision.
+	if not _gh_state_context('gh_lockdown') or not P.counter(scene.get('schemaVersion'),1,1) or not P.counter(snapshot.get('worldEpoch'),1) or current_key!='grey_hive:gh_lockdown:'+str(snapshot.worldEpoch):
+		return false
+	if wall.size()!=3 or wall.get('id')!='gh_lockdown_bio_seal' or wall.get('requiresEvent')!='hive_lockdown':
+		return false
+	var polygon = wall.get('polygon')
+	var expected = [[10,0.5],[11,0.5],[11,15.5],[10,15.5]]
+	if not polygon is Array or polygon.size()!=expected.size():
+		return false
+	for index in range(expected.size()):
+		if not polygon[index] is Array or polygon[index].size()!=2:
+			return false
+		for axis in range(2):
+			if not P.number(polygon[index][axis],expected[index][axis],expected[index][axis]):
+				return false
+	var collision = scene.get('collision')
+	var interactions = scene.get('interactions')
+	if not P.rows(collision,2048) or not P.unique(collision,'id') or not P.rows(interactions,2048) or not P.unique(interactions,'id'):
+		return false
+	var seals = collision.filter(func(row): return row.get('id')=='gh_lockdown_bio_seal')
+	var terminals = interactions.filter(func(row): return row.get('id')=='gh_lockdown_terminal')
+	if seals.size()!=1 or seals[0]!=wall or terminals.size()!=1:
+		return false
+	var terminal: Dictionary = terminals[0]
+	if terminal.size()!=4 or terminal.get('kind')!='lockdown_terminal' or terminal.get('event')!='hive_lockdown' or not _gh_state_authored_position(terminal.get('position'),[4,0,8]):
+		return false
+	var progression = snapshot.get('progression')
+	if not progression is Dictionary or progression.get('currentWorldId')!='grey_hive' or not P.rows(progression.get('worlds'),16) or not P.unique(progression.worlds,'worldId'):
+		return false
+	var progress = Content.progress(snapshot,'grey_hive')
+	return not progress.is_empty() and progress.visitId>0 and 'hive_lockdown' in progress.completedEvents
 
 func _gh_door_body(d: Dictionary) -> Dictionary:
 	var key = 'gate_a' if d.get('doorId')=='gh_gate_a' else 'gate_b' if d.get('doorId')=='gh_gate_b' else ''
