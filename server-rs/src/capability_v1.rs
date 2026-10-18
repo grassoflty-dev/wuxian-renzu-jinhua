@@ -128,6 +128,15 @@ impl CapabilityState {
         Ok(())
     }
 
+    /// A captured capability clock cannot be ahead of its enclosing owner clock.
+    /// Preserve lagging/absent clocks; admission must not normalize saved state.
+    pub(crate) fn validate_saved_clock(&self, server_time_ms: u64) -> Result<(), CapabilityError> {
+        if self.last_now_ms.is_some_and(|last| last > server_time_ms) {
+            return Err(CapabilityError::NonMonotonicClock);
+        }
+        Ok(())
+    }
+
     pub fn current_revision(&self) -> WorldRevision {
         self.current_revision
     }

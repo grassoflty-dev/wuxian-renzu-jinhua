@@ -266,6 +266,9 @@ impl SaveV5 {
             .regeneration
             .validate()
             .map_err(|_| "E_SAVE_CAPABILITY_INVALID".to_string())?;
+        self.capabilities
+            .validate_saved_clock(self.server_time_ms)
+            .map_err(|_| "E_SAVE_CAPABILITY_INVALID".to_string())?;
         let mut world_ids = BTreeSet::new();
         if self.progression.progress.len() != 3
             || self.progression.progress.iter().any(|entry| {
