@@ -668,13 +668,45 @@ func draw_wall(canvas: Variant, snapshot_value: Variant, scene_value: Variant, k
 	for pair: Array in footprint:
 		contact.append(Vector3(pair[0],0,pair[1]))
 		cap.append(Vector3(pair[0],height,pair[1]))
+	var west_join: bool = id_value == 'cw_forged_guard_arena_wall_west_south'
+	var east_join: bool = id_value == 'cw_forged_guard_arena_wall_east_south'
+	var south: Dictionary = DEFINITION.walls['cw_forged_guard_arena_wall_south']
+	var south_height: float = float(south.height)
+	var join_z: float = float(south.polygon[0][1])
+	var clipped_z: float = join_z-south_height
+	var outer_x: float = float(south.polygon[1][0])
+	var clipped_x: float = outer_x-south_height
+	var extra_contact: Array[Vector3] = []
+	if west_join or east_join:
+		# Clip only footprint fragments whose view ray reaches the south cap.
+		contact[2] = Vector3(contact[2].x,0,clipped_z)
+		contact[3] = Vector3(contact[3].x,0,clipped_z)
+		if east_join:
+			# The outboard end strip is outside that cap and must remain visible.
+			extra_contact = [Vector3(clipped_x,0,clipped_z),Vector3(outer_x,0,clipped_z),Vector3(outer_x,0,join_z),Vector3(clipped_x,0,join_z)]
 	var plan: Array[Dictionary] = []
 	if not _color_plan(plan,camera,contact,Color(0.025,0.032,0.035,0.12)):
 		return false
+	if east_join and not _color_plan(plan,camera,extra_contact,Color(0.025,0.032,0.035,0.12)):
+		return false
 	for index: int in range(4):
-		var a: Vector3 = contact[index]
-		var b: Vector3 = contact[(index+1)%4]
+		# Side/cap endpoints come from the canonical footprint, not clipped contact.
+		var a: Vector3 = Vector3(footprint[index][0],0,footprint[index][1])
+		var b: Vector3 = Vector3(footprint[(index+1)%4][0],0,footprint[(index+1)%4][1])
 		var side: Array[Vector3] = [a,b,Vector3(b.x,height,b.z),Vector3(a.x,height,a.z)]
+		if west_join:
+			if index == 1:
+				side = [a,Vector3(b.x,0,clipped_z),Vector3(b.x,south_height,join_z),Vector3(b.x,height,b.z),Vector3(a.x,height,a.z)]
+			elif index == 2:
+				side = [Vector3(a.x,south_height,join_z),Vector3(b.x,south_height,join_z),Vector3(b.x,height,b.z),Vector3(a.x,height,a.z)]
+			elif index == 3:
+				side = [Vector3(a.x,0,clipped_z),b,Vector3(b.x,height,b.z),Vector3(a.x,height,a.z),Vector3(a.x,south_height,join_z)]
+		elif east_join:
+			if index == 2:
+				# Only the outward triangle of the end face is beyond the south cap.
+				side = [a,Vector3(clipped_x,0,join_z),Vector3(outer_x,height,join_z)]
+			elif index == 3:
+				side = [Vector3(a.x,0,clipped_z),b,Vector3(b.x,height,b.z),Vector3(a.x,height,a.z)]
 		if not _color_plan(plan,camera,side,face):
 			return false
 	if not _color_plan(plan,camera,cap,Color('#596467')):
