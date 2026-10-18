@@ -93,7 +93,7 @@ func _valid_scene(scene: Dictionary) -> bool:
 	return seen.size() == 2 and seen.has(STEAM_ID) and seen.has(MIST_ID)
 
 func _snapshot_hazard_matches(row: Dictionary, hazard_id: String, hazard_kind: String, tag: String, polygon: Array) -> bool:
-	if row.size() != 7 or row.get('entityId') != hazard_id or row.get('kind') != hazard_kind or typeof(row.get('active')) != TYPE_BOOL or typeof(row.get('phaseActive')) != TYPE_BOOL or row.get('phaseActive') != true or not P.transform(row.get('transform')):
+	if row.get('entityId') != hazard_id or row.get('kind') != hazard_kind or typeof(row.get('active')) != TYPE_BOOL or typeof(row.get('phaseActive')) != TYPE_BOOL or row.get('phaseActive') != true or not P.transform(row.get('transform')):
 		return false
 	if not _polygon_matches(row.get('polygonM'),polygon):
 		return false
@@ -104,7 +104,11 @@ func _snapshot_hazard_matches(row: Dictionary, hazard_id: String, hazard_kind: S
 	if environment.size() != 4 or typeof(environment.get('phase')) != TYPE_STRING or typeof(environment.get('tag')) != TYPE_STRING or environment.get('tag') != tag:
 		return false
 	var accepted: Dictionary = V.environment(row)
-	return not accepted.is_empty()
+	if accepted.is_empty():
+		return false
+	if accepted.phase == 'warning':
+		return row.size() == 8 and P.counter(row.get('warningRemainingMs'),1,10000) and row.warningRemainingMs == accepted.remainingMs
+	return row.size() == 7 and not row.has('warningRemainingMs')
 
 func _valid_snapshot_hazards(snapshot: Dictionary) -> bool:
 	var hazards_value: Variant = snapshot.get('hazards')
