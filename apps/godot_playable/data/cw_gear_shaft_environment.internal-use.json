@@ -1,0 +1,169 @@
+{
+  "schema": "wuxian.cw-gear-shaft-environment.internal-use/v1",
+  "registeredSourceReuse": true,
+  "approval": "INTERNAL_REGISTERED_SOURCE_REUSE",
+  "roomUse": "ONLY_EXPLICIT_MAIN_ADMITTED_CW_GEAR_SHAFT_SCOPE",
+  "GodotDisplay": "NOT_RUN",
+  "publicRelease": "NOT_ESTABLISHED",
+  "worldId": "clockworks",
+  "sceneId": "cw_gear_shaft",
+  "sourcePins": [
+    {"path":"apps/godot_playable/scripts/world/renderer.gd","bytes":123213,"sha256":"a9e3e8e0ab4e83a006640b568ca03940168d337d83bc574fefe761a3554c90fa","role":"actual MAIN-admitted pre-change renderer baseline"},
+    {"path":"apps/godot_playable/data/scenes/cw_gear_shaft.json","bytes":8965,"sha256":"91afdb035c3df824806884c49d1e8f71034ff8f51b7bf90280bf71594896fea9","role":"canonical scene"},
+    {"path":"content/scenes/compiled/cw_gear_shaft.json","bytes":8965,"sha256":"91afdb035c3df824806884c49d1e8f71034ff8f51b7bf90280bf71594896fea9","role":"canonical scene mirror"},
+    {"path":"apps/godot_playable/scripts/world/projection.gd","bytes":3301,"sha256":"45f518f6dddebaebedd6bc1b5eb66476ebd3f039779cb353cc6124fbc5c9c82e","role":"projection authority"},
+    {"path":"apps/godot_playable/scripts/bridge/protocol.gd","bytes":7675,"sha256":"9558f4192c4738b475c6c03046a1db1cd4074a8caf689008cccab013404b696b","role":"snapshot and numeric authority"},
+    {"path":"apps/godot_playable/scripts/world/presentation.gd","bytes":7353,"sha256":"659c9ccf61f4be94eaee10394e08b57accf7556f12f568809e8d61ae7a43e087","role":"support receipt authority"},
+    {"path":"apps/godot_playable/scripts/world/mh_cw_actor_visual.gd","bytes":4632,"sha256":"3e334dec418f1319881a82bb6024a06fb7b1d426b1000e25ecc61f9f7c7f7568","role":"existing actor consumer"},
+    {"path":"apps/godot_playable/data/mh_cw_actor.internal-use.json","bytes":3028,"sha256":"7a88eece1864b352e2934163546a2303bd3a46457c167a00a5398f657c49590f","role":"existing actor source contract"},
+    {"path":"apps/godot_playable/scripts/world/cenyao_idle_visual.gd","bytes":3875,"sha256":"52ead3447f264a4a6328b82142345f3fd3566599b95f4dadc15fa80d8a217705","role":"existing player consumer"},
+    {"path":"apps/godot_playable/data/cenyao_idle.internal-use.json","bytes":3925,"sha256":"b063efd36046834c41ebed05c12ffb8729926f7d4edff0e15d36dccdbb1da881","role":"existing player source contract"},
+    {"path":"apps/godot_playable/data/cw_pressure_floor_material.internal-use.json","bytes":1391,"sha256":"746dbb35f40af89c300d1043322f634663a1f58bb6130a8711a84c972b35015a","role":"existing steel source contract"},
+    {"path":"apps/godot_playable/scripts/world/cw_pressure_floor_material_visual.gd","bytes":18553,"sha256":"76a0b7946d8b0cb68eb06554db330a3227a8c42eeec4525f2a8194f539e98e4d","role":"existing floor consumer authority"},
+    {"path":"apps/godot_playable/scripts/world/cw_forged_guard_arena_environment_visual.gd","bytes":18813,"sha256":"3e6d99c67b4aec9a01ebc69046aad37ad35fec966c2b0133bc94287802687e30","role":"protected neighboring room helper, source pin only"},
+    {"path":"apps/godot_playable/data/cw_forged_guard_arena_environment.internal-use.json","bytes":8027,"sha256":"ea25389d03d76821e639a98b3e4731f9a3d812a4d2ffe9b67f74b617ecb5ea38","role":"protected neighboring room map, source pin only"},
+    {"path":"apps/godot_playable/project.godot","bytes":556,"sha256":"9f6c26d26037b0f61bc07f36db40f451f544e7f5542f49ca6d53055f5b5758a3","role":"read-only project configuration"},
+    {"path":"server-rs/src/moving_support.rs","bytes":13117,"sha256":"4471fade4c5eded7e3ccf2b06e97a02a950d880df2f91858d9807c7622f24b7b","role":"read-only pose contract provenance"},
+    {"path":"server-rs/src/formal_runtime.rs","bytes":472375,"sha256":"ed60b246d8a338d60a4603fe621e3e73bf813869600b7dc4fe8454dd6b3080d4","role":"read-only atomic receipt provenance"},
+    {"path":"server-rs/tests/support_projection.rs","bytes":10067,"sha256":"b9b6cfb302e45a9b28f7b977aaf1959751e55b362138b5aad8c48c1c87bf03fc","role":"read-only support contract provenance"}
+  ],
+  "upstreamUseMaps": {
+    "steel": {"path":"res://data/cw_pressure_floor_material.internal-use.json","bytes":1391,"sha256":"746dbb35f40af89c300d1043322f634663a1f58bb6130a8711a84c972b35015a","approval":"INTERNAL_REGISTERED_SOURCE_REUSE"},
+    "actors": {"path":"res://data/mh_cw_actor.internal-use.json","bytes":3028,"sha256":"7a88eece1864b352e2934163546a2303bd3a46457c167a00a5398f657c49590f","approval":"INTERNAL_REGISTERED_SOURCE_REUSE"},
+    "cenyao": {"path":"res://data/cenyao_idle.internal-use.json","bytes":3925,"sha256":"b063efd36046834c41ebed05c12ffb8729926f7d4edff0e15d36dccdbb1da881","approval":"INTERNAL_REGISTERED_SOURCE_REUSE"}
+  },
+  "scene": {
+    "path": "res://data/scenes/cw_gear_shaft.json",
+    "bytes": 8965,
+    "sha256": "91afdb035c3df824806884c49d1e8f71034ff8f51b7bf90280bf71594896fea9",
+    "worldId": "clockworks",
+    "sceneId": "cw_gear_shaft",
+    "schemaVersion": 1,
+    "boundsM": [0,0,24,16]
+  },
+  "resources": {
+    "steel": {
+      "assetId": "runtime2d.world.clockworks.floor_steel.v1",
+      "path": "res://assets/props/clockworks/pressure_hall_steel_floor_source.png",
+      "bytes": 1610704,
+      "sha256": "0b4555021799ac849756e0f11c207d4e9309df19f4b8f68d0f4e8177f5204043",
+      "sourceSha256": "1a01e851654d9f5c98b5486cbe489f357ed99c55ffc601c492af63044d90b190",
+      "canvas": [1197,1132],
+      "format": "RGBA8"
+    },
+    "forgedGuard": {
+      "assetId": "runtime2d.enemy.clockworks.forged_guard.v2",
+      "path": "res://assets/enemies/clockworks/forged_guard.png",
+      "bytes": 1300721,
+      "sha256": "b41cdc83c587805d0beee9d48668a9328001882595e0ab97fa69347d9bcf8cb4",
+      "canvas": [1226,1254],
+      "format": "RGBA8",
+      "anchor": [0.5,1],
+      "visualHeightM": 1.72,
+      "sourceSha256": "5c542927516e2e393eccada493e5ca4e20d4bc5d75db8431d57f306910c5d0c0",
+      "sourceRuntimeStatus": "ADOPT",
+      "sourceAdmission": "release_approved"
+    },
+    "drownedIntegrityOnly": {
+      "path": "res://assets/enemies/mist_harbor/drowned.png",
+      "bytes": 1128162,
+      "sha256": "752ac830587fc957d5695cd7714c57e584f40ec1a8f511f324ee491adaee7f2d",
+      "readPurpose": "existing MH_CW loader integrity; NOT displayed"
+    },
+    "signalWraithIntegrityOnly": {
+      "path": "res://assets/enemies/mist_harbor/signal_wraith.png",
+      "bytes": 1440594,
+      "sha256": "942a294e86076bfa91762113cd9bb14c81db329baabf5804ba9138942cc7166b",
+      "readPurpose": "existing MH_CW loader integrity; NOT displayed"
+    },
+    "cenyaoIdle": {
+      "canvas": [336,560],
+      "footAnchor": [168,551],
+      "visualHeightPxAt48ppm": 104,
+      "frames": [
+        {"file":"cenyao_idle_south_west.png","bytes":158163,"sha256":"3d3e34d0a5d388de522fd6a94fd2769efbf8137aea1ae7c0b69881c5416520be"},
+        {"file":"cenyao_idle_east.png","bytes":109177,"sha256":"fd38db1daec829c0a7c2adffcdfd5c605f54b3611bb515599cd8deeea1f47402"},
+        {"file":"cenyao_idle_west.png","bytes":121863,"sha256":"fc8e0b132c48f594a49a20bd39955d731f02077502e33131499608cc3bd7a70c"},
+        {"file":"cenyao_idle_south.png","bytes":158435,"sha256":"b6cff22dabb303f0a9c95ba24a41fb3c2f5159ff191adefacf0c6dad38ffe875"},
+        {"file":"cenyao_idle_north_east.png","bytes":144761,"sha256":"19b8e318bf5216d6075f64ac986ef7c3c3299241816b472843aac24bbf4a7676"},
+        {"file":"cenyao_idle_south_east.png","bytes":158547,"sha256":"bfe0107fe1efdcd73b90d57b01283a22658960b5847bb5e88b401dae9857be56"},
+        {"file":"cenyao_idle_north.png","bytes":151244,"sha256":"6608ed34685f28f3380849d7fe5e5319078e8feb1fbd66cbcd4cb3782a1a8221"},
+        {"file":"cenyao_idle_north_west.png","bytes":143105,"sha256":"8dc527b975b1da5ed7b36a54cf4ad260cdcd9d7d3ccba24660308cf971c3164e"}
+      ]
+    }
+  },
+  "presentationRows": [
+    {"id":"cw_gear_shaft_steel_floor","assetId":"runtime2d.world.clockworks.floor_steel.v1","layer":"visual.floor","position":[12,0,8]},
+    {"id":"cw_gear_shaft_factory_tiles","assetId":"runtime2d.world.clockworks.factory_tiles.v1","layer":"visual.floor","position":[12,0,8]},
+    {"id":"cw_gear_pressure_pipe_run","assetId":"runtime2d.world.clockworks.pressure_pipes.v1","layer":"visual.props_back","position":[11,0,4]},
+    {"id":"cw_gear_factory_module","assetId":"runtime2d.world.clockworks.factory_tiles.v1","layer":"visual.props_back","position":[16,0,12]},
+    {"id":"cw_gear_factory_module_side","assetId":"runtime2d.world.clockworks.factory_tiles.v1","layer":"visual.props_dynamic","position":[20,0,7]}
+  ],
+  "floor": {
+    "rowId": "cw_gear_shaft_steel_floor",
+    "groundY": 0,
+    "sourcePixelEdgeCorners": [[510,200],[970,460],[600,740],[140,480]],
+    "uvConvention": "affine source pixel edge / standalone canvas; no half-pixel offset",
+    "groundPatchM": [4,4],
+    "groundGrid": [6,4],
+    "groundPatchCount": 24,
+    "tint": [0.50,0.53,0.55,1],
+    "normalAlpha": true,
+    "linearFilter": true,
+    "repeat": false,
+    "metricSourceMeasurement": false
+  },
+  "walls": [
+    {"id":"cw_gear_shaft_wall_north","polygon":[[0,0],[24,0],[24,0.5],[0,0.5]],"displayHeightM":0.65},
+    {"id":"cw_gear_shaft_wall_south","polygon":[[0,15.5],[24,15.5],[24,16],[0,16]],"displayHeightM":0.18},
+    {"id":"cw_gear_shaft_wall_west_north","polygon":[[0,0.5],[0.5,0.5],[0.5,6],[0,6]],"displayHeightM":0.65},
+    {"id":"cw_gear_shaft_wall_west_south","polygon":[[0,9.5],[0.5,9.5],[0.5,15.5],[0,15.5]],"displayHeightM":0.65},
+    {"id":"cw_gear_shaft_wall_east_north","polygon":[[23.5,0.5],[24,0.5],[24,6],[23.5,6]],"displayHeightM":0.18},
+    {"id":"cw_gear_shaft_wall_east_south","polygon":[[23.5,9.5],[24,9.5],[24,15.5],[23.5,15.5]],"displayHeightM":0.18}
+  ],
+  "wallsStyle": {
+    "backface": "#303a40",
+    "side": "#414d52",
+    "cap": "#5b686e",
+    "contactRGBA": [0.025,0.032,0.035,0.10],
+    "contactInsideCanonicalFootprint": true,
+    "newCollisionOrOccluder": false
+  },
+  "supports": {
+    "standingDecks": [
+      {"id":"cw_gear_upper_dock","polygon":[[14,6],[18.5,6],[18.5,10],[14,10]],"heightM":2},
+      {"id":"cw_gear_furnace_landing","polygon":[[19.5,6],[24,6],[24,10],[19.5,10]],"heightM":2}
+    ],
+    "movingSupports": [
+      {"id":"cw_gear_main_lift","polygon":[[10,6],[15,6],[15,10],[10,10]],"lowerM":0,"upperM":2,"travelMs":4000,"endpointHoldMs":2000}
+    ],
+    "authoritativeInput": "snapshot.supportScene validated by existing Presentation.support",
+    "poseSource": "existing native cw_gear_main_lift pose_at; no new time or interpolation",
+    "poseCycleMs": 12000,
+    "standingPose": {"phase":"stationary","heightM":2,"velocityMps":0,"phaseElapsedMs":0},
+    "globalTopGridM": [2,2],
+    "globalGridAnchorM": [0,0],
+    "maxTexturedPieces": 18,
+    "topTint": [0.59,0.62,0.64,1],
+    "normalAlpha": true,
+    "drawOrder": ["cw_gear_main_lift","cw_gear_furnace_landing","cw_gear_upper_dock"],
+    "fascia": {
+      "edges": ["east","south"],
+      "heightM": 0.12,
+      "bottomY": "max(0,currentTopY-0.12)",
+      "color": "#48565d",
+      "highlight": "#8a9598",
+      "highlightMaxAlpha": 0.12,
+      "highlightMaxWidthScale": 0.65,
+      "insideFootprint": true,
+      "collisionOrOccluder": false,
+      "upperGapWidthM": 1
+    }
+  },
+  "photoRows": [
+    {"id":"cw_gear_shaft_forged_guard_01","entityType":"runtime2d.enemy.clockworks.forged_guard.v2","authoringType":"enemy.clockworks.forged_guard","position":[6.5,0,8]},
+    {"id":"cw_gear_shaft_forged_guard_02","entityType":"runtime2d.enemy.clockworks.forged_guard.v2","authoringType":"enemy.clockworks.forged_guard","position":[9.5,0,8]}
+  ],
+  "excludedBehavior": ["lift operation","native ride or traversal proof","mobility.air_step_i","first-kill or progression","save/Continue","pressure drones not displayed","factory compound as floor/support/wall","pressure pipe compound as registered support","any furnace/fire/gear-machine source"],
+  "protected": ["all scene copies","support/collision/navigation/checkpoint/traversal geometry","actor roster/body selectors/culling/sorting/labels","existing fallback rendering","other room helpers and mappings","native code","Main/Panels/UI","project/import/cache/settings","all previous source and public/private lineage differences"]
+}
