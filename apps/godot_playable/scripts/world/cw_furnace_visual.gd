@@ -8,6 +8,8 @@ var attempted = false
 var textures: Dictionary = {}
 func _pair(v, x: float, y: float) -> bool:
 	return v is Array and v.size()==2 and P.number(v[0],x,x) and P.number(v[1],y,y)
+func prepare_resources() -> void:
+	_load_once()
 func _load_once() -> void:
 	if attempted:
 		return
