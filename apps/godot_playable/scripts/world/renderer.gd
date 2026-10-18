@@ -6,6 +6,8 @@ const MhSignalYardEnvironmentVisual = preload('res://scripts/world/mh_signal_yar
 var mh_signal_yard_environment_visual = MhSignalYardEnvironmentVisual.new()
 const MhTidalWarehouseEnvironmentVisual = preload('res://scripts/world/mh_tidal_warehouse_environment_visual.gd')
 var mh_tidal_warehouse_environment_visual = MhTidalWarehouseEnvironmentVisual.new()
+const MhWardenArenaEnvironmentVisual = preload('res://scripts/world/mh_warden_arena_environment_visual.gd')
+var mh_warden_arena_environment_visual = MhWardenArenaEnvironmentVisual.new()
 const V = preload('res://scripts/world/presentation.gd')
 const Camera = preload('res://scripts/world/projection.gd')
 const MhFogPierGroundVisual = preload('res://scripts/world/mh_fog_pier_ground_visual.gd')
@@ -167,6 +169,7 @@ var interaction_focus: Dictionary = {}
 var mh_fog_pier_phase_seconds: float = 0.0
 var mh_fog_pier_defer_labels: bool = false
 var mh_fog_pier_deferred_labels: Array = []
+var mh_warden_arena_last_draw_report: Dictionary = {}
 func _ready() -> void:
 	gh_entry_ambient_visual = GhEntryAmbientVisual.new()
 	baizhi_placeholder_visual = BaizhiPlaceholderVisual.new()
@@ -177,6 +180,7 @@ func _ready() -> void:
 	gh_bio_lockdown_visual = GhBioLockdownVisual.new()
 	mh_cw_actor = MhCwActor.new()
 	grey_hive_actor = GreyHiveActor.new()
+	mh_warden_arena_environment_visual.prepare()
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	texture_repeat = CanvasItem.TEXTURE_REPEAT_DISABLED
 func commit(s: Dictionary, data: Dictionary, hash: String) -> void:
@@ -300,6 +304,7 @@ func actor_visible(id: String, allow_dead: bool = false) -> bool:
 					return true
 	return false
 func _draw() -> void:
+	mh_warden_arena_last_draw_report = {'ground_drawn':false,'wall_ids':[],'bank_ids':[],'ambient_polygons':0}
 	_clear_gh_vital_body_records()
 	mh_fog_pier_deferred_labels.clear()
 	mh_fog_pier_defer_labels = false
@@ -312,6 +317,8 @@ func _draw() -> void:
 	var floor_poly = [[b.x,b.z],[b.x+b.width,b.z],[b.x+b.width,b.z+b.depth],[b.x,b.z+b.depth]]
 	var floor_color = {'return_station':Color('#233c47'),'grey_hive':Color('#263634'),'mist_harbor':Color('#203742'),'clockworks':Color('#40362c')}.get(snapshot.worldId,Color('#263634'))
 	_poly(floor_poly,0,floor_color,true)
+	var warden_ground_drawn: bool = mh_warden_arena_environment_visual.draw_ground(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
+	mh_warden_arena_last_draw_report['ground_drawn'] = warden_ground_drawn
 	mh_extraction_environment_visual.draw_ground(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
 	mh_resonance_tower_environment_visual.draw_ground(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
 	mh_breakwater_environment_visual.draw_ground(self,snapshot,scene,current_key,camera,viewport_rect)
@@ -428,6 +435,7 @@ func _draw() -> void:
 	var mh_pump_packets = mh_pump_environment_visual.build_packets(scene,snapshot,current_key,camera)
 	var mh_pump_room_active = not mh_pump_packets.is_empty()
 	var gh_lockdown_wall_drawn_ids: Array = []
+	var warden_wall_drawn_ids: Array[String] = []
 	# Canonical static geometry is display only. No spawns, routes, navigation or hidden objectives.
 	for wall in scene.get('collision',[]):
 		if gh_entry_wall_active and wall is Dictionary and typeof(wall.get('id')) == TYPE_STRING and wall.id in gh_entry_wall_suppressed_ids:
@@ -441,6 +449,12 @@ func _draw() -> void:
 		if mh_pump_room_active and wall is Dictionary and mh_pump_environment_visual.is_wall_id(wall.get('id')):
 			continue
 		if wall is Dictionary and P.polygon(wall.get('polygon')):
+			if mh_warden_arena_environment_visual.draw_wall(self,snapshot,scene,current_key,scene_hash,wall,camera,viewport_rect):
+				var warden_wall_id: Variant = wall.get('id')
+				if typeof(warden_wall_id) == TYPE_STRING:
+					warden_wall_drawn_ids.append(warden_wall_id)
+					mh_warden_arena_last_draw_report['wall_ids'] = warden_wall_drawn_ids
+				continue
 			if rs_active and rs_environment_visual.is_structure_id(wall.get('id')):
 				continue
 			if mh_fog_pier_environment_visual.draw_wall(self,snapshot,scene,current_key,camera,wall,viewport_rect):
@@ -543,6 +557,10 @@ func _draw() -> void:
 	var resonance_tower_bank_drawn_ids: Array[String] = mh_resonance_tower_environment_visual.draw_back_bank(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
 	var extraction_bank_drawn_ids: Array[String] = mh_extraction_environment_visual.draw_bank(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
 	mh_extraction_environment_visual.draw_air(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
+	var warden_back_air_report: Dictionary = mh_warden_arena_environment_visual.draw_back_air(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
+	var warden_consumed_ids: Array = warden_back_air_report.get('bank_ids',[])
+	mh_warden_arena_last_draw_report['bank_ids'] = warden_consumed_ids
+	mh_warden_arena_last_draw_report['ambient_polygons'] = warden_back_air_report.get('ambient_polygons',0)
 	var objects: Array = []
 	var gh_exit_dressing_packets: Array[Dictionary] = gh_exit_environment_visual.build_dressing(snapshot,scene,current_key,camera,viewport_rect)
 	for gh_exit_shadow_packet: Dictionary in gh_exit_dressing_packets:
@@ -683,6 +701,7 @@ func _draw() -> void:
 	mh_fog_pier_suppressed_bank_ids.append_array(breakwater_bank_drawn_ids)
 	mh_fog_pier_suppressed_bank_ids.append_array(resonance_tower_bank_drawn_ids)
 	mh_fog_pier_suppressed_bank_ids.append_array(extraction_bank_drawn_ids)
+	mh_fog_pier_suppressed_bank_ids.append_array(warden_consumed_ids)
 	_hazards()
 	_beacon()
 	_boss_warning()
@@ -1472,6 +1491,8 @@ func _atmosphere(suppressed_bank_ids: Array = []) -> void:
 				if mh_signal_yard_environment_visual.should_suppress_bank(prop,snapshot,scene,current_key,camera,viewport_rect,suppressed_bank_ids):
 					continue
 				if mh_tidal_warehouse_environment_visual.legacy_bank_consumed(prop,snapshot,scene,current_key,camera,viewport_rect,suppressed_bank_ids):
+					continue
+				if mh_warden_arena_environment_visual.legacy_bank_consumed(prop,snapshot,scene,current_key,scene_hash,camera,viewport_rect,suppressed_bank_ids):
 					continue
 				if prop.get('assetId')=='runtime2d.world.mistharbor.fog_bank.v1' and typeof(bank_id)==TYPE_STRING and bank_id in suppressed_bank_ids and prop.get('layer')=='visual.props_back' and ((bank_id=='approved_fog_bank_north' and P.number(bank_position[0],13.0,13.0) and P.number(bank_position[1],0.0,0.0) and P.number(bank_position[2],2.5,2.5)) or (bank_id=='approved_fog_bank_east' and P.number(bank_position[0],20.0,20.0) and P.number(bank_position[1],0.0,0.0) and P.number(bank_position[2],11.0,11.0))):
 					continue
