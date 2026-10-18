@@ -137,6 +137,11 @@ fn validate_authority(
     persistent: &WorldPersistentState,
 ) -> Result<(), String> {
     save.validate()?;
+    // History hydration requires an authored active scene. Legacy world-only
+    // snapshots have no SceneRuntime to receive even an empty history record.
+    if persistent.scene_history_v1.is_some() && save.scene_id == save.world_id {
+        return Err("E_SAVE_SCENE_HISTORY_ACTIVE_ROW_INVALID".into());
+    }
     crate::formal_runtime::warden_encounter::validate_saved(save, persistent)?;
     crate::formal_runtime::clockworks_controls::validate_saved(save, &persistent.clockworks)?;
     crate::formal_runtime::clockworks_roster::validate_saved(save, &persistent.clockworks)?;
