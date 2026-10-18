@@ -38,6 +38,7 @@ impl RuntimeState {
         let (sources, rules) =
             build.resolve_rules_with_capabilities(&capabilities, &world.rear_view)?;
         self.world = world;
+        self.world.invalidate_floor_locomotion();
         self.capabilities = capabilities;
         self.progression_v6 = build;
         self.effect_sources_v6 = sources;
@@ -69,6 +70,7 @@ impl RuntimeState {
     }
 
     pub(super) fn refresh_build_movement_rules(&mut self) {
+        self.world.invalidate_floor_locomotion();
         // Updating only rules preserves collision, closed gates and pump-resolved terrain tags.
         self.kcc
             .set_movement_rules(self.effective_rules_v6.clone(), MovementMode::Ground);

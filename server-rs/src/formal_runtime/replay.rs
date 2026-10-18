@@ -39,6 +39,7 @@ impl FormalRuntime {
         }
         let backup = state.clone();
         let scene = self.scene_runtime.lock().map_err(|_| {
+            state.world.invalidate_floor_locomotion();
             state.last_owner_error = Some("E_SCENE_RUNTIME_LOCK_POISONED".into());
             "E_SIMULATION_OWNER: E_SCENE_RUNTIME_LOCK_POISONED"
         })?;
@@ -46,6 +47,7 @@ impl FormalRuntime {
             advance_owner_step_with_input_age(state, scene.as_ref(), Some(Duration::ZERO))
         {
             *state = backup;
+            state.world.invalidate_floor_locomotion();
             state.last_owner_error = Some(error.clone());
             return Err(format!("E_SIMULATION_OWNER: {error}"));
         }

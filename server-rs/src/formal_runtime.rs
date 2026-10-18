@@ -1074,6 +1074,7 @@ impl FormalRuntime {
         })();
         if let Err(error) = result {
             *state = backup;
+            state.world.invalidate_floor_locomotion();
             return Err(error);
         }
         *self
@@ -1300,6 +1301,7 @@ impl FormalRuntime {
             .then_some(restored.world.player.velocity_mps.y_m);
         Self::prepare_entry(&mut restored, state.entry_generation)?;
         if let Some(vertical) = support_vertical_velocity {
+            restored.world.invalidate_floor_locomotion();
             restored.world.player.velocity_mps.y_m = vertical;
             // Combat's ephemeral dash direction is deliberately not restored.
             restored.world.player.dash_remaining_ms = 0;
@@ -3429,6 +3431,7 @@ impl FormalRuntime {
         let epoch = live.world.revision.world_epoch.max(restored.world.revision.world_epoch.saturating_sub(1))
             .checked_add(1).filter(|epoch| *epoch <= build_ui::MAX_SAFE_REVISION)
             .ok_or("E_WORLD_EPOCH_EXHAUSTED")?;
+        restored.world.invalidate_floor_locomotion();
         restored.world.revision.world_epoch = epoch;
         rebase_capability_revision_epoch(&mut restored.capabilities, epoch)?;
         restored.latest_sample.world_epoch = epoch;
@@ -3436,6 +3439,7 @@ impl FormalRuntime {
     }
 
     fn prepare_entry(state: &mut RuntimeState, prior_generation: u64) -> Result<(), String> {
+        state.world.invalidate_floor_locomotion();
         let generation = prior_generation.checked_add(1)
             .filter(|generation| *generation <= build_ui::MAX_SAFE_REVISION)
             .ok_or("E_SCENE_ENTRY_GENERATION_EXHAUSTED")?;
@@ -3454,7 +3458,7 @@ impl FormalRuntime {
         state.pending_combat.clear();
         state.latest_sample = InputSample::new(state.world.revision.world_epoch, 0, 0, 0.0, 0.0)
             .map_err(|error| format!("E_SCENE_INPUT: {error:?}"))?;
-        state.world.player.velocity_mps = Vec3::zero();
+        state.world.set_player_velocity(Vec3::zero());
         state.stepper = FixedStepClock::new(state.stepper.config);
         Ok(())
     }
@@ -3535,6 +3539,7 @@ impl FormalRuntime {
             || state.world.player.velocity_mps != Vec3::zero()
             || !state.pending_combat.is_empty() || held_guard;
         let mut candidate = state.clone();
+        candidate.world.invalidate_floor_locomotion();
         if let Some(sequence) = sequence { candidate.last_lifecycle_sequence = sequence; }
         if paused { candidate.baizhi.revoke(); }
         if !paused { candidate.enhancement_terminal = None; }
@@ -3561,7 +3566,7 @@ impl FormalRuntime {
             // combat intent may execute when this same journey resumes.
             candidate.latest_sample.move_x = 0.0;
             candidate.latest_sample.move_z = 0.0;
-            candidate.world.player.velocity_mps = Vec3::zero();
+            candidate.world.set_player_velocity(Vec3::zero());
             candidate.pending_combat.clear();
             if held_guard {
                 candidate.world.combat_state.active_action = None;
@@ -3635,6 +3640,7 @@ impl FormalRuntime {
             Ok(scene) => scene,
             Err(_) => {
                 *state = backup;
+                state.world.invalidate_floor_locomotion();
                 return Err("E_SCENE_RUNTIME_LOCK_POISONED".into());
             }
         };
@@ -3642,11 +3648,13 @@ impl FormalRuntime {
             Ok(save) => save,
             Err(error) => {
                 *state = backup;
+                state.world.invalidate_floor_locomotion();
                 return Err(error);
             }
         };
         if let Err(error) = crate::save_v6::write_save(&self.save_root, &save) {
             *state = backup;
+            state.world.invalidate_floor_locomotion();
             return Err(error);
         }
         state.pending_entry = None;
@@ -3695,6 +3703,7 @@ fn simulation_owner_loop(
                 };
                 if let Err(error) = result {
                     *state = backup;
+                    state.world.invalidate_floor_locomotion();
                     state.last_owner_error = Some(error);
                 }
             }
@@ -3722,7 +3731,22 @@ fn advance_owner_step_with_input_age(
     scene: Option<&SceneRuntime>,
     replay_input_age: Option<Duration>,
 ) -> Result<(), String> {
-    if state.world.player_hp == 0 { return Ok(()); }
+    if state.world.player_hp == 0 {
+        state.world.invalidate_floor_locomotion();
+        return Ok(());
+    }
+    state.world.begin_owner_floor_locomotion_step();
+    if state.paused || state.pending_entry.is_some() { state.world.invalidate_floor_locomotion(); }
+    let result = advance_owner_step_body(state, scene, replay_input_age);
+    if result.is_err() { state.world.invalidate_floor_locomotion(); }
+    result
+}
+
+fn advance_owner_step_body(
+    state: &mut RuntimeState,
+    scene: Option<&SceneRuntime>,
+    replay_input_age: Option<Duration>,
+) -> Result<(), String> {
     let dt_s = state.stepper.config.dt_s();
     let steps = state
         .stepper
@@ -3761,6 +3785,7 @@ fn advance_owner_step_with_input_age(
     // feature-gated input replay supplies the age of its scheduled sample.
     let input_age = replay_input_age.unwrap_or_else(|| state.latest_input_received_at.elapsed());
     if input_age > Duration::from_millis(250) {
+        state.world.invalidate_floor_locomotion();
         sample.move_x = 0.0;
         sample.move_z = 0.0;
     }
@@ -4026,9 +4051,10 @@ fn advance_owner_step_with_input_age(
         state.pending_combat.clear();
         state.latest_sample.move_x = 0.0;
         state.latest_sample.move_z = 0.0;
-        state.world.player.velocity_mps = Vec3::zero();
+        state.world.set_player_velocity(Vec3::zero());
         emit_presentation(state, "PlayerDeath", state.world.player.position_m, 1.0);
     }
+    state.world.seal_owner_floor_locomotion_step();
     Ok(())
 }
 
@@ -4428,6 +4454,12 @@ fn project_view(state: &RuntimeState) -> WorldView {
             view.player.facing_z = view.player.aim_z;
             view.player.transform.yaw_rad = view.player.aim_x.atan2(view.player.aim_z);
         }
+    }
+    if state.paused || state.pending_entry.is_some() || state.last_owner_error.is_some()
+        || view.player.facing_x != state.world.combat_state.facing_x
+        || view.player.facing_z != state.world.combat_state.facing_z
+        || view.player.transform.yaw_rad != state.world.combat_state.facing_x.atan2(state.world.combat_state.facing_z) {
+        view.player.floor_locomotion = None;
     }
     view.player.action_state = if state.world.player_hp == 0 {
         "death".into()

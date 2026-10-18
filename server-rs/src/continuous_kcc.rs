@@ -412,6 +412,21 @@ pub struct CollisionEvent {
     pub position_m: Vec3,
 }
 
+/// Presentation-only evidence from the actual solve. Not persisted or serialized.
+#[derive(Clone, Debug, PartialEq)]
+pub struct FloorMotionStep {
+    pub pre_position_m: Vec3,
+    pub post_position_m: Vec3,
+    /// Actual planar displacement after collision resolution, with no carry.
+    pub horizontal_self_motion_m: [f32; 2],
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct KccStepOutcome {
+    pub collisions: Vec<CollisionEvent>,
+    pub floor_motion: Option<FloorMotionStep>,
+}
+
 pub fn step_kcc(
     body: &mut KccBody,
     world: &StaticKccWorld,
@@ -428,19 +443,30 @@ pub fn step_kcc_with_surface_motion(
     allow_surface_motion: bool,
 ) -> Result<Vec<CollisionEvent>, KccError> {
     step_kcc_internal(body,world,axes,dt_s,allow_surface_motion,None)
+        .map(|outcome| outcome.collisions)
 }
 
 pub fn step_kcc_at_world_time(
     body: &mut KccBody, world: &StaticKccWorld, axes: (f32,f32), dt_s: f32,
     allow_surface_motion: bool, now_ms: u64,
 ) -> Result<Vec<CollisionEvent>,KccError> {
+    step_kcc_at_world_time_with_outcome(body,world,axes,dt_s,allow_surface_motion,now_ms)
+        .map(|outcome| outcome.collisions)
+}
+
+/// The world owner may consume this ephemeral evidence after the same solve.
+/// This is not a project-wide certificate; legacy entry points discard it.
+pub fn step_kcc_at_world_time_with_outcome(
+    body: &mut KccBody, world: &StaticKccWorld, axes: (f32,f32), dt_s: f32,
+    allow_surface_motion: bool, now_ms: u64,
+) -> Result<KccStepOutcome,KccError> {
     step_kcc_internal(body,world,axes,dt_s,allow_surface_motion,Some(now_ms))
 }
 
 fn step_kcc_internal(
     body: &mut KccBody, world: &StaticKccWorld, axes: (f32,f32), dt_s: f32,
     allow_surface_motion: bool, now_ms: Option<u64>,
-) -> Result<Vec<CollisionEvent>,KccError> {
+) -> Result<KccStepOutcome,KccError> {
     if !dt_s.is_finite() || dt_s <= 0.0 || dt_s > 0.1 {
         return Err(KccError::InvalidDelta);
     }
@@ -448,10 +474,14 @@ fn step_kcc_internal(
     let dt_ms=(dt_s*1000.0).round() as u64;
     let now_ms=now_ms.unwrap_or(0);
     let next_ms=now_ms.checked_add(dt_ms).ok_or(KccError::InvalidDelta)?;
+    let pre_position_m = body.position_m;
+    let pre_grounded = body.grounded;
+    let pre_vertical_velocity = body.velocity_mps.y_m;
     let previous_y=body.position_m.y_m;
     let mut carrying=if allow_surface_motion && body.grounded {
         world.supporting_contact(body.position_m,body.radius_m,now_ms)
     } else {None};
+    let had_initial_support = carrying.is_some();
     for region in &world.terrain_regions {
         if let Some(velocity) = region.surface_velocity_mps {
             if region.tag != TerrainTag::Conveyor || !velocity.iter().all(|v| v.is_finite())
@@ -555,6 +585,7 @@ fn step_kcc_internal(
         });
     }
     body.position_m.x_m = next_x;
+    let x_intermediate_position_m = body.position_m;
     let mut next_z = body.position_m.z_m + axes.1 * speed * horizontal_dt_s + surface[1] * dt_s;
     let mut z_candidate = body.position_m;
     z_candidate.z_m = next_z;
@@ -568,7 +599,7 @@ fn step_kcc_internal(
     }
     body.position_m.z_m = next_z;
     // Authored traversal has already installed this tick's exact 3D point.
-    if !allow_surface_motion {return Ok(collisions);}
+    if !allow_surface_motion {return Ok(KccStepOutcome { collisions, floor_motion: None });}
     let retained=carrying.is_some_and(|support|support.supports(body.position_m,body.radius_m));
     if carrying.is_some() && !retained {
         // Carry and free motion cover one tick, not two stacked vertical steps.
@@ -576,6 +607,7 @@ fn step_kcc_internal(
         body.grounded=false;
         body.velocity_mps.y_m-=body.gravity_mps2*dt_s;
     }
+    let mut landed_on_support = false;
     if !retained {
         body.position_m.y_m += body.velocity_mps.y_m * dt_s;
         if allow_surface_motion {
@@ -584,6 +616,7 @@ fn step_kcc_internal(
                 .filter(|(old,next)|previous_y>=*old-0.001 && body.position_m.y_m<=*next)
                 .max_by(|a,b|a.1.total_cmp(&b.1));
             if let Some((_,height))=landing {
+                landed_on_support = true;
                 body.position_m.y_m=height;body.velocity_mps.y_m=0.0;body.grounded=true;
             }
         }
@@ -595,7 +628,80 @@ fn step_kcc_internal(
             collisions.push(CollisionEvent{axis:"ceiling".into(),position_m:body.position_m});
         }
     }
-    Ok(collisions)
+    let post_position_m = body.position_m;
+    let horizontal_self_motion_m = [
+        post_position_m.x_m - pre_position_m.x_m,
+        post_position_m.z_m - pre_position_m.z_m,
+    ];
+    let floor_motion = if pre_grounded && body.grounded
+        && pre_vertical_velocity == 0.0 && body.velocity_mps.y_m == 0.0
+        && pre_position_m.y_m == crate::moving_support::FLOOR_M
+        && x_intermediate_position_m.y_m == crate::moving_support::FLOOR_M
+        && post_position_m.y_m == crate::moving_support::FLOOR_M
+        && !dash_was_active && collisions.is_empty()
+        && !had_initial_support && carrying.is_none() && !retained && !landed_on_support
+        && surface == [0.0, 0.0]
+        && horizontal_self_motion_m.iter().all(|v| v.is_finite())
+        && horizontal_self_motion_m != [0.0, 0.0]
+        && presentation_floor_sweep_clear(
+            world, pre_position_m, x_intermediate_position_m, post_position_m, body.radius_m,
+        )
+    {
+        Some(FloorMotionStep { pre_position_m, post_position_m, horizontal_self_motion_m })
+    } else {
+        None
+    };
+    Ok(KccStepOutcome { collisions, floor_motion })
+}
+
+/// Presentation-only rejection envelope. Never used for gameplay occupancy.
+/// An inclusive overlap rejects boundary contact as well as thin crossings
+/// whose endpoints are both outside the surface. The full envelope deliberately
+/// over-rejects diagonal motion and supports at unrelated heights.
+fn presentation_floor_sweep_clear(
+    world: &StaticKccWorld, pre: Vec3, intermediate: Vec3, post: Vec3, radius: f32,
+) -> bool {
+    let points = [pre, intermediate, post];
+    if !radius.is_finite() || radius <= 0.0
+        || !points.iter().all(|p| [p.x_m,p.y_m,p.z_m].iter().all(|v|v.is_finite()))
+        || Aabb::new(world.bounds.min_x,world.bounds.max_x,world.bounds.min_z,world.bounds.max_z).is_err()
+    {
+        return false;
+    }
+    let sweep = match Aabb::new(
+        points.iter().map(|p|p.x_m).fold(f32::INFINITY,f32::min) - radius,
+        points.iter().map(|p|p.x_m).fold(f32::NEG_INFINITY,f32::max) + radius,
+        points.iter().map(|p|p.z_m).fold(f32::INFINITY,f32::min) - radius,
+        points.iter().map(|p|p.z_m).fold(f32::NEG_INFINITY,f32::max) + radius,
+    ) {
+        Ok(bounds) => bounds,
+        Err(_) => return false,
+    };
+    let excluded_polygons = world.terrain_regions.iter()
+        .filter(|region| region.tag == TerrainTag::Conveyor)
+        .map(|region| region.polygon.as_slice())
+        .chain(world.moving_supports.iter().map(|support|support.polygon.as_slice()))
+        .chain(world.standing_decks.iter().map(|support|support.polygon.as_slice()));
+    for polygon in excluded_polygons {
+        if polygon.len() < 3 || !polygon.iter().flatten().all(|v|v.is_finite()) {
+            return false;
+        }
+        let bounds = match Aabb::new(
+            polygon.iter().map(|p|p[0]).fold(f32::INFINITY,f32::min),
+            polygon.iter().map(|p|p[0]).fold(f32::NEG_INFINITY,f32::max),
+            polygon.iter().map(|p|p[1]).fold(f32::INFINITY,f32::min),
+            polygon.iter().map(|p|p[1]).fold(f32::NEG_INFINITY,f32::max),
+        ) {
+            Ok(bounds) => bounds,
+            Err(_) => return false,
+        };
+        if sweep.min_x <= bounds.max_x && sweep.max_x >= bounds.min_x
+            && sweep.min_z <= bounds.max_z && sweep.max_z >= bounds.min_z
+        {
+            return false;
+        }
+    }
+    true
 }
 
 // Sweep carried movement so even dash plus a fast belt cannot tunnel a thin wall.

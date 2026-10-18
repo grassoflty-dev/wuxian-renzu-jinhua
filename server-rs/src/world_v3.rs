@@ -106,6 +106,57 @@ pub struct PlayerView {
     pub action_state: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub action_presentation: Option<ActionPresentation>,
+    #[serde(default, skip_serializing_if = "Option::is_none", deserialize_with = "deserialize_floor_locomotion")]
+    pub floor_locomotion: Option<FloorLocomotion>,
+}
+
+/// Presentation-only owner evidence. Context and endpoint are the enclosing snapshot.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FloorLocomotion {
+    pub from_server_tick: u64,
+    pub from_authority_revision: u64,
+    pub min_forward_dot: f32,
+}
+
+// An optional presentation extension must never invalidate an otherwise usable view.
+fn deserialize_floor_locomotion<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<FloorLocomotion>, D::Error> {
+    let value = serde_json::Value::deserialize(deserializer)?;
+    Ok(serde_json::from_value::<FloorLocomotion>(value).ok().filter(|proof|
+        proof.min_forward_dot.is_finite() && (-1.0..=1.0).contains(&proof.min_forward_dot)))
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct FloorMotionEndpoint {
+    world_id: String,
+    scene_id: String,
+    revision: WorldRevision,
+    body: KccBody,
+    facing: [f32; 2],
+}
+
+#[derive(Clone, Debug)]
+struct SealedFloorMotion {
+    certificate: FloorLocomotion,
+    endpoint: FloorMotionEndpoint,
+}
+
+#[derive(Clone, Debug)]
+struct PendingFloorMotion {
+    from_revision: WorldRevision,
+    endpoint: FloorMotionEndpoint,
+    forward_dot: f32,
+}
+
+/// Runtime-only: never included in a save, restore payload, or gameplay schema.
+#[derive(Clone, Debug, Default)]
+struct FloorMotionTracker {
+    sealed: Option<SealedFloorMotion>,
+    pending: Option<PendingFloorMotion>,
+    owner_step_open: bool,
+    invalidated_at: Option<WorldRevision>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -696,6 +747,7 @@ impl CommandReceipt {
 
 #[derive(Clone, Debug)]
 pub struct WorldStateV3 {
+    floor_motion: FloorMotionTracker,
     pub world_id: String,
     pub scene_id: String,
     pub checkpoint_id: Option<String>,
@@ -725,6 +777,7 @@ impl WorldStateV3 {
             return Err(ContinuousWorldError::EmptyId);
         }
         Ok(Self {
+            floor_motion: FloorMotionTracker::default(),
             world_id: id.clone(),
             scene_id: id.clone(),
             checkpoint_id: None,
@@ -746,6 +799,12 @@ impl WorldStateV3 {
         })
     }
     pub fn advance_clock(&mut self, dt_s: f32) -> Result<WorldRevision, ContinuousWorldError> {
+        self.invalidate_floor_locomotion();
+        self.advance_step_clock(dt_s)
+    }
+
+    // Only the ordinary world step may preserve a pending owner certificate.
+    fn advance_step_clock(&mut self, dt_s: f32) -> Result<WorldRevision, ContinuousWorldError> {
         if !dt_s.is_finite() || dt_s <= 0.0 {
             return Err(ContinuousWorldError::InvalidDelta);
         }
@@ -757,10 +816,12 @@ impl WorldStateV3 {
             .server_tick
             .checked_add(1)
             .ok_or(ContinuousWorldError::RevisionExhausted)?;
-        self.bump_authority_revision()?;
+        self.revision.authority_revision = self.revision.authority_revision.checked_add(1)
+            .ok_or(ContinuousWorldError::RevisionExhausted)?;
         Ok(self.revision)
     }
     pub fn bump_authority_revision(&mut self) -> Result<WorldRevision, ContinuousWorldError> {
+        self.invalidate_floor_locomotion();
         self.revision.authority_revision = self
             .revision
             .authority_revision
@@ -768,6 +829,107 @@ impl WorldStateV3 {
             .ok_or(ContinuousWorldError::RevisionExhausted)?;
         Ok(self.revision)
     }
+    pub(crate) fn invalidate_floor_locomotion(&mut self) {
+        self.floor_motion = FloorMotionTracker {
+            invalidated_at: Some(self.revision), ..FloorMotionTracker::default()
+        };
+    }
+
+    fn floor_motion_endpoint(&self) -> FloorMotionEndpoint {
+        FloorMotionEndpoint {
+            world_id: self.world_id.clone(), scene_id: self.scene_id.clone(),
+            revision: self.revision, body: self.player.clone(),
+            facing: [self.combat_state.facing_x, self.combat_state.facing_z],
+        }
+    }
+
+    fn floor_motion_action_free(&self) -> bool {
+        self.player_hp > 0 && self.player.dash_remaining_ms == 0
+            && self.combat_state.active_action.is_none()
+            && self.combat_state.active_traversal.is_none()
+            && !self.combat_state.action_locks_facing
+    }
+
+    /// Only FormalRuntime opens/seals a step; standalone stepping never certifies.
+    pub(crate) fn begin_owner_floor_locomotion_step(&mut self) {
+        if self.floor_motion.pending.is_some() || self.floor_motion.owner_step_open
+            || self.floor_motion.sealed.as_ref().is_some_and(|sealed|
+                sealed.endpoint != self.floor_motion_endpoint()) {
+            self.invalidate_floor_locomotion();
+        }
+        // A clear without a gameplay version bump must not let a later run cover
+        // an anchor captured before that clear at the same version. Drop a step.
+        self.floor_motion.owner_step_open = self.floor_motion.invalidated_at.is_none_or(|barrier|
+            barrier.world_epoch != self.revision.world_epoch
+                || (self.revision.server_tick > barrier.server_tick
+                    && self.revision.authority_revision > barrier.authority_revision));
+        if self.floor_motion.owner_step_open { self.floor_motion.invalidated_at = None; }
+    }
+
+    fn stage_floor_locomotion_step(
+        &mut self, from_revision: WorldRevision,
+        motion: Option<crate::continuous_kcc::FloorMotionStep>,
+    ) {
+        if !self.floor_motion.owner_step_open { return; }
+        let Some(motion) = motion else { self.invalidate_floor_locomotion(); return; };
+        if !self.floor_motion_action_free()
+            || from_revision.world_epoch != self.revision.world_epoch
+            || from_revision.server_tick.checked_add(1) != Some(self.revision.server_tick)
+            || from_revision.authority_revision.checked_add(1) != Some(self.revision.authority_revision)
+            || motion.post_position_m != self.player.position_m {
+            self.invalidate_floor_locomotion(); return;
+        }
+        // Actual resolved displacement, not desired axes or instantaneous velocity.
+        let dx = f64::from(motion.post_position_m.x_m) - f64::from(motion.pre_position_m.x_m);
+        let dz = f64::from(motion.post_position_m.z_m) - f64::from(motion.pre_position_m.z_m);
+        let fx = f64::from(self.combat_state.facing_x);
+        let fz = f64::from(self.combat_state.facing_z);
+        let distance = dx.hypot(dz);
+        let facing_length = fx.hypot(fz);
+        if !distance.is_finite() || distance <= 0.0 || !facing_length.is_finite() || facing_length <= 0.0 {
+            self.invalidate_floor_locomotion(); return;
+        }
+        let forward_dot = ((dx / distance) * (fx / facing_length)
+            + (dz / distance) * (fz / facing_length)).clamp(-1.0, 1.0) as f32;
+        if !forward_dot.is_finite() { self.invalidate_floor_locomotion(); return; }
+        self.floor_motion.pending = Some(PendingFloorMotion {
+            from_revision, endpoint: self.floor_motion_endpoint(), forward_dot,
+        });
+    }
+
+    /// Final owner tail only, after every damage/regen/death/error-capable stage.
+    pub(crate) fn seal_owner_floor_locomotion_step(&mut self) {
+        let Some(pending) = self.floor_motion.pending.take() else {
+            self.floor_motion.sealed = None;
+            self.floor_motion.owner_step_open = false;
+            return;
+        };
+        if !self.floor_motion.owner_step_open || !self.floor_motion_action_free()
+            || pending.endpoint != self.floor_motion_endpoint() {
+            self.invalidate_floor_locomotion(); return;
+        }
+        let certificate = match self.floor_motion.sealed.take() {
+            Some(previous) if previous.endpoint.revision == pending.from_revision => FloorLocomotion {
+                min_forward_dot: previous.certificate.min_forward_dot.min(pending.forward_dot),
+                ..previous.certificate
+            },
+            _ => FloorLocomotion {
+                from_server_tick: pending.from_revision.server_tick,
+                from_authority_revision: pending.from_revision.authority_revision,
+                min_forward_dot: pending.forward_dot,
+            },
+        };
+        self.floor_motion.sealed = Some(SealedFloorMotion { certificate, endpoint: pending.endpoint });
+        self.floor_motion.owner_step_open = false;
+    }
+
+    fn floor_locomotion(&self) -> Option<FloorLocomotion> {
+        let sealed = self.floor_motion.sealed.as_ref()?;
+        (!self.floor_motion.owner_step_open && self.floor_motion.pending.is_none()
+            && self.floor_motion_action_free() && sealed.endpoint == self.floor_motion_endpoint())
+            .then_some(sealed.certificate)
+    }
+
     pub fn actors_have_stable_support(&self,kcc:&StaticKccWorld)->bool {
         self.generic_actors.iter().all(|actor|(actor.position_m.y_m-actor.home_m.y_m).abs()<=0.001
             && kcc.stable_actor_footprint(actor.position_m,actor.body_radius_m()))
@@ -775,9 +937,11 @@ impl WorldStateV3 {
     }
 
     pub fn set_player_transform(&mut self, t: Transform) {
+        self.invalidate_floor_locomotion();
         self.player.position_m = t.position_m
     }
     pub fn set_player_velocity(&mut self, v: Vec3) {
+        self.invalidate_floor_locomotion();
         self.player.velocity_mps = v
     }
     pub fn view(
@@ -815,6 +979,7 @@ impl WorldStateV3 {
                 aim_z: self.combat_state.facing_z,
                 action_state: if self.player_hp == 0 { "death".into() } else { self.combat_state.action_state().into() },
                 action_presentation: if self.player_hp == 0 { None } else { self.combat_state.action_presentation() },
+                floor_locomotion: self.floor_locomotion(),
             },
             actors: self
                 .sentinels
@@ -885,6 +1050,7 @@ pub fn step_world(
     kcc: &StaticKccWorld,
     input: CwStepInput<'_>,
 ) -> Result<CwStepOutput, ContinuousWorldError> {
+    state.invalidate_floor_locomotion();
     step_world_internal(state, kcc, input, false)
 }
 
@@ -904,6 +1070,15 @@ fn step_world_internal(
     kcc: &StaticKccWorld,
     input: CwStepInput<'_>,
     held_input: bool,
+) -> Result<CwStepOutput, ContinuousWorldError> {
+    if !state.floor_motion.owner_step_open { state.invalidate_floor_locomotion(); }
+    let result = step_world_checked(state, kcc, input, held_input);
+    if result.is_err() { state.invalidate_floor_locomotion(); }
+    result
+}
+
+fn step_world_checked(
+    state: &mut WorldStateV3, kcc: &StaticKccWorld, input: CwStepInput<'_>, held_input: bool,
 ) -> Result<CwStepOutput, ContinuousWorldError> {
     if input.sample.protocol != "continuous-input"
         || input.sample.protocol_version != crate::continuous_input::INPUT_PROTOCOL_VERSION
@@ -928,6 +1103,10 @@ fn step_world_internal(
     }
     if state.sentinels.iter().any(|s|!s.validate()) {return Err(ContinuousWorldError::InvalidDelta);}
     let backup = state.clone();
+    let from_revision = state.revision;
+    // Latch before timers/intents and again before advancing actions: an action
+    // ending within this tick cannot turn its own displacement into locomotion.
+    let pre_action_free = state.floor_motion_action_free();
     let result = (|| {
         let mut axes = input.sample.normalized_axes();
         let dt_ms = (input.dt_s * 1000.0).round() as u64;
@@ -945,6 +1124,9 @@ fn step_world_internal(
         for intent in input.combat {
             begin_combat_intent(state, kcc, *intent, axes, &mut combat_events, &mut actor_runtime_events);
         }
+        if !pre_action_free || !state.floor_motion_action_free() || !input.combat.is_empty() {
+            state.invalidate_floor_locomotion();
+        }
         let traversing_this_step = state.combat_state.active_traversal.is_some();
         advance_combat_action(state, kcc, dt_ms, &mut combat_events, &mut actor_runtime_events);
         advance_context_traversal(state, kcc, dt_ms, &mut combat_events);
@@ -953,7 +1135,7 @@ fn step_world_internal(
         } else if state.player.dash_remaining_ms > 0 {
             axes = (state.combat_state.dash_x, state.combat_state.dash_z);
         }
-        let collisions = crate::continuous_kcc::step_kcc_at_world_time(
+        let motion_outcome = crate::continuous_kcc::step_kcc_at_world_time_with_outcome(
             &mut state.player, kcc, axes, input.dt_s, !traversing_this_step, state.server_time_ms)
             .map_err(|_| ContinuousWorldError::InvalidDelta)?;
         let mut sentinel_events = vec![];
@@ -1105,7 +1287,12 @@ fn step_world_internal(
         state.explored.player_position_m = state.player.position_m;
         state.last_input_seq = input.sample.seq;
         state.last_client_time_ms = input.sample.client_time_ms;
-        let revision = state.advance_clock(input.dt_s)?;
+        if combat_events.iter().any(|event| matches!(event, CombatEvent::PlayerDamaged { damage, .. } if *damage > 0)) {
+            state.invalidate_floor_locomotion();
+        }
+        let revision = state.advance_step_clock(input.dt_s)?;
+        state.stage_floor_locomotion_step(from_revision, motion_outcome.floor_motion);
+        let collisions = motion_outcome.collisions;
         Ok(CwStepOutput {
             revision,
             collisions,
@@ -1713,6 +1900,8 @@ pub fn apply_effects_atomically(
     state: &mut WorldStateV3,
     effects: &[WorldEffect],
 ) -> Result<WorldRevision, ContinuousWorldError> {
+    // Public non-clock mutation, including a heal that leaves versions unchanged.
+    state.invalidate_floor_locomotion();
     for e in effects {
         match e {
             WorldEffect::HealPlayer { amount } if *amount == 0 => {

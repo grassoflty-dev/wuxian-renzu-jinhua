@@ -110,6 +110,7 @@ pub(super) fn project(state: &RuntimeState, scene: &SceneRuntime, view: &mut Wor
         position: POSITION, yaw_rad: std::f64::consts::PI, interactable: can_interact }]);
 }
 fn clear_inputs(state: &mut RuntimeState) {
+    state.world.invalidate_floor_locomotion();
     state.latest_sample.move_x = 0.0;
     state.latest_sample.move_z = 0.0;
     state.world.player.velocity_mps = Vec3::zero();
