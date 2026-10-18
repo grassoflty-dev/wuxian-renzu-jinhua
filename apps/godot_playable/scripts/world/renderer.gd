@@ -79,8 +79,10 @@ var cw_pressure_valve_visual
 const CwFurnaceVisual = preload('res://scripts/world/cw_furnace_visual.gd')
 const CwBoilerEnvironmentVisual = preload('res://scripts/world/cw_boiler_environment_visual.gd')
 const CwRegulatorEnvironmentVisual = preload('res://scripts/world/cw_regulator_environment_visual.gd')
+const CwForgedGuardArenaEnvironmentVisual = preload('res://scripts/world/cw_forged_guard_arena_environment_visual.gd')
 const CwEntryFoundryEnvironmentVisual = preload('res://scripts/world/cw_entry_foundry_environment_visual.gd')
 const CW_FURNACES = {
+	'cw_arena_furnace':['cw_forged_guard_arena','furnace_v2','runtime2d.world.clockworks.furnace.v2','visual.props_back',Vector3(18,0,5)],
 	'cw_regulator_furnace_v2':['cw_regulator_core','furnace_v2','runtime2d.world.clockworks.furnace.v2','visual.props_back',Vector3(16,0,6)],
 	'cw_regulator_furnace_v2_side':['cw_regulator_core','furnace_v2','runtime2d.world.clockworks.furnace.v2','visual.props_dynamic',Vector3(12,0,12)],
 	'cw_entry_furnace':['cw_entry_foundry','furnace_v2','runtime2d.world.clockworks.furnace.v2','visual.props_back',Vector3(19,0,6)],
@@ -93,6 +95,7 @@ var cw_furnace_visual
 var cw_entry_foundry_environment_visual = CwEntryFoundryEnvironmentVisual.new()
 var cw_boiler_environment_visual = CwBoilerEnvironmentVisual.new()
 var cw_regulator_environment_visual = CwRegulatorEnvironmentVisual.new()
+var cw_forged_guard_arena_environment_visual = CwForgedGuardArenaEnvironmentVisual.new()
 var camera = Camera.new()
 var mh_fog_pier_ground_visual = MhFogPierGroundVisual.new()
 var mh_fog_pier_stone_material_visual = MhFogPierStoneMaterialVisual.new()
@@ -188,6 +191,7 @@ func commit(s: Dictionary, data: Dictionary, hash: String) -> void:
 	snapshot = s
 	scene = data
 	scene_hash = hash
+	cw_forged_guard_arena_environment_visual.prepare(snapshot,scene,current_key,scene_hash)
 	gh_lockdown_environment_visual.prepare(snapshot,scene,current_key,scene_hash)
 	mh_signal_yard_environment_visual.prepare(snapshot,scene,current_key)
 	if snapshot.get('worldId')=='clockworks' and snapshot.get('sceneId')=='cw_entry_foundry':
@@ -293,6 +297,7 @@ func _draw() -> void:
 	var floor_poly = [[b.x,b.z],[b.x+b.width,b.z],[b.x+b.width,b.z+b.depth],[b.x,b.z+b.depth]]
 	var floor_color = {'return_station':Color('#233c47'),'grey_hive':Color('#263634'),'mist_harbor':Color('#203742'),'clockworks':Color('#40362c')}.get(snapshot.worldId,Color('#263634'))
 	_poly(floor_poly,0,floor_color,true)
+	cw_forged_guard_arena_environment_visual.draw_floor(self,snapshot,scene,current_key,camera,viewport_rect,cw_furnace_visual,_cw_furnace_key(cw_forged_guard_arena_environment_visual.furnace_row(scene)))
 	gh_central_shaft_environment_visual.draw_floor(self,snapshot,scene,current_key,camera,viewport_rect)
 	gh_exit_environment_visual.draw_floor(self,snapshot,scene,current_key,camera,viewport_rect)
 	gh_lockdown_environment_visual.draw_floor(self,snapshot,scene,current_key,camera,viewport_rect)
@@ -429,6 +434,8 @@ func _draw() -> void:
 			if gh_gate_b_environment_visual.draw_wall(self,snapshot,scene,current_key,camera,wall,viewport_rect):
 				continue
 			if cw_regulator_environment_visual.draw_wall(self,snapshot,scene,current_key,camera,wall,viewport_rect):
+				continue
+			if cw_forged_guard_arena_environment_visual.draw_wall(self,snapshot,scene,current_key,camera,wall,viewport_rect):
 				continue
 			if cw_entry_foundry_environment_visual.draw_wall(self,wall,snapshot,scene,current_key,camera,viewport_rect):
 				continue
@@ -1813,6 +1820,8 @@ func _cw_pressure_valve_selected(prop: Dictionary) -> bool:
 	return same_id.size()==1 and same_id[0]==prop
 
 func _cw_furnace_key(prop: Dictionary) -> String:
+	if prop.get('id')=='cw_arena_furnace' and not cw_forged_guard_arena_environment_visual.matches_context(snapshot,scene,current_key,scene_hash):
+		return ''
 	if snapshot.get('worldId')!='clockworks' or scene.get('worldId')!=snapshot.get('worldId') or scene.get('sceneId')!=snapshot.get('sceneId') or not CW_FURNACES.has(prop.get('id')):
 		return ''
 	var selected: Array = CW_FURNACES[prop.id]
