@@ -1,0 +1,434 @@
+{
+  "schema": "wuxian.cw-forged-guard-arena-environment.internal-use/v1",
+  "registeredSourceReuse": true,
+  "approval": "INTERNAL_REGISTERED_SOURCE_REUSE",
+  "GodotDisplay": "NOT_RUN",
+  "publicRelease": "NOT_ESTABLISHED",
+  "worldId": "clockworks",
+  "sceneId": "cw_forged_guard_arena",
+  "roomUse": "MAIN_EXPLICIT_ARENA_ONLY_INTERNAL_USE",
+  "scene": {
+    "path": "res://data/scenes/cw_forged_guard_arena.json",
+    "bytes": 6794,
+    "sha256": "38ae047e46e980f953377121c78713a79b69f84b994e2dd1984e1404fe77ccf5"
+  },
+  "upstream": {
+    "steel": {
+      "path": "res://data/cw_pressure_floor_material.internal-use.json",
+      "bytes": 1391,
+      "sha256": "746dbb35f40af89c300d1043322f634663a1f58bb6130a8711a84c972b35015a"
+    },
+    "furnaces": {
+      "path": "res://data/cw_furnaces.internal-use.json",
+      "bytes": 1670,
+      "sha256": "c797ea5392842aeb0427df01bad7b8562b2e626b05398df6e624c04d88a480d6"
+    },
+    "idle": {
+      "path": "res://data/cenyao_idle.internal-use.json",
+      "bytes": 3925,
+      "sha256": "b063efd36046834c41ebed05c12ffb8729926f7d4edff0e15d36dccdbb1da881"
+    }
+  },
+  "asset": {
+    "assetId": "runtime2d.world.clockworks.floor_steel.v1",
+    "path": "res://assets/props/clockworks/pressure_hall_steel_floor_source.png",
+    "bytes": 1610704,
+    "sha256": "0b4555021799ac849756e0f11c207d4e9309df19f4b8f68d0f4e8177f5204043",
+    "canvas": [
+      1197,
+      1132
+    ],
+    "format": "RGBA8",
+    "sourceSha256": "1a01e851654d9f5c98b5486cbe489f357ed99c55ffc601c492af63044d90b190"
+  },
+  "selection": {
+    "kind": "affine_top_plane",
+    "sourcePixelEdgeCorners": [
+      [
+        510,
+        200
+      ],
+      [
+        970,
+        460
+      ],
+      [
+        600,
+        740
+      ],
+      [
+        140,
+        480
+      ]
+    ],
+    "uvConvention": "sourcePixelEdge / standaloneCanvasSize"
+  },
+  "floor": {
+    "row": {
+      "assetId": "runtime2d.world.clockworks.floor_steel.v1",
+      "id": "cw_forged_guard_arena_steel_floor",
+      "layer": "visual.floor",
+      "position": [
+        12,
+        0,
+        8
+      ]
+    },
+    "bounds": [
+      0,
+      0,
+      24,
+      16
+    ],
+    "groundY": 0,
+    "patchSize": [
+      4,
+      4
+    ],
+    "grid": [
+      6,
+      4
+    ],
+    "patchCount": 24,
+    "tint": [
+      0.52,
+      0.55,
+      0.57,
+      1
+    ],
+    "sampling": "linear",
+    "repeat": false,
+    "blend": "normal_alpha",
+    "scaleBasis": "ART_DIRECTION_NOT_SOURCE_MEASURED"
+  },
+  "furnace": {
+    "row": {
+      "assetId": "runtime2d.world.clockworks.furnace.v2",
+      "id": "cw_arena_furnace",
+      "layer": "visual.props_back",
+      "position": [
+        18,
+        0,
+        5
+      ]
+    },
+    "key": "furnace_v2",
+    "canvas": [
+      1165,
+      1240
+    ],
+    "anchor": [
+      0.5,
+      1
+    ],
+    "heightM": 4,
+    "sourceRuntimeStatus": "ADOPT",
+    "sourceAdmission": "release_approved",
+    "state": "BAKED_FIRE_GAUGES_STATIC_NOT_LIVE_HEAT"
+  },
+  "walls": {
+    "cw_forged_guard_arena_wall_north": {
+      "polygon": [
+        [
+          0,
+          0
+        ],
+        [
+          24,
+          0
+        ],
+        [
+          24,
+          0.5
+        ],
+        [
+          0,
+          0.5
+        ]
+      ],
+      "height": 0.9
+    },
+    "cw_forged_guard_arena_wall_south": {
+      "polygon": [
+        [
+          0,
+          15.5
+        ],
+        [
+          24,
+          15.5
+        ],
+        [
+          24,
+          16
+        ],
+        [
+          0,
+          16
+        ]
+      ],
+      "height": 0.18
+    },
+    "cw_forged_guard_arena_wall_west_north": {
+      "polygon": [
+        [
+          0,
+          0.5
+        ],
+        [
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          6
+        ],
+        [
+          0,
+          6
+        ]
+      ],
+      "height": 0.9
+    },
+    "cw_forged_guard_arena_wall_west_south": {
+      "polygon": [
+        [
+          0,
+          9.5
+        ],
+        [
+          0.5,
+          9.5
+        ],
+        [
+          0.5,
+          15.5
+        ],
+        [
+          0,
+          15.5
+        ]
+      ],
+      "height": 0.9
+    },
+    "cw_forged_guard_arena_wall_east_north": {
+      "polygon": [
+        [
+          23.5,
+          0.5
+        ],
+        [
+          24,
+          0.5
+        ],
+        [
+          24,
+          6
+        ],
+        [
+          23.5,
+          6
+        ]
+      ],
+      "height": 0.18
+    },
+    "cw_forged_guard_arena_wall_east_south": {
+      "polygon": [
+        [
+          23.5,
+          9.5
+        ],
+        [
+          24,
+          9.5
+        ],
+        [
+          24,
+          15.5
+        ],
+        [
+          23.5,
+          15.5
+        ]
+      ],
+      "height": 0.18
+    }
+  },
+  "excludedBlockers": [
+    {
+      "id": "cw_arena_shutter_west_blocker",
+      "polygon": [
+        [
+          0.5,
+          6
+        ],
+        [
+          1,
+          6
+        ],
+        [
+          1,
+          9.5
+        ],
+        [
+          0.5,
+          9.5
+        ]
+      ],
+      "requiresActorFirstKill": "cw_forged_guard_elite"
+    },
+    {
+      "id": "cw_arena_shutter_east_blocker",
+      "polygon": [
+        [
+          23,
+          6
+        ],
+        [
+          23.5,
+          6
+        ],
+        [
+          23.5,
+          9.5
+        ],
+        [
+          23,
+          9.5
+        ]
+      ],
+      "requiresActorFirstKill": "cw_forged_guard_elite"
+    }
+  ],
+  "allAuthoredSprites": [
+    {
+      "assetId": "runtime2d.world.clockworks.floor_steel.v1",
+      "id": "cw_forged_guard_arena_steel_floor",
+      "layer": "visual.floor",
+      "position": [
+        12,
+        0,
+        8
+      ]
+    },
+    {
+      "assetId": "runtime2d.world.clockworks.factory_tiles.v1",
+      "id": "cw_forged_guard_arena_factory_tiles",
+      "layer": "visual.floor",
+      "position": [
+        12,
+        0,
+        8
+      ]
+    },
+    {
+      "assetId": "runtime2d.world.clockworks.pressure_pipes.v1",
+      "id": "cw_arena_forge_pipes",
+      "layer": "visual.props_back",
+      "position": [
+        11,
+        0,
+        4
+      ]
+    },
+    {
+      "assetId": "runtime2d.world.clockworks.furnace.v2",
+      "id": "cw_arena_furnace",
+      "layer": "visual.props_back",
+      "position": [
+        18,
+        0,
+        5
+      ]
+    },
+    {
+      "assetId": "runtime2d.world.clockworks.factory_tiles.v1",
+      "id": "cw_arena_factory_module",
+      "layer": "visual.props_dynamic",
+      "position": [
+        8,
+        0,
+        12
+      ]
+    },
+    {
+      "assetId": "runtime2d.world.clockworks.factory_tiles.v1",
+      "id": "cw_arena_factory_module_side",
+      "layer": "visual.props_dynamic",
+      "position": [
+        20,
+        0,
+        12
+      ]
+    }
+  ],
+  "wallStyle": {
+    "backFace": "#303a3d",
+    "frontFace": "#414b4e",
+    "cap": "#596467",
+    "contact": [
+      0.025,
+      0.032,
+      0.035,
+      0.12
+    ],
+    "displayHeightBasis": "ART_DIRECTION_ONLY_NO_COLLISION_CHANGE"
+  },
+  "cues": {
+    "center": [
+      18,
+      0,
+      5
+    ],
+    "vertices": 24,
+    "contact": {
+      "radii": [
+        1.1,
+        0.25
+      ],
+      "color": [
+        0.025,
+        0.032,
+        0.035,
+        0.12
+      ]
+    },
+    "warm": [
+      {
+        "radii": [
+          1.6,
+          0.72
+        ],
+        "alpha": 0.012
+      },
+      {
+        "radii": [
+          1,
+          0.45
+        ],
+        "alpha": 0.018
+      },
+      {
+        "radii": [
+          0.55,
+          0.25
+        ],
+        "alpha": 0.028
+      }
+    ],
+    "warmColor": "#9f784f",
+    "condition": "CURRENT_EXACT_FURNACE_V2_SELECTOR_AND_NORMAL_VALID_CACHE",
+    "staticReducedMotionIdentical": true,
+    "blend": "normal_alpha",
+    "physicalFeetMeasured": false
+  },
+  "protected": [
+    "canonical_geometry",
+    "both_first_kill_blockers",
+    "old_seven_furnace_rows",
+    "all_body_calibration_and_sorting",
+    "no_new_assets",
+    "no_animation_or_state",
+    "no_qualified_pipe_factory_elite_art_inferred"
+  ]
+}
