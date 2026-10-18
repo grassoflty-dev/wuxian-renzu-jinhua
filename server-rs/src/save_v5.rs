@@ -224,6 +224,9 @@ impl SaveV5 {
             || self.explored.world_id != self.world_id
             || self.revision.world_epoch == 0
             || self.revision.authority_revision < self.revision.server_tick
+            // Restored owner clocks must not fail the first capability tick.
+            || self.last_damaged_at_ms.is_some_and(|time| time > self.server_time_ms)
+            || self.last_combat_at_ms.is_some_and(|time| time > self.server_time_ms)
             || self.player.max_hp == 0
             || self.player.current_hp > self.player.max_hp
             || self.player.max_energy == 0
