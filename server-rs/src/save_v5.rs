@@ -272,6 +272,9 @@ impl SaveV5 {
         self.capabilities
             .validate_saved_revisions(self.revision)
             .map_err(|_| "E_SAVE_CAPABILITY_INVALID".to_string())?;
+        self.capabilities
+            .validate_saved_event_clocks(self.last_damaged_at_ms, self.last_combat_at_ms)
+            .map_err(|_| "E_SAVE_CAPABILITY_INVALID".to_string())?;
         let mut world_ids = BTreeSet::new();
         if self.progression.progress.len() != 3
             || self.progression.progress.iter().any(|entry| {

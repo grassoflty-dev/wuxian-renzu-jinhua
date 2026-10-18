@@ -149,6 +149,20 @@ impl CapabilityState {
         Ok(())
     }
 
+    /// Preserve the tick guard's event-clock ordering, including accepted None resets.
+    pub(crate) fn validate_saved_event_clocks(
+        &self,
+        last_damaged_at_ms: Option<u64>,
+        last_combat_at_ms: Option<u64>,
+    ) -> Result<(), CapabilityError> {
+        if timestamp_regressed(last_damaged_at_ms, self.last_damage_at_ms)
+            || timestamp_regressed(last_combat_at_ms, self.last_combat_at_ms)
+        {
+            return Err(CapabilityError::NonMonotonicClock);
+        }
+        Ok(())
+    }
+
     pub fn current_revision(&self) -> WorldRevision {
         self.current_revision
     }
