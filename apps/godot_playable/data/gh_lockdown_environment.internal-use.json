@@ -1,0 +1,119 @@
+{
+  "schema": "wuxian.gh-lockdown-environment.internal-use/v1",
+  "registeredSourceReuse": true,
+  "approval": "INTERNAL_REGISTERED_SOURCE_REUSE",
+  "GodotDisplay": "NOT_RUN",
+  "publicRelease": "NOT_ESTABLISHED",
+  "worldId": "grey_hive",
+  "sceneId": "gh_lockdown",
+  "references": [
+    {
+      "path": "res://data/gh_entry_floor_material.internal-use.json",
+      "sha256": "6513a6a3c7b5702eea7c5e27ca61f9d19eee5926c546473f2648306b6e41f6ee"
+    },
+    {
+      "path": "res://data/gh_entry_service_pipe.internal-use.json",
+      "sha256": "0dcad760e164065f93ec6ce695ee719954ebae511c36f01c9360d3a563c087ac"
+    },
+    {
+      "path": "res://data/gh_entry_clutter.internal-use.json",
+      "sha256": "c112001fb86be02767a015cd0a998cc39fc1ef37451ea35022c13b06155e7ca5"
+    }
+  ],
+  "floor": {
+    "assetId": "runtime2d.grey_hive.floor_tiles.v1",
+    "path": "res://assets/props/grey_hive/floor_tiles.png",
+    "bytes": 1315059,
+    "sha256": "4c93e192505e71d6ec4e414aeb5c9b76376b7407d677017b31b8eba5e24e744f",
+    "canvas": [1434, 980],
+    "format": "RGBA8",
+    "selection": {
+      "kind": "affine_top_face",
+      "pixelCenterCorners": [[187, 184], [345, 305], [185, 426], [27, 305]],
+      "uvConvention": "(sourcePixelCenter + 0.5) / canvasSize",
+      "interiorAlphaRange": [251, 254]
+    },
+    "rowId": "lockdown_approved_floor",
+    "layer": "visual.floor",
+    "positionM": [12, 0, 8],
+    "boundsXZWH": [0, 0, 24, 16],
+    "cellSizeM": [2, 2],
+    "grid": [12, 8],
+    "patchCount": 96,
+    "tint": [0.62, 0.66, 0.64, 1],
+    "seamlessTileability": "NOT_ESTABLISHED"
+  },
+  "walls": {
+    "rowId": "lockdown_back_wall",
+    "assetId": "runtime2d.grey_hive.wall_tiles.v1",
+    "layer": "visual.props_back",
+    "positionM": [12, 0, 1],
+    "consumer": "PROCEDURAL_CUTAWAY_ONLY_NO_NEW_WALL_TEXTURE",
+    "backHeightM": 0.9,
+    "frontHeightM": 0.18,
+    "faceRGB": [0.15, 0.21, 0.22],
+    "capRGB": [0.23, 0.29, 0.3],
+    "contactInsetM": 0.04,
+    "contactAlpha": 0.12,
+    "excludeColliderId": "gh_lockdown_bio_seal"
+  },
+  "pipe": {
+    "assetId": "runtime2d.grey_hive.pipes_cables.v1",
+    "path": "res://assets/props/return_station/service_pipes.png",
+    "bytes": 1049893,
+    "sha256": "7f3c67879398e89adc9026fc2aca5fbe7792b1dc360b73c737c1b2299eac96da",
+    "canvas": [1414, 1047],
+    "format": "RGBA8",
+    "selection": {
+      "framePx": [0, 219, 388, 270],
+      "seedPx": [100, 320],
+      "componentBoundsPx": [0, 219, 388, 270],
+      "connectedAlphaPixels": 46171,
+      "contactsPx": [[50, 345], [325, 482]]
+    },
+    "rowId": "lockdown_service_cables",
+    "layer": "visual.props_back",
+    "positionM": [15, 0, 3],
+    "contactsM": [[14.5, 0, 3], [15.5, 0, 3]],
+    "spanM": 1,
+    "maximumRotationRadians": 0.025,
+    "maxExtentPxAt48": 80,
+    "shadowRadiiM": [0.6, 0.16],
+    "shadowAlpha": 0.18
+  },
+  "clutter": {
+    "assetId": "runtime2d.grey_hive.clutter.v1",
+    "path": "res://assets/props/grey_hive/clutter.png",
+    "bytes": 1857722,
+    "sha256": "4743030e58286fdac5c4e119941608763d1ceb1d3bbed79ca1d7361ceab97ebe",
+    "canvas": [1428, 1061],
+    "format": "RGBA8",
+    "selection": {
+      "framePx": [40, 716, 347, 287],
+      "seedPx": [150, 800],
+      "seedLocalPx": [110, 84],
+      "componentBoundsLocalPx": [0, 0, 347, 287],
+      "connectedAlphaPixels": 73359,
+      "disconnectedFrameAlphaPixels": 168,
+      "contactsSourcePx": [[50, 929], [369, 898]],
+      "contactsLocalPx": [[10, 213], [329, 182]],
+      "localOriginConvention": "frameTopLeft"
+    },
+    "rowId": "lockdown_approved_clutter",
+    "layer": "visual.props_back",
+    "positionM": [8, 0, 11],
+    "contactsM": [[7.625, 0, 11.5], [8.375, 0, 10.5]],
+    "spanM": 1.25,
+    "maximumRotationRadians": 0.06,
+    "maxExtentPxAt48": 96,
+    "shadowRadiiM": [0.5, 0.55],
+    "shadowAlpha": 0.16
+  },
+  "temporal": "STATIC",
+  "registrationMeaning": "PROPOSED_ROOM_SPECIFIC_VISUAL_CALIBRATION_NOT_SOURCE_PHYSICAL_MEASUREMENT_OR_COLLISION",
+  "canonicalScene": {
+    "path": "res://data/scenes/gh_lockdown.json",
+    "bytes": 10081,
+    "sha256": "718489a1ea4ec4622ccdcefc8459a1dc1bd4f66ccf26abc813b6a06519197850"
+  }
+}

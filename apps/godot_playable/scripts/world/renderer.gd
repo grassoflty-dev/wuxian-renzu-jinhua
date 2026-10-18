@@ -25,6 +25,7 @@ const GhSentinelFloorMaterialVisual = preload('res://scripts/world/gh_sentinel_f
 const GhPowerFloorMaterialVisual = preload('res://scripts/world/gh_power_floor_material_visual.gd')
 const GhEntryWallModulesVisual = preload('res://scripts/world/gh_entry_wall_modules_visual.gd')
 const GhEntryServicePipeVisual = preload('res://scripts/world/gh_entry_service_pipe_visual.gd')
+const GhLockdownEnvironmentVisual = preload('res://scripts/world/gh_lockdown_environment_visual.gd')
 const GhEntryAmbientVisual = preload('res://scripts/world/gh_entry_ambient_visual.gd')
 const GhBeaconEnvironmentVisual = preload('res://scripts/world/gh_beacon_environment_visual.gd')
 const GhGateBEnvironmentVisual = preload('res://scripts/world/gh_gate_b_environment_visual.gd')
@@ -104,6 +105,7 @@ var gh_sentinel_floor_material_visual = GhSentinelFloorMaterialVisual.new()
 var gh_power_floor_material_visual = GhPowerFloorMaterialVisual.new()
 var gh_entry_wall_modules_visual = GhEntryWallModulesVisual.new()
 var gh_entry_service_pipe_visual = GhEntryServicePipeVisual.new()
+var gh_lockdown_environment_visual = GhLockdownEnvironmentVisual.new()
 var gh_entry_ambient_visual
 var gh_bio_clutter_visual = GhBioClutterVisual.new()
 var gh_entry_clutter_visual = GhEntryClutterVisual.new()
@@ -181,6 +183,7 @@ func commit(s: Dictionary, data: Dictionary, hash: String) -> void:
 	snapshot = s
 	scene = data
 	scene_hash = hash
+	gh_lockdown_environment_visual.prepare(snapshot,scene,current_key,scene_hash)
 	mh_signal_yard_environment_visual.prepare(snapshot,scene,current_key)
 	if snapshot.get('worldId')=='clockworks' and snapshot.get('sceneId')=='cw_entry_foundry':
 		cw_entry_foundry_environment_visual.prepare(snapshot,scene,current_key,scene_hash)
@@ -283,6 +286,7 @@ func _draw() -> void:
 	var floor_poly = [[b.x,b.z],[b.x+b.width,b.z],[b.x+b.width,b.z+b.depth],[b.x,b.z+b.depth]]
 	var floor_color = {'return_station':Color('#233c47'),'grey_hive':Color('#263634'),'mist_harbor':Color('#203742'),'clockworks':Color('#40362c')}.get(snapshot.worldId,Color('#263634'))
 	_poly(floor_poly,0,floor_color,true)
+	gh_lockdown_environment_visual.draw_floor(self,snapshot,scene,current_key,camera,viewport_rect)
 	cw_entry_foundry_environment_visual.draw_floor(self,snapshot,scene,current_key,camera,get_viewport_rect(),cw_furnace_visual)
 	mh_signal_yard_environment_visual.draw_floor(self,snapshot,scene,current_key,camera,viewport_rect)
 	var warehouse_frame: Dictionary = mh_tidal_warehouse_environment_visual.build_frame(snapshot,scene,current_key,camera,viewport_rect)
@@ -389,6 +393,7 @@ func _draw() -> void:
 	var cw_pressure_room_active = not cw_pressure_packets.is_empty()
 	var mh_pump_packets = mh_pump_environment_visual.build_packets(scene,snapshot,current_key,camera)
 	var mh_pump_room_active = not mh_pump_packets.is_empty()
+	var gh_lockdown_wall_drawn_ids: Array = []
 	# Canonical static geometry is display only. No spawns, routes, navigation or hidden objectives.
 	for wall in scene.get('collision',[]):
 		if gh_entry_wall_active and wall is Dictionary and typeof(wall.get('id')) == TYPE_STRING and wall.id in gh_entry_wall_suppressed_ids:
@@ -422,6 +427,10 @@ func _draw() -> void:
 				continue
 			if mh_signal_yard_environment_visual.draw_wall(self,snapshot,scene,current_key,camera,wall,viewport_rect):
 				continue
+			if gh_lockdown_environment_visual.draw_wall(self,snapshot,scene,current_key,wall,camera,viewport_rect):
+				if typeof(wall.get('id')) == TYPE_STRING:
+					gh_lockdown_wall_drawn_ids.append(wall.get('id'))
+				continue
 			_poly(wall.polygon,0,Color('#4b5659'),true)
 			_poly(wall.polygon,0,Color('#819092'),false)
 	if gh_bio_wall_active:
@@ -441,6 +450,14 @@ func _draw() -> void:
 	if not rs_active:
 		_supports()
 		_surfaces()
+	var gh_lockdown_dressing_packets: Array = []
+	var gh_lockdown_dressing_candidates: Array = gh_lockdown_environment_visual.build_dressing(snapshot,scene,current_key,camera,viewport_rect)
+	for gh_lockdown_packet_variant in gh_lockdown_dressing_candidates:
+		if not gh_lockdown_packet_variant is Dictionary:
+			continue
+		var gh_lockdown_packet: Dictionary = gh_lockdown_packet_variant
+		if gh_lockdown_environment_visual.draw_contact_shadow(self,gh_lockdown_packet,snapshot,scene,current_key,camera,viewport_rect):
+			gh_lockdown_dressing_packets.append(gh_lockdown_packet)
 	if mh_pump_room_active:
 		mh_pump_environment_visual.draw_channel_material(self,snapshot,scene,current_key,camera,viewport_rect)
 		_draw_mh_pump_packets(mh_pump_packets)
@@ -493,6 +510,18 @@ func _draw() -> void:
 		if not gh_entry_clutter_packet.is_empty() and gh_entry_clutter_visual.matches_authored_row(prop):
 			objects.append({'id':prop.id,'p':gh_entry_clutter_packet.p,'kind':'gh_entry_clutter','data':gh_entry_clutter_packet})
 			continue
+		if gh_lockdown_environment_visual.matches_authored_row(prop):
+			var gh_lockdown_added_packet: bool = false
+			for gh_lockdown_candidate_variant in gh_lockdown_dressing_packets:
+				if not gh_lockdown_candidate_variant is Dictionary:
+					continue
+				var gh_lockdown_candidate: Dictionary = gh_lockdown_candidate_variant
+				if gh_lockdown_candidate.get('row_id') == prop.get('id'):
+					objects.append({'id':prop.id,'p':gh_lockdown_candidate.p,'kind':'gh_lockdown_dressing','data':gh_lockdown_candidate})
+					gh_lockdown_added_packet = true
+					break
+			if gh_lockdown_added_packet:
+				continue
 		var console_body: Dictionary = {}
 		if prop.get('id')=='power_console_off_on':
 			if gh_power_console_matches==1:
@@ -510,6 +539,8 @@ func _draw() -> void:
 		var terminal = _terminal_position(prop)
 		if terminal is Vector3:
 			objects.append({'id':prop.id,'p':terminal,'kind':'registered_terminal','data':prop})
+			continue
+		if prop.get('id') == 'lockdown_back_wall' and gh_lockdown_wall_drawn_ids.size() == 6:
 			continue
 		if 'enemy' in asset or 'actor' in asset or 'npc' in asset or 'beacon' in asset or 'door' in asset or '.gate_' in asset or 'terminal' in asset or 'floor' in asset or 'wall' in asset or 'fog' in asset or 'water' in asset:
 			continue
@@ -869,6 +900,12 @@ func _object_culling_state(o: Dictionary, at: Vector2) -> Dictionary:
 		var gh_entry_clutter_body_visible: bool = _rect_intersects(viewport_rect,gh_entry_clutter_rect)
 		var gh_entry_clutter_fallback_visible: bool = _rect_intersects(viewport_rect,gh_entry_clutter_fallback)
 		return {'furnaceKey':'','culled':not (gh_entry_clutter_body_visible or gh_entry_clutter_fallback_visible),'bodyRect':gh_entry_clutter_rect,'fallbackRect':gh_entry_clutter_fallback}
+	if o.get('kind')=='gh_lockdown_dressing' and o.get('data') is Dictionary and o.data.get('body_rect') is Rect2:
+		var gh_lockdown_dressing_rect: Rect2 = o.data.body_rect
+		var gh_lockdown_dressing_fallback: Rect2 = _prop_placeholder_rect(at,camera.ppm)
+		var gh_lockdown_dressing_body_visible: bool = _rect_intersects(viewport_rect,gh_lockdown_dressing_rect)
+		var gh_lockdown_dressing_fallback_visible: bool = _rect_intersects(viewport_rect,gh_lockdown_dressing_fallback)
+		return {'furnaceKey':'','culled':not (gh_lockdown_dressing_body_visible or gh_lockdown_dressing_fallback_visible),'bodyRect':gh_lockdown_dressing_rect,'fallbackRect':gh_lockdown_dressing_fallback}
 	if o.get('kind')=='door' and o.get('data') is Dictionary and grey_hive_state_props!=null:
 		var gate_body_selection: Dictionary = _gh_door_body(o.data)
 		if not gate_body_selection.is_empty():
@@ -992,6 +1029,9 @@ func _draw_object(o: Dictionary, interaction_caption: String = '') -> void:
 				draw_rect(culling.fallbackRect,Color('#65716d'))
 		'gh_entry_clutter':
 			if not gh_entry_clutter_visual.draw_body(self,o.data,snapshot,scene,current_key,camera,gh_entry_wall_modules_visual):
+				draw_rect(culling.fallbackRect,Color('#65716d'))
+		'gh_lockdown_dressing':
+			if not gh_lockdown_environment_visual.draw_dressing(self,o.data,snapshot,scene,current_key,camera,viewport_rect):
 				draw_rect(culling.fallbackRect,Color('#65716d'))
 		'gh_story_prop':
 			var body_drawn = false
