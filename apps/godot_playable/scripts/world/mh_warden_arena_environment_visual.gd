@@ -53,10 +53,10 @@ const EXPECTED_MAP: Dictionary = {
 		'stone':{'assetId':'runtime2d.world.mistharbor.water_edge_stone.v1','path':'res://assets/props/mist_harbor/fog_pier_stone_source.png','bytes':1983603,'sha256':'e823434b3fbc420fc14270200f81e0a459e594597304b1323d336e532a924f9d','canvas':[1228,1254],'format':'RGBA8','sourcePixelEdgeCorners':[[820,240],[1032,342],[392,627],[180,525]],'uvConvention':'sourcePixelEdge / standaloneCanvasSize'},
 		'fog':{'assetId':'runtime2d.world.mistharbor.fog_bank.v1','path':'res://assets/props/mist_harbor/fog_pier_fog_bank_source.png','bytes':684960,'sha256':'9bbbfd9783f70a8b1f6ffeaabd44e568074f4c20f1f7500d7ef4f0e534edeac2','canvas':[1254,1236],'format':'RGBA8','sourceRect':[27,370,1201,498],'sampling':'linear','repeat':false,'blend':'normal_alpha_preserve_RGBA'}
 	},
-	'floor':{'walkableId':'mh_warden_arena_walkable_area','groundY':0,'patchSizeM':[6,6],'columnWidthsM':[6,6,6,5],'rowDepthsM':[6,6,3],'grid':[4,3],'patchCount':12,'edgeCells':'CLIP_WORLD_AND_UV_FRACTIONS_NOT_STRETCH','tint':[0.38,0.45,0.48,1],'sampling':'linear','repeat':false},
-	'walls':{'highIds':['warden_wall_north','warden_wall_west_north','warden_wall_west_south'],'highDisplayHeight':0.5,'lowDisplayHeight':0.18,'sideColor':'#2d444c','capColor':'#536970','contactColor':[0.025,0.032,0.035,0.1],'contactWidthM':0.06},
-	'bank':{'id':'warden_arena_fog_bank','assetId':'runtime2d.world.mistharbor.fog_bank.v1','layer':'visual.props_back','position':[18,0,3],'sourceRect':[27,370,1201,498],'widthPerPpm':9,'centerOffsetPerPpm':[0,0],'modulate':[0.8,0.88,0.92,0.3],'static':true,'sampling':'linear','repeat':false,'blend':'normal_alpha_preserve_RGBA'},
-	'ambient':{'markerAssetId':'runtime2d.world.mistharbor.fog_vfx.v1','centers':[[8,0,4],[18,0,11]],'xOffsets':[-0.2,0,0.2],'heights':[0.16,0.28,0.2],'outerProfile':[[-0.12,0,0],[-0.1,0.05,-0.03],[-0.06,0.7,-0.06],[0,1,-0.08],[0.05,0.78,-0.06],[0.1,0.08,-0.02],[0.12,0,0],[0,0.025,0.1]],'innerScaleXZ':0.65,'innerScaleY':0.75,'color':'#90a9b2','outerAlpha':0.022,'innerAlpha':0.011,'polygonCount':12,'maxWorldY':0.3,'static':true}
+	'floor':{'walkableId':'mh_warden_arena_walkable_area','groundY':0,'patchSizeM':[3,3],'columnWidthsM':[3,3,3,3,3,3,3,2],'rowDepthsM':[3,3,3,3,3],'grid':[8,5],'patchCount':40,'edgeCells':'CLIP_WORLD_AND_UV_FRACTIONS_NOT_STRETCH','tint':[0.34,0.41,0.44,1],'sampling':'linear','repeat':false},
+	'walls':{'highIds':['warden_wall_north','warden_wall_west_north','warden_wall_west_south'],'highDisplayHeight':0.5,'lowDisplayHeight':0.18,'sideColor':'#293f47','capColor':'#485f67','contactColor':[0.025,0.032,0.035,0.1],'contactWidthM':0.06},
+	'bank':{'id':'warden_arena_fog_bank','assetId':'runtime2d.world.mistharbor.fog_bank.v1','layer':'visual.props_back','position':[18,0,3],'sourceRect':[27,370,1201,498],'widthPerPpm':9,'centerOffsetPerPpm':[0,0],'modulate':[0.8,0.88,0.92,0.38],'static':true,'sampling':'linear','repeat':false,'blend':'normal_alpha_preserve_RGBA'},
+	'ambient':{'markerAssetId':'runtime2d.world.mistharbor.fog_vfx.v1','centers':[[8,0,4],[18,0,11]],'xOffsets':[-0.2,0,0.2],'heights':[0.16,0.28,0.2],'outerProfile':[[-0.12,0,0],[-0.1,0.05,-0.03],[-0.06,0.7,-0.06],[0,1,-0.08],[0.05,0.78,-0.06],[0.1,0.08,-0.02],[0.12,0,0],[0,0.025,0.1]],'innerScaleXZ':0.65,'innerScaleY':0.75,'color':'#90a9b2','outerAlpha':0.055,'innerAlpha':0.025,'polygonCount':12,'maxWorldY':0.3,'static':true}
 }
 
 var attempted: bool = false
@@ -256,21 +256,29 @@ func draw_ground(canvas_value: Variant, snapshot: Variant, scene: Variant, key: 
 		return false
 	var texture: Texture2D = texture_value
 	var patches: Array = []
-	var widths: Array = [6.0,6.0,6.0,5.0]
-	var depths: Array = [6.0,6.0,3.0]
+	var widths: Array[float] = [3.0,3.0,3.0,3.0,3.0,3.0,3.0,2.0]
+	var depths: Array[float] = [3.0,3.0,3.0,3.0,3.0]
 	var x0: float = 0.5
-	for width_value in widths:
-		var width: float = float(width_value)
+	for column_index in range(widths.size()):
+		var width: float = widths[column_index]
 		var z0: float = 0.5
-		for depth_value in depths:
-			var depth: float = float(depth_value)
-			var u_end: float = width/6.0
-			var v_end: float = depth/6.0
+		for row_index in range(depths.size()):
+			var depth: float = depths[row_index]
+			var u0: float = 0.0
+			var u1: float = width/3.0
+			if column_index % 2 == 1:
+				u0 = 1.0
+				u1 = 1.0-width/3.0
+			var v0: float = 0.0
+			var v1: float = depth/3.0
+			if row_index % 2 == 1:
+				v0 = 1.0
+				v1 = 1.0-depth/3.0
 			var source_a: Vector2 = Vector2(820,240)
 			var source_b: Vector2 = Vector2(1032,342)
 			var source_d: Vector2 = Vector2(180,525)
 			var source_size: Vector2 = Vector2(1228,1254)
-			var source_uv: Array[Vector2] = [source_a,source_a+(source_b-source_a)*u_end,source_a+(source_b-source_a)*u_end+(source_d-source_a)*v_end,source_a+(source_d-source_a)*v_end]
+			var source_uv: Array[Vector2] = [source_a+(source_b-source_a)*u0+(source_d-source_a)*v0,source_a+(source_b-source_a)*u1+(source_d-source_a)*v0,source_a+(source_b-source_a)*u1+(source_d-source_a)*v1,source_a+(source_b-source_a)*u0+(source_d-source_a)*v1]
 			var uv_points: PackedVector2Array = PackedVector2Array()
 			var projected_points: PackedVector2Array = PackedVector2Array()
 			for index in range(4):
@@ -283,9 +291,9 @@ func draw_ground(canvas_value: Variant, snapshot: Variant, scene: Variant, key: 
 			patches.append({'points':projected_points,'uvs':uv_points})
 			z0 += depth
 		x0 += width
-	if patches.size() != 12:
+	if patches.size() != 40:
 		return false
-	var tint: Color = Color(0.38,0.45,0.48,1.0)
+	var tint: Color = Color(0.34,0.41,0.44,1.0)
 	for patch_value in patches:
 		if not patch_value is Dictionary:
 			return false
@@ -360,10 +368,10 @@ func draw_wall(canvas_value: Variant, snapshot: Variant, scene: Variant, key: Va
 		contact_points.append(_project(camera,Vector3(point.x,0,point.y)))
 	if not _points_finite(contact_points):
 		return false
-	var side_color: Color = Color('#2d444c')
+	var side_color: Color = Color('#293f47')
 	for face_points in side_faces:
 		canvas.draw_colored_polygon(face_points,side_color)
-	canvas.draw_colored_polygon(cap_points,Color('#536970'))
+	canvas.draw_colored_polygon(cap_points,Color('#485f67'))
 	canvas.draw_colored_polygon(contact_points,Color(0.025,0.032,0.035,0.1))
 	return true
 
@@ -381,7 +389,7 @@ func _air_plan(camera: ProjectionScript) -> Array[Dictionary]:
 			for layer_index in range(2):
 				var scale_xz: float = 1.0 if layer_index == 0 else 0.65
 				var scale_y: float = 1.0 if layer_index == 0 else 0.75
-				var alpha: float = 0.022 if layer_index == 0 else 0.011
+				var alpha: float = 0.055 if layer_index == 0 else 0.025
 				var projected: PackedVector2Array = PackedVector2Array()
 				for local_point in profile:
 					var x: float = float(center[0])+offset_x+local_point.x*scale_xz
@@ -393,7 +401,7 @@ func _air_plan(camera: ProjectionScript) -> Array[Dictionary]:
 				var bounds: Rect2 = Rect2(projected[0],Vector2.ZERO)
 				for point_index in range(1,projected.size()):
 					bounds = bounds.expand(projected[point_index])
-				if not _valid_rect(bounds) or not is_finite(alpha) or alpha < 0.0 or alpha > 0.022:
+				if not _valid_rect(bounds) or not is_finite(alpha) or alpha < 0.0 or alpha > 0.055:
 					return []
 				plans.append({'points':projected,'bounds':bounds,'alpha':alpha})
 	return plans
@@ -421,7 +429,7 @@ func draw_back_air(canvas_value: Variant, snapshot: Variant, scene: Variant, key
 			return report
 	if texture_value is Texture2D and fog_drawable and viewport.intersects(fog_rect):
 		var texture: Texture2D = texture_value
-		canvas.draw_texture_rect_region(texture,fog_rect,Rect2(Vector2(27,370),Vector2(1201,498)),Color(0.8,0.88,0.92,0.3),false)
+		canvas.draw_texture_rect_region(texture,fog_rect,Rect2(Vector2(27,370),Vector2(1201,498)),Color(0.8,0.88,0.92,0.38),false)
 		var bank_ids: Array[String] = ['warden_arena_fog_bank']
 		report['bank_ids'] = bank_ids
 	var ambient_count: int = 0
@@ -438,7 +446,7 @@ func draw_back_air(canvas_value: Variant, snapshot: Variant, scene: Variant, key
 		if not _valid_rect(polygon_bounds) or not viewport.intersects(polygon_bounds):
 			continue
 		var alpha_value: Variant = plan.get('alpha')
-		if not P.number(alpha_value,0.0,0.022):
+		if not P.number(alpha_value,0.0,0.055):
 			return {'bank_ids':report.bank_ids,'ambient_polygons':ambient_count}
 		canvas.draw_colored_polygon(points,Color('#90a9b2',float(alpha_value)))
 		ambient_count += 1
