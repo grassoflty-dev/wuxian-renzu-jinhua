@@ -736,13 +736,20 @@ func _storage_inventory_available(i: Dictionary) -> bool:
 	if authored_position!=Vector3(15.0,0.0,12.0):
 		return false
 	return P.vector(native_row.transform.positionM)==authored_position
+func _west_beacon_log(i: Dictionary) -> bool:
+	if not P.snapshot(snapshot) or snapshot.worldId!='mist_harbor' or snapshot.sceneId!='mh_tidal_warehouse':
+		return false
+	if i.get('entityId')!='mh_west_beacon_log_marker' or i.get('kind')!='beacon_caretaker_log_marker' or typeof(i.get('active'))!=TYPE_BOOL or not P.transform(i.get('transform')):
+		return false
+	var matches = snapshot.interactables.filter(func(row): return row.entityId=='mh_west_beacon_log_marker')
+	return matches.size()==1 and matches[0]==i
 func _interaction_prompt(i: Dictionary) -> String:
 	var label = _interaction_label(i)
 	if typeof(i.get('active'))!=TYPE_BOOL or not i.active:
 		return label+' · 当前不可用'
 	if i.get('kind')=='npc_dialogue':
 		return '[F] '+label if _baizhi_available(i) else label+' · 当前对白不可用'
-	if SCENE_RPC.has(i.get('kind')) or i.get('kind') in INTERACT_KINDS or _storage_inventory_available(i):
+	if SCENE_RPC.has(i.get('kind')) or i.get('kind') in INTERACT_KINDS or _storage_inventory_available(i) or _west_beacon_log(i):
 		return '[F] '+label
 	return label if label=='未知交互（不可执行）' else label+' · 未知交互（不可执行）'
 func _scene_in_world(scene: String, world: String) -> bool:
@@ -861,10 +868,12 @@ func _current_hud_interaction() -> Dictionary:
 	elif i.kind=='storage_inventory_marker':
 		if not _storage_inventory_available(i):
 			return {}
-	elif not SCENE_RPC.has(i.kind) and not i.kind in INTERACT_KINDS:
+	elif not SCENE_RPC.has(i.kind) and not i.kind in INTERACT_KINDS and not _west_beacon_log(i):
 		return {}
 	return {'generation':generation,'context':_context().duplicate(true),'entityId':i.entityId,'kind':i.kind,'label':_interaction_label(i)}
 func _interaction_label(i: Dictionary) -> String:
+	if _west_beacon_log(i):
+		return '维护日志'
 	if _storage_inventory_available(i):
 		return '背包'
 	var destination = _destination_label(i)
@@ -922,7 +931,7 @@ func _interact() -> void:
 		_feedback('未知对白来源')
 		return
 	var rid = _id('scene')
-	var method = SCENE_RPC.get(kind,'formal_interact' if kind in INTERACT_KINDS else '')
+	var method = 'formal_interact' if _west_beacon_log(i) else SCENE_RPC.get(kind,'formal_interact' if kind in INTERACT_KINDS else '')
 	if method.is_empty():
 		_feedback('未知交互类型；未发送命令')
 		return

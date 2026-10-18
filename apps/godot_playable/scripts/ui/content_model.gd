@@ -112,6 +112,11 @@ static func narrative(before: Dictionary, target: Dictionary, receipt: Dictionar
 		if before.worldId=='grey_hive':
 			var lines = {'gh_beacon:gh_beacon_deploy_marker:beacon_collect':'这就是信号源。带回去，也许能解释这里为什么还在呼叫。','gh_entry_maintenance:gh_entry_checkpoint:scene_checkpoint':'B-17 链路仅保持最低功率。','gh_power_room:gh_power_console:power_console':'主电还活着，只是被人为切断。','gh_lockdown:gh_lockdown_terminal:lockdown_terminal':'隔离协议已被局部覆盖。','gh_sentinel_arena:gh_sys_sentinel_01:facility_log':'自动防卫单元已接管本区。','gh_entry_maintenance:gh_entry_tutorial_terminal:terminal':'维护终端：WASD / 方向键移动，鼠标指向瞄准；J / 左键攻击，Shift 冲刺。Q 脉冲，按住 E 防御，R 穿刺；F 交互，Space 情境穿越。T 任务，M 地图，Esc 暂停；动作与地图信息以当前状态和权限为准。'}
 			return lines.get(before.sceneId+':'+id+':'+kind,'')
+		if P.snapshot(before) and P.snapshot(after) and before.worldId=='mist_harbor' and before.sceneId=='mh_tidal_warehouse' and id=='mh_west_beacon_log_marker' and kind=='beacon_caretaker_log_marker':
+			var log_before = before.interactables.filter(func(row): return row.entityId==id)
+			var log_after = after.interactables.filter(func(row): return row.entityId==id)
+			if log_before.size()==1 and log_after.size()==1 and log_before[0]==target and log_after[0].kind==kind and typeof(log_before[0].get('active'))==TYPE_BOOL and log_before[0].active and typeof(log_after[0].get('active'))==TYPE_BOOL and not log_after[0].active and P.transform(log_before[0].get('transform')) and log_after[0].transform==log_before[0].transform:
+				return '西侧导航灯在断网后仍被人工维护。'
 		if P.snapshot(before) and P.snapshot(after) and before.worldId=='mist_harbor' and before.sceneId=='mh_pump_station' and typeof(target.get('entityId'))==TYPE_STRING and typeof(target.get('kind'))==TYPE_STRING and id=='mh_pump_control_primary' and kind=='pump_control':
 			var pump_before = before.get('mistHarborPump')
 			var pump_after = after.get('mistHarborPump')
