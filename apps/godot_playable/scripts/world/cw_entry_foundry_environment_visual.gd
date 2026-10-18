@@ -338,8 +338,18 @@ func draw_wall(canvas: CanvasItem, wall: Dictionary, snapshot: Dictionary, scene
 	var b: Vector2 = Vector2(inner[2],inner[3])
 	var offset: Vector2 = Vector2(contact_direction[0],contact_direction[1])*0.05
 	var footprint_value: Array = info.polygon
-	var contact_world: Array[Vector3] = [Vector3(a.x,0,a.y),Vector3(b.x,0,b.y),Vector3(b.x+offset.x,0,b.y+offset.y),Vector3(a.x+offset.x,0,a.y+offset.y)]
-	var side_world: Array[Vector3] = [Vector3(a.x,0,a.y),Vector3(b.x,0,b.y),Vector3(b.x,info.height,b.y),Vector3(a.x,info.height,a.y)]
+	var ground_end: Vector2 = b
+	var south_join: bool = wall_id_value in ['cw_entry_foundry_wall_west_south','cw_entry_foundry_wall_east_south']
+	var south_height: float = float(WALLS['cw_entry_foundry_wall_south'].height)
+	if south_join:
+		ground_end.y -= south_height
+	var contact_world: Array[Vector3] = [Vector3(a.x,0,a.y),Vector3(ground_end.x,0,ground_end.y),Vector3(ground_end.x+offset.x,0,ground_end.y+offset.y),Vector3(a.x+offset.x,0,a.y+offset.y)]
+	var side_world: Array[Vector3] = [Vector3(a.x,0,a.y),Vector3(ground_end.x,0,ground_end.y)]
+	if south_join and float(info.height) > south_height:
+		# Retain the tall west face above the adjacent south cap.
+		side_world.append(Vector3(b.x,south_height,b.y))
+	side_world.append(Vector3(b.x,info.height,b.y))
+	side_world.append(Vector3(a.x,info.height,a.y))
 	var cap_world: Array[Vector3] = []
 	for point_value in footprint_value:
 		if not point_value is Array or point_value.size()!=2 or not P.number(point_value[0]) or not P.number(point_value[1]):
