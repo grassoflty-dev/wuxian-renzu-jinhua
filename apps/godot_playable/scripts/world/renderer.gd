@@ -1494,6 +1494,8 @@ func _event_draw() -> void:
 			draw_line(at-Vector2(5,0),at+Vector2(5,0),c,2)
 			draw_line(at-Vector2(0,5),at+Vector2(0,5),c,2)
 		elif e.kind in ['EnemyAttackTelegraph','SentinelAttackWindup','SentinelHeavyWindup','SentinelChargeWindup']:
+			if e.kind=='EnemyAttackTelegraph':
+				c = Color('#E1504C')
 			if e.get('rangeM',0)>0:
 				if e.get('attackKind')=='tide_swing' and P.number(e.get('halfAngleRad'),0.001,PI):
 					_ring(pos,e.rangeM,c,e.directionRad-e.halfAngleRad,e.halfAngleRad*2)
