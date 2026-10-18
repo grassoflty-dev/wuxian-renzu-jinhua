@@ -9,6 +9,7 @@ var mh_tidal_warehouse_environment_visual = MhTidalWarehouseEnvironmentVisual.ne
 const MhWardenArenaEnvironmentVisual = preload('res://scripts/world/mh_warden_arena_environment_visual.gd')
 var mh_warden_arena_environment_visual = MhWardenArenaEnvironmentVisual.new()
 const V = preload('res://scripts/world/presentation.gd')
+const PlayerHurtFeedback = preload('res://scripts/world/player_hurt_feedback.gd')
 const Camera = preload('res://scripts/world/projection.gd')
 const MhFogPierGroundVisual = preload('res://scripts/world/mh_fog_pier_ground_visual.gd')
 const MhFogPierStoneMaterialVisual = preload('res://scripts/world/mh_fog_pier_stone_material_visual.gd')
@@ -1473,6 +1474,8 @@ func _event_draw() -> void:
 			var at = camera.project(pos)
 			if outcome=='rejected':
 				_label(at-Vector2(0,30),{'cooldown':'技能仍在冷却','insufficient_energy':'能量不足','action_busy':'当前动作尚未结束','guard_not_active':'防御已结束','dash_rejected':'当前无法冲刺','no_target':'未命中目标'}.get(e.combatFeedback.get('reason'),'当前无法执行该动作'))
+				continue
+			if PlayerHurtFeedback.draw_accepted(self,e,snapshot,at,camera.ppm,reduced_motion,Time.get_ticks_msec()):
 				continue
 			if outcome=='blocked':
 				_label(at-Vector2(0,24),'格挡',Color('#8de8ff'))
