@@ -86,7 +86,14 @@ func _build(definition: Dictionary, camera: Variant) -> Array[Dictionary]:
 	var b: Vector3 = Vector3(edge[1][0],0,edge[1][1])
 	var ground_a: Vector2 = camera.project(a)
 	var ground_b: Vector2 = camera.project(b)
-	_append(plan,PackedVector2Array([ground_a,ground_b,ground_b-offset,ground_a-offset]),Color(0.18,0.25,0.29,1),true)
+	var visible_ground_b: Vector2 = ground_b
+	if definition.id in ['gh_gate_wall_west_south','gh_gate_wall_east_south']:
+		# Preserve the top endpoint; only the lower corner lies behind the south cap.
+		visible_ground_b = camera.project(Vector3(b.x,0,b.z-12.0/48.0))
+	_append(plan,PackedVector2Array([ground_a,visible_ground_b,ground_b-offset,ground_a-offset]),Color(0.18,0.25,0.29,1),true)
+	if definition.id in ['gh_gate_wall_west_south','gh_gate_wall_east_south']:
+		# Keep pre-clip consumption bounds so culling cannot expose legacy fallback.
+		plan[0]['visibility_points'] = PackedVector2Array([ground_a,ground_b,ground_b-offset,ground_a-offset])
 	var cap: PackedVector2Array = PackedVector2Array()
 	for point: Array in definition.polygon:
 		cap.append(camera.project(Vector3(point[0],0,point[1]))-offset)
@@ -120,6 +127,11 @@ func _plan_visible(plan: Array[Dictionary], viewport: Rect2) -> bool:
 			if not _v2(point):
 				return false
 			box = box.expand(point)
+		if command.has('visibility_points'):
+			for point: Vector2 in command.visibility_points:
+				if not _v2(point):
+					return false
+				box = box.expand(point)
 		if not _v2(box.end) or not _v2(box.size):
 			return false
 		if box.grow(command.width*0.5).intersects(viewport):
