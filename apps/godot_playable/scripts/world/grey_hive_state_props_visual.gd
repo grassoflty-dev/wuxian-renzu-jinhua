@@ -10,6 +10,8 @@ func _equal_numbers(v, expected: Array) -> bool:
 		if not P.number(v[n],expected[n],expected[n]):
 			return false
 	return true
+func prepare_resources() -> void:
+	_load_once()
 func _load_once() -> void:
 	if attempted:
 		return

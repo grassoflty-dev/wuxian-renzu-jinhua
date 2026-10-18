@@ -13,6 +13,8 @@ func _integers(value, expected: Array) -> bool:
 		if not P.counter(value[n],0,4096) or value[n]!=expected[n]:
 			return false
 	return true
+func prepare_resources() -> void:
+	_load_once()
 func _load_once() -> void:
 	if attempted:
 		return
