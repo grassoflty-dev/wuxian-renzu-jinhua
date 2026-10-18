@@ -233,6 +233,7 @@ func _baizhi_choice_state() -> String:
 func _baizhi_page() -> void:
 	match _baizhi_choice_state():
 		'unresolved':
+			_text('别开那扇门。先听我说。')
 			_text('隔离室里的白芷等待你的回应。对白不会授予 Gate B 的钥匙。')
 			_button('我会帮你离开这里。','baizhi_confirm','taken')
 			_button('我不能带你走。','baizhi_confirm','left')
