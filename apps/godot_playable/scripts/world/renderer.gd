@@ -33,6 +33,7 @@ const MhBreakwaterEnvironmentVisual = preload('res://scripts/world/mh_breakwater
 const MhResonanceTowerEnvironmentVisual = preload('res://scripts/world/mh_resonance_tower_environment_visual.gd')
 const MhExtractionEnvironmentVisual = preload('res://scripts/world/mh_extraction_environment_visual.gd')
 const GhSentinelFloorMaterialVisual = preload('res://scripts/world/gh_sentinel_floor_material_visual.gd')
+const GhSentinelEnvironmentVisual = preload('res://scripts/world/gh_sentinel_environment_visual.gd')
 const GhDeepDeconFloorMaterialVisual = preload('res://scripts/world/gh_deep_decon_floor_material_visual.gd')
 const GhGateAEnvironmentVisual = preload('res://scripts/world/gh_gate_a_environment_visual.gd')
 const GhPowerFloorMaterialVisual = preload('res://scripts/world/gh_power_floor_material_visual.gd')
@@ -123,6 +124,7 @@ var gh_bio_floor_material_visual = GhBioFloorMaterialVisual.new()
 var gh_entry_floor_material_visual = GhEntryFloorMaterialVisual.new()
 var cw_pressure_floor_material_visual = CwPressureFloorMaterialVisual.new()
 var gh_sentinel_floor_material_visual = GhSentinelFloorMaterialVisual.new()
+var gh_sentinel_environment_visual = GhSentinelEnvironmentVisual.new()
 var gh_deep_decon_floor_material_visual = GhDeepDeconFloorMaterialVisual.new()
 var gh_gate_a_environment_visual = GhGateAEnvironmentVisual.new()
 var gh_power_floor_material_visual = GhPowerFloorMaterialVisual.new()
@@ -646,8 +648,11 @@ func _draw() -> void:
 	var mh_pump_room_active = not mh_pump_packets.is_empty()
 	var gh_lockdown_wall_drawn_ids: Array = []
 	var warden_wall_drawn_ids: Array[String] = []
+	var gh_sentinel_shell_drawn: bool = gh_sentinel_environment_visual.draw_shell(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
 	# Canonical static geometry is display only. No spawns, routes, navigation or hidden objectives.
 	for wall in scene.get('collision',[]):
+		if gh_sentinel_shell_drawn and gh_sentinel_environment_visual.owns_collision(wall):
+			continue
 		if gh_entry_wall_active and wall is Dictionary and typeof(wall.get('id')) == TYPE_STRING and wall.id in gh_entry_wall_suppressed_ids:
 			continue
 		if gh_bio_wall_active and wall is Dictionary and gh_bio_wall_modules_visual.should_suppress_collision_fallback(wall.get('id'),gh_bio_wall_packets):
