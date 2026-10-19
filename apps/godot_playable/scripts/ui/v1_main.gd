@@ -59,7 +59,7 @@ var pause_owned: Dictionary = {}
 var ticket: Dictionary = {}
 var enhancement_pending: Dictionary = {}
 var last_feedback = ''
-var preferences = {'scale':1.0,'fullscreen':false,'color':false,'reduced':false,'muted':false,'volume':0.35,'pulse_key':'Q'}
+var preferences = {'scale':1.0,'fullscreen':false,'color':false,'reduced':false,'muted':false,'volume':0.35,'pulse_key':'Q','screen_shake':true}
 var pointer_seen = false
 var pending_actions: Array = []
 var guard_blocked = false
@@ -97,6 +97,7 @@ func _ready() -> void:
 	renderer = Renderer.new()
 	renderer.name = 'World'
 	renderer.locomotion_state_provider = Callable(self,'_locomotion_presentation_state')
+	renderer.screen_shake_state_provider = Callable(self,'_screen_shake_state')
 	add_child(renderer)
 	renderer.frame_committed.connect(_scene_frame_committed)
 	var ui = CanvasLayer.new()
@@ -178,9 +179,20 @@ func _eligible() -> bool:
 func _suspend_locomotion() -> void:
 	if is_instance_valid(renderer):
 		renderer.suspend_locomotion()
+		renderer.suspend_screen_shake()
 func _refresh_locomotion() -> void:
 	if is_instance_valid(renderer):
 		renderer.refresh_locomotion()
+		renderer.refresh_screen_shake()
+func _screen_shake_state(expected: Dictionary, event: Dictionary) -> Dictionary:
+	var state = _locomotion_presentation_state(expected)
+	if state.is_empty():
+		return {}
+	state['enabled'] = preferences.screen_shake
+	state['cursor'] = event_view.cursor
+	# Only a retained accepted event may continue; this does not admit raw rows.
+	state['event_authorized'] = event.is_empty() or event in event_view.active and event_view._authorized(event,snapshot,renderer)
+	return state
 func _locomotion_hurt_active(s: Dictionary, now_ms: int) -> bool:
 	# Only EventView's retained, accepted events; never raw/deferred responses.
 	for e in event_view.active:
@@ -284,6 +296,7 @@ func _process(delta: float) -> void:
 			blocked_keys.erase(key)
 	if not snapshot.is_empty():
 		renderer.events = event_view.project(snapshot,renderer,eligible)
+		renderer.refresh_screen_shake(true)
 		_refresh_locomotion()
 		renderer.sound = event_view.sound
 	var nearest = _nearest()
@@ -634,12 +647,13 @@ func _ui_intent(kind: String, value, owner: Dictionary) -> void:
 	if kind in ['settings_defaults','settings_apply','slot_create_prepare']:
 		return
 	if kind=='apply_preferences':
-		if value is Dictionary and value.get('scale') in [1.0,1.25,1.5] and typeof(value.get('fullscreen'))==TYPE_BOOL and typeof(value.get('color'))==TYPE_BOOL and typeof(value.get('reduced'))==TYPE_BOOL and typeof(value.get('muted'))==TYPE_BOOL and P.number(value.get('volume'),0,1) and (value.size()==6 and not value.has('pulse_key') or value.size()==7 and typeof(value.get('pulse_key'))==TYPE_STRING and PULSE_KEYS.has(value.pulse_key)):
+		if value is Dictionary and value.get('scale') in [1.0,1.25,1.5] and typeof(value.get('fullscreen'))==TYPE_BOOL and typeof(value.get('color'))==TYPE_BOOL and typeof(value.get('reduced'))==TYPE_BOOL and typeof(value.get('muted'))==TYPE_BOOL and P.number(value.get('volume'),0,1) and (value.size()==6 and not value.has('pulse_key') and not value.has('screen_shake') or value.size()==7 and not value.has('screen_shake') and typeof(value.get('pulse_key'))==TYPE_STRING and PULSE_KEYS.has(value.pulse_key) or value.size()==8 and typeof(value.get('pulse_key'))==TYPE_STRING and PULSE_KEYS.has(value.pulse_key) and typeof(value.get('screen_shake'))==TYPE_BOOL):
 			_suspend_locomotion()
 			if value.get('pulse_key','Q')!=preferences.pulse_key:
 				_rearm_pulse()
 			preferences = value.duplicate(true)
 			preferences['pulse_key'] = value.get('pulse_key','Q')
+			preferences['screen_shake'] = value.get('screen_shake',true)
 			audio.configure(preferences.muted,preferences.volume)
 			audio.ui_cue('confirm',focused)
 			renderer.text_scale = preferences.scale

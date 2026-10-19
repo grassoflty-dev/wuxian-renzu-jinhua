@@ -19,7 +19,7 @@ var default_save_state = 'unknown'
 var slot_list_state = 'unknown'
 var connected = false
 var pending = false
-var preferences = {'scale':1.0,'fullscreen':false,'color':false,'reduced':false,'muted':false,'volume':0.35,'pulse_key':'Q'}
+var preferences = {'scale':1.0,'fullscreen':false,'color':false,'reduced':false,'muted':false,'volume':0.35,'pulse_key':'Q','screen_shake':true}
 var staged = {}
 var font_scale = 1.0
 var panel: PanelContainer
@@ -98,6 +98,8 @@ func show_page(kind: String, association: Dictionary, s: Dictionary, is_connecte
 		staged = preferences.duplicate(true)
 		if not staged.has('pulse_key'):
 			staged['pulse_key'] = 'Q'
+		if not staged.has('screen_shake'):
+			staged['screen_shake'] = true
 	_rebuild()
 	_layout_content()
 	# Take focus off the background without selecting a confirmation action.
@@ -268,7 +270,7 @@ func _settings() -> void:
 	size_pick.item_selected.connect(func(index): staged.scale=[1.0,1.25,1.5][index])
 	size_pick.add_theme_font_size_override('font_size',int(18*font_scale))
 	box.add_child(size_pick)
-	for pair in [['fullscreen','全屏'],['color','颜色辅助标记'],['reduced','减少动态效果'],['muted','静音']]:
+	for pair in [['fullscreen','全屏'],['color','颜色辅助标记'],['reduced','减少动态效果'],['screen_shake','屏幕震动（重击）'],['muted','静音']]:
 		var check = CheckBox.new()
 		check.text = pair[1]
 		check.add_theme_font_size_override('font_size',int(18*font_scale))
@@ -276,6 +278,7 @@ func _settings() -> void:
 		var key: String = pair[0]
 		check.toggled.connect(func(value): staged[key]=value)
 		box.add_child(check)
+	_text('震动仅用于灰巢 Gate B Brute 的可见砸击；减少动态效果会关闭震动。')
 	var captured = page_owner.duplicate(true)
 	var volume_label = Label.new()
 	volume_label.text = '主音量：'+str(int(round(staged.volume*100)))+'%'
@@ -296,7 +299,7 @@ func _settings() -> void:
 	var defaults = _button('默认值','settings_defaults')
 	defaults.pressed.connect(func():
 		if page_owner==captured:
-			staged={'scale':1.0,'fullscreen':false,'color':false,'reduced':false,'muted':false,'volume':0.35,'pulse_key':'Q'}
+			staged={'scale':1.0,'fullscreen':false,'color':false,'reduced':false,'muted':false,'volume':0.35,'pulse_key':'Q','screen_shake':true}
 			_rebuild())
 	var apply = _button('应用','settings_apply')
 	apply.pressed.connect(func():

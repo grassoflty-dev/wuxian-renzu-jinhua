@@ -164,6 +164,13 @@ var sound: Dictionary = {}
 var text_scale = 1.0
 var color_assistance = false
 var reduced_motion = false
+var screen_shake_state_provider: Callable
+# Consumption survives cue cancellation; presentation never owns native timing.
+var screen_shake_context: Array = []
+var screen_shake_cursor = 0
+var screen_shake_seed_tick = 0
+var screen_shake_armed = false
+var screen_shake_active: Dictionary = {}
 var last_snapshot_at = 0
 var action_key = ''
 var action_at = 0
@@ -201,25 +208,128 @@ func _ready() -> void:
 	texture_repeat = CanvasItem.TEXTURE_REPEAT_DISABLED
 func _enter_tree() -> void:
 	suspend_locomotion()
+	suspend_screen_shake()
 	_locomotion_window = get_window()
 	if is_instance_valid(_locomotion_window):
 		_locomotion_window.visibility_changed.connect(suspend_locomotion)
+		_locomotion_window.visibility_changed.connect(suspend_screen_shake)
 		_locomotion_window.focus_exited.connect(suspend_locomotion)
+		_locomotion_window.focus_exited.connect(suspend_screen_shake)
 		_locomotion_window.size_changed.connect(suspend_locomotion)
+		_locomotion_window.size_changed.connect(suspend_screen_shake)
 func _exit_tree() -> void:
 	suspend_locomotion()
+	suspend_screen_shake()
 	if is_instance_valid(_locomotion_window):
 		_locomotion_window.visibility_changed.disconnect(suspend_locomotion)
+		_locomotion_window.visibility_changed.disconnect(suspend_screen_shake)
 		_locomotion_window.focus_exited.disconnect(suspend_locomotion)
+		_locomotion_window.focus_exited.disconnect(suspend_screen_shake)
 		_locomotion_window.size_changed.disconnect(suspend_locomotion)
+		_locomotion_window.size_changed.disconnect(suspend_screen_shake)
 	_locomotion_window = null
 func _notification(what: int) -> void:
 	if what in [NOTIFICATION_VISIBILITY_CHANGED,NOTIFICATION_EXIT_CANVAS,NOTIFICATION_PAUSED,NOTIFICATION_DISABLED,NOTIFICATION_APPLICATION_FOCUS_OUT,NOTIFICATION_WM_CLOSE_REQUEST]:
 		suspend_locomotion()
+		suspend_screen_shake()
 func suspend_locomotion() -> void:
 	# Retain helper high-water marks: an old snapshot cannot restart after resume.
 	if cenyao_locomotion_clip!=null:
 		cenyao_locomotion_clip.suspend()
+func _screen_shake_state(event: Dictionary) -> Dictionary:
+	if not screen_shake_state_provider.is_valid() or not P.snapshot(snapshot):
+		return {}
+	var state = screen_shake_state_provider.call(snapshot,event)
+	if not state is Dictionary or not P.counter(state.get('generation')) or not P.counter(state.get('connection_generation')) or not P.counter(state.get('cursor')):
+		return {}
+	for flag in ['enabled','presentation_allowed','reduced_motion','event_authorized']:
+		if typeof(state.get(flag))!=TYPE_BOOL:
+			return {}
+	return state
+func _screen_shake_owner(state: Dictionary) -> Array:
+	return [snapshot.worldId,snapshot.sceneId,snapshot.worldEpoch,state.generation,state.connection_generation]
+func _set_screen_shake_offset(offset: Vector2) -> void:
+	if position!=offset:
+		position = offset
+		# Refresh cached rear-window compensation even after a paused cancellation.
+		queue_redraw()
+func _clear_screen_shake_active() -> void:
+	screen_shake_active.clear()
+	_set_screen_shake_offset(Vector2.ZERO)
+func suspend_screen_shake() -> void:
+	var state = _screen_shake_state({})
+	if not state.is_empty():
+		var owner = _screen_shake_owner(state)
+		if owner!=screen_shake_context:
+			screen_shake_context = owner
+			screen_shake_cursor = int(state.cursor)
+		else:
+			screen_shake_cursor = maxi(screen_shake_cursor,int(state.cursor))
+		screen_shake_seed_tick = int(snapshot.serverTick)
+	# Never erase the consumed context/watermark when clearing the active cue.
+	screen_shake_armed = false
+	_clear_screen_shake_active()
+func _screen_shake_age(event: Dictionary, now: int) -> float:
+	if event.get('kind')!='EnemyAttackImpact' or event.get('attackKind')!='slam' or event.get('actorId')!='gh_gate_b_brute_01' or event.get('protocolVersion')!=2 or event.get('worldEpoch')!=snapshot.worldEpoch:
+		return -1.0
+	if not P.counter(event.get('eventId'),1) or not P.counter(event.get('serverTick')) or event.serverTick>snapshot.serverTick or not P.counter(event.get('_accepted')) or event._accepted>now or not P.number(event.get('_initial_age'),0) or not P.number(event.get('_duration'),0.001,60000):
+		return -1.0
+	var count = 0
+	for actor in snapshot.actors:
+		if actor.entityId=='gh_gate_b_brute_01':
+			if actor.get('actorKind')!='enemy' or actor.entityType!='enemy.grey_hive.brute' or not actor.active or not actor_visible(actor.entityId):
+				return -1.0
+			count += 1
+	if count!=1:
+		return -1.0
+	var age = maxf((snapshot.serverTick-event.serverTick)*1000.0/60.0,float(event._initial_age)+float(now-event._accepted))
+	return age if age<minf(100.0,float(event._duration)) else -1.0
+func refresh_screen_shake(observe: bool = false) -> void:
+	var state = _screen_shake_state(screen_shake_active)
+	if state.is_empty():
+		suspend_screen_shake()
+		return
+	var owner = _screen_shake_owner(state)
+	if owner!=screen_shake_context:
+		screen_shake_context = owner
+		screen_shake_cursor = int(state.cursor)
+		screen_shake_seed_tick = int(snapshot.serverTick)
+		screen_shake_armed = false
+		_clear_screen_shake_active()
+	if not state.enabled or not state.presentation_allowed or state.reduced_motion or reduced_motion or not _locomotion_visible() or snapshot.worldId!='grey_hive' or snapshot.sceneId!='gh_gate_b':
+		suspend_screen_shake()
+		return
+	if not screen_shake_armed:
+		# Reopening/context changes seed the current cursor and tick, never replay.
+		screen_shake_cursor = maxi(screen_shake_cursor,int(state.cursor))
+		screen_shake_seed_tick = int(snapshot.serverTick)
+		screen_shake_armed = true
+		_clear_screen_shake_active()
+		return
+	var now = Time.get_ticks_msec()
+	if observe:
+		var selected: Dictionary = {}
+		for event in events:
+			if not event is Dictionary or not P.counter(event.get('eventId'),1) or event.eventId<=screen_shake_cursor or event.eventId>state.cursor or not P.counter(event.get('serverTick')) or event.serverTick<=screen_shake_seed_tick:
+				continue
+			if _screen_shake_age(event,now)>=0 and (selected.is_empty() or event.eventId>selected.eventId):
+				selected = event
+		screen_shake_cursor = maxi(screen_shake_cursor,int(state.cursor))
+		if not selected.is_empty():
+			var accepted = _screen_shake_state(selected)
+			if not accepted.is_empty() and accepted.event_authorized:
+				screen_shake_active = selected.duplicate(true)
+	if screen_shake_active.is_empty():
+		_set_screen_shake_offset(Vector2.ZERO)
+		return
+	var current = _screen_shake_state(screen_shake_active)
+	var age = _screen_shake_age(screen_shake_active,now)
+	if current.is_empty() or not current.event_authorized or age<0:
+		_clear_screen_shake_active()
+		return
+	# Logical viewport pixels; native camera, aim and inverse stay unchanged.
+	var progress = age/100.0
+	_set_screen_shake_offset(Vector2(2.0*(1.0-progress)*sin(TAU*2.0*progress),0))
 func _locomotion_state() -> Dictionary:
 	if not locomotion_state_provider.is_valid():
 		return {}
@@ -270,6 +380,7 @@ func commit(s: Dictionary, data: Dictionary, hash: String) -> void:
 	var key = s.worldId+':'+s.sceneId+':'+str(s.worldEpoch)
 	if key!=current_key:
 		suspend_locomotion()
+		suspend_screen_shake()
 		camera.reset()
 		if gh_entry_ambient_visual!=null:
 			gh_entry_ambient_visual.reset()
@@ -350,6 +461,7 @@ func set_interaction_focus(target: Dictionary, s: Dictionary, eligible: bool, ex
 	interaction_focus = {'target':target.duplicate(true),'generation':expected_generation,'serverTick':snapshot.serverTick,'authorityRevision':snapshot.authorityRevision}
 	queue_redraw()
 func _process(delta: float) -> void:
+	refresh_screen_shake()
 	if snapshot.is_empty() or scene.is_empty():
 		suspend_locomotion()
 		mh_fog_pier_phase_seconds = 0.0
@@ -396,14 +508,17 @@ func actor_visible(id: String, allow_dead: bool = false) -> bool:
 					return true
 	return false
 func _draw() -> void:
+	draw_set_transform(Vector2.ZERO)
+	refresh_screen_shake()
 	refresh_locomotion()
 	mh_warden_arena_last_draw_report = {'ground_drawn':false,'wall_ids':[],'bank_ids':[],'ambient_polygons':0}
 	_clear_gh_vital_body_records()
 	mh_fog_pier_deferred_labels.clear()
 	mh_fog_pier_defer_labels = false
 	prop_bodies_drawn.clear()
-	draw_rect(get_viewport_rect(),Color('#0b121a'))
+	draw_rect(get_viewport_rect().grow(2.0),Color('#0b121a'))
 	if snapshot.is_empty() or scene.is_empty():
+		suspend_screen_shake()
 		return
 	displayed.clear()
 	var b: Dictionary = scene.boundsM
@@ -816,7 +931,10 @@ func _draw() -> void:
 	_atmosphere(mh_fog_pier_suppressed_bank_ids)
 	_world_ui()
 	_draw_interaction_focus()
+	# The screen-space rear window stays fixed while the world canvas moves.
+	draw_set_transform(-position)
 	_rear_view()
+	draw_set_transform(Vector2.ZERO)
 	if reported_key!=current_key:
 		reported_key = current_key
 		call_deferred('_report_frame',current_key)
