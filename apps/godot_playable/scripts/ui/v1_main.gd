@@ -141,6 +141,10 @@ func _request(method: String, params: Dictionary, purpose: String = '', extra: D
 		_release()
 		critical = method
 	extra['purpose'] = purpose
+	# Capture after the normal release: it synchronously cancels older cues.
+	var cue_target = extra.get('target')
+	if block and method=='formal_interact' and purpose=='interaction' and snapshot.get('worldId')=='grey_hive' and snapshot.get('sceneId')=='gh_beacon' and cue_target is Dictionary and cue_target.get('entityId')=='gh_beacon_storage_mount_marker' and cue_target.get('kind')=='beacon_mount' and params.get('actorId')==cue_target.entityId and params.get('requestId')==extra.get('expectedCommand') and is_instance_valid(renderer):
+		extra['beaconCue'] = {'serial':renderer.beacon_cue_serial,'connectionGeneration':rpc.connection_generation,'requestStartMs':Time.get_ticks_msec(),'cueSequence':request_sequence}
 	var id = rpc.request(method,params,_assoc(extra))
 	if id==0 and block:
 		critical = ''
@@ -1409,6 +1413,9 @@ func _scene_frame_committed(key: String) -> void:
 	if _request('formal_scene_ready',{'token':t,'remainPaused':remain_paused},'ready',{'token':t,'remainPaused':remain_paused},true)>0:
 		ready_sent[token_key] = true
 func _interaction_result(a: Dictionary, r: Dictionary) -> void:
+	# Only reached after successful receipt validation and snapshot admission.
+	if a.has('beaconCue') and is_instance_valid(renderer):
+		renderer.offer_beacon_deploy_receipt(a,r,snapshot)
 	var target: Dictionary = a.target
 	var before: Dictionary = a.before
 	var kind: String = target.kind

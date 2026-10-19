@@ -200,3 +200,98 @@ func should_skip_mount_blockout(object: Variant, snapshot: Variant, scene: Varia
 		return false
 	var expected: float = 72.0*(float(projection.ppm)/48.0)
 	return P.number(drawn_bodies.get('beacon-body:gh_beacon_storage_mount_marker'),expected,expected)
+
+# Candidate presentation calibration: one 600 ms symbolic beam/ring after an
+# authenticated successful Mount receipt. This does not grant scan range.
+func matches_deploy_context(snapshot: Variant, scene: Variant, current_key: Variant, projection: Variant, viewport: Variant) -> bool:
+	if not _context(snapshot,scene,current_key,projection,viewport) or snapshot.get('entryToken')!=null or snapshot.player.currentHp<=0:
+		return false
+	var beacon: Variant = snapshot.get('greyHiveBeacon')
+	if not beacon is Dictionary or beacon.size()!=2 or beacon.get('state')!='mounted' or typeof(beacon.get('legacyCompletedWithoutReceipt'))!=TYPE_BOOL or beacon.legacyCompletedWithoutReceipt:
+		return false
+	var interactions: Variant = scene.get('interactions')
+	if not P.rows(interactions,64):
+		return false
+	var authored_count: int = 0
+	for row_value: Variant in interactions:
+		if not row_value is Dictionary:
+			return false
+		var row: Dictionary = row_value
+		if row.get('id')=='gh_beacon_storage_mount_marker' or row.get('kind')=='beacon_mount':
+			if row.get('id')!='gh_beacon_storage_mount_marker' or row.get('kind')!='beacon_mount' or not _position(row.get('position'),Vector3(17,0,8)) or row.get('event')!=null or row.get('environmentControl')!=null or not P.number(row.get('rangeM',2.5),2.5,2.5):
+				return false
+			authored_count += 1
+	var native_count: int = 0
+	for row_value: Variant in snapshot.interactables:
+		if not row_value is Dictionary:
+			return false
+		var row: Dictionary = row_value
+		if row.get('entityId')=='gh_beacon_storage_mount_marker' or row.get('kind')=='beacon_mount':
+			if row.get('entityId')!='gh_beacon_storage_mount_marker' or row.get('kind')!='beacon_mount' or not P.transform(row.get('transform')) or P.vector(row.transform.positionM)!=Vector3(17,0,8):
+				return false
+			native_count += 1
+	# The native mount becomes inactive after success; do not require active=true.
+	return authored_count==1 and native_count==1
+
+func _deploy_segment_visible(a: Vector2, b: Vector2, rect: Rect2) -> bool:
+	if rect.has_point(a) or rect.has_point(b):
+		return true
+	var corners: PackedVector2Array = PackedVector2Array([rect.position,Vector2(rect.end.x,rect.position.y),rect.end,Vector2(rect.position.x,rect.end.y)])
+	for index: int in range(4):
+		if Geometry2D.segment_intersects_segment(a,b,corners[index],corners[(index+1)%4])!=null:
+			return true
+	return false
+
+func draw_deploy_cue(canvas: Variant, snapshot: Variant, scene: Variant, current_key: Variant, projection: Variant, viewport: Variant, age_ms: Variant, drawn_bodies: Variant) -> bool:
+	if not _canvas(canvas) or not matches_deploy_context(snapshot,scene,current_key,projection,viewport) or not P.number(age_ms,0,600) or float(age_ms)>=600.0 or not drawn_bodies is Dictionary:
+		return false
+	var ppm: float = float(projection.ppm)
+	var expected: float = 72.0*(ppm/48.0)
+	if not P.number(drawn_bodies.get('beacon-body:gh_beacon_storage_mount_marker'),expected,expected):
+		return false
+	var foot: Variant = projection.call('project',Vector3(17,0,8))
+	if not _v2(foot):
+		return false
+	var t: float = float(age_ms)/600.0
+	var half_width: float = 0.04*ppm
+	var height: float = 2.0*ppm
+	var beam: PackedVector2Array = PackedVector2Array([foot+Vector2(-half_width,0),foot+Vector2(half_width,0),foot+Vector2(half_width,-height),foot+Vector2(-half_width,-height)])
+	for point: Vector2 in beam:
+		if not _v2(point):
+			return false
+	var beam_area: float = (beam[1]-beam[0]).cross(beam[3]-beam[0])
+	if not is_finite(beam_area) or beam_area==0.0:
+		return false
+	var ring: PackedVector2Array = PackedVector2Array()
+	var radius: float = 0.3+0.7*t
+	for index: int in range(32):
+		var angle: float = TAU*float(index)/32.0
+		var point: Variant = projection.call('project',Vector3(17.0+radius*cos(angle),0,8.0+radius*sin(angle)))
+		if not _v2(point):
+			return false
+		ring.append(point)
+	ring.append(ring[0])
+	for index: int in range(32):
+		var length_squared: float = ring[index].distance_squared_to(ring[index+1])
+		if not is_finite(length_squared) or length_squared<=0.0:
+			return false
+	var width: float = ppm/48.0
+	if not P.number(width,0.000001,8):
+		return false
+	var beam_rect: Rect2 = Rect2(beam[3],beam[1]-beam[3])
+	var ring_view: Rect2 = viewport.grow(width*0.5)
+	if not _v2(beam_rect.position) or not _v2(beam_rect.size) or not _v2(beam_rect.end) or not _v2(ring_view.position) or not _v2(ring_view.size) or not _v2(ring_view.end):
+		return false
+	var visible: bool = beam_rect.intersects(viewport)
+	for index: int in range(32):
+		if _deploy_segment_visible(ring[index],ring[index+1],ring_view):
+			visible = true
+	if not visible:
+		return false
+	var cyan: Color = Color('#b9eef2')
+	var commands: Array[Dictionary] = [
+		{'kind':'polygon','points':beam,'colors':PackedColorArray([Color(cyan.r,cyan.g,cyan.b,0.12*(1.0-t))])},
+		{'kind':'line','points':ring,'colors':PackedColorArray([Color(cyan.r,cyan.g,cyan.b,0.18*(1.0-t))]),'width':width}
+	]
+	# _paint validates both complete commands and all colors before the first draw.
+	return _paint(canvas,commands)
