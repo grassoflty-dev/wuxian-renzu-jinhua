@@ -45,6 +45,7 @@ const GhLockdownEnvironmentVisual = preload('res://scripts/world/gh_lockdown_env
 const GhEntryAmbientVisual = preload('res://scripts/world/gh_entry_ambient_visual.gd')
 const GhBeaconEnvironmentVisual = preload('res://scripts/world/gh_beacon_environment_visual.gd')
 const GhGateBEnvironmentVisual = preload('res://scripts/world/gh_gate_b_environment_visual.gd')
+const GhGateBWestCableVisual = preload('res://scripts/world/gh_gate_b_west_cable_visual.gd')
 const GhDeepDeconAirVisual = preload('res://scripts/world/gh_deep_decon_air_visual.gd')
 const GhCentralShaftEnvironmentVisual = preload('res://scripts/world/gh_central_shaft_environment_visual.gd')
 const GhExitEnvironmentVisual = preload('res://scripts/world/gh_exit_environment_visual.gd')
@@ -144,6 +145,7 @@ var gh_power_environment_visual = GhPowerEnvironmentVisual.new()
 var cw_pressure_environment_visual = CwPressureEnvironmentVisual.new()
 var cw_conveyor_environment_visual = CwConveyorEnvironmentVisual.new()
 var gh_gate_b_environment_visual = GhGateBEnvironmentVisual.new()
+var gh_gate_b_west_cable_visual = GhGateBWestCableVisual.new()
 var gh_deep_decon_air_visual = GhDeepDeconAirVisual.new()
 var mh_pump_environment_visual = MhPumpEnvironmentVisual.new()
 var rs_front_alpha: Dictionary = {}
@@ -214,6 +216,7 @@ func _ready() -> void:
 	cw_pressure_valve_visual = CwPressureValveVisual.new()
 	gh_supply_crate_visual = GhSupplyCrateVisual.new()
 	gh_supply_crate_visual.prepare_resources()
+	gh_gate_b_west_cable_visual.prepare_resources()
 	grey_hive_state_props = GreyHiveStateProps.new()
 	grey_hive_state_props.prepare_resources()
 	gh_bio_lockdown_visual = GhBioLockdownVisual.new()
@@ -834,6 +837,7 @@ func _draw() -> void:
 	var gh_sentinel_shell_drawn: bool = gh_sentinel_environment_visual.draw_shell(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
 	var cw_furnace_heart_shell_drawn: bool = cw_furnace_heart_environment_visual.draw_shell(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
 	var cw_shutdown_exit_shell_drawn: bool = cw_shutdown_exit_environment_visual.draw_shell(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
+	var gate_b_cable_receipt: Dictionary = {'pipe_submitted':false}
 	# Canonical static geometry is display only. No spawns, routes, navigation or hidden objectives.
 	for wall in scene.get('collision',[]):
 		if cw_shutdown_exit_shell_drawn and cw_shutdown_exit_environment_visual.owns_collision(wall):
@@ -869,7 +873,7 @@ func _draw() -> void:
 				continue
 			if cw_boiler_environment_visual.draw_wall(self,snapshot,scene,current_key,camera,wall,viewport_rect):
 				continue
-			if gh_gate_b_environment_visual.draw_wall(self,snapshot,scene,current_key,camera,wall,viewport_rect):
+			if gh_gate_b_environment_visual.draw_wall(self,snapshot,scene,current_key,camera,wall,viewport_rect,gh_gate_b_west_cable_visual,gate_b_cable_receipt):
 				continue
 			if cw_regulator_environment_visual.draw_wall(self,snapshot,scene,current_key,camera,wall,viewport_rect):
 				continue
@@ -988,6 +992,8 @@ func _draw() -> void:
 		objects.append({'id':module_packet.id,'p':module_packet.p,'kind':'rs_bulkhead_module','data':module_packet})
 	for prop in scene.get('presentation',{}).get('sprites',[]):
 		if not prop is Dictionary or not prop.get('position') is Array or prop.position.size()!=3 or typeof(prop.get('assetId'))!=TYPE_STRING:
+			continue
+		if gate_b_cable_receipt.size() == 1 and typeof(gate_b_cable_receipt.get('pipe_submitted')) == TYPE_BOOL and gate_b_cable_receipt['pipe_submitted'] == true and gh_gate_b_west_cable_visual.matches_authored_row(prop):
 			continue
 		if gh_power_room_active and gh_power_pipe_detail_drawn and prop.get('id')=='power_room_pipes':
 			continue

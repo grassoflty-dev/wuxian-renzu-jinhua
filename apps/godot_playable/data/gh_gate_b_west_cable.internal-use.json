@@ -1,0 +1,103 @@
+{
+  "schema": "wuxian.gh-gate-b-west-cable.internal-use/v1",
+  "approval": "SOURCE_ONLY_NEW_USE_APPROVED",
+  "GodotDisplay": "NOT_RUN",
+  "publicRelease": "NOT_ESTABLISHED",
+  "runtimeValidation": "NOT_RUN",
+  "use": "static wall-mounted curved cable only; no pipe function or collision",
+  "worldId": "grey_hive",
+  "sceneId": "gh_gate_b",
+  "source": {
+    "path": "res://assets/props/return_station/service_pipes.png",
+    "bytes": 1049893,
+    "sha256": "7f3c67879398e89adc9026fc2aca5fbe7792b1dc360b73c737c1b2299eac96da",
+    "gitBlob": "e760555aae85e9299b3bce92422022362277688e",
+    "canvas": [
+      1414,
+      1047
+    ],
+    "format": "RGBA8"
+  },
+  "selection": {
+    "seed": [
+      1190,
+      820
+    ],
+    "connectivity": 4,
+    "alpha": "greater_than_zero",
+    "count": 46260,
+    "boundsInclusive": [
+      1011,
+      647,
+      1401,
+      954
+    ],
+    "frame": [
+      1011,
+      647,
+      391,
+      308
+    ],
+    "frameNonzeroCount": 47323,
+    "channels": "preserve selected original RGBA; all nonselected output RGBA zero"
+  },
+  "placeholder": {
+    "id": "gate_b_compression_pipes",
+    "assetId": "runtime2d.grey_hive.pipes_cables.v1",
+    "layer": "visual.props_back",
+    "position": [
+      15,
+      0,
+      3
+    ]
+  },
+  "wall": {
+    "id": "gh_gate_b_wall_west_north",
+    "polygon": [
+      [
+        0,
+        0.5
+      ],
+      [
+        0.5,
+        0.5
+      ],
+      [
+        0.5,
+        6.5
+      ],
+      [
+        0,
+        6.5
+      ]
+    ]
+  },
+  "display": {
+    "worldReference": [
+      0.5,
+      0.35515625,
+      3
+    ],
+    "frameAnchor": [
+      195.5,
+      154
+    ],
+    "screenScaleAt48Ppm": 0.15,
+    "rotation": 0,
+    "mirror": false,
+    "modulate": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "offscreen": "submit valid command and allow viewport clipping"
+  },
+  "excluded": [
+    "straight flange pipe",
+    "clutter",
+    "new PNG",
+    "native position change",
+    "floor shadow"
+  ]
+}
