@@ -530,3 +530,96 @@ func should_suppress_bank(prop: Variant, snapshot: Variant, scene: Variant, key:
 		return false
 	return prop.get('id')=='yard_north_fog_bank' and prop.get('assetId')==DEFINITION.fog.assetId and prop.get('layer')=='visual.props_back' and _equal(prop.get('position'),[8,0,3]) and textures.get('fog') is Texture2D and _rect(bank_rect(projection)) and bank_rect(projection).intersects(viewport)
 
+
+# Covered, flush cable-trough display; proposed calibration, not native geometry.
+# Independent of image preparation and internal-use resource admission.
+func _trough_view(snapshot: Variant, scene: Variant, key: Variant, projection: Variant, viewport: Rect2) -> bool:
+	if not _base(snapshot,scene,key) or not projection is RefCounted or not is_instance_valid(projection) or projection.get_script()!=ProjectionScript:
+		return false
+	if not _equal(scene.get('occluders'),[]) or not _equal(scene.get('doors'),[]):
+		return false
+	var origin: Variant = projection.get('origin')
+	var center: Variant = projection.get('screen_center')
+	var size: Variant = projection.get('viewport')
+	var initialized: Variant = projection.get('initialized')
+	if not origin is Vector3 or not center is Vector2 or not size is Vector2 or typeof(initialized)!=TYPE_BOOL or not initialized or not P.number(projection.get('ppm'),0,256) or float(projection.get('ppm'))<=0.0:
+		return false
+	return is_finite(origin.x) and is_finite(origin.y) and is_finite(origin.z) and _finite(center) and _finite(size) and _rect(viewport) and size==viewport.size
+
+func _trough_quad_valid(points: PackedVector2Array) -> bool:
+	if points.size()!=4:
+		return false
+	var sign_value: float = 0.0
+	for index: int in range(4):
+		if not _finite(points[index]):
+			return false
+		var a: Vector2 = points[(index+1)%4]-points[index]
+		var b: Vector2 = points[(index+2)%4]-points[(index+1)%4]
+		var cross_value: float = a.cross(b)
+		if not _finite(a) or not _finite(b) or not is_finite(cross_value) or absf(cross_value)<=0.000001:
+			return false
+		if index==0:
+			sign_value = cross_value
+		elif (cross_value>0.0)!=(sign_value>0.0):
+			return false
+	return true
+
+# -1 invalid arithmetic, 0 disjoint/tangent, 1 positive-area intersection.
+func _trough_intersection(points: PackedVector2Array, viewport: Rect2) -> int:
+	var corners: PackedVector2Array = PackedVector2Array([viewport.position,Vector2(viewport.end.x,viewport.position.y),viewport.end,Vector2(viewport.position.x,viewport.end.y)])
+	var axes: Array[Vector2] = [Vector2.RIGHT,Vector2.DOWN]
+	for index: int in range(4):
+		var edge: Vector2 = points[(index+1)%4]-points[index]
+		axes.append(Vector2(-edge.y,edge.x))
+	var separated: bool = false
+	for axis: Vector2 in axes:
+		if not _finite(axis) or axis==Vector2.ZERO:
+			return -1
+		var low: float = INF
+		var high: float = -INF
+		var rect_low: float = INF
+		var rect_high: float = -INF
+		for point: Vector2 in points:
+			var value: float = (point-points[0]).dot(axis)
+			if not is_finite(value):
+				return -1
+			low = minf(low,value)
+			high = maxf(high,value)
+		for point: Vector2 in corners:
+			var value: float = (point-points[0]).dot(axis)
+			if not is_finite(value):
+				return -1
+			rect_low = minf(rect_low,value)
+			rect_high = maxf(rect_high,value)
+		if high<=rect_low or rect_high<=low:
+			separated = true
+	return 0 if separated else 1
+
+func draw_cable_trough(canvas: Variant, snapshot: Variant, scene: Variant, key: Variant, projection: Variant, viewport: Rect2) -> bool:
+	if not _canvas(canvas) or not _trough_view(snapshot,scene,key,projection,viewport):
+		return false
+	var colors: Array[Color] = [Color('#30373b'),Color('#576267')]
+	for color: Color in colors:
+		if not _color_valid(color):
+			return false
+	var plan: Array[PackedVector2Array] = []
+	var visible: bool = false
+	for index: int in range(9):
+		var x0: float = 4.0 if index==0 else 4.0+2.0*(index-1)+0.02
+		var x1: float = 20.0 if index==0 else 4.0+2.0*(index-1)+1.98
+		var z0: float = 1.0 if index==0 else 1.02
+		var z1: float = 1.3 if index==0 else 1.28
+		var world: Array[Vector3] = [Vector3(x0,0,z0),Vector3(x1,0,z0),Vector3(x1,0,z1),Vector3(x0,0,z1)]
+		var points: PackedVector2Array = _project(projection,world)
+		if not _trough_quad_valid(points):
+			return false
+		var intersection: int = _trough_intersection(points,viewport)
+		if intersection<0:
+			return false
+		visible = visible or intersection==1
+		plan.append(points)
+	if plan.size()!=9 or not visible:
+		return false
+	for index: int in range(9):
+		canvas.draw_colored_polygon(plan[index],colors[0 if index==0 else 1])
+	return true

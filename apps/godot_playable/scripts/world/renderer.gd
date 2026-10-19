@@ -630,6 +630,7 @@ func _draw() -> void:
 	gh_lockdown_environment_visual.draw_floor(self,snapshot,scene,current_key,camera,viewport_rect)
 	cw_entry_foundry_environment_visual.draw_floor(self,snapshot,scene,current_key,camera,get_viewport_rect(),cw_furnace_visual)
 	mh_signal_yard_environment_visual.draw_floor(self,snapshot,scene,current_key,camera,viewport_rect)
+	mh_signal_yard_environment_visual.draw_cable_trough(self,snapshot,scene,current_key,camera,viewport_rect)
 	var warehouse_frame: Dictionary = mh_tidal_warehouse_environment_visual.build_frame(snapshot,scene,current_key,camera,viewport_rect)
 	var warehouse_consumed_ids: Array = []
 	mh_tidal_warehouse_environment_visual.draw_floor(self,warehouse_frame,snapshot,scene,current_key,camera,viewport_rect)
