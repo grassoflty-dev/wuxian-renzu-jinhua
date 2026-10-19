@@ -92,6 +92,7 @@ const CW_PRESSURE_VALVES = {
 var cw_pressure_valve_visual
 const CwFurnaceVisual = preload('res://scripts/world/cw_furnace_visual.gd')
 const CwFurnaceHeartEnvironmentVisual = preload('res://scripts/world/cw_furnace_heart_environment_visual.gd')
+const CwShutdownExitEnvironmentVisual = preload('res://scripts/world/cw_shutdown_exit_environment_visual.gd')
 const CwBoilerEnvironmentVisual = preload('res://scripts/world/cw_boiler_environment_visual.gd')
 const CwRegulatorEnvironmentVisual = preload('res://scripts/world/cw_regulator_environment_visual.gd')
 const CwForgedGuardArenaEnvironmentVisual = preload('res://scripts/world/cw_forged_guard_arena_environment_visual.gd')
@@ -108,6 +109,7 @@ const CW_FURNACES = {
 }
 var cw_furnace_visual
 var cw_furnace_heart_environment_visual = CwFurnaceHeartEnvironmentVisual.new()
+var cw_shutdown_exit_environment_visual = CwShutdownExitEnvironmentVisual.new()
 var cw_entry_foundry_environment_visual = CwEntryFoundryEnvironmentVisual.new()
 var cw_boiler_environment_visual = CwBoilerEnvironmentVisual.new()
 var cw_regulator_environment_visual = CwRegulatorEnvironmentVisual.new()
@@ -652,8 +654,11 @@ func _draw() -> void:
 	var warden_wall_drawn_ids: Array[String] = []
 	var gh_sentinel_shell_drawn: bool = gh_sentinel_environment_visual.draw_shell(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
 	var cw_furnace_heart_shell_drawn: bool = cw_furnace_heart_environment_visual.draw_shell(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
+	var cw_shutdown_exit_shell_drawn: bool = cw_shutdown_exit_environment_visual.draw_shell(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
 	# Canonical static geometry is display only. No spawns, routes, navigation or hidden objectives.
 	for wall in scene.get('collision',[]):
+		if cw_shutdown_exit_shell_drawn and cw_shutdown_exit_environment_visual.owns_collision(wall):
+			continue
 		if cw_furnace_heart_shell_drawn and cw_furnace_heart_environment_visual.owns_collision(wall):
 			continue
 		if gh_sentinel_shell_drawn and gh_sentinel_environment_visual.owns_collision(wall):
