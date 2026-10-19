@@ -155,6 +155,10 @@ var cenyao_idle = CenYaoIdle.new()
 var cenyao_action_clip = CenYaoActionClip.new()
 var cenyao_locomotion_clip = CenYaoLocomotionClip.new()
 var locomotion_state_provider: Callable
+var extraction_cue_serial: int = 0
+var extraction_cue_consumed_owner: Array = []
+var extraction_cue_consumed_sequence: int = 0
+var extraction_cue_active: Dictionary = {}
 var beacon_cue_serial: int = 0
 var beacon_cue_consumed_owner: Array = []
 var beacon_cue_consumed_sequence: int = 0
@@ -247,6 +251,7 @@ func _notification(what: int) -> void:
 func suspend_locomotion(cancel_beacon: bool = true) -> void:
 	if cancel_beacon:
 		_cancel_beacon_cue()
+		_cancel_extraction_cue()
 	# Retain helper high-water marks: an old snapshot cannot restart after resume.
 	if cenyao_locomotion_clip!=null:
 		cenyao_locomotion_clip.suspend()
@@ -383,6 +388,7 @@ func _locomotion_gate() -> Dictionary:
 		'higher_priority_body':state.hurt_active or snapshot.player.get('actionState')!='idle' or snapshot.player.get('actionPresentation')!=null
 	}
 func refresh_locomotion() -> void:
+	_refresh_extraction_cue()
 	_refresh_beacon_cue()
 	var gate = _locomotion_gate()
 	if gate.is_empty() or not gate.presentation_allowed or not gate.visible or gate.reduced_motion or gate.higher_priority_body:
@@ -465,6 +471,92 @@ func _draw_beacon_deploy_cue(object: Dictionary) -> void:
 	if beacon_cue_active.is_empty() or object.get('id')!='beacon-body:gh_beacon_storage_mount_marker' or object.get('p')!=Vector3(17,0,8) or object.get('data',{}).get('key')!='beacon_deployed':
 		return
 	gh_beacon_environment_visual.draw_deploy_cue(self,snapshot,scene,current_key,camera,viewport_rect,_beacon_cue_age(beacon_cue_active),prop_bodies_drawn)
+func _extraction_cue_owner() -> Array:
+	var state = _locomotion_state()
+	if state.is_empty() or not P.snapshot(snapshot) or [state.generation,state.connection_generation]!=_locomotion_lifetime:
+		return []
+	return [snapshot.worldId,snapshot.sceneId,snapshot.worldEpoch,state.generation,state.connection_generation]
+func _clear_extraction_cue() -> void:
+	if not extraction_cue_active.is_empty():
+		extraction_cue_active.clear()
+		queue_redraw()
+func _cancel_extraction_cue() -> void:
+	extraction_cue_serial += 1
+	_clear_extraction_cue()
+func _extraction_cue_age(cue: Dictionary) -> float:
+	var now = Time.get_ticks_msec()
+	if not P.counter(cue.get('requestStartMs')) or not P.counter(cue.get('tick')) or now<cue.requestStartMs or snapshot.serverTick<cue.tick:
+		return -1.0
+	var age = maxf((snapshot.serverTick-cue.tick)*1000.0/60.0,float(now-cue.requestStartMs))
+	return age if is_finite(age) and age>=0.0 and age<600.0 else -1.0
+func _extraction_cue_fresh() -> bool:
+	var gate = _locomotion_gate()
+	return not gate.is_empty() and gate.presentation_allowed and gate.visible and not gate.reduced_motion
+func _refresh_extraction_cue() -> void:
+	# A critical request may be pending: a daily negative gate clears only active art.
+	# It must not invalidate the association captured after that request's release.
+	if extraction_cue_active.is_empty():
+		return
+	if not _extraction_cue_fresh() or _extraction_cue_owner()!=extraction_cue_active.owner or _extraction_cue_age(extraction_cue_active)<0.0:
+		_clear_extraction_cue()
+		return
+	if not gh_exit_environment_visual.matches_success_light_context(snapshot,scene,current_key,scene_hash,camera,viewport_rect) or not visible_point(extraction_cue_active.endpoint) or not visible_point(Vector3(8,0,8)) or _occluded(Vector3(8,0,8)):
+		_clear_extraction_cue()
+func offer_extraction_receipt(association: Dictionary, receipt: Dictionary, current_snapshot: Dictionary) -> void:
+	var owner = _extraction_cue_owner()
+	var metadata = association.get('extractionCue')
+	if owner.is_empty() or current_snapshot!=snapshot or not metadata is Dictionary or metadata.size()!=4:
+		return
+	if not P.counter(association.get('generation')) or not P.counter(metadata.get('connectionGeneration')) or association.get('generation')!=owner[3] or not P.context(association.get('context')) or not P.same(association.context,snapshot) or metadata.get('connectionGeneration')!=owner[4] or not P.counter(metadata.get('cueSequence'),1):
+		return
+	if owner!=extraction_cue_consumed_owner:
+		extraction_cue_consumed_owner = owner.duplicate()
+		extraction_cue_consumed_sequence = 0
+	if metadata.cueSequence<=extraction_cue_consumed_sequence:
+		return
+	# Consume trusted current offers before all display-specific rejection gates.
+	extraction_cue_consumed_sequence = int(metadata.cueSequence)
+	_clear_extraction_cue()
+	if not P.counter(metadata.get('serial')) or metadata.serial!=extraction_cue_serial or not P.counter(metadata.get('requestStartMs')) or not _extraction_cue_fresh():
+		return
+	if not P.success(receipt) or not receipt.applied or receipt.alreadyApplied or association.get('expectedCommand')!=receipt.commandId or receipt.snapshot!=snapshot or snapshot.get('entryToken')!=null or snapshot.player.currentHp<=0:
+		return
+	var before = association.get('before')
+	var target = association.get('target')
+	if not P.snapshot(before) or not P.same(before,snapshot) or before.get('entryToken')!=null or before.authorityRevision>=snapshot.authorityRevision or before.serverTick>receipt.serverTick:
+		return
+	if not target is Dictionary or target.get('entityId')!='gh_exit_extraction_console' or target.get('kind')!='extraction_console' or not P.transform(target.get('transform')) or P.vector(target.transform.positionM)!=Vector3(8,0,8):
+		return
+	for source in [before,snapshot]:
+		var beacon = source.get('greyHiveBeacon')
+		if not beacon is Dictionary or beacon.size()!=2 or not beacon.get('state') in ['carried','mounted'] or typeof(beacon.get('legacyCompletedWithoutReceipt'))!=TYPE_BOOL or beacon.legacyCompletedWithoutReceipt:
+			return
+		var progression = source.get('progression')
+		if not progression is Dictionary or progression.get('currentWorldId')!='grey_hive' or not P.rows(progression.get('worlds'),16) or not P.unique(progression.worlds,'worldId'):
+			return
+	var prior = Content.progress(before,'grey_hive')
+	var after = Content.progress(snapshot,'grey_hive')
+	if prior.is_empty() or after.is_empty() or prior.completed or not after.completed or not after.firstCompletion or prior.visitId<=0 or prior.visitId!=after.visitId or prior.cycleId!=after.cycleId or prior.revisitCount!=after.revisitCount:
+		return
+	# An older extraction event may exist without completion; reconfirmation is valid.
+	for event in ['hive_power','hive_lockdown','hive_extraction']:
+		if not event in after.completedEvents:
+			return
+	if not gh_exit_environment_visual.matches_success_light_context(snapshot,scene,current_key,scene_hash,camera,viewport_rect):
+		return
+	var endpoint = P.vector(receipt.snapshot.player.transform.positionM)
+	if endpoint.distance_to(Vector3(8,0,8))>2.5 or not visible_point(endpoint) or not visible_point(Vector3(8,0,8)) or _occluded(Vector3(8,0,8)):
+		return
+	var cue = {'owner':owner.duplicate(),'command':receipt.commandId,'tick':receipt.serverTick,'requestStartMs':metadata.requestStartMs,'endpoint':endpoint}
+	if _extraction_cue_age(cue)<0.0:
+		return
+	extraction_cue_active = cue
+	queue_redraw()
+func _draw_extraction_success_light() -> void:
+	_refresh_extraction_cue()
+	if extraction_cue_active.is_empty():
+		return
+	gh_exit_environment_visual.draw_success_light(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect,_extraction_cue_age(extraction_cue_active))
 func commit(s: Dictionary, data: Dictionary, hash: String) -> void:
 	clear_interaction_focus()
 	var key = s.worldId+':'+s.sceneId+':'+str(s.worldEpoch)
@@ -884,6 +976,7 @@ func _draw() -> void:
 	mh_warden_arena_last_draw_report['bank_ids'] = warden_consumed_ids
 	mh_warden_arena_last_draw_report['ambient_polygons'] = warden_back_air_report.get('ambient_polygons',0)
 	var objects: Array = []
+	_draw_extraction_success_light()
 	var gh_exit_dressing_packets: Array[Dictionary] = gh_exit_environment_visual.build_dressing(snapshot,scene,current_key,camera,viewport_rect)
 	for gh_exit_shadow_packet: Dictionary in gh_exit_dressing_packets:
 		gh_exit_environment_visual.draw_contact_shadow(self,gh_exit_shadow_packet,snapshot,scene,current_key,camera,viewport_rect)

@@ -808,3 +808,113 @@ func draw_dressing(canvas: CanvasItem, packet_value: Variant, snapshot: Dictiona
 	canvas.draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
 	return true
 
+# Independently timed code-native candidate: one 600 ms local success light.
+# The sealed image registration and its temporal NONE policy remain unchanged.
+func matches_success_light_context(snapshot: Variant, scene: Variant, current_key: Variant, scene_hash: Variant, projection: Variant, viewport: Variant) -> bool:
+	if not snapshot is Dictionary or not scene is Dictionary or typeof(current_key)!=TYPE_STRING or typeof(scene_hash)!=TYPE_STRING or typeof(viewport)!=TYPE_RECT2:
+		return false
+	if not _definitions_loaded or scene_hash!=SCENE_SHA256 or not _basic_context(snapshot,scene,current_key) or not _deep_equal(scene,_canonical_scene) or not _valid_projection(projection,viewport) or snapshot.player.currentHp<=0:
+		return false
+	# Deliberately independent of _assets_ready/_current_ready; do not load here.
+	var beacon: Variant = snapshot.get('greyHiveBeacon')
+	if not beacon is Dictionary or beacon.size()!=2 or not beacon.get('state') in ['carried','mounted'] or typeof(beacon.get('legacyCompletedWithoutReceipt'))!=TYPE_BOOL or beacon.legacyCompletedWithoutReceipt:
+		return false
+	var progress: Variant = snapshot.get('progression')
+	if not progress is Dictionary or not P.counter(progress.get('schemaVersion'),1,1) or not P.counter(progress.get('eventSeq')) or progress.get('currentWorldId')!='grey_hive' or not P.rows(progress.get('worlds'),16) or not P.unique(progress.worlds,'worldId'):
+		return false
+	var completed_count: int = 0
+	for row: Dictionary in progress.worlds:
+		if row.worldId!='grey_hive':
+			continue
+		if typeof(row.get('completed'))!=TYPE_BOOL or not row.completed or typeof(row.get('firstCompletion'))!=TYPE_BOOL or not row.firstCompletion or not P.counter(row.get('visitId'),1) or not P.counter(row.get('cycleId'),1) or not P.counter(row.get('revisitCount')) or not P.rows(row.get('completedEvents'),3) or row.completedEvents.size()!=3:
+			return false
+		var seen: Dictionary = {}
+		for event: Variant in row.completedEvents:
+			if typeof(event)!=TYPE_STRING or not event in ['hive_power','hive_lockdown','hive_extraction'] or seen.has(event):
+				return false
+			seen[event] = true
+		completed_count += 1
+	if completed_count!=1 or not P.rows(scene.get('interactions'),64):
+		return false
+	var authored_count: int = 0
+	for row_value: Variant in scene.interactions:
+		if not row_value is Dictionary:
+			return false
+		var row: Dictionary = row_value
+		if row.get('id')=='gh_exit_extraction_console' or row.get('kind')=='extraction_console':
+			if row.get('id')!='gh_exit_extraction_console' or row.get('kind')!='extraction_console' or row.get('event')!='hive_extraction' or not _numbers_equal(row.get('position'),[8,0,8]):
+				return false
+			authored_count += 1
+	var native_count: int = 0
+	for row: Dictionary in snapshot.interactables:
+		if row.get('entityId')=='gh_exit_extraction_console' or row.get('kind')=='extraction_console':
+			if row.get('entityId')!='gh_exit_extraction_console' or row.get('kind')!='extraction_console' or not P.transform(row.get('transform')) or P.vector(row.transform.positionM)!=Vector3(8,0,8):
+				return false
+			native_count += 1
+	return authored_count==1 and native_count==1
+
+func _success_light_overlap(points: PackedVector2Array, viewport: Rect2) -> bool:
+	# Convex SAT: the rectangle axes and all 32 polygon edge normals.
+	# Translate before dot products so large camera translations do not multiply.
+	var origin: Vector2 = points[0]
+	var corners: PackedVector2Array = PackedVector2Array([viewport.position,Vector2(viewport.end.x,viewport.position.y),viewport.end,Vector2(viewport.position.x,viewport.end.y)])
+	var axes: Array[Vector2] = [Vector2.RIGHT,Vector2.DOWN]
+	for index: int in range(32):
+		var edge: Vector2 = points[(index+1)%32]-points[index]
+		axes.append(Vector2(-edge.y,edge.x))
+	for axis: Vector2 in axes:
+		if not _finite_point(axis) or axis==Vector2.ZERO:
+			return false
+		var polygon_min: float = INF
+		var polygon_max: float = -INF
+		var rectangle_min: float = INF
+		var rectangle_max: float = -INF
+		for point: Vector2 in points:
+			var value: float = (point-origin).dot(axis)
+			if not is_finite(value):
+				return false
+			polygon_min = minf(polygon_min,value)
+			polygon_max = maxf(polygon_max,value)
+		for corner: Vector2 in corners:
+			var value: float = (corner-origin).dot(axis)
+			if not is_finite(value):
+				return false
+			rectangle_min = minf(rectangle_min,value)
+			rectangle_max = maxf(rectangle_max,value)
+		if minf(polygon_max,rectangle_max)<=maxf(polygon_min,rectangle_min):
+			return false
+	return true
+
+func draw_success_light(canvas: Variant, snapshot: Variant, scene: Variant, current_key: Variant, scene_hash: Variant, projection: Variant, viewport: Variant, age_ms: Variant) -> bool:
+	if not canvas is CanvasItem or not _valid_canvas(canvas) or not matches_success_light_context(snapshot,scene,current_key,scene_hash,projection,viewport) or not P.number(age_ms,0,600) or float(age_ms)>=600.0:
+		return false
+	var points: PackedVector2Array = _ellipse_points(projection,Vector3(8,0,8),Vector2(0.8,0.8),32)
+	if points.size()!=32 or not _finite_points(points) or not _valid_rect(_points_bounds(points)):
+		return false
+	var orientation: float = 0.0
+	var twice_area: float = 0.0
+	for index: int in range(32):
+		var a: Vector2 = points[index]
+		var b: Vector2 = points[(index+1)%32]
+		var c: Vector2 = points[(index+2)%32]
+		var edge: Vector2 = b-a
+		var length_squared: float = edge.length_squared()
+		var turn: float = edge.cross(c-b)
+		var triangle: float = (a-points[0]).cross(b-points[0])
+		if not is_finite(length_squared) or length_squared<=0.0 or not is_finite(turn) or turn==0.0 or not is_finite(triangle):
+			return false
+		if index==0:
+			orientation = signf(turn)
+		elif signf(turn)!=orientation:
+			return false
+		twice_area += triangle
+		if not is_finite(twice_area):
+			return false
+	if absf(twice_area)<=0.000001 or not _success_light_overlap(points,viewport):
+		return false
+	var color: Color = Color('#b9eef2')
+	color.a = 0.14*(1.0-float(age_ms)/600.0)
+	if not is_finite(color.r) or not is_finite(color.g) or not is_finite(color.b) or not is_finite(color.a) or color.a<=0.0 or color.a>1.0:
+		return false
+	canvas.draw_colored_polygon(points,color)
+	return true

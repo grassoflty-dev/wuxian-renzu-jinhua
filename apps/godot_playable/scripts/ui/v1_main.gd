@@ -145,6 +145,8 @@ func _request(method: String, params: Dictionary, purpose: String = '', extra: D
 	var cue_target = extra.get('target')
 	if block and method=='formal_interact' and purpose=='interaction' and snapshot.get('worldId')=='grey_hive' and snapshot.get('sceneId')=='gh_beacon' and cue_target is Dictionary and cue_target.get('entityId')=='gh_beacon_storage_mount_marker' and cue_target.get('kind')=='beacon_mount' and params.get('actorId')==cue_target.entityId and params.get('requestId')==extra.get('expectedCommand') and is_instance_valid(renderer):
 		extra['beaconCue'] = {'serial':renderer.beacon_cue_serial,'connectionGeneration':rpc.connection_generation,'requestStartMs':Time.get_ticks_msec(),'cueSequence':request_sequence}
+	if block and method=='formal_interact' and purpose=='interaction' and snapshot.get('worldId')=='grey_hive' and snapshot.get('sceneId')=='gh_exit' and cue_target is Dictionary and cue_target.get('entityId')=='gh_exit_extraction_console' and cue_target.get('kind')=='extraction_console' and params.get('actorId')==cue_target.entityId and params.get('requestId')==extra.get('expectedCommand') and is_instance_valid(renderer):
+		extra['extractionCue'] = {'serial':renderer.extraction_cue_serial,'connectionGeneration':rpc.connection_generation,'requestStartMs':Time.get_ticks_msec(),'cueSequence':request_sequence}
 	var id = rpc.request(method,params,_assoc(extra))
 	if id==0 and block:
 		critical = ''
@@ -1416,6 +1418,8 @@ func _interaction_result(a: Dictionary, r: Dictionary) -> void:
 	# Only reached after successful receipt validation and snapshot admission.
 	if a.has('beaconCue') and is_instance_valid(renderer):
 		renderer.offer_beacon_deploy_receipt(a,r,snapshot)
+	if a.has('extractionCue') and is_instance_valid(renderer):
+		renderer.offer_extraction_receipt(a,r,snapshot)
 	var target: Dictionary = a.target
 	var before: Dictionary = a.before
 	var kind: String = target.kind
