@@ -378,3 +378,151 @@ func draw_wall(canvas_value, snapshot_value, scene_value, current_key_value, pro
 	canvas.draw_colored_polygon(side_points,WALL_SIDE)
 	canvas.draw_colored_polygon(cap_points,WALL_CAP)
 	return true
+
+# Candidate region-centered +Y steam calibration; not an authored nozzle pose.
+# No textures, local clocks, exposure-derived density or gameplay state writes.
+const SteamPresentation = preload('res://scripts/world/presentation.gd')
+const STEAM_REGION = [[11.0,10.0],[13.0,10.0],[13.0,13.0],[11.0,13.0]]
+
+func _pressure_steam_frame(snapshot: Dictionary, scene: Dictionary) -> Dictionary:
+	var occluders: Variant = scene.get('occluders')
+	var sources: Variant = scene.get('hazards')
+	if not occluders is Array or not occluders.is_empty() or not P.rows(sources,64):
+		return {}
+	var source_count: int = 0
+	for row_value: Variant in sources:
+		if not row_value is Dictionary:
+			return {}
+		var row: Dictionary = row_value
+		if row.get('id')!='cw_boiler_vent_staged' and row.get('kind')!='steam_jet':
+			continue
+		if row.size()!=4 or row.get('id')!='cw_boiler_vent_staged' or row.get('kind')!='steam_jet' or not _polygon_matches(row.get('polygon'),STEAM_REGION) or row.get('heightRangeM')!=null:
+			return {}
+		var config: Variant = row.get('environment')
+		if not config is Dictionary or config.size()!=6 or config.get('tag')!='pressure':
+			return {}
+		for key: String in ['warningMs','activeMs','recoveryMs','damage','damageIntervalMs']:
+			var expected: int = {'warningMs':900,'activeMs':700,'recoveryMs':3400,'damage':10,'damageIntervalMs':700}[key]
+			if not P.counter(config.get(key),expected,expected):
+				return {}
+		source_count += 1
+	if source_count!=1:
+		return {}
+	var native_count: int = 0
+	var frame: Dictionary = {}
+	for row_value: Variant in snapshot.hazards:
+		if not row_value is Dictionary:
+			return {}
+		var row: Dictionary = row_value
+		if row.get('entityId')!='cw_boiler_vent_staged' and row.get('kind')!='steam_jet':
+			continue
+		if row.get('entityId')!='cw_boiler_vent_staged' or row.get('kind')!='steam_jet' or not _polygon_matches(row.get('polygonM'),STEAM_REGION) or row.get('heightRangeM')!=null or not P.transform(row.get('transform')):
+			return {}
+		if P.vector(row.transform.positionM)!=Vector3(12,0,11.5) or not _number_matches(row.transform.get('yawRad'),0.0) or typeof(row.get('active'))!=TYPE_BOOL or typeof(row.get('phaseActive'))!=TYPE_BOOL:
+			return {}
+		var environment: Dictionary = SteamPresentation.environment(row)
+		if environment.is_empty():
+			return {}
+		var maximum: int = {'warning':900,'active':700,'recovery':3400,'suppressed':6000}[environment.phase]
+		if not P.counter(environment.remainingMs,1,maximum):
+			return {}
+		if environment.phase=='warning':
+			if not P.counter(row.get('warningRemainingMs'),environment.remainingMs,environment.remainingMs):
+				return {}
+		elif row.get('warningRemainingMs')!=null:
+			return {}
+		native_count += 1
+		frame = environment
+	return frame if native_count==1 else {}
+
+func _pressure_steam_polygon_valid(points: PackedVector2Array) -> bool:
+	if points.size()!=24:
+		return false
+	for point: Vector2 in points:
+		if not _finite_vector2(point):
+			return false
+	var signed_area: float = 0.0
+	var winding: float = 0.0
+	for index: int in range(24):
+		var a: Vector2 = points[index]-points[0]
+		var b: Vector2 = points[(index+1)%24]-points[0]
+		var term: float = a.cross(b)
+		var turn: float = (points[(index+1)%24]-points[index]).cross(points[(index+2)%24]-points[(index+1)%24])
+		if not is_finite(term) or not is_finite(turn) or turn==0.0:
+			return false
+		if index==0:
+			winding = turn
+		elif (turn>0.0)!=(winding>0.0):
+			return false
+		signed_area += term
+	return is_finite(signed_area) and absf(signed_area)>0.000001
+
+# Convex polygon/viewport SAT. -1 invalid arithmetic, 0 offscreen, 1 positive overlap.
+func _pressure_steam_visibility(points: PackedVector2Array, viewport: Rect2) -> int:
+	var corners: PackedVector2Array = PackedVector2Array([viewport.position,Vector2(viewport.end.x,viewport.position.y),viewport.end,Vector2(viewport.position.x,viewport.end.y)])
+	var axes: Array[Vector2] = [Vector2.RIGHT,Vector2.DOWN]
+	for index: int in range(24):
+		var edge: Vector2 = points[(index+1)%24]-points[index]
+		axes.append(Vector2(-edge.y,edge.x))
+	var separated: bool = false
+	for axis: Vector2 in axes:
+		if not _finite_vector2(axis) or axis==Vector2.ZERO:
+			return -1
+		var polygon_min: float = INF
+		var polygon_max: float = -INF
+		var view_min: float = INF
+		var view_max: float = -INF
+		for point: Vector2 in points:
+			var distance: float = (point-points[0]).dot(axis)
+			if not is_finite(distance):
+				return -1
+			polygon_min = minf(polygon_min,distance)
+			polygon_max = maxf(polygon_max,distance)
+		for point: Vector2 in corners:
+			var distance: float = (point-points[0]).dot(axis)
+			if not is_finite(distance):
+				return -1
+			view_min = minf(view_min,distance)
+			view_max = maxf(view_max,distance)
+		if polygon_max<=view_min or view_max<=polygon_min:
+			separated = true
+	return 0 if separated else 1
+
+func draw_pressure_steam(canvas_value: Variant, snapshot_value: Variant, scene_value: Variant, current_key_value: Variant, projection_value: Variant, viewport_value: Variant, reduced_motion_value: Variant) -> bool:
+	if typeof(reduced_motion_value)!=TYPE_BOOL or not _valid_canvas(canvas_value) or not _valid_context(snapshot_value,scene_value,current_key_value,projection_value,viewport_value):
+		return false
+	if typeof(projection_value.get('initialized'))!=TYPE_BOOL or not projection_value.get('initialized') or snapshot_value.get('entryToken')!=null or snapshot_value.player.currentHp<=0:
+		return false
+	var frame: Dictionary = _pressure_steam_frame(snapshot_value,scene_value)
+	if frame.is_empty() or frame.phase!='active':
+		return false
+	# Native remaining time is the sole burst phase; reduced motion fixes one pose.
+	var progress: float = 0.5 if reduced_motion_value else (700.0-float(frame.remainingMs))/700.0
+	var radius_x: float = 0.20+0.08*progress
+	var radius_z: float = 0.12+0.04*progress
+	var steam_color: Color = Color('#d5d8d8')
+	steam_color.a = 0.07*(1.0-0.6*progress)
+	if not _finite_color(steam_color) or steam_color.a<=0.0 or steam_color.a>0.07:
+		return false
+	var plans: Array[PackedVector2Array] = []
+	var any_visible: bool = false
+	for layer: int in range(3):
+		var height: float = 0.10+0.12*float(layer)+0.60*progress
+		var points: PackedVector2Array = PackedVector2Array()
+		for index: int in range(24):
+			var angle: float = TAU*float(index)/24.0
+			points.append(_project_point(projection_value,12.0+radius_x*cos(angle),height,11.5+radius_z*sin(angle)))
+		if not _pressure_steam_polygon_valid(points):
+			return false
+		var visibility: int = _pressure_steam_visibility(points,viewport_value)
+		if visibility<0:
+			return false
+		any_visible = any_visible or visibility==1
+		plans.append(points)
+	if not any_visible:
+		return false
+	# Complete 72-point plan validated before the first of exactly three commands.
+	var canvas: CanvasItem = canvas_value
+	for points: PackedVector2Array in plans:
+		canvas.draw_colored_polygon(points,steam_color)
+	return true

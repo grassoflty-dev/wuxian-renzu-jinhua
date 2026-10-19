@@ -981,6 +981,9 @@ func _draw() -> void:
 		_draw_gh_power_packets(gh_power_packets)
 	if cw_pressure_room_active:
 		_draw_cw_pressure_packets(cw_pressure_packets)
+	var boiler_steam_gate = _locomotion_gate()
+	if not boiler_steam_gate.is_empty() and boiler_steam_gate.presentation_allowed and boiler_steam_gate.visible:
+		cw_boiler_environment_visual.draw_pressure_steam(self,snapshot,scene,current_key,camera,viewport_rect,boiler_steam_gate.reduced_motion)
 	objects.sort_custom(func(a,b):
 		var ay = camera.project(Vector3(a.p.x,0,a.p.z)).y
 		var by = camera.project(Vector3(b.p.x,0,b.p.z)).y
