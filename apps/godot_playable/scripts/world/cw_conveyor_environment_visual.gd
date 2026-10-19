@@ -47,9 +47,17 @@ func draw_wall(canvas_value: Variant, snapshot_value: Variant, scene_value: Vari
 	_draw_commands(canvas_item,commands)
 	return true
 
-func draw_conveyor(canvas_value: Variant, snapshot_value: Variant, scene_value: Variant, current_key_value: Variant, projection_value: Variant, viewport_value: Variant) -> bool:
-	if not _material_context_valid(canvas_value,snapshot_value,scene_value,current_key_value,projection_value,viewport_value):
+func draw_conveyor(canvas_value: Variant, snapshot_value: Variant, scene_value: Variant, current_key_value: Variant, projection_value: Variant, viewport_value: Variant, reduced_motion_value: Variant) -> bool:
+	if typeof(reduced_motion_value)!=TYPE_BOOL or not _material_context_valid(canvas_value,snapshot_value,scene_value,current_key_value,projection_value,viewport_value):
 		return false
+	if not reduced_motion_value:
+		# Bound the safe integer tick before float conversion; no wall-clock timer.
+		var phase: float = float(int(snapshot_value.serverTick)%25)*0.02
+		var moving: Array[Dictionary] = _build_moving_conveyor_commands(projection_value,phase)
+		if _moving_conveyor_commands_valid(moving):
+			_draw_commands(canvas_value,moving)
+			return true
+	# Reduced motion and any failed moving plan retain the original static path.
 	var commands: Array[Dictionary] = _build_conveyor_commands(projection_value)
 	if not _commands_valid(commands,26,true):
 		return false
@@ -483,3 +491,56 @@ func _vector3_finite(value: Variant) -> bool:
 
 func _color_finite(color: Color) -> bool:
 	return is_finite(color.r) and is_finite(color.g) and is_finite(color.b) and is_finite(color.a)
+
+# Candidate material motion only. These x-clipped fills have no exterior stroke;
+# their perpendicular projected width matches the original 0.7*ppm/48 ribs.
+func _build_moving_conveyor_commands(projection_value: Variant, phase: float) -> Array[Dictionary]:
+	var commands: Array[Dictionary] = []
+	var ppm: float = float(projection_value.get('ppm'))
+	var screen_width: float = 0.7*ppm/48.0
+	if not is_finite(phase) or phase<0.0 or phase>=0.5 or not P.number(screen_width,0.000001,8.0):
+		return []
+	if not _append_rectangle(commands,projection_value,Rect2(6.0,6.0,12.0,4.0),Color('#20292a')):
+		return []
+	if not _append_rectangle(commands,projection_value,Rect2(6.0,6.0,12.0,0.08),Color(0.04,0.06,0.065,0.20)):
+		return []
+	if not _append_rectangle(commands,projection_value,Rect2(6.0,9.92,12.0,0.08),Color(0.04,0.06,0.065,0.20)):
+		return []
+	var half_width: float = 0.5*0.7*sqrt(1.25)/48.0
+	for rib_index: int in range(25):
+		var center: float = 6.0+0.5*float(rib_index)-phase
+		var left: float = maxf(6.0,center-half_width)
+		var right: float = minf(18.0,center+half_width)
+		if right<=left:
+			continue
+		# Every retained positive-world-area fragment is mandatory in preflight.
+		if not _append_rectangle(commands,projection_value,Rect2(left,6.08,right-left,9.92-6.08),Color(0.24,0.28,0.27,0.45)):
+			return []
+	return commands
+
+func _moving_conveyor_commands_valid(commands: Array[Dictionary]) -> bool:
+	if commands.size()!=27 and commands.size()!=28:
+		return false
+	if not _commands_valid(commands,27,false) and not _commands_valid(commands,28,false):
+		return false
+	for index: int in range(commands.size()):
+		var command: Dictionary = commands[index]
+		if command.get('kind')!='polygon':
+			return false
+		var expected_color: Color = Color(0.24,0.28,0.27,0.45)
+		if index==0:
+			expected_color = Color('#20292a')
+		elif index<3:
+			expected_color = Color(0.04,0.06,0.065,0.20)
+		if command.get('color')!=expected_color:
+			return false
+		var points: PackedVector2Array = command.points
+		var twice_area: float = 0.0
+		for vertex: int in range(1,3):
+			var triangle: float = (points[vertex]-points[0]).cross(points[vertex+1]-points[0])
+			if not is_finite(triangle):
+				return false
+			twice_area += triangle
+		if not is_finite(twice_area) or absf(twice_area)*0.5<=0.000001:
+			return false
+	return true

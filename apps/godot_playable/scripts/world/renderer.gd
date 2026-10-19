@@ -830,7 +830,7 @@ func _draw() -> void:
 			var drained = pump is Dictionary and pump.get('state')=='drained' and region.get('id') in ['mh_pump_east_channel_water','mh_water_depth_region']
 			var c = Color(0.16,0.4,0.5,0.16 if drained else 0.32) if 'water' in tag else Color(0.36,0.29,0.2,0.24)
 			_poly(region.polygon,0,c,true)
-	cw_conveyor_environment_visual.draw_conveyor(self,snapshot,scene,current_key,camera,viewport_rect)
+	cw_conveyor_environment_visual.draw_conveyor(self,snapshot,scene,current_key,camera,viewport_rect,reduced_motion)
 	if not rs_active:
 		_supports()
 		_surfaces()
