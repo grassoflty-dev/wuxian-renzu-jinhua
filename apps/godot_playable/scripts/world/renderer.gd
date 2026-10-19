@@ -5,7 +5,9 @@ var mh_drowned_quay_environment_visual = MhDrownedQuayEnvironmentVisual.new()
 const MhSignalYardEnvironmentVisual = preload('res://scripts/world/mh_signal_yard_environment_visual.gd')
 var mh_signal_yard_environment_visual = MhSignalYardEnvironmentVisual.new()
 const MhTidalWarehouseEnvironmentVisual = preload('res://scripts/world/mh_tidal_warehouse_environment_visual.gd')
+const MHWarehouseCratesVisual = preload('res://scripts/world/mh_warehouse_crates_visual.gd')
 var mh_tidal_warehouse_environment_visual = MhTidalWarehouseEnvironmentVisual.new()
+var mh_warehouse_crates_visual = MHWarehouseCratesVisual.new()
 const MhWardenArenaEnvironmentVisual = preload('res://scripts/world/mh_warden_arena_environment_visual.gd')
 var mh_warden_arena_environment_visual = MhWardenArenaEnvironmentVisual.new()
 const V = preload('res://scripts/world/presentation.gd')
@@ -499,6 +501,7 @@ func commit(s: Dictionary, data: Dictionary, hash: String) -> void:
 		cw_entry_foundry_environment_visual.prepare(snapshot,scene,current_key,scene_hash)
 	if snapshot.get('worldId')=='mist_harbor' and snapshot.get('sceneId')=='mh_tidal_warehouse':
 		mh_tidal_warehouse_environment_visual.prepare_resources(snapshot,scene,current_key)
+		mh_warehouse_crates_visual.prepare_resources()
 	gh_central_shaft_environment_visual.prepare(snapshot,scene,current_key,scene_hash)
 	gh_exit_environment_visual.prepare(snapshot,scene,current_key,scene_hash)
 	last_snapshot_at = Time.get_ticks_msec()
@@ -783,7 +786,7 @@ func _draw() -> void:
 				continue
 			if cw_entry_foundry_environment_visual.draw_wall(self,wall,snapshot,scene,current_key,camera,viewport_rect):
 				continue
-			if mh_tidal_warehouse_environment_visual.draw_wall(self,warehouse_frame,wall,snapshot,scene,current_key,camera,viewport_rect):
+			if mh_tidal_warehouse_environment_visual.draw_wall(self,warehouse_frame,wall,snapshot,scene,current_key,camera,viewport_rect,mh_warehouse_crates_visual):
 				continue
 			if gh_central_shaft_environment_visual.draw_wall(self,wall,snapshot,scene,current_key,camera,viewport_rect):
 				continue

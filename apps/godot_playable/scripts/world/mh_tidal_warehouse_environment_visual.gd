@@ -2,6 +2,7 @@ extends RefCounted
 
 const P = preload('res://scripts/bridge/protocol.gd')
 const ProjectionScript = preload('res://scripts/world/projection.gd')
+const MHWarehouseCratesVisual = preload('res://scripts/world/mh_warehouse_crates_visual.gd')
 const MAP_PATH: String = 'res://data/mh_tidal_warehouse_environment.internal-use.json'
 const EXPECTED_JSON: String = '{"schema":"wuxian.mh-tidal-warehouse-environment.internal-use/v1","registeredSourceReuse":true,"approval":"INTERNAL_REGISTERED_SOURCE_REUSE","roomUse":"ONLY_EXPLICIT_MAIN_ADMITTED_MH_TIDAL_WAREHOUSE_SCOPE","GodotDisplay":"NOT_RUN","publicRelease":"NOT_ESTABLISHED","sourceContracts":[{"path":"res://data/mh_fog_pier_stone_material.internal-use.json","bytes":1517,"sha256":"c56ad7549a49809341e2aea6efcbe7fbe0477eb51026e776c4a49fa03077585a"},{"path":"res://data/mh_fog_pier_layered_fog.internal-use.json","bytes":2270,"sha256":"027980b44e5f92aa5e7759611eeffe69d6ae59be90a4ae4e0858a96123d2bee0"}],"assets":{"stone":{"assetId":"runtime2d.world.mistharbor.water_edge_stone.v1","derivedRelative":"assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.mistharbor.water_edge_stone.v1.png","sourceRelative":"batch07/02_runtime2d.world.mistharbor.water_edge_stone.v1.png","sourceSha256":"dc09452bf3f55c57cca1a93bb09f169ef441af90321dff47d91c4be7e62d3a83","path":"res://assets/props/mist_harbor/fog_pier_stone_source.png","bytes":1983603,"sha256":"e823434b3fbc420fc14270200f81e0a459e594597304b1323d336e532a924f9d","canvas":[1228,1254],"format":"RGBA8"},"fog":{"assetId":"runtime2d.world.mistharbor.fog_bank.v1","path":"res://assets/props/mist_harbor/fog_pier_fog_bank_source.png","bytes":684960,"sha256":"9bbbfd9783f70a8b1f6ffeaabd44e568074f4c20f1f7500d7ef4f0e534edeac2","canvas":[1254,1236],"format":"RGBA8"}},"installation":{"worldId":"mist_harbor","sceneId":"mh_tidal_warehouse","boundsM":[0,0,24,16],"stoneRowId":"approved_warehouse_stone_water_module","stoneLayer":"visual.floor","stonePosition":[12,0,8],"walkableId":"mh_tidal_warehouse_walkable_area","walkablePolygon":[[0.5,0.5],[23.5,0.5],[23.5,15.5],[0.5,15.5]],"groundY":0},"stone":{"sourcePixelEdgeCorners":[[820,240],[1032,342],[392,627],[180,525]],"uvConvention":"sourcePixelEdge / standaloneCanvasSize","patchSizeM":[1.5,4.5],"grid":[16,4],"patchCount":64,"edgeCells":"CLIP_WORLD_AND_UV_FRACTIONS_NOT_STRETCH","tint":[0.48,0.58,0.63,1]},"fog":{"sourceRect":[27,370,1201,498],"sampling":"linear","repeat":false,"blend":"normal_alpha_preserve_RGBA","static":true,"rows":[{"id":"warehouse_inner_fog_bank","assetId":"runtime2d.world.mistharbor.fog_bank.v1","layer":"visual.props_back","position":[18,0,3],"phase":"back","widthPerPpm":9,"centerOffsetPerPpm":[0,-1.25],"modulate":[0.8,0.88,0.92,0.14]},{"id":"warehouse_fog_bank_foreground","assetId":"runtime2d.world.mistharbor.fog_bank.v1","layer":"visual.foreground","position":[6,0,12],"phase":"front","widthPerPpm":6,"centerOffsetPerPpm":[0,0.05],"modulate":[0.8,0.88,0.92,0.045]}]},"walls":{"highIds":["warehouse_wall_north","warehouse_wall_west_north","warehouse_wall_west_south"],"highDisplayHeight":0.8,"lowDisplayHeight":0.18,"sideColor":"#273b40","capColor":"#506d75","contactAlpha":0.14,"contactWidthM":0.06}}'
 const WALLS: Dictionary = {
@@ -306,7 +307,7 @@ func draw_floor(canvas_value, frame_value, snapshot, scene, key, camera, viewpor
 		canvas.draw_polygon(points,colors,uvs,texture)
 	return true
 
-func draw_wall(canvas_value, frame_value, wall_value, snapshot, scene, key, camera, viewport) -> bool:
+func draw_wall(canvas_value, frame_value, wall_value, snapshot, scene, key, camera, viewport, crates: MHWarehouseCratesVisual = null) -> bool:
 	if not _canvas(canvas_value) or not wall_value is Dictionary or not _frame_valid(frame_value,snapshot,scene,key,camera,viewport):
 		return false
 	var wall: Dictionary = wall_value
@@ -319,6 +320,8 @@ func draw_wall(canvas_value, frame_value, wall_value, snapshot, scene, key, came
 	var contact: PackedVector2Array = plan.contact
 	var side: PackedVector2Array = plan.side
 	var cap: PackedVector2Array = plan.cap
+	if id_value == 'warehouse_wall_north' and crates != null and is_instance_valid(crates):
+		crates.draw_north_backdrop(canvas,snapshot,scene,key,camera,viewport)
 	canvas.draw_colored_polygon(contact,Color(0.01,0.025,0.03,0.14))
 	canvas.draw_colored_polygon(side,Color('#273b40'))
 	canvas.draw_colored_polygon(cap,Color('#506d75'))
