@@ -602,6 +602,25 @@ func _color_plan(plan: Array[Dictionary], camera: Variant, world: Array[Vector3]
 	plan.append({'points':points,'color':color})
 	return true
 
+# Only after the original full wall passes _project: true may omit a finite tiny remnant.
+func _clipped_color_plan(plan: Array[Dictionary], camera: Variant, world: Array[Vector3], color: Color) -> bool:
+	var points: PackedVector2Array = PackedVector2Array()
+	for vertex: Vector3 in world:
+		var point: Vector2 = camera.project(vertex)
+		if not _v2(point):
+			return false
+		points.append(point)
+	if points.size() < 3:
+		return false
+	var area: float = 0.0
+	for index: int in range(points.size()):
+		area += points[index].cross(points[(index+1)%points.size()])
+	if not is_finite(area):
+		return false
+	if absf(area) > 0.000001:
+		plan.append({'points':points,'color':color})
+	return true
+
 func _emit(canvas: CanvasItem, plan: Array[Dictionary]) -> void:
 	for command: Dictionary in plan:
 		canvas.draw_colored_polygon(command.points,command.color)
@@ -670,6 +689,16 @@ func draw_wall(canvas: Variant, snapshot_value: Variant, scene_value: Variant, k
 		cap.append(Vector3(pair[0],height,pair[1]))
 	var west_join: bool = id_value == 'cw_forged_guard_arena_wall_west_south'
 	var east_join: bool = id_value == 'cw_forged_guard_arena_wall_east_south'
+	if west_join or east_join:
+		# Preserve the original six-polygon admission domain before omitting remnants.
+		if _project(camera,contact).is_empty() or _project(camera,cap).is_empty():
+			return false
+		for index: int in range(4):
+			var a: Vector3 = contact[index]
+			var b: Vector3 = contact[(index+1)%4]
+			var original_side: Array[Vector3] = [a,b,Vector3(b.x,height,b.z),Vector3(a.x,height,a.z)]
+			if _project(camera,original_side).is_empty():
+				return false
 	var south: Dictionary = DEFINITION.walls['cw_forged_guard_arena_wall_south']
 	var south_height: float = float(south.height)
 	var join_z: float = float(south.polygon[0][1])
@@ -685,9 +714,10 @@ func draw_wall(canvas: Variant, snapshot_value: Variant, scene_value: Variant, k
 			# The outboard end strip is outside that cap and must remain visible.
 			extra_contact = [Vector3(clipped_x,0,clipped_z),Vector3(outer_x,0,clipped_z),Vector3(outer_x,0,join_z),Vector3(clipped_x,0,join_z)]
 	var plan: Array[Dictionary] = []
-	if not _color_plan(plan,camera,contact,Color(0.025,0.032,0.035,0.12)):
+	var contact_ok: bool = _clipped_color_plan(plan,camera,contact,Color(0.025,0.032,0.035,0.12)) if west_join or east_join else _color_plan(plan,camera,contact,Color(0.025,0.032,0.035,0.12))
+	if not contact_ok:
 		return false
-	if east_join and not _color_plan(plan,camera,extra_contact,Color(0.025,0.032,0.035,0.12)):
+	if east_join and not _clipped_color_plan(plan,camera,extra_contact,Color(0.025,0.032,0.035,0.12)):
 		return false
 	for index: int in range(4):
 		# Side/cap endpoints come from the canonical footprint, not clipped contact.
@@ -707,7 +737,8 @@ func draw_wall(canvas: Variant, snapshot_value: Variant, scene_value: Variant, k
 				side = [a,Vector3(clipped_x,0,join_z),Vector3(outer_x,height,join_z)]
 			elif index == 3:
 				side = [Vector3(a.x,0,clipped_z),b,Vector3(b.x,height,b.z),Vector3(a.x,height,a.z)]
-		if not _color_plan(plan,camera,side,face):
+		var side_ok: bool = _clipped_color_plan(plan,camera,side,face) if west_join or east_join else _color_plan(plan,camera,side,face)
+		if not side_ok:
 			return false
 	if not _color_plan(plan,camera,cap,Color('#596467')):
 		return false
