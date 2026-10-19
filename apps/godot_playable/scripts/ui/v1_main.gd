@@ -15,6 +15,10 @@ const FREE_TRAVERSAL_STARTS = {
 }
 const EARNED_TRAVERSAL_START = {'row':{'id':'cw_gear_earned_air_step','from':[11.0,0.0,8.0],'to':[16.0,2.0,8.0],'rangeM':1.2,'cooldownMs':350,'fromHeightRangeM':[0.0,0.1],'requiredCapabilities':['mobility.air_step_i']},'band':[0.0,0.1],'label':'空中踏步'}
 const ACTION_KEYS = {KEY_J:'primaryAttack',KEY_SHIFT:'dash',KEY_SPACE:'contextTraversal',KEY_Q:'pulse',KEY_E:'guardStart',KEY_R:'pierce'}
+const PULSE_KEYS = {'Q':KEY_Q,'U':KEY_U,'I':KEY_I,'O':KEY_O,'P':KEY_P,'K':KEY_K,'L':KEY_L}
+var pulse_down: Dictionary = {}
+var pulse_rearm: Dictionary = {}
+var pulse_edge: InputEventKey = null
 const SCENE_RPC = {'scene_transition':'formal_scene_transition','scene_checkpoint':'formal_scene_checkpoint','scene_trigger':'formal_scene_trigger','environment_control':'formal_environment_control','world_gate':'formal_world_gate','mission_terminal':'formal_mission_terminal_status','capability_terminal':'formal_capability_terminal_status','save_rest_terminal':'formal_save_rest_terminal'}
 const INTERACT_KINDS = ['power_console','door_panel','terminal','lockdown_terminal','facility_log','bio_log_terminal','gate_b_panel','extraction_console','beacon','pump_control','valve_control','beacon_collect','beacon_mount','coolant_valve','static_dialogue_marker']
 var audio
@@ -55,7 +59,7 @@ var pause_owned: Dictionary = {}
 var ticket: Dictionary = {}
 var enhancement_pending: Dictionary = {}
 var last_feedback = ''
-var preferences = {'scale':1.0,'fullscreen':false,'color':false,'reduced':false,'muted':false,'volume':0.35}
+var preferences = {'scale':1.0,'fullscreen':false,'color':false,'reduced':false,'muted':false,'volume':0.35,'pulse_key':'Q'}
 var pointer_seen = false
 var pending_actions: Array = []
 var guard_blocked = false
@@ -73,7 +77,8 @@ var slot_list_state = 'unknown'
 var current_slots: Array = []
 var save_projection_generation = -1
 var save_projection_connection = -1
-const TRACE_KEYS = [KEY_W,KEY_A,KEY_S,KEY_D,KEY_UP,KEY_DOWN,KEY_LEFT,KEY_RIGHT,KEY_J,KEY_SHIFT,KEY_SPACE,KEY_Q,KEY_E,KEY_R,KEY_F,KEY_T,KEY_M,KEY_ESCAPE]
+const FIXED_INPUT_KEYS = [KEY_W,KEY_A,KEY_S,KEY_D,KEY_UP,KEY_DOWN,KEY_LEFT,KEY_RIGHT,KEY_J,KEY_SHIFT,KEY_SPACE,KEY_Q,KEY_E,KEY_R,KEY_F,KEY_T,KEY_M,KEY_ESCAPE]
+const TRACE_KEYS = FIXED_INPUT_KEYS+[KEY_U,KEY_I,KEY_O,KEY_P,KEY_K,KEY_L]
 var trace_enabled = false
 var trace_started_ms = 0
 var trace_records = 0
@@ -259,6 +264,8 @@ func _process(delta: float) -> void:
 			_request('formal_presentation_events',{'worldEpoch':snapshot.worldEpoch,'afterEventId':event_view.cursor},'events')
 			_request('formal_sound_cues',{'worldEpoch':snapshot.worldEpoch,'afterEventId':event_view.sound_cursor},'sound')
 	var eligible = _eligible()
+	if not eligible:
+		_rearm_pulse()
 	audio.update(snapshot,catalog.current,generation,eligible,focused)
 	if input_accumulator>=0.05:
 		input_accumulator = 0
@@ -285,7 +292,7 @@ func _process(delta: float) -> void:
 		hint = _interaction_prompt(nearest)+' · '+hint
 	var current_interaction = _current_hud_interaction()
 	renderer.set_interaction_focus(current_interaction,snapshot,eligible,generation)
-	hud.update_view(snapshot,connection_text,eligible,hint,preferences.scale,current_interaction,_current_hud_traversal(),_current_hud_actions(),_current_hud_guard(),_current_hud_movements())
+	hud.update_view(snapshot,connection_text,eligible,hint,preferences.scale,current_interaction,_current_hud_traversal(),_current_hud_actions(),_current_hud_guard(),_current_hud_movements(),preferences.pulse_key)
 	_refresh_entry_wait()
 func _sample(neutral: bool) -> bool:
 	if close_attempted:
@@ -367,6 +374,7 @@ func _end_guard() -> void:
 		guard_active = false
 		_action('guardEnd',true)
 func _release() -> void:
+	_rearm_pulse()
 	_clear_entry_wait()
 	_suspend_locomotion()
 	if is_instance_valid(renderer):
@@ -380,23 +388,59 @@ func _release() -> void:
 	pending_actions.clear()
 	_end_guard()
 	_sample(true)
-	for key in ACTION_KEYS:
+	for key in _action_keys():
 		if _key_held(key):
 			blocked_keys[key] = true
+func _action_keys() -> Dictionary:
+	var keys = ACTION_KEYS.duplicate()
+	keys.erase(KEY_Q)
+	keys[PULSE_KEYS[preferences.pulse_key]] = 'pulse'
+	return keys
+func _pulse_modified(event: InputEventKey) -> bool:
+	return event.ctrl_pressed or event.alt_pressed or event.meta_pressed or event.shift_pressed
+func _rearm_pulse() -> void:
+	pulse_edge = null
+	pending_actions = pending_actions.filter(func(edge): return edge.kind!='pulse')
+	for key in PULSE_KEYS.values():
+		if pulse_down.has(key) or logical_down.has(key) or Input.is_physical_key_pressed(key):
+			pulse_down[key] = true
+			pulse_rearm[key] = true
+func _observe_pulse(event: InputEventKey, key: int) -> void:
+	if not event.pressed:
+		pulse_down.erase(key)
+		pulse_rearm.erase(key)
+		logical_down.erase(key)
+		blocked_keys.erase(key)
+		return
+	var repeated = pulse_down.has(key)
+	pulse_down[key] = true
+	# Observe unbound letters and modified shortcuts without consuming them.
+	if key!=PULSE_KEYS[preferences.pulse_key] or _pulse_modified(event):
+		return
+	if event.echo or repeated or pulse_rearm.has(key) or blocked_keys.has(key) or not _eligible():
+		pulse_rearm[key] = true
+		return
+	pulse_edge = event
 func _event_key(event: InputEventKey) -> int:
-	if event.keycode==KEY_ESCAPE and event.physical_keycode!=0 and not event.physical_keycode in TRACE_KEYS:
+	if event.keycode==KEY_ESCAPE and event.physical_keycode!=0 and not event.physical_keycode in FIXED_INPUT_KEYS:
 		return KEY_ESCAPE
 	if event.physical_keycode!=0:
 		return event.physical_keycode
-	return event.keycode if event.keycode in [KEY_W,KEY_A,KEY_S,KEY_D,KEY_UP,KEY_DOWN,KEY_LEFT,KEY_RIGHT,KEY_J,KEY_SHIFT,KEY_SPACE,KEY_Q,KEY_E,KEY_R,KEY_F,KEY_T,KEY_M,KEY_ESCAPE] else 0
+	return event.keycode if event.keycode in [KEY_W,KEY_A,KEY_S,KEY_D,KEY_UP,KEY_DOWN,KEY_LEFT,KEY_RIGHT,KEY_J,KEY_SHIFT,KEY_SPACE,KEY_Q,KEY_E,KEY_R,KEY_F,KEY_T,KEY_M,KEY_ESCAPE,KEY_U,KEY_I,KEY_O,KEY_P,KEY_K,KEY_L] else 0
 func _key_held(key: int) -> bool:
-	return Input.is_physical_key_pressed(key) or logical_down.has(key)
+	return Input.is_physical_key_pressed(key) or logical_down.has(key) or pulse_down.has(key)
 func _unhandled_input(event: InputEvent) -> void:
 	_trace_key(event,'unhandled','received')
 	if event is InputEventMouseMotion:
 		pointer_seen = true
 	if event is InputEventKey:
 		var key = _event_key(event)
+		if key in PULSE_KEYS.values():
+			var edge = pulse_edge
+			pulse_edge = null
+			if event.pressed and not event.echo and edge==event and key==PULSE_KEYS[preferences.pulse_key] and not _pulse_modified(event) and not pulse_rearm.has(key) and not blocked_keys.has(key) and _eligible():
+				_action('pulse')
+			return
 		if not event.pressed:
 			_trace_key(event,'unhandled','release')
 			blocked_keys.erase(key)
@@ -423,13 +467,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif key==KEY_M:
 			_trace_key(event,'unhandled','dispatch_m')
 			_open_paused('map')
-		elif ACTION_KEYS.has(key):
+		elif _action_keys().has(key):
 			_trace_key(event,'unhandled','dispatch_action')
-			_action(ACTION_KEYS[key])
+			_action(_action_keys()[key])
 	if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT and event.pressed and _eligible() and get_viewport().gui_get_hovered_control()==null:
 		pointer_seen = true
 		_action('primaryAttack')
 func _input(event: InputEvent) -> void:
+	# A GUI-consumed event cannot donate its edge to any later event.
+	pulse_edge = null
 	_trace_key(event,'input','received')
 	if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT and not event.pressed:
 		_end_mouse_guard()
@@ -440,6 +486,9 @@ func _input(event: InputEvent) -> void:
 		return
 	var key = _event_key(event)
 	if key==0:
+		return
+	if key in PULSE_KEYS.values():
+		_observe_pulse(event,key)
 		return
 	if event.physical_keycode==0:
 		if not event.pressed:
@@ -453,7 +502,7 @@ func _input(event: InputEvent) -> void:
 			return
 		else:
 			logical_down[key] = true
-			if not _eligible() and (ACTION_KEYS.has(key) or key in [KEY_F,KEY_T,KEY_M]):
+			if not _eligible() and (_action_keys().has(key) or key in [KEY_F,KEY_T,KEY_M]):
 				blocked_keys[key] = true
 	if event.pressed and not event.echo and key==KEY_ESCAPE:
 		_trace_key(event,'input','escape')
@@ -466,6 +515,7 @@ func _input(event: InputEvent) -> void:
 		_end_guard()
 func _notification(what: int) -> void:
 	if what in [NOTIFICATION_APPLICATION_FOCUS_OUT,NOTIFICATION_WM_CLOSE_REQUEST,NOTIFICATION_PAUSED,NOTIFICATION_DISABLED,NOTIFICATION_VISIBILITY_CHANGED]:
+		_rearm_pulse()
 		_clear_entry_wait()
 		_suspend_locomotion()
 	if what==NOTIFICATION_WM_CLOSE_REQUEST and (not is_instance_valid(rpc) or not rpc.authenticated):
@@ -505,10 +555,11 @@ func _escape() -> void:
 	if _eligible():
 		_open_paused('pause')
 func _show(page: String, extra: Dictionary = {}, blocked: bool = false, refresh_saves: bool = true) -> void:
+	_rearm_pulse()
 	_clear_entry_wait()
 	_suspend_locomotion()
 	for key in logical_down:
-		if ACTION_KEYS.has(key) or key in [KEY_F,KEY_T,KEY_M]:
+		if _action_keys().has(key) or key in [KEY_F,KEY_T,KEY_M]:
 			blocked_keys[key] = true
 	panel_generation += 1
 	var o = _owner()
@@ -583,9 +634,12 @@ func _ui_intent(kind: String, value, owner: Dictionary) -> void:
 	if kind in ['settings_defaults','settings_apply','slot_create_prepare']:
 		return
 	if kind=='apply_preferences':
-		if value is Dictionary and value.get('scale') in [1.0,1.25,1.5] and typeof(value.get('fullscreen'))==TYPE_BOOL and typeof(value.get('color'))==TYPE_BOOL and typeof(value.get('reduced'))==TYPE_BOOL and typeof(value.get('muted'))==TYPE_BOOL and P.number(value.get('volume'),0,1) and value.size()==6:
+		if value is Dictionary and value.get('scale') in [1.0,1.25,1.5] and typeof(value.get('fullscreen'))==TYPE_BOOL and typeof(value.get('color'))==TYPE_BOOL and typeof(value.get('reduced'))==TYPE_BOOL and typeof(value.get('muted'))==TYPE_BOOL and P.number(value.get('volume'),0,1) and (value.size()==6 and not value.has('pulse_key') or value.size()==7 and typeof(value.get('pulse_key'))==TYPE_STRING and PULSE_KEYS.has(value.pulse_key)):
 			_suspend_locomotion()
+			if value.get('pulse_key','Q')!=preferences.pulse_key:
+				_rearm_pulse()
 			preferences = value.duplicate(true)
+			preferences['pulse_key'] = value.get('pulse_key','Q')
 			audio.configure(preferences.muted,preferences.volume)
 			audio.ui_cue('confirm',focused)
 			renderer.text_scale = preferences.scale
@@ -1268,6 +1322,7 @@ func _accept_snapshot(s: Dictionary, permit_transition: bool = false, journey_en
 			_hold('E_UNASSOCIATED_EPOCH')
 			return false
 	if changed:
+		_rearm_pulse()
 		_suspend_locomotion()
 		audio.suspend_world()
 		# The core transition already neutralized the old epoch. Do not send stale input.
@@ -1275,7 +1330,7 @@ func _accept_snapshot(s: Dictionary, permit_transition: bool = false, journey_en
 		guard_blocked = _key_held(KEY_E)
 		pending_actions.clear()
 		neutral_pending = false
-		for key in ACTION_KEYS:
+		for key in _action_keys():
 			if _key_held(key):
 				blocked_keys[key] = true
 		logical_down.clear()

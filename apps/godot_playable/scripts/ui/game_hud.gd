@@ -376,7 +376,7 @@ func _update_movements(s: Dictionary, eligible: bool, movements) -> void:
 				state.button.visible = true
 			if state.button.disabled:
 				state.button.disabled = false
-func update_view(s: Dictionary, connection: String, eligible: bool, interaction: String, scale: float, target = {}, traversal = {}, actions = [], guard = {}, movements = []) -> void:
+func update_view(s: Dictionary, connection: String, eligible: bool, interaction: String, scale: float, target = {}, traversal = {}, actions = [], guard = {}, movements = [], pulse_key: String = 'Q') -> void:
 	var desired: Dictionary = {}
 	if eligible and P.snapshot(s) and _interaction_association_valid(target) and P.same(target.context,s):
 		desired = target.duplicate(true)
@@ -438,7 +438,7 @@ func update_view(s: Dictionary, connection: String, eligible: bool, interaction:
 	for button in button_nodes:
 		button.add_theme_font_size_override('font_size',int(16*scale))
 		button.custom_minimum_size.y = 32*scale
-	icons.update_display(scale,'' if s.is_empty() else s.player.actionState,eligible,display.action)
+	icons.update_display(scale,'' if s.is_empty() else s.player.actionState,eligible,display.action,pulse_key)
 	if layout_scale!=scale:
 		layout_scale = scale
 		_queue_bottom_layout()

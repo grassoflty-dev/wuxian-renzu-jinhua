@@ -19,7 +19,7 @@ var default_save_state = 'unknown'
 var slot_list_state = 'unknown'
 var connected = false
 var pending = false
-var preferences = {'scale':1.0,'fullscreen':false,'color':false,'reduced':false,'muted':false,'volume':0.35}
+var preferences = {'scale':1.0,'fullscreen':false,'color':false,'reduced':false,'muted':false,'volume':0.35,'pulse_key':'Q'}
 var staged = {}
 var font_scale = 1.0
 var panel: PanelContainer
@@ -96,6 +96,8 @@ func show_page(kind: String, association: Dictionary, s: Dictionary, is_connecte
 	visible = true
 	if kind=='settings':
 		staged = preferences.duplicate(true)
+		if not staged.has('pulse_key'):
+			staged['pulse_key'] = 'Q'
 	_rebuild()
 	_layout_content()
 	# Take focus off the background without selecting a confirmation action.
@@ -247,6 +249,18 @@ func _baizhi_page() -> void:
 	_button('结束对白','baizhi_close',null,_baizhi_page_context_ready())
 func _settings() -> void:
 	_text('仅当前会话；不会写入偏好文件。文字大小保持所选比例，小窗口可以滚动。临时原生合成音频；实际输出尚未验证。静音和音量仅当前会话。')
+	_text('脉冲键（仅当前会话）；应用后替换 Q，不改变其他动作键。')
+	var pulse_keys = ['Q','U','I','O','P','K','L']
+	var pulse_pick = OptionButton.new()
+	for key_name in pulse_keys:
+		pulse_pick.add_item(key_name)
+	pulse_pick.select(pulse_keys.find(staged.pulse_key))
+	pulse_pick.add_theme_font_size_override('font_size',int(18*font_scale))
+	var pulse_owner = page_owner.duplicate(true)
+	pulse_pick.item_selected.connect(func(index):
+		if page_owner==pulse_owner and index>=0 and index<pulse_keys.size():
+			staged.pulse_key=pulse_keys[index])
+	box.add_child(pulse_pick)
 	var size_pick = OptionButton.new()
 	for label in ['100%','125%','150%']:
 		size_pick.add_item(label)
@@ -282,7 +296,7 @@ func _settings() -> void:
 	var defaults = _button('默认值','settings_defaults')
 	defaults.pressed.connect(func():
 		if page_owner==captured:
-			staged={'scale':1.0,'fullscreen':false,'color':false,'reduced':false,'muted':false,'volume':0.35}
+			staged={'scale':1.0,'fullscreen':false,'color':false,'reduced':false,'muted':false,'volume':0.35,'pulse_key':'Q'}
 			_rebuild())
 	var apply = _button('应用','settings_apply')
 	apply.pressed.connect(func():
