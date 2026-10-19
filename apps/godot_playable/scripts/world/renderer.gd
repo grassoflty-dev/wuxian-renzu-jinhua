@@ -531,6 +531,7 @@ func _draw() -> void:
 	var floor_poly = [[b.x,b.z],[b.x+b.width,b.z],[b.x+b.width,b.z+b.depth],[b.x,b.z+b.depth]]
 	var floor_color = {'return_station':Color('#233c47'),'grey_hive':Color('#263634'),'mist_harbor':Color('#203742'),'clockworks':Color('#40362c')}.get(snapshot.worldId,Color('#263634'))
 	_poly(floor_poly,0,floor_color,true)
+	cw_shutdown_exit_environment_visual.draw_floor(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
 	var warden_ground_drawn: bool = mh_warden_arena_environment_visual.draw_ground(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
 	mh_warden_arena_last_draw_report['ground_drawn'] = warden_ground_drawn
 	mh_extraction_environment_visual.draw_ground(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)

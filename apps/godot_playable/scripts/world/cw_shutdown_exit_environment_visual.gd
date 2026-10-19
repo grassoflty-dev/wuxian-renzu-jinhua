@@ -261,3 +261,74 @@ func draw_shell(canvas_value: Variant, snapshot_value: Variant, scene_value: Var
 	for command: Dictionary in drawable:
 		canvas_value.draw_colored_polygon(command.points,command.color)
 	return true
+
+# Proposed code-native floor appearance; no texture, height or gameplay state.
+# Keep the published shell plan and its independent success/fallback unchanged.
+func _floor_plan(camera: RefCounted) -> Array[Dictionary]:
+	var rectangles: Array[Dictionary] = []
+	for row: int in range(4):
+		for column: int in range(6):
+			var delta: float = float((column+2*row)%3-1)*0.006
+			var color: Color = Color(52.0/255.0+delta,58.0/255.0+delta,60.0/255.0+delta,1.0)
+			rectangles.append({'rect':Rect2(float(column)*4.0,float(row)*4.0,4.0,4.0),'color':color})
+	if rectangles.size() != 24:
+		return []
+	# Candidate 0.02m joints are filled ground rectangles, not screen strokes.
+	# Vertical strips own crossings; horizontal segments have disjoint interiors.
+	var half_width: float = 0.01
+	var seam: Color = Color(0.04,0.055,0.06,0.075)
+	for column: int in range(1,6):
+		var x: float = float(column)*4.0
+		rectangles.append({'rect':Rect2(x-half_width,0.0,2.0*half_width,16.0),'color':seam})
+	for row: int in range(1,4):
+		var z: float = float(row)*4.0
+		for column: int in range(6):
+			var x0: float = float(column)*4.0+(half_width if column > 0 else 0.0)
+			var x1: float = float(column+1)*4.0-(half_width if column < 5 else 0.0)
+			rectangles.append({'rect':Rect2(x0,z-half_width,x1-x0,2.0*half_width),'color':seam})
+	if rectangles.size() != 47:
+		return []
+	var result: Array[Dictionary] = []
+	for rectangle: Dictionary in rectangles:
+		var rect: Rect2 = rectangle.rect
+		var color: Color = rectangle.color
+		if not _valid_rect(rect) or rect.position.x < 0.0 or rect.position.y < 0.0 or rect.end.x > 24.0 or rect.end.y > 16.0:
+			return []
+		if not is_finite(color.r) or not is_finite(color.g) or not is_finite(color.b) or not is_finite(color.a) or color.r < 0.0 or color.r > 1.0 or color.g < 0.0 or color.g > 1.0 or color.b < 0.0 or color.b > 1.0 or color.a <= 0.0 or color.a > 1.0:
+			return []
+		# Original and final world rectangles coincide: no clip or deformation.
+		var world: Array[Vector3] = [Vector3(rect.position.x,0.0,rect.position.y),Vector3(rect.end.x,0.0,rect.position.y),Vector3(rect.end.x,0.0,rect.end.y),Vector3(rect.position.x,0.0,rect.end.y)]
+		var points: PackedVector2Array = _project_world(world,camera)
+		result.append({'points':points,'color':color})
+	return result
+
+func draw_floor(canvas_value: Variant, snapshot_value: Variant, scene_value: Variant, key_value: Variant, scene_hash_value: Variant, camera_value: Variant, viewport_value: Variant) -> bool:
+	if not canvas_value is CanvasItem or not is_instance_valid(canvas_value) or not canvas_value.is_inside_tree() or not canvas_value.is_visible_in_tree() or canvas_value.is_queued_for_deletion():
+		return false
+	if not snapshot_value is Dictionary or not scene_value is Dictionary or not viewport_value is Rect2:
+		return false
+	var viewport: Rect2 = viewport_value
+	if not _valid_rect(viewport) or not _valid_camera(camera_value,viewport) or not _context(snapshot_value,scene_value,key_value,scene_hash_value):
+		return false
+	var plan: Array[Dictionary] = _floor_plan(camera_value)
+	if plan.size() != 47:
+		return false
+	var drawable: Array[Dictionary] = []
+	var vertex_count: int = 0
+	for command: Dictionary in plan:
+		var points: PackedVector2Array = command.points
+		if points.size() != 4 or not _valid_polygon(points):
+			return false
+		vertex_count += points.size()
+		var visible: int = _visible(points,viewport)
+		if visible < 0:
+			return false
+		if visible > 0:
+			drawable.append(command)
+	if vertex_count != 188 or drawable.is_empty():
+		return false
+	# Every cell, joint, color and SAT result passed before the first command.
+	# The caller already drew the base floor and ignores this result for shell.
+	for command: Dictionary in drawable:
+		canvas_value.draw_colored_polygon(command.points,command.color)
+	return true
