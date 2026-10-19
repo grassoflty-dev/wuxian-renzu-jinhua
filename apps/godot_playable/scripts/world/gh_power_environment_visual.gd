@@ -40,6 +40,8 @@ func build_packets(scene_data: Dictionary, snapshot: Dictionary, current_key: St
 		return []
 	if light_state=='on' and not _add_task_light(packets,projection):
 		return []
+	if light_state=='off' and not _add_off_emergency_light(packets,projection):
+		return []
 	return packets if packets.size()<=MAX_PACKETS else []
 
 func _ensure_layout(scene_data: Dictionary, snapshot: Dictionary, current_key: String) -> bool:
@@ -176,6 +178,9 @@ func _add_contact_shadow(packets: Array, projection) -> bool:
 
 func _add_task_light(packets: Array, projection) -> bool:
 	return _add_ground_ellipse(packets,'gh_power_console:task-light','powered_task_light',Vector3(4.75,0.0,6.45),0.72,0.48,Color(0.47,0.78,0.82,0.12),projection,'power_console_off_on')
+
+func _add_off_emergency_light(packets: Array, projection) -> bool:
+	return _add_ground_ellipse(packets,'gh_power_console:off-emergency-light','off_emergency_light',Vector3(4.75,0.0,6.45),0.72,0.48,Color(0.55,0.18,0.16,0.06),projection,'power_console_off_on')
 
 func _add_ground_ellipse(packets: Array, packet_id: String, role: String, center: Vector3, radius_x: float, radius_z: float, color: Color, projection, source_id: String) -> bool:
 	var points = PackedVector2Array()
