@@ -250,7 +250,34 @@ func draw_wall(canvas: Variant, snapshot: Variant, scene: Variant, current_key: 
 	var polygon: Array = definition[0]
 	for point: Array in polygon:
 		cap.append(Vector3(float(point[0]),height,float(point[1])))
-	if not _polygon(plan,camera,contact,Color(0.02,0.03,0.035,0.13)) or not _polygon(plan,camera,side,Color('#252c2f')) or not _polygon(plan,camera,cap,Color('#4c5658')) or not _plan_valid(plan,3):
+	var horizontal_wall: bool = id_value == 'cw_regulator_core_wall_north' or id_value == 'cw_regulator_core_wall_south'
+	var joint_positions: Array[float] = []
+	if horizontal_wall:
+		joint_positions = [4.0,8.0,12.0,16.0,20.0]
+	elif id_value.ends_with('_north'):
+		joint_positions = [4.0]
+	else:
+		joint_positions = [12.0]
+	var scale: float = float(camera.get('ppm'))/48.0
+	var joint_dark: Color = Color(0.025,0.035,0.040,0.32)
+	var joint_highlight: Color = Color(0.42,0.46,0.46,0.14)
+	if not _polygon(plan,camera,contact,Color(0.02,0.03,0.035,0.13)) or not _polygon(plan,camera,side,Color('#252c2f')):
+		return false
+	for joint: float in joint_positions:
+		var start: Vector3
+		var finish: Vector3
+		var tangent: Vector3
+		if horizontal_wall:
+			start = Vector3(joint,height*0.12,a.y)
+			finish = Vector3(joint,height*0.88,a.y)
+			tangent = Vector3(0.025,0.0,0.0)
+		else:
+			start = Vector3(a.x,height*0.12,joint)
+			finish = Vector3(a.x,height*0.88,joint)
+			tangent = Vector3(0.0,0.0,0.025)
+		if not _line(plan,camera,start,finish,joint_dark,0.70*scale) or not _line(plan,camera,start+tangent,finish+tangent,joint_highlight,0.45*scale):
+			return false
+	if not _polygon(plan,camera,cap,Color('#4c5658')) or not _plan_valid(plan,13):
 		return false
 	_emit(canvas,plan)
 	return true
