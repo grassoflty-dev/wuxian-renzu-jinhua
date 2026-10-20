@@ -198,6 +198,7 @@ const WALLS: Dictionary = {
 	'cw_entry_foundry_wall_east_north':{'polygon':[[23.5,0.5],[24,0.5],[24,6],[23.5,6]],'height':0.18,'inner':[23.5,0.5,23.5,6.0],'contact':[1.0,0.0]},
 	'cw_entry_foundry_wall_east_south':{'polygon':[[23.5,9.5],[24,9.5],[24,15.5],[23.5,15.5]],'height':0.18,'inner':[23.5,9.5,23.5,15.5],'contact':[1.0,0.0]}
 }
+const WEST_NORTH_REVEAL_WORLD = [Vector3(0.0,0.0,6.0),Vector3(0.5,0.0,6.0),Vector3(0.5,1.0,6.0),Vector3(0.0,1.0,6.0)]
 const SPRITES: Dictionary = {
 	'cw_entry_foundry_steel_floor':['runtime2d.world.clockworks.floor_steel.v1','visual.floor',[12,0,8]],
 	'cw_entry_foundry_factory_tiles':['runtime2d.world.clockworks.factory_tiles.v1','visual.floor',[12,0,8]],
@@ -462,6 +463,18 @@ func draw_wall(canvas: CanvasItem, wall: Dictionary, snapshot: Dictionary, scene
 	var info: Dictionary = WALLS[wall_id_value]
 	if not _same_contract(wall.get('polygon'),info.polygon):
 		return false
+	var west_north_reveal_screen: PackedVector2Array = PackedVector2Array()
+	if wall_id_value == 'cw_entry_foundry_wall_west_north':
+		var canvas_snapshot_value: Variant = canvas.get('snapshot')
+		var canvas_scene_value: Variant = canvas.get('scene')
+		var canvas_key_value: Variant = canvas.get('current_key')
+		if not canvas_snapshot_value is Dictionary or not canvas_scene_value is Dictionary or typeof(canvas_key_value)!=TYPE_STRING:
+			return false
+		var canvas_snapshot: Dictionary = canvas_snapshot_value
+		var canvas_scene: Dictionary = canvas_scene_value
+		var canvas_key: String = canvas_key_value
+		if not _same_contract(canvas_snapshot,snapshot) or not _same_contract(canvas_scene,scene) or canvas_key!=current_key:
+			return false
 	var inner: Array = info.inner
 	var contact_direction: Array = info.contact
 	var a: Vector2 = Vector2(inner[0],inner[1])
@@ -503,8 +516,19 @@ func draw_wall(canvas: CanvasItem, wall: Dictionary, snapshot: Dictionary, scene
 		if not is_finite(screen_point.x) or not is_finite(screen_point.y):
 			return false
 		cap_screen.append(screen_point)
+	if wall_id_value == 'cw_entry_foundry_wall_west_north':
+		for point_value in WEST_NORTH_REVEAL_WORLD:
+			if not point_value is Vector3:
+				return false
+			var reveal_world_point: Vector3 = point_value
+			var reveal_screen_point: Vector2 = _project(camera,reveal_world_point)
+			if not is_finite(reveal_screen_point.x) or not is_finite(reveal_screen_point.y):
+				return false
+			west_north_reveal_screen.append(reveal_screen_point)
 	canvas.draw_colored_polygon(contact_screen,Color(0.04,0.06,0.065,0.12))
 	canvas.draw_colored_polygon(side_screen,Color(0.18,0.22,0.24,1.0))
+	if wall_id_value == 'cw_entry_foundry_wall_west_north':
+		canvas.draw_colored_polygon(west_north_reveal_screen,Color(0.18,0.22,0.24,1.0))
 	canvas.draw_colored_polygon(cap_screen,Color(0.25,0.29,0.31,1.0))
 	if wall_id_value=='cw_entry_foundry_wall_north':
 		_draw_wall_chain(canvas,snapshot,scene,current_key,camera,viewport)
