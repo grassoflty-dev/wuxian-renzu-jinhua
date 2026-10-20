@@ -83,6 +83,7 @@ var gh_bio_lockdown_visual
 const CwPressureValveVisual = preload('res://scripts/world/cw_pressure_valve_visual.gd')
 const CwPressureEnvironmentVisual = preload('res://scripts/world/cw_pressure_environment_visual.gd')
 const MhPumpEnvironmentVisual = preload('res://scripts/world/mh_pump_environment_visual.gd')
+const MhPumpChannelFlowVisual = preload('res://scripts/world/mh_pump_channel_flow_visual.gd')
 const CW_PRESSURE_VALVES = {
 	'cw_pressure_valve_visual_01':Vector3(8,0,7),
 	'cw_pressure_valve_visual_02':Vector3(12,0,7),
@@ -142,6 +143,7 @@ var gh_gate_b_environment_visual = GhGateBEnvironmentVisual.new()
 var gh_gate_b_west_cable_visual = GhGateBWestCableVisual.new()
 var gh_deep_decon_air_visual = GhDeepDeconAirVisual.new()
 var mh_pump_environment_visual = MhPumpEnvironmentVisual.new()
+var mh_pump_channel_flow_visual = MhPumpChannelFlowVisual.new()
 var rs_front_alpha: Dictionary = {}
 var gh_bio_wall_alpha: Dictionary = {}
 var gh_entry_wall_alpha: Dictionary = {}
@@ -171,6 +173,8 @@ var _gh_shaft_dust_window: Window = null
 var _gh_shaft_dust_committed_generation: int = -1
 var _cw_conveyor_belt_dust_window: Window = null
 var _cw_conveyor_belt_dust_generation: int = -1
+var _mh_pump_flow_window: Window = null
+var _mh_pump_flow_committed_generation: int = -1
 var cw_gear_shaft_environment_visual = CwGearShaftEnvironmentVisual.new()
 var mh_breakwater_environment_visual = MhBreakwaterEnvironmentVisual.new()
 var mh_resonance_tower_environment_visual = MhResonanceTowerEnvironmentVisual.new()
@@ -206,6 +210,7 @@ func _enter_tree() -> void:
 		return
 	_gh_shaft_dust_window = dust_window
 	_cw_conveyor_belt_dust_window = dust_window
+	_mh_pump_flow_window = dust_window
 	var callback: Callable = Callable(self,'_shaft_dust_window_changed')
 	var conveyor_dust_callback: Callable = Callable(self,'_cw_conveyor_belt_dust_window_changed')
 	if not dust_window.visibility_changed.is_connected(callback):
@@ -220,9 +225,17 @@ func _enter_tree() -> void:
 		dust_window.focus_exited.connect(conveyor_dust_callback)
 	if not dust_window.size_changed.is_connected(conveyor_dust_callback):
 		dust_window.size_changed.connect(conveyor_dust_callback)
+	var pump_flow_callback: Callable = Callable(self,'_mh_pump_flow_window_changed')
+	if not dust_window.visibility_changed.is_connected(pump_flow_callback):
+		dust_window.visibility_changed.connect(pump_flow_callback)
+	if not dust_window.focus_exited.is_connected(pump_flow_callback):
+		dust_window.focus_exited.connect(pump_flow_callback)
+	if not dust_window.size_changed.is_connected(pump_flow_callback):
+		dust_window.size_changed.connect(pump_flow_callback)
 func _exit_tree() -> void:
 	_gh_shaft_dust_committed_generation = -1
 	_cw_conveyor_belt_dust_generation = -1
+	_mh_pump_flow_committed_generation = -1
 	var dust_window: Variant = _gh_shaft_dust_window
 	if dust_window is Window and is_instance_valid(dust_window):
 		var callback: Callable = Callable(self,'_shaft_dust_window_changed')
@@ -239,12 +252,21 @@ func _exit_tree() -> void:
 			dust_window.focus_exited.disconnect(conveyor_dust_callback)
 		if dust_window.size_changed.is_connected(conveyor_dust_callback):
 			dust_window.size_changed.disconnect(conveyor_dust_callback)
+		var pump_flow_callback: Callable = Callable(self,'_mh_pump_flow_window_changed')
+		if dust_window.visibility_changed.is_connected(pump_flow_callback):
+			dust_window.visibility_changed.disconnect(pump_flow_callback)
+		if dust_window.focus_exited.is_connected(pump_flow_callback):
+			dust_window.focus_exited.disconnect(pump_flow_callback)
+		if dust_window.size_changed.is_connected(pump_flow_callback):
+			dust_window.size_changed.disconnect(pump_flow_callback)
 	_gh_shaft_dust_window = null
 	_cw_conveyor_belt_dust_window = null
+	_mh_pump_flow_window = null
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_VISIBILITY_CHANGED:
 		_shaft_dust_window_changed()
 		_cw_conveyor_belt_dust_window_changed()
+		_mh_pump_flow_window_changed()
 func _shaft_dust_window_changed() -> void:
 	if snapshot.get('worldId') == 'grey_hive' and snapshot.get('sceneId') == 'gh_central_shaft' and current_key == 'grey_hive:gh_central_shaft:'+str(snapshot.get('worldEpoch')):
 		queue_redraw()
@@ -312,6 +334,42 @@ func _cw_conveyor_belt_dust_gate(bind_generation: bool = false) -> Dictionary:
 	if typeof(eligible)!=TYPE_BOOL or not eligible or not _cw_conveyor_belt_dust_host_matches(host) or typeof(final_generation)!=TYPE_INT or final_generation!=_cw_conveyor_belt_dust_generation or not live_window is Window or not is_instance_valid(live_window) or live_window!=_cw_conveyor_belt_dust_window or typeof(reduced_motion)!=TYPE_BOOL:
 		return {}
 	return {'worldId':snapshot.worldId,'sceneId':snapshot.sceneId,'worldEpoch':snapshot.worldEpoch,'serverTick':snapshot.serverTick,'authorityRevision':snapshot.authorityRevision,'player_id':snapshot.player.entityId,'presentation_allowed':eligible,'visible':visible and is_visible_in_tree() and live_window.visible and live_window.has_focus(),'reduced_motion':reduced_motion}
+func _mh_pump_flow_window_changed() -> void:
+	if snapshot.get('worldId')=='mist_harbor' and snapshot.get('sceneId')=='mh_pump_station' and current_key=='mist_harbor:mh_pump_station:'+str(snapshot.get('worldEpoch')):
+		queue_redraw()
+func _mh_pump_flow_host_matches(host: Variant) -> bool:
+	if not host is Node or not is_instance_valid(host) or not host.is_inside_tree() or host.is_queued_for_deletion():
+		return false
+	var owner_script: Variant = host.get_script()
+	if not owner_script is Script or owner_script.resource_path!='res://scripts/ui/v1_main.gd' or host.get('renderer')!=self or not host.has_method('_eligible'):
+		return false
+	var owner_snapshot: Variant = host.get('snapshot')
+	return owner_snapshot is Dictionary and P.snapshot(owner_snapshot) and P.same(owner_snapshot,snapshot) and owner_snapshot==snapshot and owner_snapshot.get('serverTick')==snapshot.get('serverTick') and owner_snapshot.get('authorityRevision')==snapshot.get('authorityRevision') and owner_snapshot.player.entityId==snapshot.player.entityId
+func _mh_pump_flow_gate(bind_generation: bool = false) -> Dictionary:
+	if not P.snapshot(snapshot) or snapshot.get('entryToken')!=null or snapshot.player.currentHp<=0 or snapshot.get('worldId')!='mist_harbor' or snapshot.get('sceneId')!='mh_pump_station' or not P.counter(snapshot.get('worldEpoch'),1) or current_key!='mist_harbor:mh_pump_station:'+str(snapshot.worldEpoch):
+		return {}
+	if not scene is Dictionary or scene.get('worldId')!='mist_harbor' or scene.get('sceneId')!='mh_pump_station' or scene_hash!=MhPumpChannelFlowVisual.SCENE_SHA:
+		return {}
+	var pump_state: Variant = snapshot.get('mistHarborPump')
+	if not pump_state is Dictionary or pump_state.size()!=1 or typeof(pump_state.get('state'))!=TYPE_STRING or pump_state.get('state') not in ['ready','draining']:
+		return {}
+	var host: Variant = get_parent()
+	if not _mh_pump_flow_host_matches(host):
+		return {}
+	var generation: Variant = host.get('generation')
+	if typeof(generation)!=TYPE_INT or generation<=0:
+		return {}
+	if bind_generation:
+		_mh_pump_flow_committed_generation = generation
+		return {}
+	if generation!=_mh_pump_flow_committed_generation:
+		return {}
+	var eligible: Variant = host.call('_eligible')
+	var final_generation: Variant = host.get('generation')
+	var live_window: Variant = get_window()
+	if typeof(eligible)!=TYPE_BOOL or not eligible or not _mh_pump_flow_host_matches(host) or typeof(final_generation)!=TYPE_INT or final_generation!=_mh_pump_flow_committed_generation or not live_window is Window or not is_instance_valid(live_window) or live_window!=_mh_pump_flow_window or typeof(reduced_motion)!=TYPE_BOOL:
+		return {}
+	return {'worldId':snapshot.worldId,'sceneId':snapshot.sceneId,'worldEpoch':snapshot.worldEpoch,'serverTick':snapshot.serverTick,'authorityRevision':snapshot.authorityRevision,'player_id':snapshot.player.entityId,'presentation_allowed':eligible,'visible':visible and is_visible_in_tree() and live_window.visible and live_window.has_focus(),'reduced_motion':reduced_motion}
 func commit(s: Dictionary, data: Dictionary, hash: String) -> void:
 	clear_interaction_focus()
 	var key = s.worldId+':'+s.sceneId+':'+str(s.worldEpoch)
@@ -336,6 +394,8 @@ func commit(s: Dictionary, data: Dictionary, hash: String) -> void:
 	scene_hash = hash
 	if P.snapshot(snapshot) and snapshot.get('entryToken') == null and snapshot.get('worldId') == 'grey_hive' and snapshot.get('sceneId') == 'gh_gate_b' and P.counter(snapshot.get('worldEpoch'),1) and scene.get('worldId') == 'grey_hive' and scene.get('sceneId') == 'gh_gate_b' and current_key == 'grey_hive:gh_gate_b:'+str(snapshot.get('worldEpoch')):
 		gh_gate_b_west_cable_visual.prepare_resources()
+	_mh_pump_flow_committed_generation = -1
+	_mh_pump_flow_gate(true)
 	_gh_shaft_dust_committed_generation = -1
 	_shaft_dust_gate(true)
 	_cw_conveyor_belt_dust_generation = -1
@@ -669,7 +729,11 @@ func _draw() -> void:
 		if gh_lockdown_environment_visual.draw_contact_shadow(self,gh_lockdown_packet,snapshot,scene,current_key,camera,viewport_rect):
 			gh_lockdown_dressing_packets.append(gh_lockdown_packet)
 	if mh_pump_room_active:
-		mh_pump_environment_visual.draw_channel_material(self,snapshot,scene,current_key,camera,viewport_rect)
+		var mh_pump_channel_material_drawn: bool = mh_pump_environment_visual.draw_channel_material(self,snapshot,scene,current_key,camera,viewport_rect)
+		if mh_pump_channel_material_drawn:
+			var mh_pump_channel_flow_gate: Dictionary = _mh_pump_flow_gate()
+			if not mh_pump_channel_flow_gate.is_empty():
+				mh_pump_channel_flow_visual.draw_flow(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect,mh_pump_channel_flow_gate)
 		_draw_mh_pump_packets(mh_pump_packets)
 	if not rs_service_pipe_packet.is_empty() and _rect_intersects(viewport_rect,rs_service_pipe_packet.get('shadow_rect',Rect2())):
 		rs_service_pipe_visual.draw_contact_shadow(self,rs_service_pipe_packet)
