@@ -231,6 +231,54 @@ func _visible(points: PackedVector2Array, viewport: Rect2) -> int:
 			separated = true
 	return 0 if separated else 1
 
+# Static palette of the last accepted snapshot, not a live device status or cue.
+# Called only after the original scene, canvas, geometry and SAT checks succeed.
+# Missing or mismatched state keeps the original palette; no state is retained.
+func _completed_palette_context(canvas: CanvasItem, snapshot: Dictionary, scene: Dictionary, key_value: Variant, hash_value: Variant) -> bool:
+	if canvas.get('snapshot') != snapshot or canvas.get('scene') != scene or canvas.get('current_key') != key_value or canvas.get('scene_hash') != hash_value:
+		return false
+	if not P.snapshot(snapshot) or snapshot.get('worldId') != 'clockworks' or snapshot.get('sceneId') != 'cw_shutdown_exit' or snapshot.get('entryToken') != null:
+		return false
+	var progression: Variant = snapshot.get('progression')
+	if not progression is Dictionary or progression.get('currentWorldId') != 'clockworks' or not P.counter(progression.get('schemaVersion'),1,1) or not P.counter(progression.get('eventSeq')) or not P.rows(progression.get('worlds'),16):
+		return false
+	var completed: Dictionary = {}
+	var matches: int = 0
+	for row: Variant in progression.worlds:
+		if not row is Dictionary:
+			return false
+		if row.get('worldId') == 'clockworks':
+			matches += 1
+			completed = row
+	if matches != 1 or typeof(completed.get('completed')) != TYPE_BOOL or not completed.completed or typeof(completed.get('firstCompletion')) != TYPE_BOOL or not completed.firstCompletion:
+		return false
+	if not P.counter(completed.get('revisitCount'),0,4) or not P.counter(completed.get('visitId'),1,5) or completed.visitId != completed.revisitCount+1 or not P.counter(completed.get('cycleId'),1):
+		return false
+	var events: Variant = completed.get('completedEvents')
+	if not P.rows(events,3) or events.size() != 3:
+		return false
+	var seen: Dictionary = {}
+	for event: Variant in events:
+		if typeof(event) != TYPE_STRING or event not in ['clockworks_valves','clockworks_core','clockworks_shutdown'] or seen.has(event):
+			return false
+		seen[event] = true
+	return P.granted(snapshot,'mobility.air_step_i')
+
+# Modify only this invocation's local plan after staging every mapped color.
+# Geometry, alpha, order and the original fallback result remain unchanged.
+func _apply_completed_palette(plan: Array[Dictionary]) -> void:
+	var colors: Array[Color] = []
+	for command: Dictionary in plan:
+		var original: Variant = command.get('color')
+		if not original is Color:
+			return
+		var mapped: Color = Color(original.r*0.94,original.g*0.86,original.b*0.76,original.a)
+		if not is_finite(mapped.r) or not is_finite(mapped.g) or not is_finite(mapped.b) or not is_finite(mapped.a) or mapped.r < 0.0 or mapped.r > 1.0 or mapped.g < 0.0 or mapped.g > 1.0 or mapped.b < 0.0 or mapped.b > 1.0 or mapped.a < 0.0 or mapped.a > 1.0:
+			return
+		colors.append(mapped)
+	for index: int in range(plan.size()):
+		plan[index]['color'] = colors[index]
+
 func draw_shell(canvas_value: Variant, snapshot_value: Variant, scene_value: Variant, key_value: Variant, scene_hash_value: Variant, camera_value: Variant, viewport_value: Variant) -> bool:
 	if not canvas_value is CanvasItem or not is_instance_valid(canvas_value) or not canvas_value.is_inside_tree() or not canvas_value.is_visible_in_tree() or canvas_value.is_queued_for_deletion():
 		return false
@@ -258,6 +306,8 @@ func draw_shell(canvas_value: Variant, snapshot_value: Variant, scene_value: Var
 	if final_vertex_count != 62 or drawable.is_empty():
 		return false
 	# No command has been emitted until the complete geometry and SAT pass.
+	if _completed_palette_context(canvas_value,snapshot_value,scene_value,key_value,scene_hash_value):
+		_apply_completed_palette(plan)
 	for command: Dictionary in drawable:
 		canvas_value.draw_colored_polygon(command.points,command.color)
 	return true
@@ -329,6 +379,8 @@ func draw_floor(canvas_value: Variant, snapshot_value: Variant, scene_value: Var
 		return false
 	# Every cell, joint, color and SAT result passed before the first command.
 	# The caller already drew the base floor and ignores this result for shell.
+	if _completed_palette_context(canvas_value,snapshot_value,scene_value,key_value,scene_hash_value):
+		_apply_completed_palette(plan)
 	for command: Dictionary in drawable:
 		canvas_value.draw_colored_polygon(command.points,command.color)
 	return true
