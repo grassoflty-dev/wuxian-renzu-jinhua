@@ -1,6 +1,7 @@
 extends RefCounted
 
 const P = preload('res://scripts/bridge/protocol.gd')
+const PROJECTION_SCRIPT = preload('res://scripts/world/projection.gd')
 const RELIEF_PIXELS = 12.0
 const MAX_PACKETS = 160
 const PIPE_PROP = 'power_room_pipes'
@@ -12,6 +13,11 @@ const WALLS = [
 	{'id':'gh_power_wall_east_north','polygon':[[19.5,0.5],[20.0,0.5],[20.0,5.5],[19.5,5.5]],'inner':[[19.5,0.5],[19.5,5.5]],'seams':1,'footprint':[19.5,0.5,0.5,5.0]},
 	{'id':'gh_power_wall_east_south','polygon':[[19.5,8.5],[20.0,8.5],[20.0,13.5],[19.5,13.5]],'inner':[[19.5,8.5],[19.5,13.5]],'seams':1,'footprint':[19.5,8.5,0.5,5.0]}
 ]
+const OUTER_WALL_EDGES: Dictionary = {
+	'gh_power_wall_south': [Vector2(0.0,14.0),Vector2(20.0,14.0)],
+	'gh_power_wall_east_north': [Vector2(20.0,0.5),Vector2(20.0,5.5)],
+	'gh_power_wall_east_south': [Vector2(20.0,8.5),Vector2(20.0,13.5)]
+}
 
 func is_wall_id(value) -> bool:
 	if typeof(value)!=TYPE_STRING:
@@ -32,8 +38,14 @@ func build_packets(scene_data: Dictionary, snapshot: Dictionary, current_key: St
 		return []
 	var packets: Array = []
 	for wall in WALLS:
+		var wall_start: int = packets.size()
 		if not _add_wall(packets,wall,projection):
 			return []
+		var exterior_packet: Variant = _build_outer_wall_packet(scene_data,snapshot,current_key,projection,wall)
+		if typeof(exterior_packet)==TYPE_BOOL:
+			return []
+		if exterior_packet is Dictionary:
+			packets.insert(wall_start+1,exterior_packet)
 	if _pipe_anchor_valid(scene_data) and not _add_pipe_detail(packets,projection):
 		return []
 	if not _add_contact_shadow(packets,projection):
@@ -213,3 +225,59 @@ func _push_polygon(packets: Array, packet_id: String, role: String, points: Pack
 		packet['source_id'] = source_id
 	packets.append(packet)
 	return packets.size()<=MAX_PACKETS
+
+func _outer_context_valid(scene_data: Dictionary, snapshot: Dictionary, current_key: String, projection) -> bool:
+	if not P.snapshot(snapshot) or not snapshot.has('entryToken') or snapshot.get('entryToken')!=null or not _ensure_layout(scene_data,snapshot,current_key):
+		return false
+	if not projection is Object or projection.get_script()!=PROJECTION_SCRIPT:
+		return false
+	var initialized: Variant = projection.get('initialized')
+	var origin_variant: Variant = projection.get('origin')
+	var center_variant: Variant = projection.get('screen_center')
+	var viewport_variant: Variant = projection.get('viewport')
+	var ppm_variant: Variant = projection.get('ppm')
+	if typeof(initialized)!=TYPE_BOOL or not initialized or not origin_variant is Vector3 or not center_variant is Vector2 or not viewport_variant is Vector2 or not P.number(ppm_variant) or float(ppm_variant)<=0.0 or float(ppm_variant)>256.0:
+		return false
+	var origin: Vector3 = origin_variant
+	var center: Vector2 = center_variant
+	var viewport: Vector2 = viewport_variant
+	return is_finite(origin.x) and is_finite(origin.y) and is_finite(origin.z) and is_finite(center.x) and is_finite(center.y) and is_finite(viewport.x) and is_finite(viewport.y) and viewport.x>0.0 and viewport.y>0.0
+
+func _build_outer_wall_packet(scene_data: Dictionary, snapshot: Dictionary, current_key: String, projection, wall: Dictionary) -> Variant:
+	var wall_id: Variant = wall.get('id')
+	var edge_variant: Variant = OUTER_WALL_EDGES.get(wall_id)
+	if edge_variant==null:
+		return null
+	if not _outer_context_valid(scene_data,snapshot,current_key,projection):
+		return null
+	if not edge_variant is Array or edge_variant.size()!=2 or not edge_variant[0] is Vector2 or not edge_variant[1] is Vector2:
+		return false
+	var edge_a: Vector2 = edge_variant[0]
+	var edge_b: Vector2 = edge_variant[1]
+	if not is_finite(edge_a.x) or not is_finite(edge_a.y) or not is_finite(edge_b.x) or not is_finite(edge_b.y):
+		return false
+	var relief: float = RELIEF_PIXELS*float(projection.get('ppm'))/48.0
+	var ground_a_variant: Variant = projection.call('project',Vector3(edge_a.x,0.0,edge_a.y))
+	var ground_b_variant: Variant = projection.call('project',Vector3(edge_b.x,0.0,edge_b.y))
+	if not ground_a_variant is Vector2 or not ground_b_variant is Vector2:
+		return false
+	var ground_a: Vector2 = ground_a_variant
+	var ground_b: Vector2 = ground_b_variant
+	var raised_a: Vector2 = ground_a-Vector2(0.0,relief)
+	var raised_b: Vector2 = ground_b-Vector2(0.0,relief)
+	var points: PackedVector2Array = PackedVector2Array([ground_a,ground_b,raised_b,raised_a])
+	var twice_area: float = 0.0
+	for index: int in range(points.size()):
+		var point: Vector2 = points[index]
+		if not is_finite(point.x) or not is_finite(point.y):
+			return false
+		var next_point: Vector2 = points[(index+1)%points.size()]
+		twice_area += point.x*next_point.y-point.y*next_point.x
+	if not is_finite(twice_area):
+		return false
+	if twice_area==0.0:
+		return null
+	var staged_packets: Array = []
+	if not _push_polygon(staged_packets,str(wall_id)+':exterior_face','wall_face',points,Color(0.18,0.25,0.29,1.0),true,str(wall_id),_footprint(wall.footprint)) or staged_packets.size()!=1:
+		return false
+	return staged_packets[0]
