@@ -31,6 +31,7 @@ const MhResonanceTowerEnvironmentVisual = preload('res://scripts/world/mh_resona
 const MhExtractionEnvironmentVisual = preload('res://scripts/world/mh_extraction_environment_visual.gd')
 const GhSentinelFloorMaterialVisual = preload('res://scripts/world/gh_sentinel_floor_material_visual.gd')
 const GhSentinelEnvironmentVisual = preload('res://scripts/world/gh_sentinel_environment_visual.gd')
+const GhShaftDustVisual = preload('res://scripts/world/gh_shaft_dust_visual.gd')
 const GhDeepDeconFloorMaterialVisual = preload('res://scripts/world/gh_deep_decon_floor_material_visual.gd')
 const GhGateAEnvironmentVisual = preload('res://scripts/world/gh_gate_a_environment_visual.gd')
 const GhPowerFloorMaterialVisual = preload('res://scripts/world/gh_power_floor_material_visual.gd')
@@ -121,6 +122,7 @@ var gh_entry_floor_material_visual = GhEntryFloorMaterialVisual.new()
 var cw_pressure_floor_material_visual = CwPressureFloorMaterialVisual.new()
 var gh_sentinel_floor_material_visual = GhSentinelFloorMaterialVisual.new()
 var gh_sentinel_environment_visual = GhSentinelEnvironmentVisual.new()
+var gh_shaft_dust_visual = GhShaftDustVisual.new()
 var gh_deep_decon_floor_material_visual = GhDeepDeconFloorMaterialVisual.new()
 var gh_gate_a_environment_visual = GhGateAEnvironmentVisual.new()
 var gh_power_floor_material_visual = GhPowerFloorMaterialVisual.new()
@@ -161,6 +163,8 @@ var action_at = 0
 signal frame_committed(key)
 var reported_key = ''
 var current_key = ''
+var _gh_shaft_dust_window: Window = null
+var _gh_shaft_dust_committed_generation: int = -1
 var cw_gear_shaft_environment_visual = CwGearShaftEnvironmentVisual.new()
 var mh_breakwater_environment_visual = MhBreakwaterEnvironmentVisual.new()
 var mh_resonance_tower_environment_visual = MhResonanceTowerEnvironmentVisual.new()
@@ -190,6 +194,69 @@ func _ready() -> void:
 	mh_warden_arena_environment_visual.prepare()
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	texture_repeat = CanvasItem.TEXTURE_REPEAT_DISABLED
+func _enter_tree() -> void:
+	var dust_window: Variant = get_window()
+	if not dust_window is Window or not is_instance_valid(dust_window):
+		return
+	_gh_shaft_dust_window = dust_window
+	var callback: Callable = Callable(self,'_shaft_dust_window_changed')
+	if not dust_window.visibility_changed.is_connected(callback):
+		dust_window.visibility_changed.connect(callback)
+	if not dust_window.focus_exited.is_connected(callback):
+		dust_window.focus_exited.connect(callback)
+	if not dust_window.size_changed.is_connected(callback):
+		dust_window.size_changed.connect(callback)
+func _exit_tree() -> void:
+	_gh_shaft_dust_committed_generation = -1
+	var dust_window: Variant = _gh_shaft_dust_window
+	if dust_window is Window and is_instance_valid(dust_window):
+		var callback: Callable = Callable(self,'_shaft_dust_window_changed')
+		if dust_window.visibility_changed.is_connected(callback):
+			dust_window.visibility_changed.disconnect(callback)
+		if dust_window.focus_exited.is_connected(callback):
+			dust_window.focus_exited.disconnect(callback)
+		if dust_window.size_changed.is_connected(callback):
+			dust_window.size_changed.disconnect(callback)
+	_gh_shaft_dust_window = null
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_VISIBILITY_CHANGED:
+		_shaft_dust_window_changed()
+func _shaft_dust_window_changed() -> void:
+	if snapshot.get('worldId') == 'grey_hive' and snapshot.get('sceneId') == 'gh_central_shaft' and current_key == 'grey_hive:gh_central_shaft:'+str(snapshot.get('worldEpoch')):
+		queue_redraw()
+func _shaft_dust_host_matches(host: Variant) -> bool:
+	if not host is Node or not is_instance_valid(host) or not host.is_inside_tree() or host.is_queued_for_deletion():
+		return false
+	var owner_script: Variant = host.get_script()
+	if not owner_script is Script or owner_script.resource_path != 'res://scripts/ui/v1_main.gd' or host.get('renderer') != self or not host.has_method('_eligible'):
+		return false
+	var owner_snapshot: Variant = host.get('snapshot')
+	if not owner_snapshot is Dictionary or not P.snapshot(owner_snapshot) or not P.same(owner_snapshot,snapshot):
+		return false
+	return owner_snapshot.get('serverTick') == snapshot.get('serverTick') and owner_snapshot.get('authorityRevision') == snapshot.get('authorityRevision') and owner_snapshot.player.entityId == snapshot.player.entityId
+func _shaft_dust_gate(bind_generation: bool = false) -> Dictionary:
+	if not P.snapshot(snapshot) or snapshot.get('entryToken') != null or snapshot.player.currentHp <= 0 or snapshot.get('worldId') != 'grey_hive' or snapshot.get('sceneId') != 'gh_central_shaft' or current_key != 'grey_hive:gh_central_shaft:'+str(snapshot.worldEpoch):
+		return {}
+	if not scene is Dictionary or scene.get('worldId') != 'grey_hive' or scene.get('sceneId') != 'gh_central_shaft' or scene_hash != GhShaftDustVisual.SCENE_SHA:
+		return {}
+	var host: Variant = get_parent()
+	if not _shaft_dust_host_matches(host):
+		return {}
+	var generation: Variant = host.get('generation')
+	if typeof(generation) != TYPE_INT or generation <= 0:
+		return {}
+	if bind_generation:
+		_gh_shaft_dust_committed_generation = generation
+		return {}
+	if generation != _gh_shaft_dust_committed_generation:
+		return {}
+	var eligible: Variant = host.call('_eligible')
+	if typeof(eligible) != TYPE_BOOL or not eligible or host.get('generation') != _gh_shaft_dust_committed_generation or not _shaft_dust_host_matches(host):
+		return {}
+	var live_window: Variant = get_window()
+	if not live_window is Window or not is_instance_valid(live_window) or live_window != _gh_shaft_dust_window:
+		return {}
+	return {'worldId':snapshot.worldId,'sceneId':snapshot.sceneId,'worldEpoch':snapshot.worldEpoch,'serverTick':snapshot.serverTick,'authorityRevision':snapshot.authorityRevision,'player_id':snapshot.player.entityId,'presentation_allowed':eligible,'visible':visible and is_visible_in_tree() and live_window.visible and live_window.has_focus(),'reduced_motion':reduced_motion}
 func commit(s: Dictionary, data: Dictionary, hash: String) -> void:
 	clear_interaction_focus()
 	var key = s.worldId+':'+s.sceneId+':'+str(s.worldEpoch)
@@ -212,6 +279,8 @@ func commit(s: Dictionary, data: Dictionary, hash: String) -> void:
 	snapshot = s
 	scene = data
 	scene_hash = hash
+	_gh_shaft_dust_committed_generation = -1
+	_shaft_dust_gate(true)
 	gh_sentinel_environment_visual.prepare(snapshot,scene,current_key,scene_hash)
 	mh_extraction_environment_visual.prepare(snapshot,scene,current_key,scene_hash)
 	mh_resonance_tower_environment_visual.prepare(snapshot,scene,current_key,scene_hash)
@@ -334,6 +403,7 @@ func _draw() -> void:
 	mh_drowned_quay_environment_visual.draw_ground(self,snapshot,scene,current_key,camera,viewport_rect)
 	cw_forged_guard_arena_environment_visual.draw_floor(self,snapshot,scene,current_key,camera,viewport_rect,cw_furnace_visual,_cw_furnace_key(cw_forged_guard_arena_environment_visual.furnace_row(scene)))
 	gh_central_shaft_environment_visual.draw_floor(self,snapshot,scene,current_key,camera,viewport_rect)
+	gh_shaft_dust_visual.draw_dust(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect,_shaft_dust_gate())
 	gh_exit_environment_visual.draw_floor(self,snapshot,scene,current_key,camera,viewport_rect)
 	gh_lockdown_environment_visual.draw_floor(self,snapshot,scene,current_key,camera,viewport_rect)
 	cw_entry_foundry_environment_visual.draw_floor(self,snapshot,scene,current_key,camera,get_viewport_rect(),cw_furnace_visual)
