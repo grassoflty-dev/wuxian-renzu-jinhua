@@ -17,6 +17,11 @@ const WALLS = [
 	{'id':'cw_conveyor_bridge_wall_east_north','polygon':[[23.5,0.5],[24.0,0.5],[24.0,6.0],[23.5,6.0]],'inner':[[23.5,0.5],[23.5,6.0]],'contact':Rect2(23.5,0.5,0.04,5.5)},
 	{'id':'cw_conveyor_bridge_wall_east_south','polygon':[[23.5,9.5],[24.0,9.5],[24.0,15.5],[23.5,15.5]],'inner':[[23.5,9.5],[23.5,15.5]],'contact':Rect2(23.5,9.5,0.04,6.0)}
 ]
+const EXTERIOR_WALL_EDGES: Dictionary = {
+	'cw_conveyor_bridge_wall_south':[3,2],
+	'cw_conveyor_bridge_wall_east_north':[1,2],
+	'cw_conveyor_bridge_wall_east_south':[1,2]
+}
 
 func draw_floor(canvas_value: Variant, snapshot_value: Variant, scene_value: Variant, current_key_value: Variant, projection_value: Variant, viewport_value: Variant) -> bool:
 	if not _material_context_valid(canvas_value,snapshot_value,scene_value,current_key_value,projection_value,viewport_value):
@@ -44,6 +49,62 @@ func draw_wall(canvas_value: Variant, snapshot_value: Variant, scene_value: Vari
 	if not _commands_valid(commands,4,true):
 		return false
 	var canvas_item: CanvasItem = canvas_value
+	var exterior_indices_value: Variant = EXTERIOR_WALL_EDGES.get(wall_id_value)
+	if exterior_indices_value != null:
+		var actual_snapshot_value: Variant = canvas_item.get('snapshot')
+		var actual_scene_value: Variant = canvas_item.get('scene')
+		var actual_key_value: Variant = canvas_item.get('current_key')
+		var actual_camera_value: Variant = canvas_item.get('camera')
+		var actual_viewport_value: Variant = canvas_item.get('viewport_rect')
+		var projection_viewport_value: Variant = projection_value.get('viewport')
+		var binding_matches: bool = false
+		if actual_snapshot_value is Dictionary and actual_scene_value is Dictionary and typeof(actual_key_value)==TYPE_STRING and actual_camera_value is RefCounted and typeof(actual_viewport_value)==TYPE_RECT2 and typeof(projection_viewport_value)==TYPE_VECTOR2:
+			var actual_snapshot: Dictionary = actual_snapshot_value
+			var actual_scene: Dictionary = actual_scene_value
+			var actual_viewport: Rect2 = actual_viewport_value
+			var projection_viewport: Vector2 = projection_viewport_value
+			binding_matches = actual_snapshot==snapshot_value and actual_scene==scene_value and actual_key_value==current_key_value and actual_camera_value==projection_value and actual_viewport==viewport_value and projection_viewport==actual_viewport.size
+		if binding_matches:
+			if not exterior_indices_value is Array or exterior_indices_value.size()!=2:
+				return false
+			var exterior_indices: Array = exterior_indices_value
+			var polygon_value: Variant = definition.get('polygon')
+			if not polygon_value is Array or typeof(exterior_indices[0])!=TYPE_INT or typeof(exterior_indices[1])!=TYPE_INT:
+				return false
+			var polygon: Array = polygon_value
+			var first_index: int = exterior_indices[0]
+			var second_index: int = exterior_indices[1]
+			if first_index<0 or second_index<0 or first_index>=polygon.size() or second_index>=polygon.size():
+				return false
+			var first_vertex_value: Variant = polygon[first_index]
+			var second_vertex_value: Variant = polygon[second_index]
+			if not first_vertex_value is Array or not second_vertex_value is Array:
+				return false
+			var first_vertex: Array = first_vertex_value
+			var second_vertex: Array = second_vertex_value
+			if first_vertex.size()!=2 or second_vertex.size()!=2 or not P.number(first_vertex[0],-24.0,24.0) or not P.number(first_vertex[1],0.0,16.0) or not P.number(second_vertex[0],-24.0,24.0) or not P.number(second_vertex[1],0.0,16.0):
+				return false
+			var projection: RefCounted = projection_value
+			var first_ground_value: Variant = projection.call('project',Vector3(float(first_vertex[0]),0.0,float(first_vertex[1])))
+			var second_ground_value: Variant = projection.call('project',Vector3(float(second_vertex[0]),0.0,float(second_vertex[1])))
+			var ppm_value: Variant = projection.get('ppm')
+			if not _vector2_finite(first_ground_value) or not _vector2_finite(second_ground_value) or not P.number(ppm_value,0.000001,256.0):
+				return false
+			var relief: float = 12.0*float(ppm_value)/48.0
+			var first_ground: Vector2 = first_ground_value
+			var second_ground: Vector2 = second_ground_value
+			var exterior_points: PackedVector2Array = PackedVector2Array([first_ground,second_ground,second_ground-Vector2(0.0,relief),first_ground-Vector2(0.0,relief)])
+			if not is_finite(relief) or not _points_finite(exterior_points):
+				return false
+			var twice_area: float = 2.0*(second_ground-first_ground).cross(Vector2(0.0,-relief))
+			if not is_finite(twice_area) or twice_area==0.0:
+				return false
+			var exterior_commands: Array[Dictionary] = [{'kind':'polygon','points':exterior_points,'color':Color('#303633')}]
+			if not _commands_valid(exterior_commands,1,false):
+				return false
+			commands.insert(1,exterior_commands[0])
+			if not _commands_valid(commands,5,true):
+				return false
 	_draw_commands(canvas_item,commands)
 	return true
 
