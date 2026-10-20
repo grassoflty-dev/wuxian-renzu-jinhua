@@ -36,6 +36,12 @@ const WALLS: Dictionary = {
 	}
 }
 
+const EXPOSED_FACES: Dictionary = {
+	'gh_gate_b_wall_south': [[0.0,16.0],[24.0,16.0]],
+	'gh_gate_b_wall_east_north': [[24.0,0.5],[24.0,6.5]],
+	'gh_gate_b_wall_east_south': [[24.0,9.5],[24.0,15.5]]
+}
+
 const SPRITES: Dictionary = {
 	'approved_floor': ['runtime2d.grey_hive.floor_tiles.v1','visual.floor',[12,0,8]],
 	'gate_b_corridor_wall': ['runtime2d.grey_hive.wall_tiles.v1','visual.props_back',[12,0,1]],
@@ -390,8 +396,60 @@ func draw_wall(canvas: CanvasItem, snapshot: Dictionary, scene: Dictionary, curr
 	var camera: RefCounted = projection
 	if not _append_wall_commands(commands,camera,wall_data) or commands.size() != 4:
 		return false
+	if EXPOSED_FACES.has(id_value):
+		var bound_snapshot: Variant = canvas.get('snapshot')
+		var bound_scene: Variant = canvas.get('scene')
+		var bound_key: Variant = canvas.get('current_key')
+		var bound_camera: Variant = canvas.get('camera')
+		var bound_viewport: Variant = canvas.get('viewport_rect')
+		var projection_viewport: Variant = projection.get('viewport')
+		var requested_viewport: Rect2 = viewport
+		var bindings_match: bool = bound_snapshot is Dictionary and bound_snapshot == snapshot and bound_scene is Dictionary and bound_scene == scene and bound_key == current_key and bound_camera == projection and bound_viewport is Rect2 and bound_viewport == requested_viewport and projection_viewport is Vector2 and projection_viewport == requested_viewport.size
+		if bindings_match:
+			var legacy_commands: Array[Dictionary] = commands.duplicate()
+			var exposed_command: Dictionary = _stage_exposed_face(projection,wall_data,EXPOSED_FACES.get(id_value))
+			if exposed_command.is_empty():
+				return false
+			commands.insert(1,exposed_command)
+			if commands.size() != 5 or commands[1] != exposed_command:
+				return false
+			for index in range(4):
+				var placed_index: int = index if index == 0 else index + 1
+				if commands[placed_index] != legacy_commands[index]:
+					return false
+			var expected_kinds: Array[String] = ['solid','solid','solid','solid','polyline']
+			for index in range(5):
+				if commands[index].get('kind') != expected_kinds[index]:
+					return false
 	_draw_commands(canvas,commands)
 	if id_value == 'gh_gate_b_wall_west_north' and is_instance_valid(cable_visual) and cable_receipt is Dictionary and cable_receipt.size() == 1 and typeof(cable_receipt.get('pipe_submitted')) == TYPE_BOOL and cable_receipt['pipe_submitted'] == false:
 		if cable_visual.draw_wall_cable(canvas,snapshot,scene,current_key,projection,wall,viewport):
 			cable_receipt['pipe_submitted'] = true
 	return true
+
+func _stage_exposed_face(projection: RefCounted, wall_data: Dictionary, segment_value: Variant) -> Dictionary:
+	if not segment_value is Array or segment_value.size() != 2:
+		return {}
+	var height_value: Variant = wall_data.get('height')
+	if not P.number(height_value,0.2,0.7) or not _finite_color(WALL_FACE):
+		return {}
+	var endpoints: Array[Vector2] = []
+	for point_value: Variant in segment_value:
+		if not point_value is Array or point_value.size() != 2 or not P.number(point_value[0],-1000000000.0,1000000000.0) or not P.number(point_value[1],-1000000000.0,1000000000.0):
+			return {}
+		endpoints.append(Vector2(float(point_value[0]),float(point_value[1])))
+	var height: float = float(height_value)
+	var world_points: Array[Vector3] = [Vector3(endpoints[0].x,0.0,endpoints[0].y),Vector3(endpoints[1].x,0.0,endpoints[1].y),Vector3(endpoints[1].x,height,endpoints[1].y),Vector3(endpoints[0].x,height,endpoints[0].y)]
+	var points: PackedVector2Array = PackedVector2Array()
+	for point: Vector3 in world_points:
+		var screen: Vector2 = projection.project(point)
+		if not _finite_vec2(screen):
+			return {}
+		points.append(screen)
+	var twice_area: float = 0.0
+	for index in range(4):
+		var next_index: int = (index + 1) % 4
+		twice_area += points[index].x * points[next_index].y - points[next_index].x * points[index].y
+	if not _finite(twice_area) or twice_area == 0.0:
+		return {}
+	return {'kind':'solid','points':points,'color':WALL_FACE}
