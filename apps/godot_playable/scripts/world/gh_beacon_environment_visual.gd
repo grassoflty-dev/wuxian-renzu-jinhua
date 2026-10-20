@@ -10,6 +10,14 @@ const WALLS = {
 	'beacon_wall_east_north':{'polygon':[[23.5,0.5],[24,0.5],[24,6.5],[23.5,6.5]],'inner':[[23.5,0.5],[23.5,6.5]],'inside':Vector2(0.04,0)},
 	'beacon_wall_east_south':{'polygon':[[23.5,9.5],[24,9.5],[24,15.5],[23.5,15.5]],'inner':[[23.5,9.5],[23.5,15.5]],'inside':Vector2(0.04,0)}
 }
+const EXPOSED_FACES = {
+	'beacon_wall_north': [[[24,0],[24,0.5]]],
+	'beacon_wall_south': [[[0,16],[24,16]],[[24,15.5],[24,16]]],
+	'beacon_wall_west_north': [[[0,6.5],[0.5,6.5]]],
+	'beacon_wall_west_south': [],
+	'beacon_wall_east_north': [[[24,0.5],[24,6.5]],[[23.5,6.5],[24,6.5]]],
+	'beacon_wall_east_south': [[[24,9.5],[24,15.5]]]
+}
 const REFERENCES = {
 	'beacon_approved_floor':['runtime2d.grey_hive.floor_tiles.v1','visual.floor',Vector3(12,0,8)],
 	'beacon_folded_approved':['runtime2d.prop.beacon.folded.v1','visual.props_dynamic',Vector3(8,0,8)],
@@ -90,6 +98,34 @@ func _context(s: Variant, scene: Variant, key: Variant, projection: Variant, vie
 
 func _canvas(canvas: Variant) -> bool:
 	return canvas is CanvasItem and is_instance_valid(canvas) and canvas.is_inside_tree() and not canvas.is_queued_for_deletion()
+
+func _faces_bound(canvas: CanvasItem, snapshot: Variant, scene: Variant, key: Variant, projection: Variant, viewport: Variant) -> bool:
+	var actual_snapshot: Variant = canvas.get('snapshot')
+	var actual_scene: Variant = canvas.get('scene')
+	var actual_key: Variant = canvas.get('current_key')
+	var actual_camera: Variant = canvas.get('camera')
+	var actual_viewport: Variant = canvas.get('viewport_rect')
+	return actual_snapshot is Dictionary and actual_snapshot == snapshot and actual_scene is Dictionary and actual_scene == scene and typeof(actual_key)==TYPE_STRING and actual_key==key and actual_camera is RefCounted and actual_camera==projection and typeof(actual_viewport)==TYPE_RECT2 and actual_viewport==viewport
+
+func _exposed_quad(projection: Variant, segment_value: Variant, relief: Vector2) -> PackedVector2Array:
+	if not segment_value is Array or segment_value.size()!=2:
+		return PackedVector2Array()
+	var coordinates: Array = []
+	for endpoint_value: Variant in segment_value:
+		if not endpoint_value is Array or endpoint_value.size()!=2 or not P.number(endpoint_value[0],0.0,24.0) or not P.number(endpoint_value[1],0.0,16.0):
+			return PackedVector2Array()
+		coordinates.append(endpoint_value)
+	var ground: PackedVector2Array = _project(projection,coordinates)
+	if ground.size()!=2:
+		return PackedVector2Array()
+	var quad: PackedVector2Array = PackedVector2Array([ground[0],ground[1],ground[1]-relief,ground[0]-relief])
+	var twice_area: float = 0.0
+	for index: int in range(quad.size()):
+		var next_index: int = (index+1)%quad.size()
+		twice_area += quad[index].x*quad[next_index].y-quad[next_index].x*quad[index].y
+	if not is_finite(twice_area) or twice_area==0.0:
+		return PackedVector2Array()
+	return quad
 
 func _project(projection: Variant, coordinates: Array) -> PackedVector2Array:
 	var points: PackedVector2Array = PackedVector2Array()
@@ -180,6 +216,16 @@ func draw_wall(canvas: Variant, snapshot: Variant, scene: Variant, current_key: 
 		{'kind':'polygon','points':cap,'colors':PackedColorArray([Color('#35483e')])},
 		{'kind':'line','points':outline,'colors':PackedColorArray([Color(0.42745098,0.50980392,0.46666667,0.35)]),'width':float(projection.ppm)/48.0}
 	]
+	if _faces_bound(canvas,snapshot,scene,current_key,projection,viewport):
+		var exposed_values: Variant = EXPOSED_FACES.get(wall.get('id'))
+		if not exposed_values is Array:
+			return false
+		for face_index: int in range(exposed_values.size()):
+			var segment_value: Variant = exposed_values[exposed_values.size()-1-face_index]
+			var quad: PackedVector2Array = _exposed_quad(projection,segment_value,relief)
+			if quad.size()!=4:
+				return false
+			commands.insert(commands.size()-2,{'kind':'polygon','points':quad,'colors':PackedColorArray([Color('#26352f')])})
 	return _paint(canvas,commands)
 
 func should_skip_mount_blockout(object: Variant, snapshot: Variant, scene: Variant, current_key: Variant, projection: Variant, viewport: Variant, drawn_bodies: Variant) -> bool:
