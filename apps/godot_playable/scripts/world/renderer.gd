@@ -1889,6 +1889,10 @@ func _boss_warning() -> void:
 		_ring(center,w.radiusM,Color('#f0ad6a'),w.directionRad-w.halfAngleRad if w.kind=='strike' else 0,w.halfAngleRad*2 if w.kind=='strike' else TAU)
 		_label(camera.project(center)-Vector2(0,50),'回声' if w.kind=='decoy' else '共鸣预警 · 移出范围')
 func _action() -> void:
+	# Transient action cues share current presentation eligibility; no timer reset.
+	var gate: Dictionary = _locomotion_gate()
+	if gate.is_empty() or typeof(gate.get('presentation_allowed'))!=TYPE_BOOL or typeof(gate.get('visible'))!=TYPE_BOOL or not gate.presentation_allowed or not gate.visible:
+		return
 	var p: Dictionary = snapshot.player
 	var ap = p.get('actionPresentation')
 	if not p.actionState in ['primaryAttack','pulse','guard','pierce','dash'] or not ap is Dictionary or not P.counter(ap.get('requestId'),1) or not ap.get('phase') in ['windup','active','recovery'] or not P.counter(ap.get('durationMs'),1,60000) or not P.counter(ap.get('elapsedMs'),0,60000) or ap.elapsedMs>=ap.durationMs or not P.number(ap.get('rangeM'),0,64) or not P.number(ap.get('lineHalfWidthM'),0,8) or Time.get_ticks_msec()-action_at>=minf(250,ap.durationMs-ap.elapsedMs):
