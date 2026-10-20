@@ -11,6 +11,11 @@ const WALLS: Array = [
 	{'id':'gh_gate_wall_east_north','polygon':[[19.5,0.5],[20,0.5],[20,5.5],[19.5,5.5]],'inner':[[19.5,0.5],[19.5,5.5]],'seams':1},
 	{'id':'gh_gate_wall_east_south','polygon':[[19.5,8.5],[20,8.5],[20,13.5],[19.5,13.5]],'inner':[[19.5,8.5],[19.5,13.5]],'seams':1}
 ]
+const EXTERIOR_WALL_EDGES: Dictionary = {
+	'gh_gate_wall_south': [[0.0,14.0],[20.0,14.0]],
+	'gh_gate_wall_east_north': [[20.0,0.5],[20.0,5.5]],
+	'gh_gate_wall_east_south': [[20.0,8.5],[20.0,13.5]]
+}
 const BARRIER_ID: String = 'gh_gate_a_closed_barrier'
 const BARRIER_POLYGON: Array = [[9.5,0.5],[10.5,0.5],[10.5,13.5],[9.5,13.5]]
 
@@ -113,8 +118,54 @@ func _build(definition: Dictionary, camera: Variant) -> Array[Dictionary]:
 		_append(plan,fastener,Color(0.57,0.68,0.69,0.9),true)
 	return plan
 
-func _plan_visible(plan: Array[Dictionary], viewport: Rect2) -> bool:
-	if plan.is_empty() or plan.size() > 11:
+func _addition_binding_matches(canvas: Variant, snapshot: Dictionary, scene: Dictionary, current_key: Variant, camera: Variant, viewport: Rect2) -> bool:
+	if not P.snapshot(snapshot) or snapshot.get('entryToken') != null:
+		return false
+	var canvas_snapshot: Variant = canvas.get('snapshot')
+	var canvas_scene: Variant = canvas.get('scene')
+	var canvas_key: Variant = canvas.get('current_key')
+	var canvas_camera: Variant = canvas.get('camera')
+	var canvas_viewport: Variant = canvas.get('viewport_rect')
+	var initialized: Variant = camera.get('initialized')
+	return canvas_snapshot == snapshot and canvas_scene == scene and canvas_key == current_key and canvas_camera == camera and canvas_viewport == viewport and canvas.get_viewport_rect() == viewport and camera.viewport == viewport.size and typeof(initialized) == TYPE_BOOL and initialized == true
+
+func _try_add_exterior_face(plan: Array[Dictionary], canvas: Variant, snapshot: Dictionary, scene: Dictionary, current_key: Variant, camera: Variant, wall: Dictionary, viewport: Rect2) -> int:
+	var wall_id: Variant = wall.get('id')
+	if typeof(wall_id) != TYPE_STRING or not EXTERIOR_WALL_EDGES.has(wall_id):
+		return 0
+	if not _addition_binding_matches(canvas,snapshot,scene,current_key,camera,viewport):
+		return 0
+	var edge: Variant = EXTERIOR_WALL_EDGES.get(wall_id)
+	if not edge is Array or edge.size() != 2 or not edge[0] is Array or not edge[1] is Array or edge[0].size() != 2 or edge[1].size() != 2:
+		return -1
+	for point: Variant in edge:
+		for coordinate: Variant in point:
+			if not P.number(coordinate):
+				return -1
+	var ground_a: Vector2 = camera.project(Vector3(float(edge[0][0]),0.0,float(edge[0][1])))
+	var ground_b: Vector2 = camera.project(Vector3(float(edge[1][0]),0.0,float(edge[1][1])))
+	var relief: Vector2 = Vector2(0.0,12.0*camera.ppm/48.0)
+	var quad: PackedVector2Array = PackedVector2Array([ground_a,ground_b,ground_b-relief,ground_a-relief])
+	for point: Vector2 in quad:
+		if not _v2(point):
+			return -1
+	var area: float = (quad[1]-quad[0]).cross(quad[3]-quad[0])
+	if not is_finite(area):
+		return -1
+	if area == 0.0:
+		return 0
+	var color: Color = Color(0.18,0.25,0.29,1)
+	if not is_finite(color.r) or not is_finite(color.g) or not is_finite(color.b) or not is_finite(color.a):
+		return -1
+	var staged: Array[Dictionary] = []
+	_append(staged,quad,color,true)
+	if staged.size() != 1:
+		return -1
+	plan.insert(1,staged[0])
+	return 1
+
+func _plan_visible(plan: Array[Dictionary], viewport: Rect2, extra_count: int = 0) -> bool:
+	if plan.is_empty() or extra_count < 0 or extra_count > 1 or plan.size() > 11+extra_count:
 		return false
 	var visible: bool = false
 	for command: Dictionary in plan:
@@ -147,7 +198,10 @@ func draw_wall(canvas: Variant, snapshot: Variant, scene: Variant, current_key: 
 	if not snapshot is Dictionary or not scene is Dictionary or not viewport is Rect2 or not _rect(viewport) or not _camera(camera) or not _layout(snapshot,scene,current_key,wall):
 		return false
 	var plan: Array[Dictionary] = _build(_definition(wall.id),camera)
-	if not _plan_visible(plan,viewport):
+	var extra_count: int = _try_add_exterior_face(plan,canvas,snapshot,scene,current_key,camera,wall,viewport)
+	if extra_count < 0:
+		return false
+	if not _plan_visible(plan,viewport,extra_count):
 		return false
 	# All commands are finite and staged before the first draw; no later false exit.
 	for command: Dictionary in plan:
