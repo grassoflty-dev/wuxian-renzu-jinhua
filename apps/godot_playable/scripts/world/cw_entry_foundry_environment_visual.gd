@@ -63,6 +63,133 @@ const EXPECTED_USE: Dictionary = {
 		'verticesPerRing':24,'static':true,'requiresExistingCacheAndCanvasRect':true
 	}
 }
+const WALL_CHAIN_USE_PATH = 'res://data/cw_entry_foundry_wall_chain.internal-use.json'
+const WALL_CHAIN_SOURCE_PATH = 'res://assets/props/clockworks/foundry_wall_chain_source.png'
+const WALL_CHAIN_EXPECTED_USE: Dictionary = {
+	"schema": "wuxian.cw-entry-foundry-wall-chain.internal-use/v1",
+	"approval": "SOURCE_ONLY_NEW_USE_APPROVED",
+	"publicRelease": "NOT_ESTABLISHED",
+	"GodotDisplay": "NOT_RUN",
+	"runtimeValidation": "NOT_RUN",
+	"sourceHistoricalStatus": "PARTIAL_SOURCE_CANDIDATE_NOT_RUNTIME_ADMITTED",
+	"source": {
+		"path": "res://assets/props/clockworks/foundry_wall_chain_source.png",
+		"bytes": 819043,
+		"sha256": "001a331d8f9cd7caeba3432fc7325782f1b5a0230ff514b0f2b45aa72f6cfd7f",
+		"gitBlob": "075ea0cb49a2a0690346a589190aa3ef0bac5714",
+		"canvas": [
+			1983,
+			793
+		],
+		"format": "RGBA8"
+	},
+	"installation": {
+		"worldId": "clockworks",
+		"sceneId": "cw_entry_foundry",
+		"wallId": "cw_entry_foundry_wall_north",
+		"wallPolygon": [
+			[
+				0,
+				0
+			],
+			[
+				24,
+				0
+			],
+			[
+				24,
+				0.5
+			],
+			[
+				0,
+				0.5
+			]
+		],
+		"visualHeightM": 1,
+		"scene": {
+			"path": "res://data/scenes/cw_entry_foundry.json",
+			"bytes": 5551,
+			"sha256": "d90f852367b998cf5874b82fed583f1254664d4a88a8175bb3c94524b8f496b1",
+			"gitBlob": "3ad44fa1c5aab21738ffcbf744eb1059aadf303a"
+		}
+	},
+	"sourcePixelEdgeCorners": [
+		[
+			0,
+			0
+		],
+		[
+			1983,
+			0
+		],
+		[
+			1983,
+			793
+		],
+		[
+			0,
+			793
+		]
+	],
+	"uvConvention": "completeStandaloneCanvasEdges",
+	"UV": [
+		[
+			0,
+			0
+		],
+		[
+			1,
+			0
+		],
+		[
+			1,
+			1
+		],
+		[
+			0,
+			1
+		]
+	],
+	"worldCorners": [
+		[
+			4,
+			0.8,
+			0.5
+		],
+		[
+			5.5,
+			0.8,
+			0.5
+		],
+		[
+			5.5,
+			0.2,
+			0.5
+		],
+		[
+			4,
+			0.2,
+			0.5
+		]
+	],
+	"modulate": [
+		1,
+		1,
+		1,
+		1
+	],
+	"static": true,
+	"marginException": {
+		"requested12PercentTransparentMarginNotMet": true,
+		"acceptedForThisFullCanvasWallUseOnly": true,
+		"atlasOrCropClaim": false,
+		"originalDimensionsPreserved": true
+	},
+	"sameFrameRequiresOriginalNorthWallDraw": true,
+	"resourceFailure": "skipsOptionalChainOnly",
+	"noFloorShadow": true,
+	"noCollision": true
+}
 const WALLS: Dictionary = {
 	'cw_entry_foundry_wall_north':{'polygon':[[0,0],[24,0],[24,0.5],[0,0.5]],'height':1.0,'inner':[0.0,0.5,24.0,0.5],'contact': [0.0,-1.0]},
 	'cw_entry_foundry_wall_south':{'polygon':[[0,15.5],[24,15.5],[24,16],[0,16]],'height':0.18,'inner':[0.0,15.5,24.0,15.5],'contact':[0.0,1.0]},
@@ -82,6 +209,8 @@ var use_map_valid: bool = false
 var stone_texture: Texture2D
 var canonical_scene: Dictionary = {}
 var current_scene_ready: bool = false
+var wall_chain_preparation_attempted: bool = false
+var wall_chain_texture: Texture2D = null
 
 func _same_contract(actual: Variant, expected: Variant) -> bool:
 	var expected_type: int = typeof(expected)
@@ -195,6 +324,7 @@ func prepare(snapshot: Dictionary, scene: Dictionary, current_key: String, scene
 	current_scene_ready = false
 	if scene_hash!=SCENE_SHA256 or not _context_valid(snapshot,scene,current_key):
 		return false
+	_prepare_wall_chain_once()
 	if preparation_attempted:
 		current_scene_ready = use_map_valid and not canonical_scene.is_empty() and _same_contract(scene,canonical_scene)
 		return current_scene_ready and stone_texture!=null
@@ -376,4 +506,74 @@ func draw_wall(canvas: CanvasItem, wall: Dictionary, snapshot: Dictionary, scene
 	canvas.draw_colored_polygon(contact_screen,Color(0.04,0.06,0.065,0.12))
 	canvas.draw_colored_polygon(side_screen,Color(0.18,0.22,0.24,1.0))
 	canvas.draw_colored_polygon(cap_screen,Color(0.25,0.29,0.31,1.0))
+	if wall_id_value=='cw_entry_foundry_wall_north':
+		_draw_wall_chain(canvas,snapshot,scene,current_key,camera,viewport)
 	return true
+
+func _prepare_wall_chain_once() -> void:
+	if wall_chain_preparation_attempted:
+		return
+	wall_chain_preparation_attempted = true
+	var use_bytes: PackedByteArray = _read_text_bytes(WALL_CHAIN_USE_PATH,16384)
+	if use_bytes.is_empty():
+		return
+	var parsed_use: Variant = JSON.parse_string(use_bytes.get_string_from_utf8())
+	if not parsed_use is Dictionary or not _same_contract(parsed_use,WALL_CHAIN_EXPECTED_USE):
+		return
+	var png_bytes: PackedByteArray = _read_bytes(WALL_CHAIN_SOURCE_PATH,819043)
+	if png_bytes.size()!=819043 or _sha256(png_bytes)!='001a331d8f9cd7caeba3432fc7325782f1b5a0230ff514b0f2b45aa72f6cfd7f':
+		return
+	var image: Image = Image.new()
+	if image.load_png_from_buffer(png_bytes)!=OK or image.get_width()!=1983 or image.get_height()!=793 or image.get_format()!=Image.FORMAT_RGBA8 or image.has_mipmaps():
+		return
+	var texture: ImageTexture = ImageTexture.create_from_image(image)
+	if texture==null or not is_instance_valid(texture) or texture.get_width()!=1983 or texture.get_height()!=793:
+		return
+	wall_chain_texture = texture
+
+func _draw_wall_chain(canvas: CanvasItem, snapshot: Dictionary, scene: Dictionary, current_key: String, camera: Object, viewport: Rect2) -> void:
+	if not _draw_ready(canvas,snapshot,scene,current_key,camera,viewport) or wall_chain_texture==null or not is_instance_valid(wall_chain_texture) or wall_chain_texture.get_width()!=1983 or wall_chain_texture.get_height()!=793:
+		return
+	var north_count: int = 0
+	for row in scene.get('collision',[]):
+		if row is Dictionary and row.get('id')=='cw_entry_foundry_wall_north':
+			if not _same_contract(row.get('polygon'),WALL_CHAIN_EXPECTED_USE.installation.wallPolygon):
+				return
+			north_count += 1
+	if north_count!=1:
+		return
+	var world: Array[Vector3] = [Vector3(4,0.8,0.5),Vector3(5.5,0.8,0.5),Vector3(5.5,0.2,0.5),Vector3(4,0.2,0.5)]
+	var uvs: PackedVector2Array = PackedVector2Array([Vector2(0,0),Vector2(1,0),Vector2(1,1),Vector2(0,1)])
+	var points: PackedVector2Array = PackedVector2Array()
+	for index in range(4):
+		var point: Vector3 = world[index]
+		var uv: Vector2 = uvs[index]
+		if not is_finite(point.x) or not is_finite(point.y) or not is_finite(point.z) or not is_finite(uv.x) or not is_finite(uv.y) or uv.x<0.0 or uv.x>1.0 or uv.y<0.0 or uv.y>1.0:
+			return
+		var projected: Vector2 = _project(camera,point)
+		if not is_finite(projected.x) or not is_finite(projected.y):
+			return
+		points.append(projected)
+	var winding: float = 0.0
+	var area: float = 0.0
+	for index in range(4):
+		var edge: Vector2 = points[(index+1)%4]-points[index]
+		var next_edge: Vector2 = points[(index+2)%4]-points[(index+1)%4]
+		var relative: Vector2 = points[index]-points[0]
+		var next_relative: Vector2 = points[(index+1)%4]-points[0]
+		if not is_finite(edge.x) or not is_finite(edge.y) or not is_finite(next_edge.x) or not is_finite(next_edge.y) or not is_finite(relative.x) or not is_finite(relative.y) or not is_finite(next_relative.x) or not is_finite(next_relative.y) or edge==Vector2.ZERO:
+			return
+		var turn: float = edge.cross(next_edge)
+		var term: float = relative.cross(next_relative)
+		if not is_finite(turn) or turn==0.0 or not is_finite(term):
+			return
+		if index==0:
+			winding = turn
+		elif (turn>0.0)!=(winding>0.0):
+			return
+		area += term
+		if not is_finite(area):
+			return
+	if absf(area)<=0.000001:
+		return
+	canvas.draw_colored_polygon(points,Color.WHITE,uvs,wall_chain_texture)

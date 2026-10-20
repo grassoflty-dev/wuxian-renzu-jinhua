@@ -128,7 +128,7 @@
     "temporal": "STATIC"
   },
   "air": {
-    "kind": "static_decorative_interference_air",
+    "kind": "bounded_decorative_interference_air",
     "hazardId": "mh_signal_interference_region",
     "sourceKind": "signal_interference_zone",
     "polygon": [
@@ -171,6 +171,26 @@
       0.04,
       0.055
     ],
-    "temporal": "STATIC"
+    "temporal": "NATIVE_TICK_WARP_WITH_EXACT_STATIC_FALLBACK",
+    "motion": {
+      "periodTicks": 360,
+      "nominalTickHz": 60,
+      "maxOffsetXM": 0.06,
+      "maxTopInsetM": 0.02,
+      "phasePerVertexRad": 0.7,
+      "phasePerRibbonRad": 0.8,
+      "phasePerLayerRad": 0.3,
+      "xEnvelopeM": [
+        13.29,
+        18.71
+      ],
+      "zEnvelopeM": [
+        5.7,
+        9.38
+      ],
+      "reducedMotion": "EXACT_STATIC_GEOMETRY",
+      "alphaMotion": "NONE",
+      "scope": "EXISTING_SIX_AIR_POLYGONS_ONLY"
+    }
   }
 }

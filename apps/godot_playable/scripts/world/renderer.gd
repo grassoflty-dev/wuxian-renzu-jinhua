@@ -1059,7 +1059,7 @@ func _draw() -> void:
 	var yard_drawn_bank_ids: Array = []
 	if mh_signal_yard_environment_visual.draw_back_bank(self,snapshot,scene,current_key,camera,viewport_rect):
 		yard_drawn_bank_ids.append('yard_north_fog_bank')
-	mh_signal_yard_environment_visual.draw_air(self,snapshot,scene,current_key,camera,viewport_rect)
+	mh_signal_yard_environment_visual.draw_air(self,snapshot,scene,current_key,camera,viewport_rect,_locomotion_gate())
 	var gh_central_shaft_pipe_packet: Dictionary = gh_central_shaft_environment_visual.build_pipe_packet(snapshot,scene,current_key,camera,viewport_rect)
 	if not gh_central_shaft_pipe_packet.is_empty():
 		gh_central_shaft_environment_visual.draw_pipe_shadow(self,gh_central_shaft_pipe_packet,snapshot,scene,current_key,camera,viewport_rect)

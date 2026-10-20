@@ -132,7 +132,7 @@ const DEFINITION: Dictionary = {
     "temporal": "STATIC"
   },
   "air": {
-    "kind": "static_decorative_interference_air",
+    "kind": "bounded_decorative_interference_air",
     "hazardId": "mh_signal_interference_region",
     "sourceKind": "signal_interference_zone",
     "polygon": [
@@ -175,7 +175,27 @@ const DEFINITION: Dictionary = {
       0.04,
       0.055
     ],
-    "temporal": "STATIC"
+    "temporal": "NATIVE_TICK_WARP_WITH_EXACT_STATIC_FALLBACK",
+    "motion": {
+      "periodTicks": 360,
+      "nominalTickHz": 60,
+      "maxOffsetXM": 0.06,
+      "maxTopInsetM": 0.02,
+      "phasePerVertexRad": 0.7,
+      "phasePerRibbonRad": 0.8,
+      "phasePerLayerRad": 0.3,
+      "xEnvelopeM": [
+        13.29,
+        18.71
+      ],
+      "zEnvelopeM": [
+        5.7,
+        9.38
+      ],
+      "reducedMotion": "EXACT_STATIC_GEOMETRY",
+      "alphaMotion": "NONE",
+      "scope": "EXISTING_SIX_AIR_POLYGONS_ONLY"
+    }
   }
 }
 const WALLS: Dictionary = {
@@ -491,22 +511,45 @@ func _active_hazard(snapshot: Dictionary) -> bool:
 	if not hazard_value is Dictionary:
 		return false
 	var hazard: Dictionary = hazard_value
-	return hazard.get('entityId')=='mh_signal_interference_region' and hazard.get('kind')=='signal_interference_zone' and typeof(hazard.get('active'))==TYPE_BOOL and hazard.active and P.transform(hazard.get('transform')) and P.polygon(hazard.get('polygonM')) and _equal(hazard.get('polygonM'),DEFINITION.air.polygon)
+	return hazard.get('entityId')=='mh_signal_interference_region' and hazard.get('kind')=='signal_interference_zone' and typeof(hazard.get('active'))==TYPE_BOOL and hazard.active and P.transform(hazard.get('transform')) and (not hazard.has('polygonM') or (P.polygon(hazard.get('polygonM')) and _equal(hazard.get('polygonM'),DEFINITION.air.polygon)))
 
-func draw_air(canvas: Variant, snapshot: Variant, scene: Variant, key: Variant, projection: Variant, viewport: Rect2) -> int:
+# Phase is presentation-only. Missing/mismatched gates keep exact original static geometry.
+func _air_phase(snapshot: Dictionary, gate: Dictionary) -> float:
+	if typeof(gate.get('presentation_allowed'))!=TYPE_BOOL or not gate.presentation_allowed or typeof(gate.get('visible'))!=TYPE_BOOL or not gate.visible or typeof(gate.get('reduced_motion'))!=TYPE_BOOL or gate.reduced_motion:
+		return -1.0
+	if gate.get('worldId')!=snapshot.worldId or gate.get('sceneId')!=snapshot.sceneId or not P.counter(gate.get('worldEpoch'),1) or gate.worldEpoch!=snapshot.worldEpoch or gate.get('player_id')!=snapshot.player.entityId:
+		return -1.0
+	if not P.counter(gate.get('serverTick')) or gate.serverTick!=snapshot.serverTick or not P.counter(gate.get('authorityRevision')) or gate.authorityRevision!=snapshot.authorityRevision:
+		return -1.0
+	# P.snapshot/_view already validate the authoritative safe-integer tick.
+	# Integer modulo precedes conversion, avoiding unbounded float phase precision.
+	return TAU*float(int(snapshot.serverTick)%int(DEFINITION.air.motion.periodTicks))/float(DEFINITION.air.motion.periodTicks)
+
+func draw_air(canvas: Variant, snapshot: Variant, scene: Variant, key: Variant, projection: Variant, viewport: Rect2, gate: Dictionary = {}) -> int:
 	if not _canvas(canvas) or not _view(snapshot,scene,key,projection,viewport) or not _active_hazard(snapshot):
 		return 0
+	var phase: float = _air_phase(snapshot,gate)
 	var xs: Array[float] = [13.35,14.6,15.8,17.1,18.65]
 	var tops: Array[float] = [0.20,0.30,0.25,0.40,0.15]
 	var plan: Array[Dictionary] = []
-	for z: float in [5.7,7.5,9.3]:
+	for ribbon_index: int in range(3):
+		var z: float = DEFINITION.air.ribbonZ[ribbon_index]
 		for layer: int in range(2):
 			var world: Array[Vector3] = []
 			var dz: float = 0.08*layer
+			var offsets: Array[float] = []
 			for index: int in range(5):
-				world.append(Vector3(xs[index],tops[index]-0.02*layer,z+dz))
+				var wave: float = 0.0
+				var dx: float = 0.0
+				var inset: float = 0.0
+				if phase>=0.0:
+					wave = sin(phase+0.7*index+0.8*ribbon_index+0.3*layer)
+					dx = 0.06*wave
+					inset = 0.02*(0.5+0.5*wave)
+				offsets.append(dx)
+				world.append(Vector3(xs[index]+dx,tops[index]-0.02*layer-inset,z+dz))
 			for index: int in range(4,-1,-1):
-				world.append(Vector3(xs[index],0.04+0.02*layer,z+dz))
+				world.append(Vector3(xs[index]+offsets[index],0.04+0.02*layer,z+dz))
 			for vertex: Vector3 in world:
 				if vertex.x<13 or vertex.x>19 or vertex.z<5 or vertex.z>10 or vertex.y<0 or vertex.y>0.400001:
 					return 0
