@@ -91,6 +91,7 @@ var gh_bio_lockdown_visual
 const CwPressureValveVisual = preload('res://scripts/world/cw_pressure_valve_visual.gd')
 const CwPressureEnvironmentVisual = preload('res://scripts/world/cw_pressure_environment_visual.gd')
 const MhPumpEnvironmentVisual = preload('res://scripts/world/mh_pump_environment_visual.gd')
+const MhPumpChannelFlowVisual = preload('res://scripts/world/mh_pump_channel_flow_visual.gd')
 const CW_PRESSURE_VALVES = {
 	'cw_pressure_valve_visual_01':Vector3(8,0,7),
 	'cw_pressure_valve_visual_02':Vector3(12,0,7),
@@ -153,6 +154,7 @@ var gh_gate_b_environment_visual = GhGateBEnvironmentVisual.new()
 var gh_gate_b_west_cable_visual = GhGateBWestCableVisual.new()
 var gh_deep_decon_air_visual = GhDeepDeconAirVisual.new()
 var mh_pump_environment_visual = MhPumpEnvironmentVisual.new()
+var mh_pump_channel_flow_visual = MhPumpChannelFlowVisual.new()
 var rs_front_alpha: Dictionary = {}
 var gh_bio_wall_alpha: Dictionary = {}
 var gh_entry_wall_alpha: Dictionary = {}
@@ -242,6 +244,9 @@ func _enter_tree() -> void:
 		_locomotion_window.focus_exited.connect(suspend_screen_shake)
 		_locomotion_window.size_changed.connect(suspend_locomotion)
 		_locomotion_window.size_changed.connect(suspend_screen_shake)
+		_locomotion_window.visibility_changed.connect(_invalidate_pump_channel_flow)
+		_locomotion_window.focus_exited.connect(_invalidate_pump_channel_flow)
+		_locomotion_window.size_changed.connect(_invalidate_pump_channel_flow)
 		_locomotion_window.visibility_changed.connect(_invalidate_shaft_dust)
 		_locomotion_window.focus_exited.connect(_invalidate_shaft_dust)
 		_locomotion_window.size_changed.connect(_invalidate_shaft_dust)
@@ -261,6 +266,9 @@ func _exit_tree() -> void:
 		_locomotion_window.focus_exited.disconnect(suspend_screen_shake)
 		_locomotion_window.size_changed.disconnect(suspend_locomotion)
 		_locomotion_window.size_changed.disconnect(suspend_screen_shake)
+		_locomotion_window.visibility_changed.disconnect(_invalidate_pump_channel_flow)
+		_locomotion_window.focus_exited.disconnect(_invalidate_pump_channel_flow)
+		_locomotion_window.size_changed.disconnect(_invalidate_pump_channel_flow)
 		_locomotion_window.visibility_changed.disconnect(_invalidate_shaft_dust)
 		_locomotion_window.focus_exited.disconnect(_invalidate_shaft_dust)
 		_locomotion_window.size_changed.disconnect(_invalidate_shaft_dust)
@@ -280,6 +288,9 @@ func _invalidate_bio_sterile_fog() -> void:
 func _invalidate_shaft_dust() -> void:
 	if is_inside_tree() and snapshot.get('worldId')=='grey_hive' and snapshot.get('sceneId')=='gh_central_shaft':
 		queue_redraw()
+func _invalidate_pump_channel_flow() -> void:
+	if is_inside_tree() and snapshot.get('worldId')=='mist_harbor' and snapshot.get('sceneId')=='mh_pump_station':
+		queue_redraw()
 func _notification(what: int) -> void:
 	if what in [NOTIFICATION_VISIBILITY_CHANGED,NOTIFICATION_EXIT_CANVAS,NOTIFICATION_PAUSED,NOTIFICATION_DISABLED,NOTIFICATION_APPLICATION_FOCUS_OUT,NOTIFICATION_WM_CLOSE_REQUEST]:
 		suspend_locomotion()
@@ -287,6 +298,7 @@ func _notification(what: int) -> void:
 		_invalidate_breakwater_wind()
 		_invalidate_bio_sterile_fog()
 		_invalidate_shaft_dust()
+		_invalidate_pump_channel_flow()
 func suspend_locomotion(cancel_beacon: bool = true) -> void:
 	if cancel_beacon:
 		_cancel_beacon_cue()
@@ -984,6 +996,7 @@ func _draw() -> void:
 			gh_lockdown_dressing_packets.append(gh_lockdown_packet)
 	if mh_pump_room_active:
 		mh_pump_environment_visual.draw_channel_material(self,snapshot,scene,current_key,camera,viewport_rect)
+		mh_pump_channel_flow_visual.draw_flow(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect,_locomotion_gate())
 		_draw_mh_pump_packets(mh_pump_packets)
 	if not rs_service_pipe_packet.is_empty() and _rect_intersects(viewport_rect,rs_service_pipe_packet.get('shadow_rect',Rect2())):
 		rs_service_pipe_visual.draw_contact_shadow(self,rs_service_pipe_packet)
