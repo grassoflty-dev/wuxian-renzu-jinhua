@@ -1540,6 +1540,17 @@ func _object_culling_state(o: Dictionary, at: Vector2) -> Dictionary:
 		var gh_lockdown_dressing_body_visible: bool = _rect_intersects(viewport_rect,gh_lockdown_dressing_rect)
 		var gh_lockdown_dressing_fallback_visible: bool = _rect_intersects(viewport_rect,gh_lockdown_dressing_fallback)
 		return {'furnaceKey':'','culled':not (gh_lockdown_dressing_body_visible or gh_lockdown_dressing_fallback_visible),'bodyRect':gh_lockdown_dressing_rect,'fallbackRect':gh_lockdown_dressing_fallback}
+	if o.get('kind')=='gh_console_body' and o.get('id')=='power_console_off_on' and o.get('p') is Vector3 and o.p==Vector3(4,0,7) and o.get('data') is Dictionary and grey_hive_state_props!=null and P.snapshot(snapshot) and snapshot.has('entryToken') and snapshot.get('entryToken')==null and snapshot.get('worldId')=='grey_hive' and snapshot.get('sceneId')=='gh_power_room' and P.counter(snapshot.get('worldEpoch'),1) and scene.get('worldId')=='grey_hive' and scene.get('sceneId')=='gh_power_room' and current_key=='grey_hive:gh_power_room:'+str(snapshot.get('worldEpoch')) and camera!=null:
+		var gh_power_console_row: Dictionary = _gh_visual_row('power_console_off_on','runtime2d.prop.power_console.off_on.v1',[4,0,7])
+		var gh_power_console_resolved: Dictionary = _gh_console_body(gh_power_console_row) if not gh_power_console_row.is_empty() else {}
+		if not gh_power_console_resolved.is_empty() and gh_power_console_resolved==o:
+			var gh_power_console_data: Dictionary = gh_power_console_resolved.get('data',{})
+			var gh_power_console_state_value = gh_power_console_data.get('state')
+			if typeof(gh_power_console_state_value)==TYPE_STRING and gh_power_console_state_value in ['off','on']:
+				var gh_power_console_state: String = gh_power_console_state_value
+				var gh_power_console_rect: Rect2 = grey_hive_state_props.canvas_rect('power_console',gh_power_console_state,at,camera.ppm)
+				if _rect_intersects(viewport_rect,gh_power_console_rect):
+					return {'furnaceKey':'','culled':false,'bodyRect':gh_power_console_rect,'fallbackRect':Rect2()}
 	if o.get('kind')=='door' and o.get('data') is Dictionary and grey_hive_state_props!=null:
 		var gate_body_selection: Dictionary = _gh_door_body(o.data)
 		if not gate_body_selection.is_empty():
