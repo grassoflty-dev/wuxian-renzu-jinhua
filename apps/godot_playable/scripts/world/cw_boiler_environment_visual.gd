@@ -12,6 +12,11 @@ const WALLS = {
 	'cw_boiler_chamber_wall_east_north': [[23.5,0.5],[24.0,0.5],[24.0,6.0],[23.5,6.0]],
 	'cw_boiler_chamber_wall_east_south': [[23.5,9.5],[24.0,9.5],[24.0,15.5],[23.5,15.5]]
 }
+const OUTER_WALL_EDGES: Dictionary = {
+	'cw_boiler_chamber_wall_south': [[0.0,16.0],[24.0,16.0]],
+	'cw_boiler_chamber_wall_east_north': [[24.0,0.5],[24.0,6.0]],
+	'cw_boiler_chamber_wall_east_south': [[24.0,9.5],[24.0,15.5]]
+}
 const WALL_INNER = {
 	'cw_boiler_chamber_wall_north': [[0.0,0.5],[24.0,0.5]],
 	'cw_boiler_chamber_wall_south': [[0.0,15.5],[24.0,15.5]],
@@ -374,10 +379,63 @@ func draw_wall(canvas_value, snapshot_value, scene_value, current_key_value, pro
 	var cap_points: PackedVector2Array = _project_polygon(projection,expected_polygon_value,wall_height)
 	if not _finite_vector2(ground_a) or not _finite_vector2(ground_b) or not _finite_vector2(top_a) or not _finite_vector2(top_b) or cap_points.size() != 4 or not _finite_color(WALL_SIDE) or not _finite_color(WALL_CAP) or not _finite_color(FLOOR_CONTACT):
 		return false
+	var outer_face_enabled: bool = false
+	var outer_points: PackedVector2Array = PackedVector2Array()
+	if OUTER_WALL_EDGES.has(id_value):
+		outer_face_enabled = _outer_face_context_matches(canvas_value,snapshot_value,scene_value,current_key_value,projection,viewport_value)
+		if outer_face_enabled:
+			outer_points = _outer_face_points(projection,id_value,wall_height)
+			if outer_points.size() != 4 or not _points_have_area(side_points) or not _points_have_area(outer_points) or not _points_have_area(cap_points):
+				return false
 	var canvas: CanvasItem = canvas_value
 	canvas.draw_colored_polygon(side_points,WALL_SIDE)
+	if outer_face_enabled:
+		canvas.draw_colored_polygon(outer_points,WALL_SIDE)
 	canvas.draw_colored_polygon(cap_points,WALL_CAP)
 	return true
+
+func _outer_face_context_matches(canvas: CanvasItem, snapshot_value, scene_value, current_key_value, projection, viewport_value) -> bool:
+	if not P.snapshot(snapshot_value) or not snapshot_value is Dictionary or not scene_value is Dictionary or typeof(current_key_value) != TYPE_STRING or not viewport_value is Rect2:
+		return false
+	var snapshot: Dictionary = snapshot_value
+	var scene: Dictionary = scene_value
+	var viewport: Rect2 = viewport_value
+	if snapshot.get('entryToken') != null:
+		return false
+	var canvas_snapshot: Variant = canvas.get('snapshot')
+	var canvas_scene: Variant = canvas.get('scene')
+	var canvas_key: Variant = canvas.get('current_key')
+	var canvas_camera: Variant = canvas.get('camera')
+	var canvas_viewport: Variant = canvas.get('viewport_rect')
+	var projection_viewport: Variant = projection.get('viewport')
+	var initialized: Variant = projection.get('initialized')
+	return canvas_snapshot is Dictionary and canvas_snapshot == snapshot and canvas_scene is Dictionary and canvas_scene == scene and typeof(canvas_key) == TYPE_STRING and canvas_key == current_key_value and canvas_camera == projection and canvas_viewport is Rect2 and canvas_viewport == viewport and projection_viewport is Vector2 and projection_viewport == viewport.size and typeof(initialized) == TYPE_BOOL and initialized == true
+
+func _outer_face_points(projection, wall_id: String, wall_height: float) -> PackedVector2Array:
+	var endpoints_value: Variant = OUTER_WALL_EDGES.get(wall_id)
+	if not endpoints_value is Array or endpoints_value.size() != 2:
+		return PackedVector2Array()
+	var first_value: Variant = endpoints_value[0]
+	var second_value: Variant = endpoints_value[1]
+	if not first_value is Array or first_value.size() != 2 or not second_value is Array or second_value.size() != 2 or not P.number(first_value[0],0.0,24.0) or not P.number(first_value[1],0.0,16.0) or not P.number(second_value[0],0.0,24.0) or not P.number(second_value[1],0.0,16.0):
+		return PackedVector2Array()
+	var a: Vector2 = _project_point(projection,float(first_value[0]),0.0,float(first_value[1]))
+	var b: Vector2 = _project_point(projection,float(second_value[0]),0.0,float(second_value[1]))
+	var top_b: Vector2 = _project_point(projection,float(second_value[0]),wall_height,float(second_value[1]))
+	var top_a: Vector2 = _project_point(projection,float(first_value[0]),wall_height,float(first_value[1]))
+	return PackedVector2Array([a,b,top_b,top_a])
+
+func _points_have_area(points: PackedVector2Array) -> bool:
+	if points.size() < 3:
+		return false
+	var twice_area: float = 0.0
+	for index in range(points.size()):
+		var a: Vector2 = points[index]
+		var b: Vector2 = points[(index+1)%points.size()]
+		if not _finite_vector2(a) or not _finite_vector2(b):
+			return false
+		twice_area += a.x*b.y-b.x*a.y
+	return is_finite(twice_area) and twice_area != 0.0
 
 # Candidate region-centered +Y steam calibration; not an authored nozzle pose.
 # No textures, local clocks, exposure-derived density or gameplay state writes.

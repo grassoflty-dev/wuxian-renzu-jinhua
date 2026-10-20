@@ -57,6 +57,11 @@ const WALL_IDS = [
 	"lockdown_wall_west_north", "lockdown_wall_west_south",
 	"lockdown_wall_east_north", "lockdown_wall_east_south"
 ]
+const OUTER_WALL_EDGES: Dictionary = {
+	"lockdown_wall_south": [Vector2(0.0, 16.0), Vector2(24.0, 16.0)],
+	"lockdown_wall_east_north": [Vector2(24.0, 0.5), Vector2(24.0, 6.5)],
+	"lockdown_wall_east_south": [Vector2(24.0, 9.5), Vector2(24.0, 15.5)]
+}
 
 var _static_attempted: bool = false
 var _static_ready: bool = false
@@ -231,6 +236,33 @@ func draw_wall(canvas, snapshot, scene_data, current_key, wall, projection, view
 			return false
 		contact_points.append(projected_point)
 	var face_points: PackedVector2Array = PackedVector2Array([ground_a, ground_b, raised_b, raised_a])
+	var outer_face_points: PackedVector2Array = PackedVector2Array()
+	var draw_outer_face: bool = false
+	var edge_variant: Variant = OUTER_WALL_EDGES.get(wall_id)
+	if edge_variant != null and _outer_wall_bindings_match(canvas, snapshot, scene_data, current_key, projection, viewport):
+		if not edge_variant is Array or edge_variant.size() != 2:
+			return false
+		var edge_points: Array = edge_variant
+		if not edge_points[0] is Vector2 or not edge_points[1] is Vector2:
+			return false
+		var outer_a: Vector2 = edge_points[0]
+		var outer_b: Vector2 = edge_points[1]
+		if not _finite_point(outer_a) or not _finite_point(outer_b):
+			return false
+		var outer_ground_a_variant: Variant = projection.call("project", Vector3(outer_a.x, 0.0, outer_a.y))
+		var outer_ground_b_variant: Variant = projection.call("project", Vector3(outer_b.x, 0.0, outer_b.y))
+		var outer_raised_a_variant: Variant = projection.call("project", Vector3(outer_a.x, height, outer_a.y))
+		var outer_raised_b_variant: Variant = projection.call("project", Vector3(outer_b.x, height, outer_b.y))
+		if not outer_ground_a_variant is Vector2 or not outer_ground_b_variant is Vector2 or not outer_raised_a_variant is Vector2 or not outer_raised_b_variant is Vector2:
+			return false
+		var outer_ground_a: Vector2 = outer_ground_a_variant
+		var outer_ground_b: Vector2 = outer_ground_b_variant
+		var outer_raised_a: Vector2 = outer_raised_a_variant
+		var outer_raised_b: Vector2 = outer_raised_b_variant
+		outer_face_points = PackedVector2Array([outer_ground_a, outer_ground_b, outer_raised_b, outer_raised_a])
+		if not _valid_points_bounds(outer_face_points):
+			return false
+		draw_outer_face = true
 	var cap_points: PackedVector2Array = PackedVector2Array()
 	for point_variant: Variant in polygon:
 		if not point_variant is Array or point_variant.size() != 2:
@@ -247,12 +279,46 @@ func draw_wall(canvas, snapshot, scene_data, current_key, wall, projection, view
 		cap_points.append(projected_cap)
 	if contact_points.size() != 4 or face_points.size() != 4 or cap_points.size() != 4 or not _valid_points_bounds(contact_points) or not _valid_points_bounds(face_points) or not _valid_points_bounds(cap_points):
 		return false
+	if draw_outer_face and (not _nonzero_polygon_area(contact_points) or not _nonzero_polygon_area(face_points) or not _nonzero_polygon_area(outer_face_points) or not _nonzero_polygon_area(cap_points)):
+		return false
 	canvas.draw_colored_polygon(contact_points, Color(0.025, 0.03, 0.03, 0.12))
 	canvas.draw_colored_polygon(face_points, Color(0.15, 0.21, 0.22, 1.0))
+	if draw_outer_face:
+		canvas.draw_colored_polygon(outer_face_points, Color(0.15, 0.21, 0.22, 1.0))
 	canvas.draw_colored_polygon(cap_points, Color(0.23, 0.29, 0.3, 1.0))
 	if wall_id == "lockdown_wall_north":
 		_draw_alarm_body(canvas, projection, viewport)
 	return true
+
+func _outer_wall_bindings_match(canvas, snapshot, scene_data, current_key, projection, viewport) -> bool:
+	if not _valid_canvas(canvas) or not _valid_identity(snapshot, scene_data, current_key) or not _valid_projection(projection, viewport):
+		return false
+	var required_properties: Array[String] = ["snapshot", "scene", "current_key", "camera", "viewport_rect"]
+	var property_list: Array[Dictionary] = canvas.get_property_list()
+	for required_name: String in required_properties:
+		var found: bool = false
+		for property: Dictionary in property_list:
+			if property.get("name") == required_name:
+				found = true
+				break
+		if not found:
+			return false
+	var actual_snapshot: Variant = canvas.get("snapshot")
+	var actual_scene: Variant = canvas.get("scene")
+	var actual_key: Variant = canvas.get("current_key")
+	var actual_camera: Variant = canvas.get("camera")
+	var actual_viewport: Variant = canvas.get("viewport_rect")
+	var expected_viewport: Rect2 = viewport
+	var camera_viewport: Variant = projection.get("viewport")
+	return actual_snapshot is Dictionary and _deep_equal(actual_snapshot, snapshot) and actual_scene is Dictionary and _deep_equal(actual_scene, scene_data) and typeof(actual_key) == TYPE_STRING and actual_key == current_key and actual_camera == projection and actual_viewport is Rect2 and actual_viewport == expected_viewport and camera_viewport is Vector2 and camera_viewport == expected_viewport.size
+
+func _nonzero_polygon_area(points: PackedVector2Array) -> bool:
+	if points.size() < 3 or not _finite_points(points):
+		return false
+	var twice_area: float = 0.0
+	for index: int in range(points.size()):
+		twice_area += points[index].cross(points[(index + 1) % points.size()])
+	return is_finite(twice_area) and absf(twice_area) > 0.0
 
 func build_dressing(snapshot, scene_data, current_key, projection, viewport) -> Array:
 	if not _valid_context(snapshot, scene_data, current_key) or not _valid_projection(projection, viewport):
