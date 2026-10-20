@@ -9,7 +9,6 @@ const SCENE_SHA256 = 'f16f3941767aed71023cd8b9ce75642345a103eabf5c77682e358c96c2
 # These are display heights only, never collision or traversable support heights.
 const HIGH_M = 1.0
 const LOW_M = 0.18
-const MIN_AREA2 = 0.000001
 const SIDE_COLOR = Color(0.18,0.22,0.24,1.0)
 const CAP_COLOR = Color(0.25,0.29,0.31,1.0)
 const WALLS = [
@@ -106,11 +105,8 @@ func _context(snapshot: Dictionary, scene: Dictionary, key_value: Variant, hash_
 	if not P.counter(epoch,1) or typeof(key_value) != TYPE_STRING or key_value != 'clockworks:cw_furnace_heart:'+str(epoch):
 		return false
 	_load_scene_once()
-	if _canonical_scene.is_empty() or scene.size() != _canonical_scene.size():
+	if _canonical_scene.is_empty() or not _same_json(scene,_canonical_scene):
 		return false
-	for field: Variant in _canonical_scene:
-		if field != 'collision' and (not scene.has(field) or not _same_json(scene[field],_canonical_scene[field])):
-			return false
 	var rows: Variant = scene.get('collision')
 	if not rows is Array or rows.size() != WALLS.size():
 		return false
@@ -136,6 +132,20 @@ func _valid_camera(camera: Variant, viewport: Rect2) -> bool:
 	if typeof(camera.initialized) != TYPE_BOOL or not camera.initialized or not camera.origin is Vector3 or not camera.screen_center is Vector2 or not camera.viewport is Vector2:
 		return false
 	return P.number(camera.ppm,0.0,256.0) and camera.ppm > 0.0 and _finite_v3(camera.origin) and _finite_v2(camera.screen_center) and _finite_v2(camera.viewport) and camera.viewport.x > 0.0 and camera.viewport.y > 0.0 and camera.viewport.is_equal_approx(viewport.size)
+
+func _canvas_matches(canvas_value: Variant, snapshot_value: Variant, scene_value: Variant, key_value: Variant, scene_hash_value: Variant, camera_value: Variant, viewport_value: Variant) -> bool:
+	if not canvas_value is CanvasItem or not is_instance_valid(canvas_value) or not canvas_value.is_inside_tree() or not canvas_value.is_visible_in_tree() or canvas_value.is_queued_for_deletion():
+		return false
+	if not snapshot_value is Dictionary or not scene_value is Dictionary or typeof(key_value) != TYPE_STRING or typeof(scene_hash_value) != TYPE_STRING or not viewport_value is Rect2:
+		return false
+	var viewport: Rect2 = viewport_value
+	if viewport.position != Vector2.ZERO or not _valid_rect(viewport) or not _valid_camera(camera_value,viewport):
+		return false
+	if canvas_value.get('snapshot') != snapshot_value or canvas_value.get('scene') != scene_value or canvas_value.get('current_key') != key_value or canvas_value.get('scene_hash') != scene_hash_value or canvas_value.get('camera') != camera_value or canvas_value.get('viewport_rect') != viewport:
+		return false
+	if canvas_value.get_viewport_rect() != viewport or camera_value.viewport != viewport.size:
+		return false
+	return true
 
 func _project_world(points: Array[Vector3], camera: RefCounted) -> PackedVector2Array:
 	var result: PackedVector2Array = PackedVector2Array()
@@ -184,7 +194,7 @@ func _valid_polygon(points: PackedVector2Array) -> bool:
 		if not is_finite(triangle):
 			return false
 		area2 += triangle
-	if not is_finite(area2) or absf(area2) <= MIN_AREA2:
+	if not is_finite(area2) or area2 == 0.0:
 		return false
 	for index: int in range(points.size()):
 		var edge: Vector2 = points[(index+1)%points.size()]-points[index]
@@ -230,13 +240,11 @@ func _visible(points: PackedVector2Array, viewport: Rect2) -> int:
 	return 0 if separated else 1
 
 func draw_shell(canvas_value: Variant, snapshot_value: Variant, scene_value: Variant, key_value: Variant, scene_hash_value: Variant, camera_value: Variant, viewport_value: Variant) -> bool:
-	if not canvas_value is CanvasItem or not is_instance_valid(canvas_value) or not canvas_value.is_inside_tree() or not canvas_value.is_visible_in_tree() or canvas_value.is_queued_for_deletion():
+	if not _canvas_matches(canvas_value,snapshot_value,scene_value,key_value,scene_hash_value,camera_value,viewport_value):
 		return false
-	if not snapshot_value is Dictionary or not scene_value is Dictionary or not viewport_value is Rect2:
+	if not _context(snapshot_value,scene_value,key_value,scene_hash_value):
 		return false
 	var viewport: Rect2 = viewport_value
-	if not _valid_rect(viewport) or not _valid_camera(camera_value,viewport) or not _context(snapshot_value,scene_value,key_value,scene_hash_value):
-		return false
 	var plan: Array[Dictionary] = _plan(camera_value)
 	if plan.size() != 18:
 		return false
@@ -255,7 +263,9 @@ func draw_shell(canvas_value: Variant, snapshot_value: Variant, scene_value: Var
 			drawable.append(command)
 	if final_vertex_count != 74 or drawable.is_empty():
 		return false
-	# No command has been emitted until the complete geometry and SAT pass.
+	if not _canvas_matches(canvas_value,snapshot_value,scene_value,key_value,scene_hash_value,camera_value,viewport_value):
+		return false
+	# No command has been emitted until the complete geometry, SAT and binding pass.
 	for command: Dictionary in drawable:
 		canvas_value.draw_colored_polygon(command.points,command.color)
 	return true
