@@ -45,6 +45,10 @@ const CLUTTER_MAX_ROTATION = 0.06
 const CLUTTER_MAX_EXTENT_AT_48 = 96.0
 const CLUTTER_SHADOW_RADII = Vector2(0.5, 0.55)
 const CLUTTER_SHADOW_ALPHA = 0.16
+const ALARM_BODY_PATH = "res://assets/props/grey_hive/lockdown_alarm_body_source.png"
+const ALARM_BODY_BYTES = 903994
+const ALARM_BODY_SHA256 = "3cf5731678cb776eb63a62e910be26e815af46f273c76ac4d91fb1916cbce669"
+const ALARM_BODY_SIZE = Vector2i(1448, 1086)
 const MAX_PPM = 256.0
 const SHADOW_STEPS = 24
 const FLOOR_UV_CORNERS = [[187, 184], [345, 305], [185, 426], [27, 305]]
@@ -61,9 +65,11 @@ var _canonical_scene: Dictionary = {}
 var _floor_texture: ImageTexture
 var _pipe_texture: ImageTexture
 var _clutter_texture: ImageTexture
+var _alarm_body_texture: ImageTexture
 var _status: Dictionary = {
 	"scene": "NOT_READY", "map": "NOT_READY", "references": "NOT_READY",
-	"floor": "NOT_READY", "pipe": "NOT_READY", "clutter": "NOT_READY"
+	"floor": "NOT_READY", "pipe": "NOT_READY", "clutter": "NOT_READY",
+	"alarm_body": "NOT_READY"
 }
 
 func prepare(snapshot, scene_data, current_key, scene_hash) -> void:
@@ -114,6 +120,7 @@ func prepare(snapshot, scene_data, current_key, scene_hash) -> void:
 	_load_floor()
 	_load_pipe()
 	_load_clutter()
+	_load_alarm_body()
 
 func readiness() -> Dictionary:
 	return _status.duplicate(true)
@@ -243,6 +250,8 @@ func draw_wall(canvas, snapshot, scene_data, current_key, wall, projection, view
 	canvas.draw_colored_polygon(contact_points, Color(0.025, 0.03, 0.03, 0.12))
 	canvas.draw_colored_polygon(face_points, Color(0.15, 0.21, 0.22, 1.0))
 	canvas.draw_colored_polygon(cap_points, Color(0.23, 0.29, 0.3, 1.0))
+	if wall_id == "lockdown_wall_north":
+		_draw_alarm_body(canvas, projection, viewport)
 	return true
 
 func build_dressing(snapshot, scene_data, current_key, projection, viewport) -> Array:
@@ -423,6 +432,46 @@ func _load_clutter() -> void:
 		_status["clutter"] = "TEXTURE_CREATION_FAILURE"
 		return
 	_status["clutter"] = "READY"
+
+# Static wall-plane decoration only; no alarm, power or progression state.
+# Called only after the canonical north wall has been successfully drawn.
+func _draw_alarm_body(canvas, projection, viewport) -> void:
+	if _alarm_body_texture == null:
+		return
+	var world_points: Array[Vector3] = [Vector3(3.6, 0.75, 0.5), Vector3(4.4, 0.75, 0.5), Vector3(4.4, 0.15, 0.5), Vector3(3.6, 0.15, 0.5)]
+	var points: PackedVector2Array = PackedVector2Array()
+	for world_point: Vector3 in world_points:
+		var projected_variant: Variant = projection.call("project", world_point)
+		if not projected_variant is Vector2:
+			return
+		var projected_point: Vector2 = projected_variant
+		if not _finite_point(projected_point):
+			return
+		points.append(projected_point)
+	if points.size() != 4 or not _valid_points_bounds(points):
+		return
+	var viewport_rect: Rect2 = viewport
+	if not _points_bounds(points).intersects(viewport_rect):
+		return
+	var uvs: PackedVector2Array = PackedVector2Array([Vector2(0.0, 0.0), Vector2(1.0, 0.0), Vector2(1.0, 1.0), Vector2(0.0, 1.0)])
+	var colors: PackedColorArray = PackedColorArray([Color.WHITE, Color.WHITE, Color.WHITE, Color.WHITE])
+	canvas.draw_polygon(points, colors, uvs, _alarm_body_texture)
+
+func _load_alarm_body() -> void:
+	var bytes: PackedByteArray = _read_exact(ALARM_BODY_PATH, ALARM_BODY_BYTES, ALARM_BODY_SHA256)
+	if bytes.is_empty():
+		_status["alarm_body"] = "PIN_OR_READ_FAILURE"
+		return
+	var image: Image = Image.new()
+	if image.load_png_from_buffer(bytes) != OK or image.get_width() != ALARM_BODY_SIZE.x or image.get_height() != ALARM_BODY_SIZE.y or image.get_format() != Image.FORMAT_RGBA8:
+		_status["alarm_body"] = "PNG_CANVAS_OR_FORMAT_FAILURE"
+		return
+	var texture: ImageTexture = ImageTexture.create_from_image(image)
+	if texture == null or texture.get_width() != ALARM_BODY_SIZE.x or texture.get_height() != ALARM_BODY_SIZE.y:
+		_status["alarm_body"] = "TEXTURE_CREATION_FAILURE"
+		return
+	_alarm_body_texture = texture
+	_status["alarm_body"] = "READY"
 
 func _read_exact(path: String, expected_bytes: int, expected_sha: String) -> PackedByteArray:
 	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
