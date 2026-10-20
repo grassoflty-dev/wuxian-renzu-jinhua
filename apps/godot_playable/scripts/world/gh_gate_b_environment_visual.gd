@@ -2,6 +2,7 @@ extends RefCounted
 
 const P = preload('res://scripts/bridge/protocol.gd')
 const ProjectionScript = preload('res://scripts/world/projection.gd')
+const GateBWestCableVisual = preload('res://scripts/world/gh_gate_b_west_cable_visual.gd')
 
 const FLOOR_BASE: Color = Color(48.0 / 255.0, 59.0 / 255.0, 61.0 / 255.0, 1.0)
 const FLOOR_JOINT: Color = Color(0.06, 0.065, 0.065, 0.10)
@@ -376,7 +377,7 @@ func draw_floor(canvas: CanvasItem, snapshot: Dictionary, scene: Dictionary, cur
 	_draw_commands(canvas,commands)
 	return true
 
-func draw_wall(canvas: CanvasItem, snapshot: Dictionary, scene: Dictionary, current_key: String, projection: Variant, wall: Variant, viewport: Variant) -> bool:
+func draw_wall(canvas: CanvasItem, snapshot: Dictionary, scene: Dictionary, current_key: String, projection: Variant, wall: Variant, viewport: Variant, cable_visual: Variant = null, receipt_value: Variant = null) -> bool:
 	if not _valid_context(canvas,snapshot,scene,current_key,projection,viewport) or not wall is Dictionary:
 		return false
 	var id_value: Variant = wall.get('id')
@@ -389,5 +390,15 @@ func draw_wall(canvas: CanvasItem, snapshot: Dictionary, scene: Dictionary, curr
 	var camera: RefCounted = projection
 	if not _append_wall_commands(commands,camera,wall_data) or commands.size() != 4:
 		return false
+	if id_value == 'gh_gate_b_wall_west_north' and cable_visual is RefCounted and is_instance_valid(cable_visual) and cable_visual.get_script() == GateBWestCableVisual and cable_visual.has_method('draw_wall_cable') and receipt_value is Dictionary and receipt_value.is_empty():
+		var contact_face: Array[Dictionary] = [commands[0],commands[1]]
+		_draw_commands(canvas,contact_face)
+		var cable_submitted: Variant = cable_visual.call('draw_wall_cable',canvas,snapshot,scene,current_key,projection,wall,viewport)
+		var cap_outline: Array[Dictionary] = [commands[2],commands[3]]
+		_draw_commands(canvas,cap_outline)
+		if typeof(cable_submitted) == TYPE_BOOL and cable_submitted:
+			var receipt: Dictionary = receipt_value
+			receipt['pipe_submitted'] = true
+		return true
 	_draw_commands(canvas,commands)
 	return true

@@ -42,6 +42,7 @@ const GhLockdownEnvironmentVisual = preload('res://scripts/world/gh_lockdown_env
 const GhEntryAmbientVisual = preload('res://scripts/world/gh_entry_ambient_visual.gd')
 const GhBeaconEnvironmentVisual = preload('res://scripts/world/gh_beacon_environment_visual.gd')
 const GhGateBEnvironmentVisual = preload('res://scripts/world/gh_gate_b_environment_visual.gd')
+const GhGateBWestCableVisual = preload('res://scripts/world/gh_gate_b_west_cable_visual.gd')
 const GhDeepDeconAirVisual = preload('res://scripts/world/gh_deep_decon_air_visual.gd')
 const GhCentralShaftEnvironmentVisual = preload('res://scripts/world/gh_central_shaft_environment_visual.gd')
 const GhExitEnvironmentVisual = preload('res://scripts/world/gh_exit_environment_visual.gd')
@@ -138,6 +139,7 @@ var cw_pressure_environment_visual = CwPressureEnvironmentVisual.new()
 var cw_conveyor_environment_visual = CwConveyorEnvironmentVisual.new()
 var cw_conveyor_belt_dust_visual = CwConveyorBeltDustVisual.new()
 var gh_gate_b_environment_visual = GhGateBEnvironmentVisual.new()
+var gh_gate_b_west_cable_visual = GhGateBWestCableVisual.new()
 var gh_deep_decon_air_visual = GhDeepDeconAirVisual.new()
 var mh_pump_environment_visual = MhPumpEnvironmentVisual.new()
 var rs_front_alpha: Dictionary = {}
@@ -332,6 +334,8 @@ func commit(s: Dictionary, data: Dictionary, hash: String) -> void:
 	snapshot = s
 	scene = data
 	scene_hash = hash
+	if P.snapshot(snapshot) and snapshot.get('entryToken') == null and snapshot.get('worldId') == 'grey_hive' and snapshot.get('sceneId') == 'gh_gate_b' and P.counter(snapshot.get('worldEpoch'),1) and scene.get('worldId') == 'grey_hive' and scene.get('sceneId') == 'gh_gate_b' and current_key == 'grey_hive:gh_gate_b:'+str(snapshot.get('worldEpoch')):
+		gh_gate_b_west_cable_visual.prepare_resources()
 	_gh_shaft_dust_committed_generation = -1
 	_shaft_dust_gate(true)
 	_cw_conveyor_belt_dust_generation = -1
@@ -566,6 +570,7 @@ func _draw() -> void:
 	var mh_pump_room_active = not mh_pump_packets.is_empty()
 	var gh_lockdown_wall_drawn_ids: Array = []
 	var warden_wall_drawn_ids: Array[String] = []
+	var gate_b_cable_receipt: Dictionary = {}
 	var gh_sentinel_shell_drawn: bool = gh_sentinel_environment_visual.draw_shell(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
 	# Canonical static geometry is display only. No spawns, routes, navigation or hidden objectives.
 	for wall in scene.get('collision',[]):
@@ -598,7 +603,7 @@ func _draw() -> void:
 				continue
 			if cw_boiler_environment_visual.draw_wall(self,snapshot,scene,current_key,camera,wall,viewport_rect):
 				continue
-			if gh_gate_b_environment_visual.draw_wall(self,snapshot,scene,current_key,camera,wall,viewport_rect):
+			if gh_gate_b_environment_visual.draw_wall(self,snapshot,scene,current_key,camera,wall,viewport_rect,gh_gate_b_west_cable_visual,gate_b_cable_receipt):
 				continue
 			if cw_regulator_environment_visual.draw_wall(self,snapshot,scene,current_key,camera,wall,viewport_rect):
 				continue
@@ -712,6 +717,8 @@ func _draw() -> void:
 		objects.append({'id':module_packet.id,'p':module_packet.p,'kind':'rs_bulkhead_module','data':module_packet})
 	for prop in scene.get('presentation',{}).get('sprites',[]):
 		if not prop is Dictionary or not prop.get('position') is Array or prop.position.size()!=3 or typeof(prop.get('assetId'))!=TYPE_STRING:
+			continue
+		if gate_b_cable_receipt.size() == 1 and gate_b_cable_receipt.has('pipe_submitted') and typeof(gate_b_cable_receipt.get('pipe_submitted')) == TYPE_BOOL and gate_b_cable_receipt.get('pipe_submitted') == true and gh_gate_b_west_cable_visual.matches_authored_row(prop):
 			continue
 		if gh_power_room_active and gh_power_pipe_detail_drawn and prop.get('id')=='power_room_pipes':
 			continue
