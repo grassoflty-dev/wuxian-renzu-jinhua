@@ -69,6 +69,8 @@ func accept(rows, s: Dictionary, renderer) -> void:
 			active.pop_front()
 	seeded = true
 func _duration(e: Dictionary) -> float:
+	if e.kind=='ResonanceWardenPulseImpact':
+		return 600.0 # Candidate fog response, not native attack duration.
 	if e.kind in COMBAT:
 		return e.durationMs if P.counter(e.get('durationMs'),1,2000) else 0
 	if e.kind in ENEMY:
@@ -77,6 +79,8 @@ func _duration(e: Dictionary) -> float:
 func _authorized(e: Dictionary, s: Dictionary, renderer) -> bool:
 	if e.get('protocolVersion')!=2 or not renderer.visible_point(P.vector(e.positionM)):
 		return false
+	if e.kind=='ResonanceWardenPulseImpact':
+		return warden_pulse_authorized(e,s,renderer)
 	if e.kind in COMBAT:
 		var f = e.get('combatFeedback')
 		if not f is Dictionary or f.get('worldId')!=s.worldId or f.get('sceneId')!=s.sceneId or f.get('outcome')!=COMBAT[e.kind] or not P.counter(e.get('durationMs'),1,2000):
@@ -201,3 +205,23 @@ func _enemy_source(a: Dictionary, s: Dictionary) -> bool:
 		'enemy.mist_harbor.signal_wraith':
 			return not V.signal_positions(a,s).is_empty()
 	return false
+
+# Actual impact only. Native wire deliberately has no actor/attack identity fields.
+static func warden_pulse_authorized(e: Dictionary, s: Dictionary, renderer) -> bool:
+	if not P.snapshot(s) or s.get('entryToken')!=null or s.worldId!='mist_harbor' or s.sceneId!='mh_warden_arena':
+		return false
+	if e.get('kind')!='ResonanceWardenPulseImpact' or e.get('protocolVersion')!=2 or e.get('worldEpoch')!=s.worldEpoch or not P.counter(e.get('eventId'),1) or not P.counter(e.get('serverTick')) or e.serverTick>s.serverTick:
+		return false
+	if not P.point(e.get('positionM')) or not P.number(e.get('radiusM'),3.5,3.5) or not P.number(e.get('intensity'),1,1) or not P.number(e.get('directionRad'),-PI,PI):
+		return false
+	for absent in ['actorId','memberId','attackId','attackKind','durationMs','combatFeedback','rangeM','halfAngleRad']:
+		if e.get(absent)!=null:
+			return false
+	var origin: Vector3 = P.vector(e.positionM)
+	if origin.x<0.5 or origin.x>23.5 or origin.z<0.5 or origin.z>15.5 or absf(origin.y)>0.001 or not renderer.visible_point(origin):
+		return false
+	var wardens: Array = s.actors.filter(func(a): return a.entityId=='mh_resonance_warden_staged_marker')
+	if wardens.size()!=1:
+		return false
+	var actor: Dictionary = wardens[0]
+	return actor.actorKind=='enemy' and actor.entityType=='runtime2d.enemy.mistharbor.signal_wraith.v2' and actor.active and renderer.actor_visible(actor.entityId)

@@ -120,6 +120,8 @@
     "innerAlpha": 0.025,
     "polygonCount": 12,
     "maxWorldY": 0.3,
-    "static": true
+    "static": false,
+    "staticWithoutImpact": true,
+    "pulseResponse": {"kind": "ResonanceWardenPulseImpact", "radiusM": 3.5, "durationMs": 600, "maxOffsetM": 0.16, "maxFadeFraction": 0.25, "curve": "sin_squared_pi_age_fraction", "selection": "FULL_WISP_ENVELOPE_WITH_OFFSET_MARGIN", "reducedMotion": "STATIC_BASELINE"}
   }
 }

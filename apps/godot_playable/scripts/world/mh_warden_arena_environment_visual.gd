@@ -1,5 +1,6 @@
 extends RefCounted
 
+const EventViewScript = preload('res://scripts/world/event_view.gd')
 const P = preload('res://scripts/bridge/protocol.gd')
 const ProjectionScript = preload('res://scripts/world/projection.gd')
 const MAP_PATH: String = 'res://data/mh_warden_arena_environment.internal-use.json'
@@ -56,7 +57,7 @@ const EXPECTED_MAP: Dictionary = {
 	'floor':{'walkableId':'mh_warden_arena_walkable_area','groundY':0,'patchSizeM':[3,3],'columnWidthsM':[3,3,3,3,3,3,3,2],'rowDepthsM':[3,3,3,3,3],'grid':[8,5],'patchCount':40,'edgeCells':'CLIP_WORLD_AND_UV_FRACTIONS_NOT_STRETCH','tint':[0.34,0.41,0.44,1],'sampling':'linear','repeat':false},
 	'walls':{'highIds':['warden_wall_north','warden_wall_west_north','warden_wall_west_south'],'highDisplayHeight':0.5,'lowDisplayHeight':0.18,'sideColor':'#293f47','capColor':'#485f67','contactColor':[0.025,0.032,0.035,0.1],'contactWidthM':0.06},
 	'bank':{'id':'warden_arena_fog_bank','assetId':'runtime2d.world.mistharbor.fog_bank.v1','layer':'visual.props_back','position':[18,0,3],'sourceRect':[27,370,1201,498],'widthPerPpm':9,'centerOffsetPerPpm':[0,0],'modulate':[0.8,0.88,0.92,0.38],'static':true,'sampling':'linear','repeat':false,'blend':'normal_alpha_preserve_RGBA'},
-	'ambient':{'markerAssetId':'runtime2d.world.mistharbor.fog_vfx.v1','centers':[[8,0,4],[18,0,11]],'xOffsets':[-0.2,0,0.2],'heights':[0.16,0.28,0.2],'outerProfile':[[-0.12,0,0],[-0.1,0.05,-0.03],[-0.06,0.7,-0.06],[0,1,-0.08],[0.05,0.78,-0.06],[0.1,0.08,-0.02],[0.12,0,0],[0,0.025,0.1]],'innerScaleXZ':0.65,'innerScaleY':0.75,'color':'#90a9b2','outerAlpha':0.055,'innerAlpha':0.025,'polygonCount':12,'maxWorldY':0.3,'static':true}
+	'ambient':{'markerAssetId':'runtime2d.world.mistharbor.fog_vfx.v1','centers':[[8,0,4],[18,0,11]],'xOffsets':[-0.2,0,0.2],'heights':[0.16,0.28,0.2],'outerProfile':[[-0.12,0,0],[-0.1,0.05,-0.03],[-0.06,0.7,-0.06],[0,1,-0.08],[0.05,0.78,-0.06],[0.1,0.08,-0.02],[0.12,0,0],[0,0.025,0.1]],'innerScaleXZ':0.65,'innerScaleY':0.75,'color':'#90a9b2','outerAlpha':0.055,'innerAlpha':0.025,'polygonCount':12,'maxWorldY':0.3,'static':false,'staticWithoutImpact':true,'pulseResponse':{'kind':'ResonanceWardenPulseImpact','radiusM':3.5,'durationMs':600,'maxOffsetM':0.16,'maxFadeFraction':0.25,'curve':'sin_squared_pi_age_fraction','selection':'FULL_WISP_ENVELOPE_WITH_OFFSET_MARGIN','reducedMotion':'STATIC_BASELINE'}}
 }
 
 var attempted: bool = false
@@ -375,7 +376,59 @@ func draw_wall(canvas_value: Variant, snapshot: Variant, scene: Variant, key: Va
 	canvas.draw_colored_polygon(contact_points,Color(0.025,0.032,0.035,0.1))
 	return true
 
-func _air_plan(camera: ProjectionScript) -> Array[Dictionary]:
+# Additional binding is dynamic-only; the original static fallback is unchanged.
+func _pulse_context(canvas, snapshot: Dictionary, scene: Dictionary, key: String, scene_hash: String, camera: ProjectionScript, viewport: Rect2, rows: Array, gate: Dictionary) -> bool:
+	if not textures.get('stone') is Texture2D or not textures.get('fog') is Texture2D:
+		return false
+	if canvas.snapshot!=snapshot or canvas.scene!=scene or canvas.current_key!=key or canvas.scene_hash!=scene_hash or canvas.camera!=camera or canvas.viewport_rect!=viewport or canvas.get_viewport_rect()!=viewport or canvas.events!=rows:
+		return false
+	if not _context(snapshot,scene,key,scene_hash,camera,viewport):
+		return false
+	for flag in ['presentation_allowed','visible','reduced_motion']:
+		if typeof(gate.get(flag))!=TYPE_BOOL:
+			return false
+	if gate.get('authorityRevision')!=snapshot.authorityRevision or gate.get('player_id')!=snapshot.player.entityId:
+		return false
+	return gate==canvas._locomotion_gate()
+
+# No state/timers retained by this helper. Existing accepted events own lifecycle.
+func _pulse_packet(snapshot: Dictionary, rows: Array, gate: Dictionary, canvas) -> Dictionary:
+	if gate.get('worldId')!=snapshot.worldId or gate.get('sceneId')!=snapshot.sceneId or gate.get('worldEpoch')!=snapshot.worldEpoch or gate.get('serverTick')!=snapshot.serverTick or gate.get('presentation_allowed')!=true or gate.get('visible')!=true or gate.get('reduced_motion')!=false:
+		return {}
+	var chosen: Dictionary = {}
+	var now: int = Time.get_ticks_msec()
+	for value in rows:
+		if not value is Dictionary:
+			continue
+		var e: Dictionary = value
+		if not EventViewScript.warden_pulse_authorized(e,snapshot,canvas) or not P.number(e.get('_duration'),600,600) or not P.counter(e.get('_accepted')) or not P.number(e.get('_initial_age'),0,600) or now<int(e._accepted):
+			continue
+		var age: float = maxf((snapshot.serverTick-e.serverTick)*1000.0/60.0,float(e._initial_age)+now-int(e._accepted))
+		if age<0.0 or age>=600.0:
+			continue
+		if chosen.is_empty() or e.eventId>chosen.event_id:
+			var phase: float = age/600.0
+			var wave: float = sin(PI*phase)
+			chosen = {'event_id':e.eventId,'origin':P.vector(e.positionM),'strength':wave*wave}
+	return chosen
+
+func _wisp_response(anchor: Vector3, pulse: Dictionary, canvas) -> Dictionary:
+	var unchanged: Dictionary = {'offset':Vector3.ZERO,'alpha_scale':1.0}
+	if pulse.is_empty() or not canvas.visible_point(anchor):
+		return unchanged
+	var origin: Vector3 = pulse.origin
+	var delta: Vector3 = Vector3(anchor.x-origin.x,0,anchor.z-origin.z)
+	var distance: float = delta.length()
+	# Every outer-profile vertex is within 0.16m in XZ; inner is smaller.
+	# Full envelope plus maximum translation remains inside actual 3.5m circle.
+	if distance+0.16+0.16>3.5:
+		return unchanged
+	var offset: Vector3 = Vector3.ZERO
+	if distance>0.0001:
+		offset = delta/distance*(0.16*float(pulse.strength))
+	return {'offset':offset,'alpha_scale':1.0-0.25*float(pulse.strength)}
+
+func _air_plan(camera: ProjectionScript, pulse: Dictionary, canvas) -> Array[Dictionary]:
 	var centers: Array[Array] = [[8,0,4],[18,0,11]]
 	var x_offsets: Array[float] = [-0.2,0.0,0.2]
 	var heights: Array[float] = [0.16,0.28,0.20]
@@ -386,15 +439,19 @@ func _air_plan(camera: ProjectionScript) -> Array[Dictionary]:
 			var center: Array = center_value
 			var height: float = heights[wisp_index]
 			var offset_x: float = x_offsets[wisp_index]
+			var response: Dictionary = _wisp_response(Vector3(float(center[0])+offset_x,0,float(center[2])),pulse,canvas)
+			var displacement: Vector3 = response.offset
 			for layer_index in range(2):
 				var scale_xz: float = 1.0 if layer_index == 0 else 0.65
 				var scale_y: float = 1.0 if layer_index == 0 else 0.75
-				var alpha: float = 0.055 if layer_index == 0 else 0.025
+				var alpha: float = (0.055 if layer_index == 0 else 0.025)*float(response.alpha_scale)
 				var projected: PackedVector2Array = PackedVector2Array()
 				for local_point in profile:
-					var x: float = float(center[0])+offset_x+local_point.x*scale_xz
-					var z: float = float(center[2])+local_point.z*scale_xz
+					var x: float = float(center[0])+offset_x+local_point.x*scale_xz+displacement.x
+					var z: float = float(center[2])+local_point.z*scale_xz+displacement.z
 					var y: float = local_point.y*height*scale_y
+					if x<0.5 or x>23.5 or z<0.5 or z>15.5 or y<0.0 or y>0.3:
+						return []
 					projected.append(_project(camera,Vector3(x,y,z)))
 				if projected.size() != 8 or not _points_finite(projected):
 					return []
@@ -406,14 +463,24 @@ func _air_plan(camera: ProjectionScript) -> Array[Dictionary]:
 				plans.append({'points':projected,'bounds':bounds,'alpha':alpha})
 	return plans
 
-func draw_back_air(canvas_value: Variant, snapshot: Variant, scene: Variant, key: Variant, scene_hash: Variant, camera_value: Variant, viewport_value: Variant) -> Dictionary:
+func draw_back_air(canvas_value: Variant, snapshot: Variant, scene: Variant, key: Variant, scene_hash: Variant, camera_value: Variant, viewport_value: Variant, accepted_events: Array, gate: Dictionary) -> Dictionary:
 	var report: Dictionary = {'bank_ids':[],'ambient_polygons':0}
 	if not _canvas_valid(canvas_value) or not _context(snapshot,scene,key,scene_hash,camera_value,viewport_value):
 		return report
 	var canvas: CanvasItem = canvas_value
 	var camera: ProjectionScript = camera_value
 	var viewport: Rect2 = viewport_value
-	var plans: Array[Dictionary] = _air_plan(camera)
+	var pulse: Dictionary = {}
+	if _pulse_context(canvas,snapshot,scene,key,scene_hash,camera,viewport,accepted_events,gate):
+		pulse = _pulse_packet(snapshot,accepted_events,gate,canvas)
+	var plans: Array[Dictionary] = _air_plan(camera,pulse,canvas)
+	# Recheck after planning; lost dynamic authority rebuilds the original static plan.
+	if not pulse.is_empty():
+		var current_pulse: Dictionary = {}
+		if _pulse_context(canvas,snapshot,scene,key,scene_hash,camera,viewport,accepted_events,gate):
+			current_pulse = _pulse_packet(snapshot,accepted_events,gate,canvas)
+		if current_pulse.is_empty() or current_pulse.get('event_id')!=pulse.event_id or current_pulse.get('origin')!=pulse.origin:
+			plans = _air_plan(camera,{},canvas)
 	if plans.size() != 12:
 		return report
 	var texture_value: Variant = textures.get('fog')

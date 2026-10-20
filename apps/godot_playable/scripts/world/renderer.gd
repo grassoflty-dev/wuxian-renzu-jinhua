@@ -31,6 +31,7 @@ const GhBioSterileFogVisual = preload('res://scripts/world/gh_bio_sterile_fog_vi
 const GhEntryFloorMaterialVisual = preload('res://scripts/world/gh_entry_floor_material_visual.gd')
 const CwPressureFloorMaterialVisual = preload('res://scripts/world/cw_pressure_floor_material_visual.gd')
 const CwConveyorEnvironmentVisual = preload('res://scripts/world/cw_conveyor_environment_visual.gd')
+const CwConveyorBeltDustVisual = preload('res://scripts/world/cw_conveyor_belt_dust_visual.gd')
 const CwGearShaftEnvironmentVisual = preload('res://scripts/world/cw_gear_shaft_environment_visual.gd')
 const MhBreakwaterEnvironmentVisual = preload('res://scripts/world/mh_breakwater_environment_visual.gd')
 const MhBreakwaterWindVisual = preload('res://scripts/world/mh_breakwater_wind_visual.gd')
@@ -150,6 +151,7 @@ var gh_entry_clutter_visual = GhEntryClutterVisual.new()
 var gh_power_environment_visual = GhPowerEnvironmentVisual.new()
 var cw_pressure_environment_visual = CwPressureEnvironmentVisual.new()
 var cw_conveyor_environment_visual = CwConveyorEnvironmentVisual.new()
+var cw_conveyor_belt_dust_visual = CwConveyorBeltDustVisual.new()
 var gh_gate_b_environment_visual = GhGateBEnvironmentVisual.new()
 var gh_gate_b_west_cable_visual = GhGateBWestCableVisual.new()
 var gh_deep_decon_air_visual = GhDeepDeconAirVisual.new()
@@ -244,6 +246,9 @@ func _enter_tree() -> void:
 		_locomotion_window.focus_exited.connect(suspend_screen_shake)
 		_locomotion_window.size_changed.connect(suspend_locomotion)
 		_locomotion_window.size_changed.connect(suspend_screen_shake)
+		_locomotion_window.visibility_changed.connect(_invalidate_conveyor_belt_dust)
+		_locomotion_window.focus_exited.connect(_invalidate_conveyor_belt_dust)
+		_locomotion_window.size_changed.connect(_invalidate_conveyor_belt_dust)
 		_locomotion_window.visibility_changed.connect(_invalidate_pump_channel_flow)
 		_locomotion_window.focus_exited.connect(_invalidate_pump_channel_flow)
 		_locomotion_window.size_changed.connect(_invalidate_pump_channel_flow)
@@ -266,6 +271,9 @@ func _exit_tree() -> void:
 		_locomotion_window.focus_exited.disconnect(suspend_screen_shake)
 		_locomotion_window.size_changed.disconnect(suspend_locomotion)
 		_locomotion_window.size_changed.disconnect(suspend_screen_shake)
+		_locomotion_window.visibility_changed.disconnect(_invalidate_conveyor_belt_dust)
+		_locomotion_window.focus_exited.disconnect(_invalidate_conveyor_belt_dust)
+		_locomotion_window.size_changed.disconnect(_invalidate_conveyor_belt_dust)
 		_locomotion_window.visibility_changed.disconnect(_invalidate_pump_channel_flow)
 		_locomotion_window.focus_exited.disconnect(_invalidate_pump_channel_flow)
 		_locomotion_window.size_changed.disconnect(_invalidate_pump_channel_flow)
@@ -291,6 +299,9 @@ func _invalidate_shaft_dust() -> void:
 func _invalidate_pump_channel_flow() -> void:
 	if is_inside_tree() and snapshot.get('worldId')=='mist_harbor' and snapshot.get('sceneId')=='mh_pump_station':
 		queue_redraw()
+func _invalidate_conveyor_belt_dust() -> void:
+	if is_inside_tree() and snapshot.get('worldId')=='clockworks' and snapshot.get('sceneId')=='cw_conveyor_bridge':
+		queue_redraw()
 func _notification(what: int) -> void:
 	if what in [NOTIFICATION_VISIBILITY_CHANGED,NOTIFICATION_EXIT_CANVAS,NOTIFICATION_PAUSED,NOTIFICATION_DISABLED,NOTIFICATION_APPLICATION_FOCUS_OUT,NOTIFICATION_WM_CLOSE_REQUEST]:
 		suspend_locomotion()
@@ -299,6 +310,7 @@ func _notification(what: int) -> void:
 		_invalidate_bio_sterile_fog()
 		_invalidate_shaft_dust()
 		_invalidate_pump_channel_flow()
+		_invalidate_conveyor_belt_dust()
 func suspend_locomotion(cancel_beacon: bool = true) -> void:
 	if cancel_beacon:
 		_cancel_beacon_cue()
@@ -982,7 +994,8 @@ func _draw() -> void:
 			var drained = pump is Dictionary and pump.get('state')=='drained' and region.get('id') in ['mh_pump_east_channel_water','mh_water_depth_region']
 			var c = Color(0.16,0.4,0.5,0.16 if drained else 0.32) if 'water' in tag else Color(0.36,0.29,0.2,0.24)
 			_poly(region.polygon,0,c,true)
-	cw_conveyor_environment_visual.draw_conveyor(self,snapshot,scene,current_key,camera,viewport_rect,reduced_motion)
+	if cw_conveyor_environment_visual.draw_conveyor(self,snapshot,scene,current_key,camera,viewport_rect,reduced_motion):
+		cw_conveyor_belt_dust_visual.draw_dust(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect,_locomotion_gate())
 	if not rs_active:
 		_supports()
 		_surfaces()
@@ -1029,7 +1042,7 @@ func _draw() -> void:
 	var resonance_tower_bank_drawn_ids: Array[String] = mh_resonance_tower_environment_visual.draw_back_bank(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
 	var extraction_bank_drawn_ids: Array[String] = mh_extraction_environment_visual.draw_bank(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
 	mh_extraction_environment_visual.draw_air(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
-	var warden_back_air_report: Dictionary = mh_warden_arena_environment_visual.draw_back_air(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
+	var warden_back_air_report: Dictionary = mh_warden_arena_environment_visual.draw_back_air(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect,events,_locomotion_gate() if warden_ground_drawn else {})
 	var warden_consumed_ids: Array = warden_back_air_report.get('bank_ids',[])
 	mh_warden_arena_last_draw_report['bank_ids'] = warden_consumed_ids
 	mh_warden_arena_last_draw_report['ambient_polygons'] = warden_back_air_report.get('ambient_polygons',0)
@@ -1854,6 +1867,9 @@ func _action() -> void:
 	_label(camera.project(pos)-Vector2(0,52*text_scale),{'windup':'准备','active':'执行','recovery':'恢复'}[ap.phase])
 func _event_draw() -> void:
 	for e in events:
+		# Fog-only consumer; do not add a second impact/telegraph here.
+		if e.kind=='ResonanceWardenPulseImpact':
+			continue
 		var pos = P.vector(e.positionM)
 		var c = Color('#f1ca8c')
 		if e.get('combatFeedback') is Dictionary:
