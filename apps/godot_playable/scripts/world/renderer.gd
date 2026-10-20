@@ -761,7 +761,7 @@ func actor_visible(id: String, allow_dead: bool = false) -> bool:
 					return true
 	return false
 func _current_furnace_fade_prop_id() -> String:
-	# Two qualified placements only; other v2 and all v1 furnaces stay opaque.
+	# Three qualified placements only; all other furnaces stay opaque.
 	if snapshot.get('worldId')!='clockworks' or scene.get('worldId')!='clockworks' or scene.get('sceneId')!=snapshot.get('sceneId'):
 		return ''
 	match snapshot.get('sceneId'):
@@ -769,6 +769,8 @@ func _current_furnace_fade_prop_id() -> String:
 			return 'cw_heart_furnace_v2'
 		'cw_regulator_core':
 			return 'cw_regulator_furnace_v2_side'
+		'cw_boiler_chamber':
+			return 'cw_boiler_furnace_variant'
 	return ''
 func _begin_heart_furnace_draw() -> void:
 	if cw_furnace_visual==null:
@@ -1701,7 +1703,7 @@ func _draw_object(o: Dictionary, interaction_caption: String = '') -> void:
 				var fade_prop_id: String = _current_furnace_fade_prop_id()
 				# Canonical binding was admitted by _cw_furnace_key. A recorded body
 				# proves the player actually drew earlier in this exact sorted pass.
-				if fade_prop_id!='' and o.data.get('id')==fade_prop_id and furnace_key=='furnace_v2':
+				if fade_prop_id!='' and o.data.get('id')==fade_prop_id:
 					furnace_alpha = cw_furnace_visual.player_overlap_alpha(furnace_key,at,camera.ppm,_heart_player_body_rect,get_viewport_rect())
 				if cw_furnace_visual.draw_body(self,furnace_key,at,camera.ppm,furnace_alpha):
 					return

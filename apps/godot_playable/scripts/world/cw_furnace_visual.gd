@@ -6,9 +6,9 @@ const CONFIG = {
 }
 var attempted = false
 var textures: Dictionary = {}
-# Exact nonzero-alpha source-pixel runs, prepared only from admitted v2 RGBA.
+# Exact nonzero-alpha source-pixel runs, prepared only from each admitted CONFIG RGBA.
 # This is body occupancy, not a furnace-opening mask or an animation resource.
-var _v2_alpha_runs: Array = []
+var _alpha_runs_by_key: Dictionary = {}
 const PLAYER_OVERLAP_ALPHA: float = 0.25
 const PLAYER_FADE_RATE: float = 3.75 # 0.75 opacity excursion / 200 ms (spec 150-250 ms).
 const PLAYER_FADE_GAP_MAX_MS: int = 250
@@ -65,8 +65,7 @@ func _load_once() -> void:
 		var texture = ImageTexture.create_from_image(image)
 		if texture!=null:
 			textures[key] = texture
-			if key=='furnace_v2':
-				_cache_v2_alpha_runs(image)
+			_cache_alpha_runs(key,image)
 func canvas_rect(key: String, foot: Vector2, ppm: float) -> Rect2:
 	if not CONFIG.has(key) or not is_finite(foot.x) or not is_finite(foot.y) or not is_finite(ppm) or ppm<=0:
 		return Rect2()
@@ -84,9 +83,9 @@ func canvas_rect(key: String, foot: Vector2, ppm: float) -> Rect2:
 	if not is_finite(rect.end.x) or not is_finite(rect.end.y):
 		return Rect2()
 	return rect
-func _cache_v2_alpha_runs(image: Image) -> void:
-	_v2_alpha_runs.clear()
-	# At most 1165*1240 admitted pixels, once during resource preparation.
+func _cache_alpha_runs(key: String, image: Image) -> void:
+	var rows: Array = []
+	# Once per admitted key: v1 1193*1254, v2 1165*1240 source pixels.
 	for y in range(image.get_height()):
 		var runs: PackedInt32Array = PackedInt32Array()
 		var start: int = -1
@@ -101,7 +100,8 @@ func _cache_v2_alpha_runs(image: Image) -> void:
 		if start>=0:
 			runs.append(start)
 			runs.append(image.get_width())
-		_v2_alpha_runs.append(runs)
+		rows.append(runs)
+	_alpha_runs_by_key[key] = rows
 
 func _positive_finite_rect(rect: Rect2) -> bool:
 	return is_finite(rect.position.x) and is_finite(rect.position.y) and is_finite(rect.size.x) and is_finite(rect.size.y) and is_finite(rect.end.x) and is_finite(rect.end.y) and rect.size.x>0.0 and rect.size.y>0.0
@@ -132,7 +132,7 @@ func begin_player_fade_frame(owner: Array, now_ms: int, reduced_motion: bool) ->
 
 func player_overlap_alpha(key: String, foot: Vector2, ppm: float, player_body: Rect2, viewport: Rect2) -> float:
 	_load_once()
-	if key!='furnace_v2' or not textures.has(key) or _v2_alpha_runs.size()!=1240:
+	if not CONFIG.has(key) or not textures.has(key) or not _alpha_runs_by_key.has(key) or _alpha_runs_by_key[key].size()!=CONFIG[key].height:
 		reset_player_fade()
 		return 1.0
 	var target: float = _player_overlap_target(key,foot,ppm,player_body,viewport)
@@ -157,7 +157,7 @@ func player_overlap_alpha(key: String, foot: Vector2, ppm: float, player_body: R
 func _player_overlap_target(key: String, foot: Vector2, ppm: float, player_body: Rect2, viewport: Rect2) -> float:
 	# Full PLAYER CANVAS is conservative; it is not an opaque player silhouette.
 	# Unlike a canvas-only prop test, transparent furnace margins/holes do not qualify.
-	if key!='furnace_v2' or not P.number(ppm,0.001,3072) or not _positive_finite_rect(player_body) or not _positive_finite_rect(viewport):
+	if not CONFIG.has(key) or not P.number(ppm,0.001,3072) or not _positive_finite_rect(player_body) or not _positive_finite_rect(viewport):
 		return 1.0
 	var body: Rect2 = canvas_rect(key,foot,ppm)
 	if not _positive_finite_rect(body):
@@ -166,22 +166,24 @@ func _player_overlap_target(key: String, foot: Vector2, ppm: float, player_body:
 	if not _positive_finite_rect(overlap):
 		return 1.0
 	_load_once()
-	if not textures.has(key) or _v2_alpha_runs.size()!=1240:
+	var c: Dictionary = CONFIG[key]
+	if not textures.has(key) or not _alpha_runs_by_key.has(key) or _alpha_runs_by_key[key].size()!=c.height:
 		return 1.0
-	var factor: float = body.size.y/1240.0
+	var rows: Array = _alpha_runs_by_key[key]
+	var factor: float = body.size.y/float(c.height)
 	var source_min: Vector2 = (overlap.position-body.position)/factor
 	var source_max: Vector2 = (overlap.end-body.position)/factor
 	if not is_finite(source_min.x) or not is_finite(source_min.y) or not is_finite(source_max.x) or not is_finite(source_max.y):
 		return 1.0
 	# Half-open source-pixel cells with positive-area overlap; no edge-touch fade.
-	var x0: int = clampi(int(floor(source_min.x)),0,1165)
-	var x1: int = clampi(int(ceil(source_max.x)),0,1165)
-	var y0: int = clampi(int(floor(source_min.y)),0,1240)
-	var y1: int = clampi(int(ceil(source_max.y)),0,1240)
+	var x0: int = clampi(int(floor(source_min.x)),0,int(c.width))
+	var x1: int = clampi(int(ceil(source_max.x)),0,int(c.width))
+	var y0: int = clampi(int(floor(source_min.y)),0,int(c.height))
+	var y1: int = clampi(int(ceil(source_max.y)),0,int(c.height))
 	if x0>=x1 or y0>=y1:
 		return 1.0
 	for y in range(y0,y1):
-		var runs: PackedInt32Array = _v2_alpha_runs[y]
+		var runs: PackedInt32Array = rows[y]
 		for i in range(0,runs.size(),2):
 			if runs[i]>=x1:
 				break
