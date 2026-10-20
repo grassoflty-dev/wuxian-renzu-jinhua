@@ -99,6 +99,8 @@ const CW_PRESSURE_VALVES = {
 	'cw_pressure_valve_visual_03':Vector3(16,0,7)
 }
 var cw_pressure_valve_visual
+# Per-draw evidence only: never carried across frames, scenes or ordering.
+var _heart_player_body_rect: Rect2 = Rect2()
 const CwFurnaceVisual = preload('res://scripts/world/cw_furnace_visual.gd')
 const CwFurnaceHeartEnvironmentVisual = preload('res://scripts/world/cw_furnace_heart_environment_visual.gd')
 const CwShutdownExitEnvironmentVisual = preload('res://scripts/world/cw_shutdown_exit_environment_visual.gd')
@@ -316,6 +318,9 @@ func suspend_locomotion(cancel_beacon: bool = true) -> void:
 		_cancel_beacon_cue()
 		_cancel_extraction_cue()
 		if cw_pressure_valve_visual!=null and cw_pressure_valve_visual.reset_fade():
+			queue_redraw()
+		_heart_player_body_rect = Rect2()
+		if cw_furnace_visual!=null and cw_furnace_visual.reset_player_fade():
 			queue_redraw()
 	# Retain helper high-water marks: an old snapshot cannot restart after resume.
 	if cenyao_locomotion_clip!=null:
@@ -755,10 +760,32 @@ func actor_visible(id: String, allow_dead: bool = false) -> bool:
 				if visible_point(P.vector(p)) and not _occluded(P.vector(p)):
 					return true
 	return false
+func _current_furnace_fade_prop_id() -> String:
+	# Two qualified placements only; other v2 and all v1 furnaces stay opaque.
+	if snapshot.get('worldId')!='clockworks' or scene.get('worldId')!='clockworks' or scene.get('sceneId')!=snapshot.get('sceneId'):
+		return ''
+	match snapshot.get('sceneId'):
+		'cw_furnace_heart':
+			return 'cw_heart_furnace_v2'
+		'cw_regulator_core':
+			return 'cw_regulator_furnace_v2_side'
+	return ''
+func _begin_heart_furnace_draw() -> void:
+	if cw_furnace_visual==null:
+		return
+	var owner: Array = []
+	var gate: Dictionary = _locomotion_gate()
+	var fade_prop_id: String = _current_furnace_fade_prop_id()
+	if fade_prop_id!='' and not gate.is_empty() and gate.presentation_allowed and gate.visible and snapshot.get('entryToken')==null and snapshot.player.currentHp>0 and snapshot.worldId=='clockworks' and scene.get('worldId')==snapshot.worldId and scene.get('sceneId')==snapshot.sceneId and current_key=='clockworks:'+str(snapshot.sceneId)+':'+str(snapshot.worldEpoch):
+		owner = [current_key,fade_prop_id,snapshot.player.entityId,_locomotion_lifetime.duplicate(),get_viewport_rect(),camera.ppm]
+	cw_furnace_visual.begin_player_fade_frame(owner,Time.get_ticks_msec(),bool(gate.get('reduced_motion',true)))
+
 func _draw() -> void:
+	_heart_player_body_rect = Rect2()
 	draw_set_transform(Vector2.ZERO)
 	refresh_screen_shake()
 	refresh_locomotion()
+	_begin_heart_furnace_draw()
 	mh_warden_arena_last_draw_report = {'ground_drawn':false,'wall_ids':[],'bank_ids':[],'ambient_polygons':0}
 	_clear_gh_vital_body_records()
 	mh_fog_pier_deferred_labels.clear()
@@ -1669,8 +1696,17 @@ func _draw_object(o: Dictionary, interaction_caption: String = '') -> void:
 		'prop':
 			if _gh_crate_selected(o.data) and gh_supply_crate_visual!=null and gh_supply_crate_visual.draw_body(self,at,camera.ppm):
 				return
-			if furnace_key!='' and cw_furnace_visual!=null and cw_furnace_visual.draw_body(self,furnace_key,at,camera.ppm):
-				return
+			if furnace_key!='' and cw_furnace_visual!=null:
+				var furnace_alpha: float = 1.0
+				var fade_prop_id: String = _current_furnace_fade_prop_id()
+				# Canonical binding was admitted by _cw_furnace_key. A recorded body
+				# proves the player actually drew earlier in this exact sorted pass.
+				if fade_prop_id!='' and o.data.get('id')==fade_prop_id and furnace_key=='furnace_v2':
+					furnace_alpha = cw_furnace_visual.player_overlap_alpha(furnace_key,at,camera.ppm,_heart_player_body_rect,get_viewport_rect())
+				if cw_furnace_visual.draw_body(self,furnace_key,at,camera.ppm,furnace_alpha):
+					return
+				if fade_prop_id!='' and o.data.get('id')==fade_prop_id:
+					cw_furnace_visual.reset_player_fade()
 			if _cw_pressure_valve_selected(o.data) and cw_pressure_valve_visual!=null:
 				var valve_alpha: float = cw_pressure_valve_visual.occlusion_alpha(o.data,snapshot,scene,current_key,camera,get_viewport_rect(),_locomotion_gate(),_locomotion_lifetime,Time.get_ticks_msec())
 				if cw_pressure_valve_visual.draw_body(self,at,camera.ppm,valve_alpha):
@@ -1697,6 +1733,12 @@ func _draw_object(o: Dictionary, interaction_caption: String = '') -> void:
 					body_drawn = cenyao_locomotion_clip.draw_body_native(self,at,snapshot,camera.ppm,now,gate)
 				if not body_drawn:
 					body_drawn = cenyao_idle.draw_body(self,at,o.data,camera.ppm)
+			if body_drawn and _current_furnace_fade_prop_id()!='':
+				var body_gate: Dictionary = _locomotion_gate()
+				if not body_gate.is_empty() and body_gate.presentation_allowed and body_gate.visible and snapshot.get('entryToken')==null:
+					# Idle, locomotion and action admission share this full frame contract.
+					var body_factor: float = (104.0/560.0)*(camera.ppm/48.0)
+					_heart_player_body_rect = Rect2(at-CenYaoIdle.ANCHOR*body_factor,CenYaoIdle.CANVAS*body_factor)
 			if not body_drawn:
 				draw_line(at,at-Vector2(0,34)*scale,c,9*scale,true)
 			var f = Vector3(float(o.data.facingX),0,float(o.data.facingZ))

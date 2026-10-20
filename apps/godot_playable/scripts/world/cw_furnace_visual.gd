@@ -6,6 +6,19 @@ const CONFIG = {
 }
 var attempted = false
 var textures: Dictionary = {}
+# Exact nonzero-alpha source-pixel runs, prepared only from admitted v2 RGBA.
+# This is body occupancy, not a furnace-opening mask or an animation resource.
+var _v2_alpha_runs: Array = []
+const PLAYER_OVERLAP_ALPHA: float = 0.25
+const PLAYER_FADE_RATE: float = 3.75 # 0.75 opacity excursion / 200 ms (spec 150-250 ms).
+const PLAYER_FADE_GAP_MAX_MS: int = 250
+var _fade_owner: Array = []
+var _fade_alpha: float = 1.0
+var _fade_target: float = 1.0
+var _fade_at_ms: int = -1
+var _fade_frame_ms: int = -1
+var _fade_seen: bool = false
+var _fade_reduced_motion: bool = true
 func _pair(v, x: float, y: float) -> bool:
 	return v is Array and v.size()==2 and P.number(v[0],x,x) and P.number(v[1],y,y)
 func prepare_resources() -> void:
@@ -52,6 +65,8 @@ func _load_once() -> void:
 		var texture = ImageTexture.create_from_image(image)
 		if texture!=null:
 			textures[key] = texture
+			if key=='furnace_v2':
+				_cache_v2_alpha_runs(image)
 func canvas_rect(key: String, foot: Vector2, ppm: float) -> Rect2:
 	if not CONFIG.has(key) or not is_finite(foot.x) or not is_finite(foot.y) or not is_finite(ppm) or ppm<=0:
 		return Rect2()
@@ -69,12 +84,118 @@ func canvas_rect(key: String, foot: Vector2, ppm: float) -> Rect2:
 	if not is_finite(rect.end.x) or not is_finite(rect.end.y):
 		return Rect2()
 	return rect
-func draw_body(canvas: CanvasItem, key: String, foot: Vector2, ppm: float) -> bool:
+func _cache_v2_alpha_runs(image: Image) -> void:
+	_v2_alpha_runs.clear()
+	# At most 1165*1240 admitted pixels, once during resource preparation.
+	for y in range(image.get_height()):
+		var runs: PackedInt32Array = PackedInt32Array()
+		var start: int = -1
+		for x in range(image.get_width()):
+			var occupied: bool = image.get_pixel(x,y).a>0.0
+			if occupied and start<0:
+				start = x
+			elif not occupied and start>=0:
+				runs.append(start)
+				runs.append(x)
+				start = -1
+		if start>=0:
+			runs.append(start)
+			runs.append(image.get_width())
+		_v2_alpha_runs.append(runs)
+
+func _positive_finite_rect(rect: Rect2) -> bool:
+	return is_finite(rect.position.x) and is_finite(rect.position.y) and is_finite(rect.size.x) and is_finite(rect.size.y) and is_finite(rect.end.x) and is_finite(rect.end.y) and rect.size.x>0.0 and rect.size.y>0.0
+
+func reset_player_fade() -> bool:
+	var changed: bool = not _fade_owner.is_empty() or _fade_alpha!=1.0
+	_fade_owner.clear()
+	_fade_alpha = 1.0
+	_fade_target = 1.0
+	_fade_at_ms = -1
+	_fade_frame_ms = -1
+	_fade_seen = false
+	_fade_reduced_motion = true
+	return changed
+
+func begin_player_fade_frame(owner: Array, now_ms: int, reduced_motion: bool) -> void:
+	# No epoch/connection/visibility/camera or unconsumed-frame carryover.
+	if owner.is_empty() or now_ms<0:
+		reset_player_fade()
+		return
+	if owner!=_fade_owner or not _fade_seen or now_ms<_fade_frame_ms or now_ms-_fade_frame_ms>PLAYER_FADE_GAP_MAX_MS:
+		reset_player_fade()
+		_fade_owner = owner.duplicate(true)
+		_fade_at_ms = now_ms
+	_fade_frame_ms = now_ms
+	_fade_reduced_motion = reduced_motion
+	_fade_seen = false
+
+func player_overlap_alpha(key: String, foot: Vector2, ppm: float, player_body: Rect2, viewport: Rect2) -> float:
+	_load_once()
+	if key!='furnace_v2' or not textures.has(key) or _v2_alpha_runs.size()!=1240:
+		reset_player_fade()
+		return 1.0
+	var target: float = _player_overlap_target(key,foot,ppm,player_body,viewport)
+	if _fade_owner.is_empty() or _fade_frame_ms<0:
+		return 1.0
+	_fade_seen = true
+	if _fade_reduced_motion:
+		_fade_alpha = target
+	elif target!=_fade_target:
+		# First observation starts at the current alpha, never backdates an overlap.
+		_fade_at_ms = _fade_frame_ms
+	else:
+		var elapsed_ms: int = _fade_frame_ms-_fade_at_ms
+		if elapsed_ms<0 or elapsed_ms>PLAYER_FADE_GAP_MAX_MS:
+			reset_player_fade()
+			return 1.0
+		_fade_alpha = move_toward(_fade_alpha,target,PLAYER_FADE_RATE*float(elapsed_ms)/1000.0)
+	_fade_target = target
+	_fade_at_ms = _fade_frame_ms
+	return clampf(_fade_alpha,PLAYER_OVERLAP_ALPHA,1.0)
+
+func _player_overlap_target(key: String, foot: Vector2, ppm: float, player_body: Rect2, viewport: Rect2) -> float:
+	# Full PLAYER CANVAS is conservative; it is not an opaque player silhouette.
+	# Unlike a canvas-only prop test, transparent furnace margins/holes do not qualify.
+	if key!='furnace_v2' or not P.number(ppm,0.001,3072) or not _positive_finite_rect(player_body) or not _positive_finite_rect(viewport):
+		return 1.0
+	var body: Rect2 = canvas_rect(key,foot,ppm)
+	if not _positive_finite_rect(body):
+		return 1.0
+	var overlap: Rect2 = body.intersection(player_body).intersection(viewport)
+	if not _positive_finite_rect(overlap):
+		return 1.0
+	_load_once()
+	if not textures.has(key) or _v2_alpha_runs.size()!=1240:
+		return 1.0
+	var factor: float = body.size.y/1240.0
+	var source_min: Vector2 = (overlap.position-body.position)/factor
+	var source_max: Vector2 = (overlap.end-body.position)/factor
+	if not is_finite(source_min.x) or not is_finite(source_min.y) or not is_finite(source_max.x) or not is_finite(source_max.y):
+		return 1.0
+	# Half-open source-pixel cells with positive-area overlap; no edge-touch fade.
+	var x0: int = clampi(int(floor(source_min.x)),0,1165)
+	var x1: int = clampi(int(ceil(source_max.x)),0,1165)
+	var y0: int = clampi(int(floor(source_min.y)),0,1240)
+	var y1: int = clampi(int(ceil(source_max.y)),0,1240)
+	if x0>=x1 or y0>=y1:
+		return 1.0
+	for y in range(y0,y1):
+		var runs: PackedInt32Array = _v2_alpha_runs[y]
+		for i in range(0,runs.size(),2):
+			if runs[i]>=x1:
+				break
+			if runs[i+1]>x0:
+				return PLAYER_OVERLAP_ALPHA
+	return 1.0
+
+func draw_body(canvas: CanvasItem, key: String, foot: Vector2, ppm: float, opacity: float = 1.0) -> bool:
 	var rect = canvas_rect(key,foot,ppm)
 	if rect.size.x<=0 or rect.size.y<=0:
 		return false
 	_load_once()
 	if not textures.has(key):
 		return false
-	canvas.draw_texture_rect(textures[key],rect,false,Color.WHITE)
+	var alpha: float = clampf(opacity,PLAYER_OVERLAP_ALPHA,1.0) if is_finite(opacity) else 1.0
+	canvas.draw_texture_rect(textures[key],rect,false,Color(1.0,1.0,1.0,alpha))
 	return true
