@@ -651,6 +651,7 @@ func commit(s: Dictionary, data: Dictionary, hash: String) -> void:
 	snapshot = s
 	scene = data
 	scene_hash = hash
+	gh_sentinel_environment_visual.prepare(snapshot,scene,current_key,scene_hash)
 	mh_extraction_environment_visual.prepare(snapshot,scene,current_key,scene_hash)
 	mh_resonance_tower_environment_visual.prepare(snapshot,scene,current_key,scene_hash)
 	mh_breakwater_environment_visual.prepare(snapshot,scene,current_key,scene_hash)

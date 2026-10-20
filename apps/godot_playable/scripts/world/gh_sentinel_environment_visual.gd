@@ -102,12 +102,20 @@ func _load_scene_once() -> void:
 	if decoded is Dictionary:
 		_canonical_scene = decoded
 
+func prepare(snapshot: Variant, scene: Variant, current_key: Variant, scene_hash: Variant) -> void:
+	if not snapshot is Dictionary or not scene is Dictionary:
+		return
+	if not P.snapshot(snapshot) or snapshot.get('entryToken') != null or snapshot.get('worldId') != 'grey_hive' or snapshot.get('sceneId') != 'gh_sentinel_arena' or scene_hash != SCENE_SHA256:
+		return
+	if not P.counter(snapshot.get('worldEpoch'),1) or typeof(current_key) != TYPE_STRING or current_key != 'grey_hive:gh_sentinel_arena:'+str(snapshot.worldEpoch):
+		return
+	_load_scene_once()
+
 func _layout(snapshot: Dictionary, scene: Dictionary, key: Variant, scene_hash: Variant) -> bool:
 	if not P.snapshot(snapshot) or snapshot.get('entryToken') != null or snapshot.get('worldId') != 'grey_hive' or snapshot.get('sceneId') != 'gh_sentinel_arena' or scene_hash != SCENE_SHA256:
 		return false
 	if not P.counter(snapshot.get('worldEpoch'),1) or typeof(key) != TYPE_STRING or key != 'grey_hive:gh_sentinel_arena:'+str(snapshot.worldEpoch):
 		return false
-	_load_scene_once()
 	if _canonical_scene.is_empty() or scene.size() != _canonical_scene.size():
 		return false
 	for field: Variant in _canonical_scene:
