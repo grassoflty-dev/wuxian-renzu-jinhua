@@ -22,6 +22,11 @@ const WALLS = [
 	{'id':'cw_pressure_hall_wall_east_north','polygon':[[23.5,0.5],[24.0,0.5],[24.0,6.0],[23.5,6.0]],'inner':[[23.5,0.5],[23.5,6.0]],'seams':1,'footprint':Rect2(23.5,0.5,0.5,5.5)},
 	{'id':'cw_pressure_hall_wall_east_south','polygon':[[23.5,9.5],[24.0,9.5],[24.0,15.5],[23.5,15.5]],'inner':[[23.5,9.5],[23.5,15.5]],'seams':1,'footprint':Rect2(23.5,9.5,0.5,6.0)}
 ]
+const EXTERIOR_WALL_EDGES = {
+	'cw_pressure_hall_wall_south':[3,2],
+	'cw_pressure_hall_wall_east_north':[1,2],
+	'cw_pressure_hall_wall_east_south':[1,2]
+}
 
 func is_wall_id(value) -> bool:
 	if typeof(value)!=TYPE_STRING:
@@ -45,14 +50,61 @@ func build_packets(scene_data: Dictionary, snapshot: Dictionary, current_key: St
 	if not _ensure_layout(scene_data,snapshot,current_key) or not _projection_valid(projection):
 		return []
 	var packets: Array = []
+	var exterior_faces_enabled: bool = P.snapshot(snapshot) and snapshot.get('entryToken')==null and _floor_projection_valid(projection)
+	if exterior_faces_enabled:
+		var initialized_value: Variant = projection.get('initialized')
+		exterior_faces_enabled = typeof(initialized_value)==TYPE_BOOL and initialized_value==true
 	for wall in WALLS:
+		var wall_packet_start: int = packets.size()
 		if not _add_wall(packets,wall,projection):
 			return []
+		if exterior_faces_enabled and EXTERIOR_WALL_EDGES.has(wall.get('id')):
+			var exterior_points: PackedVector2Array = _exterior_face_points(wall,projection)
+			var exterior_color: Color = Color(0.19,0.22,0.23)
+			if exterior_points.size()!=4 or not _floor_color_finite(exterior_color):
+				return []
+			var exterior_packets: Array = []
+			if not _push(exterior_packets,wall.id+':exterior_face','wall_face',exterior_points,exterior_color,true,wall.id,wall.footprint) or exterior_packets.size()!=1 or not exterior_packets[0] is Dictionary:
+				return []
+			packets.insert(wall_packet_start,exterior_packets[0])
 	for source_id in PIPE_ROWS:
 		if _pipe_anchor_valid(scene_data,source_id) and not _add_pipe_group(packets,source_id,projection):
 			return []
 	_add_valve_shadows(packets,scene_data,projection)
 	return packets if packets.size()<=MAX_PACKETS else []
+
+func _exterior_face_points(wall: Dictionary, projection) -> PackedVector2Array:
+	var edge_indices: Variant = EXTERIOR_WALL_EDGES.get(wall.get('id'))
+	var polygon: Variant = wall.get('polygon')
+	if not edge_indices is Array or edge_indices.size()!=2 or not polygon is Array or polygon.size()!=4:
+		return PackedVector2Array()
+	if typeof(edge_indices[0])!=TYPE_INT or typeof(edge_indices[1])!=TYPE_INT:
+		return PackedVector2Array()
+	var index_a: int = int(edge_indices[0])
+	var index_b: int = int(edge_indices[1])
+	if index_a<0 or index_a>=polygon.size() or index_b<0 or index_b>=polygon.size():
+		return PackedVector2Array()
+	var source_a: Variant = polygon[index_a]
+	var source_b: Variant = polygon[index_b]
+	if not source_a is Array or source_a.size()!=2 or not source_b is Array or source_b.size()!=2 or not P.number(source_a[0],0.0,24.0) or not P.number(source_a[1],0.0,16.0) or not P.number(source_b[0],0.0,24.0) or not P.number(source_b[1],0.0,16.0):
+		return PackedVector2Array()
+	var ppm_value: Variant = projection.get('ppm')
+	if not P.number(ppm_value,0.0,256.0) or float(ppm_value)<=0.0:
+		return PackedVector2Array()
+	var relief: float = RELIEF_PIXELS*(float(ppm_value)/48.0)
+	var ground_a: Vector2 = projection.project(Vector3(float(source_a[0]),0.0,float(source_a[1])))
+	var ground_b: Vector2 = projection.project(Vector3(float(source_b[0]),0.0,float(source_b[1])))
+	var points: PackedVector2Array = PackedVector2Array([ground_a,ground_b,ground_b-Vector2(0.0,relief),ground_a-Vector2(0.0,relief)])
+	var twice_area: float = 0.0
+	for index in range(points.size()):
+		var point_a: Vector2 = points[index]
+		var point_b: Vector2 = points[(index+1)%points.size()]
+		if not is_finite(point_a.x) or not is_finite(point_a.y):
+			return PackedVector2Array()
+		twice_area += point_a.x*point_b.y-point_b.x*point_a.y
+	if not is_finite(twice_area) or twice_area==0.0:
+		return PackedVector2Array()
+	return points
 
 func _ensure_layout(scene_data: Dictionary, snapshot: Dictionary, current_key: String) -> bool:
 	if snapshot.get('worldId')!='clockworks' or scene_data.get('worldId')!='clockworks' or snapshot.get('sceneId')!='cw_pressure_hall' or scene_data.get('sceneId')!='cw_pressure_hall':
