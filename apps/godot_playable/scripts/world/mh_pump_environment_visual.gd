@@ -344,6 +344,7 @@ func draw_land_material(canvas: Variant, snapshot_value: Variant, scene_value: V
 		return false
 	var canvas_item: CanvasItem = canvas
 	_draw_material_commands(canvas_item,commands)
+	_draw_ground_ambient(canvas,snapshot_value,scene_value,current_key_value,projection_value,viewport_value)
 	return true
 
 func draw_channel_material(canvas: Variant, snapshot_value: Variant, scene_value: Variant, current_key_value: Variant, projection_value: Variant, viewport_value: Variant) -> bool:
@@ -598,3 +599,162 @@ func _material_vector3_finite(value: Variant) -> bool:
 
 func _material_color_finite(color: Color) -> bool:
 	return is_finite(color.r) and is_finite(color.g) and is_finite(color.b) and is_finite(color.a)
+
+# BEGIN Pump ground ambient field addition
+const AMBIENT_RECTS: Array = [
+	[0.5,0.5,18.0,15.5],
+	[18.0,0.5,23.5,5.5],
+	[18.0,10.5,23.5,15.5]
+]
+const AMBIENT_RGB: Array[float] = [0.08,0.13,0.16]
+const AMBIENT_ALPHA: Array[float] = [0.02,0.06]
+const AMBIENT_SUM: Array[float] = [1.0,38.0]
+func _ambient_capture(canvas_value: Variant, snapshot_value: Variant, scene_value: Variant, key_value: Variant, projection_value: Variant, viewport_value: Variant) -> Dictionary:
+	if not _outer_context_valid(canvas_value,snapshot_value,scene_value,key_value,projection_value,viewport_value):
+		return {}
+	var canvas: CanvasItem = canvas_value
+	if not canvas.is_visible_in_tree() or canvas.get_global_transform_with_canvas()!=Transform2D.IDENTITY:
+		return {}
+	var snapshot: Dictionary = snapshot_value
+	var scene: Dictionary = scene_value
+	var projection: RefCounted = projection_value
+	return {'canvas_id':canvas.get_instance_id(),'snapshot':snapshot.duplicate(true),'scene':scene.duplicate(true),'key':key_value,'scene_hash':canvas.get('scene_hash'),'camera':projection,'origin':projection.get('origin'),'center':projection.get('screen_center'),'ppm':projection.get('ppm'),'initialized':projection.get('initialized'),'projection_viewport':projection.get('viewport'),'viewport':viewport_value}
+func _ambient_matches(capture: Dictionary, canvas_value: Variant, snapshot_value: Variant, scene_value: Variant, key_value: Variant, projection_value: Variant, viewport_value: Variant) -> bool:
+	if capture.size()!=12 or not _outer_context_valid(canvas_value,snapshot_value,scene_value,key_value,projection_value,viewport_value):
+		return false
+	var canvas: CanvasItem = canvas_value
+	var projection: RefCounted = projection_value
+	if not canvas.is_visible_in_tree() or canvas.get_global_transform_with_canvas()!=Transform2D.IDENTITY:
+		return false
+	if capture.canvas_id!=canvas.get_instance_id() or not _outer_json_equal(snapshot_value,capture.snapshot) or not _outer_json_equal(scene_value,capture.scene):
+		return false
+	if capture.key!=key_value or capture.scene_hash!=canvas.get('scene_hash') or capture.camera!=projection:
+		return false
+	if capture.origin!=projection.get('origin') or capture.center!=projection.get('screen_center') or capture.ppm!=projection.get('ppm') or capture.initialized!=projection.get('initialized') or capture.projection_viewport!=projection.get('viewport'):
+		return false
+	return capture.viewport==viewport_value and canvas.get('viewport_rect')==capture.viewport and canvas.get_viewport_rect()==capture.viewport
+func _ambient_color(x: float, z: float) -> Color:
+	var t: float = (x+z-AMBIENT_SUM[0])/AMBIENT_SUM[1]
+	return Color(AMBIENT_RGB[0],AMBIENT_RGB[1],AMBIENT_RGB[2],lerpf(AMBIENT_ALPHA[0],AMBIENT_ALPHA[1],t))
+func _ambient_color_valid(color: Color) -> bool:
+	var minimum_alpha: float = Color(0.0,0.0,0.0,AMBIENT_ALPHA[0]).a
+	var maximum_alpha: float = Color(0.0,0.0,0.0,AMBIENT_ALPHA[1]).a
+	var expected: Color = Color(AMBIENT_RGB[0],AMBIENT_RGB[1],AMBIENT_RGB[2],1.0)
+	return _material_color_finite(color) and color.r==expected.r and color.g==expected.g and color.b==expected.b and color.r>=0.0 and color.r<=1.0 and color.g>=0.0 and color.g<=1.0 and color.b>=0.0 and color.b<=1.0 and color.a>=minimum_alpha and color.a<=maximum_alpha
+func _ambient_rect_valid(rectangle: Variant) -> bool:
+	if not rectangle is Array or rectangle.size()!=4:
+		return false
+	for value: Variant in rectangle:
+		if typeof(value) not in [TYPE_INT,TYPE_FLOAT] or not is_finite(float(value)):
+			return false
+	if not _outer_json_equal(rectangle,AMBIENT_RECTS[0]) and not _outer_json_equal(rectangle,AMBIENT_RECTS[1]) and not _outer_json_equal(rectangle,AMBIENT_RECTS[2]):
+		return false
+	var x0: float = float(rectangle[0])
+	var z0: float = float(rectangle[1])
+	var x1: float = float(rectangle[2])
+	var z1: float = float(rectangle[3])
+	if x0<0.5 or z0<0.5 or x1>23.5 or z1>15.5 or x1<=x0 or z1<=z0:
+		return false
+	var water_x: float = minf(x1,23.5)-maxf(x0,18.0)
+	var water_z: float = minf(z1,10.5)-maxf(z0,5.5)
+	return water_x<=0.0 or water_z<=0.0
+func _ambient_quad_valid(points: PackedVector2Array) -> bool:
+	if points.size()!=4 or not _material_points_finite(points):
+		return false
+	var origin: Vector2 = points[0]
+	var area2: float = 0.0
+	for index: int in range(1,3):
+		area2+=(points[index]-origin).cross(points[index+1]-origin)
+	if not is_finite(area2) or area2==0.0:
+		return false
+	var low: Vector2 = points[0]
+	var high: Vector2 = points[0]
+	for point: Vector2 in points:
+		low.x=minf(low.x,point.x)
+		low.y=minf(low.y,point.y)
+		high.x=maxf(high.x,point.x)
+		high.y=maxf(high.y,point.y)
+	if not is_finite(low.x) or not is_finite(low.y) or not is_finite(high.x) or not is_finite(high.y) or high.x<=low.x or high.y<=low.y:
+		return false
+	var orientation: float = 0.0
+	for index: int in range(4):
+		var edge: Vector2 = points[(index+1)%4]-points[index]
+		var next_edge: Vector2 = points[(index+2)%4]-points[(index+1)%4]
+		var turn: float = edge.cross(next_edge)
+		if edge==Vector2.ZERO or not is_finite(turn) or turn==0.0 or orientation!=0.0 and (turn>0.0)!=(orientation>0.0):
+			return false
+		orientation=turn
+	return (area2>0.0)==(orientation>0.0)
+func _ambient_overlap(points: PackedVector2Array, viewport: Rect2) -> int:
+	if not _ambient_quad_valid(points) or not _material_viewport_valid(viewport):
+		return -1
+	var axes: Array[Vector2] = [Vector2.RIGHT,Vector2.DOWN]
+	for index: int in range(4):
+		var edge: Vector2 = points[(index+1)%4]-points[index]
+		axes.append(Vector2(-edge.y,edge.x))
+	var corners: Array[Vector2] = [viewport.position,Vector2(viewport.end.x,viewport.position.y),viewport.end,Vector2(viewport.position.x,viewport.end.y)]
+	var origin: Vector2 = points[0]
+	var separated: bool = false
+	for axis: Vector2 in axes:
+		if not _material_vector2_finite(axis) or axis==Vector2.ZERO:
+			return -1
+		var polygon_min: float = INF
+		var polygon_max: float = -INF
+		var viewport_min: float = INF
+		var viewport_max: float = -INF
+		for point: Vector2 in points:
+			var value: float = (point-origin).dot(axis)
+			if not is_finite(value):
+				return -1
+			polygon_min=minf(polygon_min,value)
+			polygon_max=maxf(polygon_max,value)
+		for corner: Vector2 in corners:
+			var value: float = (corner-origin).dot(axis)
+			if not is_finite(value):
+				return -1
+			viewport_min=minf(viewport_min,value)
+			viewport_max=maxf(viewport_max,value)
+		if not is_finite(polygon_min) or not is_finite(polygon_max) or not is_finite(viewport_min) or not is_finite(viewport_max) or polygon_min>=polygon_max or viewport_min>=viewport_max:
+			return -1
+		if polygon_max<=viewport_min or viewport_max<=polygon_min:
+			separated=true
+	return 0 if separated else 1
+func _draw_ground_ambient(canvas_value: Variant, snapshot_value: Variant, scene_value: Variant, key_value: Variant, projection_value: Variant, viewport_value: Variant) -> bool:
+	var capture: Dictionary = _ambient_capture(canvas_value,snapshot_value,scene_value,key_value,projection_value,viewport_value)
+	if capture.is_empty():
+		return false
+	var projection: RefCounted = projection_value
+	var viewport: Rect2 = viewport_value
+	var plan: Array[Dictionary] = []
+	for rectangle: Array in AMBIENT_RECTS:
+		if not _ambient_rect_valid(rectangle):
+			return false
+		var points: PackedVector2Array = PackedVector2Array()
+		var colors: PackedColorArray = PackedColorArray()
+		var world: Array[Vector2] = [Vector2(rectangle[0],rectangle[1]),Vector2(rectangle[2],rectangle[1]),Vector2(rectangle[2],rectangle[3]),Vector2(rectangle[0],rectangle[3])]
+		for point: Vector2 in world:
+			var color: Color = _ambient_color(point.x,point.y)
+			var projected_value: Variant = projection.call('project',Vector3(point.x,0.0,point.y))
+			if not _material_vector2_finite(projected_value) or not _ambient_color_valid(color):
+				return false
+			points.append(projected_value)
+			colors.append(color)
+		if points.size()!=4 or colors.size()!=4 or not _ambient_quad_valid(points):
+			return false
+		plan.append({'points':points,'colors':colors})
+	if plan.size()!=3:
+		return false
+	var visible: Array[Dictionary] = []
+	for command: Dictionary in plan:
+		var overlap: int = _ambient_overlap(command.points,viewport)
+		if overlap<0:
+			return false
+		if overlap==1:
+			visible.append(command)
+	if visible.is_empty() or not _ambient_matches(capture,canvas_value,snapshot_value,scene_value,key_value,projection_value,viewport_value):
+		return false
+	var canvas: CanvasItem = canvas_value
+	for command: Dictionary in visible:
+		canvas.draw_polygon(command.points,command.colors)
+	return true
+# END Pump ground ambient field addition
