@@ -923,6 +923,7 @@ func _draw() -> void:
 	mh_fog_pier_suppressed_bank_ids.append_array(resonance_tower_bank_drawn_ids)
 	mh_fog_pier_suppressed_bank_ids.append_array(extraction_bank_drawn_ids)
 	mh_fog_pier_suppressed_bank_ids.append_array(warden_consumed_ids)
+	cw_boiler_environment_visual.draw_pressure_steam(self,snapshot,scene,current_key,camera,viewport_rect,reduced_motion)
 	_hazards()
 	_beacon()
 	_boss_warning()
