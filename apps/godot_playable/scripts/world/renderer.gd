@@ -649,8 +649,8 @@ func _draw() -> void:
 	var gh_sentinel_shell_drawn: bool = gh_sentinel_environment_visual.draw_shell(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
 	var cw_furnace_heart_shell_drawn: bool = cw_furnace_heart_environment_visual.draw_shell(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
 	var cw_shutdown_exit_shell_drawn: bool = cw_shutdown_exit_environment_visual.draw_shell(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
-	# Canonical static geometry is display only. No spawns, routes, navigation or hidden objectives.
 	var gh_deep_decon_alcove_receipt: Dictionary = {}
+	# Canonical static geometry is display only. No spawns, routes, navigation or hidden objectives.
 	for wall in scene.get('collision',[]):
 		if cw_shutdown_exit_shell_drawn and cw_shutdown_exit_environment_visual.owns_collision(wall):
 			continue
