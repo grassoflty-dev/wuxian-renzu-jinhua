@@ -50,6 +50,9 @@ const FLOOR_SEAM: Color = Color(0.055,0.065,0.068,0.11)
 const FLOOR_CONTACT: Color = Color(0.035,0.045,0.048,0.16)
 const WALL_SIDE: Color = Color('#282e31')
 const WALL_CAP: Color = Color('#4d5556')
+const SHORT_SCENE_SHA: String = "04b00520e16435d159f1a459016083020fd40d11a2f8086d2f78dcbd0e483b39"
+const SHORT_CANONICAL_SCENE: Dictionary = {"boundsM":{"depth":16.0,"width":24.0,"x":0,"z":0},"cameraZones":[],"checkpoints":[{"id":"cw_boiler_chamber_checkpoint","navNode":"cw_boiler_chamber_spawn_nav","position":[4.0,0.0,8.0]}],"collision":[{"id":"cw_boiler_chamber_wall_north","polygon":[[0.0,0.0],[24.0,0.0],[24.0,0.5],[0.0,0.5]]},{"id":"cw_boiler_chamber_wall_south","polygon":[[0.0,15.5],[24.0,15.5],[24.0,16.0],[0.0,16.0]]},{"id":"cw_boiler_chamber_wall_west_north","polygon":[[0.0,0.5],[0.5,0.5],[0.5,6.0],[0.0,6.0]]},{"id":"cw_boiler_chamber_wall_west_south","polygon":[[0.0,9.5],[0.5,9.5],[0.5,15.5],[0.0,15.5]]},{"id":"cw_boiler_chamber_wall_east_north","polygon":[[23.5,0.5],[24.0,0.5],[24.0,6.0],[23.5,6.0]]},{"id":"cw_boiler_chamber_wall_east_south","polygon":[[23.5,9.5],[24.0,9.5],[24.0,15.5],[23.5,15.5]]}],"doors":[],"hazards":[{"environment":{"activeMs":8000,"damage":8,"damageIntervalMs":1000,"exposure":{"damageThreshold":50,"gainPerSecond":25,"lossPerSecond":20,"maxUnits":100},"recoveryMs":3000,"tag":"heat","warningMs":1000},"id":"cw_heat_accumulation_staged","kind":"heat_zone","polygon":[[11.0,2.0],[17.0,2.0],[17.0,6.0],[11.0,6.0]]},{"environment":{"activeMs":700,"damage":10,"damageIntervalMs":700,"recoveryMs":3400,"tag":"pressure","warningMs":900},"id":"cw_boiler_vent_staged","kind":"steam_jet","polygon":[[11.0,10.0],[13.0,10.0],[13.0,13.0],[11.0,13.0]]}],"interactions":[{"cooldownMs":8000,"environmentControl":{"exposureReductionUnits":40,"suppressionMs":6000,"targetHazardIds":["cw_heat_accumulation_staged","cw_boiler_vent_staged"]},"event":null,"id":"cw_coolant_valve_staged","kind":"environment_control","position":[18.0,0.0,8.0],"rangeM":2.5}],"logic":{"traversal":[]},"navigation":{"links":[{"from":"cw_boiler_chamber_spawn_nav","to":"cw_boiler_chamber_center_nav"},{"from":"cw_boiler_chamber_center_nav","to":"cw_boiler_chamber_spawn_nav"}],"nodes":[{"id":"cw_boiler_chamber_spawn_nav","position":[3.0,0.0,8.0]},{"id":"cw_boiler_chamber_center_nav","position":[12.0,0.0,8.0]}]},"objectives":[],"occluders":[],"presentation":{"cameraProfile":"oblique_default","layers":[{"id":"visual.floor","zGroup":0},{"id":"visual.props_back","zGroup":10},{"id":"visual.props_dynamic","zGroup":20}],"sprites":[{"assetId":"runtime2d.world.clockworks.floor_steel.v1","id":"cw_boiler_chamber_steel_floor","layer":"visual.floor","position":[12.0,0.0,8.0]},{"assetId":"runtime2d.world.clockworks.factory_tiles.v1","id":"cw_boiler_chamber_factory_tiles","layer":"visual.floor","position":[12.0,0.0,8.0]},{"assetId":"runtime2d.world.clockworks.pressure_pipes.v1","id":"cw_boiler_pressure_pipe_run","layer":"visual.props_back","position":[11.0,0.0,4.0]},{"assetId":"runtime2d.world.clockworks.furnace.v2","id":"cw_boiler_furnace","layer":"visual.props_back","position":[16.0,0.0,6.0]},{"assetId":"runtime2d.world.clockworks.furnace.v1","id":"cw_boiler_furnace_variant","layer":"visual.props_dynamic","position":[18.0,0.0,10.0]},{"assetId":"runtime2d.world.clockworks.pressure_pipes.v1","id":"cw_boiler_pressure_pipe_branch","layer":"visual.props_dynamic","position":[8.0,0.0,12.0]}]},"sceneId":"cw_boiler_chamber","schemaVersion":1,"spawns":[{"entityType":null,"id":"cw_boiler_chamber_spawn","kind":"player","navNode":"cw_boiler_chamber_spawn_nav","position":[3.0,0.0,8.0]},{"entityType":"enemy.clockworks.furnace_hound","id":"cw_boiler_chamber_furnace_hound_01","kind":"enemy","navNode":null,"position":[10.0,0.0,4.0]},{"entityType":"enemy.clockworks.furnace_hound","id":"cw_boiler_chamber_furnace_hound_02","kind":"enemy","navNode":null,"position":[16.0,0.0,12.0]},{"entityType":"enemy.clockworks.furnace_hound","id":"cw_boiler_chamber_furnace_hound_03","kind":"enemy","navNode":null,"position":[20.0,0.0,5.0]}],"transitions":[{"id":"cw_boiler_return_to_conveyor_bridge","polygon":[[0.5,6.5],[2.5,6.5],[2.5,9.5],[0.5,9.5]],"spawnId":"cw_conveyor_bridge_spawn","toSceneId":"cw_conveyor_bridge"},{"id":"cw_boiler_to_gear_shaft","polygon":[[22.0,6.5],[24.0,6.5],[24.0,9.5],[22.0,9.5]],"spawnId":"cw_gear_shaft_spawn","toSceneId":"cw_gear_shaft"}],"triggers":[],"vfxMarkers":[],"worldId":"clockworks"}
+const SHORT_FACES: Array[Dictionary] = [{"id":"north_east_end","owner":"cw_boiler_chamber_wall_north","a":[24.0,0.0],"b":[24.0,0.5],"low":0.0,"high":0.75},{"id":"south_east_end","owner":"cw_boiler_chamber_wall_south","a":[24.0,15.5],"b":[24.0,16.0],"low":0.0,"high":0.22},{"id":"west_north_jamb","owner":"cw_boiler_chamber_wall_west_north","a":[0.0,6.0],"b":[0.5,6.0],"low":0.0,"high":0.75},{"id":"west_south_step","owner":"cw_boiler_chamber_wall_west_south","a":[0.0,15.5],"b":[0.5,15.5],"low":0.22,"high":0.75},{"id":"east_north_jamb","owner":"cw_boiler_chamber_wall_east_north","a":[23.5,6.0],"b":[24.0,6.0],"low":0.0,"high":0.22}]
 
 func _finite_vector2(value: Vector2) -> bool:
 	return is_finite(value.x) and is_finite(value.y)
@@ -388,9 +391,11 @@ func draw_wall(canvas_value, snapshot_value, scene_value, current_key_value, pro
 			if outer_points.size() != 4 or not _points_have_area(side_points) or not _points_have_area(outer_points) or not _points_have_area(cap_points):
 				return false
 	var canvas: CanvasItem = canvas_value
+	var short_family: Dictionary = _short_stage(canvas_value,snapshot_value,scene_value,current_key_value,projection,wall,viewport_value,wall_height)
 	canvas.draw_colored_polygon(side_points,WALL_SIDE)
 	if outer_face_enabled:
 		canvas.draw_colored_polygon(outer_points,WALL_SIDE)
+	_short_emit(canvas_value,short_family,wall,snapshot_value,scene_value,current_key_value,projection,viewport_value)
 	canvas.draw_colored_polygon(cap_points,WALL_CAP)
 	return true
 
@@ -602,3 +607,218 @@ func draw_pressure_steam(canvas_value: Variant, snapshot_value: Variant, scene_v
 	for points: PackedVector2Array in plans:
 		canvas.draw_colored_polygon(points,steam_color)
 	return true
+
+func _short_equal(actual: Variant, expected: Variant) -> bool:
+	if typeof(expected) in [TYPE_INT,TYPE_FLOAT]:
+		return P.number(actual,float(expected),float(expected))
+	if expected is Dictionary:
+		if not actual is Dictionary or actual.size()!=expected.size():
+			return false
+		for key: Variant in expected:
+			if not actual.has(key) or not _short_equal(actual[key],expected[key]):
+				return false
+		return true
+	if expected is Array:
+		if not actual is Array or actual.size()!=expected.size():
+			return false
+		for index: int in range(expected.size()):
+			if not _short_equal(actual[index],expected[index]):
+				return false
+		return true
+	return typeof(actual)==typeof(expected) and actual==expected
+
+func _short_canonical(scene_value: Variant) -> bool:
+	return scene_value is Dictionary and _short_equal(scene_value,SHORT_CANONICAL_SCENE)
+
+func _short_bindings(canvas_value: Variant, snapshot_value: Variant, scene_value: Variant, key_value: Variant, projection_value: Variant, viewport_value: Variant) -> bool:
+	if not _valid_canvas(canvas_value) or not canvas_value.is_visible_in_tree() or not P.snapshot(snapshot_value) or not scene_value is Dictionary:
+		return false
+	if not _short_canonical(scene_value) or snapshot_value.get('worldId')!='clockworks' or snapshot_value.get('sceneId')!='cw_boiler_chamber' or snapshot_value.get('entryToken')!=null:
+		return false
+	var epoch: Variant = snapshot_value.get('worldEpoch')
+	if not P.counter(epoch,1) or typeof(key_value)!=TYPE_STRING or key_value!='clockworks:cw_boiler_chamber:'+str(epoch):
+		return false
+	if not _valid_projection(projection_value) or typeof(projection_value.get('initialized'))!=TYPE_BOOL or not projection_value.get('initialized'):
+		return false
+	if not viewport_value is Rect2:
+		return false
+	var viewport: Rect2 = viewport_value
+	if not _finite_rect(viewport) or viewport.position!=Vector2.ZERO:
+		return false
+	var canvas_snapshot: Variant = canvas_value.get('snapshot')
+	var canvas_scene: Variant = canvas_value.get('scene')
+	var canvas_key: Variant = canvas_value.get('current_key')
+	var canvas_hash: Variant = canvas_value.get('scene_hash')
+	var canvas_camera: Variant = canvas_value.get('camera')
+	var stored_viewport: Variant = canvas_value.get('viewport_rect')
+	var actual_viewport: Variant = canvas_value.get_viewport_rect()
+	var projection_viewport: Variant = projection_value.get('viewport')
+	return canvas_snapshot is Dictionary and _short_equal(canvas_snapshot,snapshot_value) and canvas_scene is Dictionary and _short_equal(canvas_scene,scene_value) and canvas_key==key_value and canvas_hash==SHORT_SCENE_SHA and canvas_camera==projection_value and stored_viewport is Rect2 and stored_viewport==viewport and actual_viewport is Rect2 and actual_viewport==viewport and projection_viewport is Vector2 and projection_viewport==viewport.size and viewport.size.x>0.0 and viewport.size.y>0.0
+
+func _short_capture(canvas_value: Variant, snapshot_value: Dictionary, key_value: String, projection_value: RefCounted) -> Array:
+	return [snapshot_value.duplicate(true),key_value,canvas_value.get('scene_hash'),canvas_value,projection_value,projection_value.get('origin'),projection_value.get('screen_center'),projection_value.get('viewport'),projection_value.get('ppm')]
+
+func _short_capture_matches(stamp_value: Variant, canvas_value: Variant, snapshot_value: Variant, scene_value: Variant, key_value: Variant, projection_value: Variant, viewport_value: Variant) -> bool:
+	if not stamp_value is Array or stamp_value.size()!=9 or not _short_bindings(canvas_value,snapshot_value,scene_value,key_value,projection_value,viewport_value):
+		return false
+	var stamp: Array = stamp_value
+	return stamp[0] is Dictionary and _short_equal(stamp[0],snapshot_value) and stamp[1]==key_value and stamp[2]==SHORT_SCENE_SHA and stamp[3]==canvas_value and stamp[4]==projection_value and stamp[5]==projection_value.get('origin') and stamp[6]==projection_value.get('screen_center') and stamp[7]==projection_value.get('viewport') and stamp[8]==projection_value.get('ppm')
+
+func _short_world(row_value: Variant) -> Array:
+	if not row_value is Dictionary:
+		return []
+	var a: Variant = row_value.get('a')
+	var b: Variant = row_value.get('b')
+	var low: Variant = row_value.get('low')
+	var high: Variant = row_value.get('high')
+	if not a is Array or a.size()!=2 or not b is Array or b.size()!=2 or not P.number(a[0],0.0,24.0) or not P.number(a[1],0.0,16.0) or not P.number(b[0],0.0,24.0) or not P.number(b[1],0.0,16.0) or not P.number(low,0.0,1.0) or not P.number(high,0.0,1.0) or float(high)<=float(low):
+		return []
+	return [Vector3(float(a[0]),float(low),float(a[1])),Vector3(float(b[0]),float(low),float(b[1])),Vector3(float(b[0]),float(high),float(b[1])),Vector3(float(a[0]),float(high),float(a[1]))]
+
+func _short_quad(points: PackedVector2Array, color: Color) -> bool:
+	if points.size()!=4 or not _finite_color(color):
+		return false
+	var bounds: Rect2 = Rect2(points[0],Vector2.ZERO)
+	for point: Vector2 in points:
+		if not _finite_vector2(point):
+			return false
+		bounds = bounds.expand(point)
+	if not _finite_rect(bounds):
+		return false
+	var origin: Vector2 = points[0]
+	var area2: float = 0.0
+	for index: int in range(1,points.size()-1):
+		var triangle: float = (points[index]-origin).cross(points[index+1]-origin)
+		if not is_finite(triangle):
+			return false
+		area2 += triangle
+	if not is_finite(area2) or area2==0.0:
+		return false
+	var positive: bool = false
+	for index: int in range(points.size()):
+		var edge: Vector2 = points[(index+1)%points.size()]-points[index]
+		var next_edge: Vector2 = points[(index+2)%points.size()]-points[(index+1)%points.size()]
+		var turn: float = edge.cross(next_edge)
+		if not _finite_vector2(edge) or edge==Vector2.ZERO or not is_finite(turn) or turn==0.0:
+			return false
+		if index==0:
+			positive = turn>0.0
+		elif (turn>0.0)!=positive:
+			return false
+	return (area2>0.0)==positive
+
+func _short_visible(points: PackedVector2Array, viewport: Rect2) -> int:
+	if points.size()!=4 or not _finite_rect(viewport):
+		return -1
+	var axes: Array[Vector2] = [Vector2.RIGHT,Vector2.DOWN]
+	for index: int in range(points.size()):
+		var edge: Vector2 = points[(index+1)%points.size()]-points[index]
+		axes.append(Vector2(-edge.y,edge.x))
+	var corners: PackedVector2Array = PackedVector2Array([viewport.position,Vector2(viewport.end.x,viewport.position.y),viewport.end,Vector2(viewport.position.x,viewport.end.y)])
+	var origin: Vector2 = points[0]
+	var separated: bool = false
+	for axis: Vector2 in axes:
+		if not _finite_vector2(axis) or axis==Vector2.ZERO:
+			return -1
+		var polygon_min: float = INF
+		var polygon_max: float = -INF
+		var rect_min: float = INF
+		var rect_max: float = -INF
+		for point: Vector2 in points:
+			var projected: float = (point-origin).dot(axis)
+			if not is_finite(projected):
+				return -1
+			polygon_min = minf(polygon_min,projected)
+			polygon_max = maxf(polygon_max,projected)
+		for corner: Vector2 in corners:
+			var projected: float = (corner-origin).dot(axis)
+			if not is_finite(projected):
+				return -1
+			rect_min = minf(rect_min,projected)
+			rect_max = maxf(rect_max,projected)
+		if not is_finite(polygon_min) or not is_finite(polygon_max) or not is_finite(rect_min) or not is_finite(rect_max) or polygon_min>=polygon_max or rect_min>=rect_max:
+			return -1
+		if polygon_max<=rect_min or rect_max<=polygon_min:
+			separated = true
+	return 0 if separated else 1
+
+func _short_stage(canvas_value: Variant, snapshot_value: Variant, scene_value: Variant, key_value: Variant, projection_value: Variant, wall_value: Variant, viewport_value: Variant, wall_height: float) -> Dictionary:
+	if not _short_bindings(canvas_value,snapshot_value,scene_value,key_value,projection_value,viewport_value) or not wall_value is Dictionary:
+		return {}
+	var owner_value: Variant = wall_value.get('id')
+	if typeof(owner_value)!=TYPE_STRING or not WALLS.has(owner_value) or not _short_equal(wall_value,{'id':owner_value,'polygon':WALLS[owner_value]}):
+		return {}
+	var owner_found: bool = false
+	for face: Dictionary in SHORT_FACES:
+		if face.get('owner')==owner_value and P.number(face.get('high'),wall_height,wall_height):
+			owner_found = true
+	if not owner_found:
+		return {}
+	var snapshot: Dictionary = snapshot_value
+	var key: String = key_value
+	var projection: RefCounted = projection_value
+	var viewport: Rect2 = viewport_value
+	var stamp: Array = _short_capture(canvas_value,snapshot,key,projection)
+	var all: Array[Dictionary] = []
+	for face: Dictionary in SHORT_FACES:
+		var world: Array = _short_world(face)
+		if world.size()!=4:
+			return {}
+		var points: PackedVector2Array = PackedVector2Array()
+		for world_value: Variant in world:
+			if not world_value is Vector3 or not _finite_vector3(world_value):
+				return {}
+			var projected_value: Variant = projection.call('project',world_value)
+			if not projected_value is Vector2 or not _finite_vector2(projected_value):
+				return {}
+			points.append(projected_value)
+		if not _short_quad(points,WALL_SIDE):
+			return {}
+		var visibility: int = _short_visible(points,viewport)
+		if visibility<0:
+			return {}
+		all.append({'owner':face.owner,'points':points,'color':WALL_SIDE,'visible':visibility==1})
+	if all.size()!=5 or not _short_bindings(canvas_value,snapshot_value,scene_value,key_value,projection_value,viewport_value) or not _short_capture_matches(stamp,canvas_value,snapshot_value,scene_value,key_value,projection_value,viewport_value):
+		return {}
+	return {'all':all,'stamp':stamp}
+
+func _short_emit(canvas_value: Variant, family_value: Variant, wall_value: Variant, snapshot_value: Variant, scene_value: Variant, key_value: Variant, projection_value: Variant, viewport_value: Variant) -> void:
+	if not family_value is Dictionary or not wall_value is Dictionary:
+		return
+	var owner_value: Variant = wall_value.get('id')
+	if typeof(owner_value)!=TYPE_STRING or not WALLS.has(owner_value) or not _short_equal(wall_value,{'id':owner_value,'polygon':WALLS[owner_value]}):
+		return
+	var all_value: Variant = family_value.get('all')
+	var stamp: Variant = family_value.get('stamp')
+	if not all_value is Array or all_value.size()!=5 or not viewport_value is Rect2:
+		return
+	var viewport: Rect2 = viewport_value
+	var chosen: Dictionary = {}
+	var chosen_count: int = 0
+	for command_value: Variant in all_value:
+		if not command_value is Dictionary:
+			return
+		var command: Dictionary = command_value
+		var points_value: Variant = command.get('points')
+		var color_value: Variant = command.get('color')
+		var visible_value: Variant = command.get('visible')
+		if not points_value is PackedVector2Array or not color_value is Color or typeof(visible_value)!=TYPE_BOOL:
+			return
+		var points: PackedVector2Array = points_value
+		var color: Color = color_value
+		if not _short_quad(points,color) or not _short_equal(color,WALL_SIDE):
+			return
+		var visibility: int = _short_visible(points,viewport)
+		if visibility<0 or (visibility==1)!=visible_value:
+			return
+		if command.get('owner')==owner_value:
+			chosen = command
+			chosen_count += 1
+	if chosen_count!=1 or not chosen.get('visible'):
+		return
+	if not _short_bindings(canvas_value,snapshot_value,scene_value,key_value,projection_value,viewport_value) or not _short_capture_matches(stamp,canvas_value,snapshot_value,scene_value,key_value,projection_value,viewport_value):
+		return
+	var canvas: CanvasItem = canvas_value
+	var final_points: PackedVector2Array = chosen.get('points')
+	var final_color: Color = chosen.get('color')
+	canvas.draw_colored_polygon(final_points,final_color)
