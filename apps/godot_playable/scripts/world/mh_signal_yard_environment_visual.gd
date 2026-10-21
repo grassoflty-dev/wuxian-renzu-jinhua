@@ -451,6 +451,7 @@ func draw_floor(canvas: Variant, snapshot: Variant, scene: Variant, key: Variant
 		if bounds.intersects(viewport):
 			canvas.draw_polygon(command.points,PackedColorArray([tint,tint,tint,tint]),command.uvs,texture_value)
 			drawn = true
+	_ground_ambient_draw(canvas,snapshot,scene,key,projection,viewport,drawn)
 	return drawn
 
 func draw_wall(canvas: Variant, snapshot: Variant, scene: Variant, key: Variant, projection: Variant, wall: Variant, viewport: Rect2) -> bool:
@@ -810,3 +811,97 @@ func draw_cable_trough(canvas: Variant, snapshot: Variant, scene: Variant, key: 
 	for index: int in range(9):
 		canvas.draw_colored_polygon(plan[index],colors[0 if index==0 else 1])
 	return true
+# BEGIN Signal Yard ground ambient
+const GROUND_AMBIENT_XZ = [
+	[0.5,0.5],[23.5,0.5],[23.5,15.5],[0.5,15.5]
+]
+const GROUND_AMBIENT_RGB = [0.07,0.12,0.16]
+const GROUND_AMBIENT_ALPHA = [0.01,0.04]
+const GROUND_AMBIENT_DEPTH = [0.5,15.0]
+
+func _ground_ambient_binding(canvas_value: Variant, snapshot_value: Variant, scene_value: Variant, key_value: Variant, projection_value: Variant, viewport_value: Variant) -> bool:
+	if not snapshot_value is Dictionary or not snapshot_value.has('entryToken') or snapshot_value.get('entryToken')!=null:
+		return false
+	if not _outer_context_matches(canvas_value,snapshot_value,scene_value,key_value,projection_value,viewport_value):
+		return false
+	var canvas_item: CanvasItem = canvas_value
+	return canvas_item.get_global_transform()==Transform2D.IDENTITY and canvas_item.get_global_transform_with_canvas()==Transform2D.IDENTITY
+
+func _ground_ambient_capture(canvas_value: Variant, snapshot_value: Variant, scene_value: Variant, key_value: Variant, projection_value: Variant, viewport_value: Variant) -> Dictionary:
+	if not _ground_ambient_binding(canvas_value,snapshot_value,scene_value,key_value,projection_value,viewport_value):
+		return {}
+	var snapshot_data: Dictionary = snapshot_value
+	var scene_data: Dictionary = scene_value
+	var canvas_item: CanvasItem = canvas_value
+	var camera: RefCounted = projection_value
+	return {
+		'canvas_id':canvas_item.get_instance_id(),
+		'snapshot':snapshot_data.duplicate(true),'scene':scene_data.duplicate(true),
+		'key':key_value,'scene_hash':canvas_item.get('scene_hash'),'camera':camera,
+		'origin':camera.get('origin'),'center':camera.get('screen_center'),
+		'ppm':camera.get('ppm'),'initialized':camera.get('initialized'),
+		'projection_viewport':camera.get('viewport'),'viewport':viewport_value,
+		'global_transform':canvas_item.get_global_transform(),
+		'canvas_transform':canvas_item.get_global_transform_with_canvas()
+	}
+
+func _ground_ambient_same(capture: Dictionary, canvas_value: Variant, snapshot_value: Variant, scene_value: Variant, key_value: Variant, projection_value: Variant, viewport_value: Variant) -> bool:
+	if capture.is_empty() or not _ground_ambient_binding(canvas_value,snapshot_value,scene_value,key_value,projection_value,viewport_value):
+		return false
+	var canvas_item: CanvasItem = canvas_value
+	var camera: RefCounted = projection_value
+	return (canvas_item.get_instance_id()==capture.canvas_id
+		and _equal(snapshot_value,capture.snapshot)
+		and _equal(canvas_item.get('snapshot'),capture.snapshot)
+		and _equal(scene_value,capture.scene)
+		and _equal(canvas_item.get('scene'),capture.scene)
+		and key_value==capture.key
+		and canvas_item.get('scene_hash')==capture.scene_hash
+		and camera==capture.camera
+		and camera.get('origin')==capture.origin
+		and camera.get('screen_center')==capture.center
+		and camera.get('ppm')==capture.ppm
+		and camera.get('initialized')==capture.initialized
+		and camera.get('viewport')==capture.projection_viewport
+		and viewport_value==capture.viewport
+		and canvas_item.get_global_transform()==capture.global_transform
+		and canvas_item.get_global_transform_with_canvas()==capture.canvas_transform)
+
+func _ground_ambient_color(z: float) -> Color:
+	var t: float = (z-float(GROUND_AMBIENT_DEPTH[0]))/float(GROUND_AMBIENT_DEPTH[1])
+	return Color(float(GROUND_AMBIENT_RGB[0]),float(GROUND_AMBIENT_RGB[1]),float(GROUND_AMBIENT_RGB[2]),lerpf(float(GROUND_AMBIENT_ALPHA[0]),float(GROUND_AMBIENT_ALPHA[1]),t))
+
+func _ground_ambient_color_valid(color: Color) -> bool:
+	var low: float = Color(0,0,0,float(GROUND_AMBIENT_ALPHA[0])).a
+	var high: float = Color(0,0,0,float(GROUND_AMBIENT_ALPHA[1])).a
+	return _color_valid(color) and color.a>=low and color.a<=high
+
+func _ground_ambient_draw(canvas_value: Variant, snapshot_value: Variant, scene_value: Variant, key_value: Variant, projection_value: Variant, viewport_value: Variant, legacy_drawn: bool) -> bool:
+	if not legacy_drawn:
+		return false
+	var capture: Dictionary = _ground_ambient_capture(canvas_value,snapshot_value,scene_value,key_value,projection_value,viewport_value)
+	if capture.is_empty() or not _equal(GROUND_AMBIENT_XZ,DEFINITION.stone.walkablePolygon):
+		return false
+	var viewport: Rect2 = viewport_value
+	var world: Array[Vector3] = []
+	var colors: PackedColorArray = PackedColorArray()
+	for pair: Array in GROUND_AMBIENT_XZ:
+		var z: float = float(pair[1])
+		world.append(Vector3(float(pair[0]),0.0,z))
+		var color: Color = _ground_ambient_color(z)
+		if not _ground_ambient_color_valid(color):
+			return false
+		colors.append(color)
+	var points: PackedVector2Array = _project(projection_value,world)
+	if colors.size()!=4 or not _outer_quad_valid(points):
+		return false
+	var visibility: int = _outer_visibility(points,viewport)
+	if visibility!=1:
+		return false
+	if not _ground_ambient_same(capture,canvas_value,snapshot_value,scene_value,key_value,projection_value,viewport_value):
+		return false
+	var canvas_item: CanvasItem = canvas_value
+	canvas_item.draw_polygon(points,colors)
+	return true
+# END Signal Yard ground ambient
+
