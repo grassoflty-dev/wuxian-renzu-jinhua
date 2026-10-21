@@ -15,6 +15,185 @@ const WALLS = [
 	{'id':'pump_wall_east_north','polygon':[[23.5,0.5],[24.0,0.5],[24.0,6.0],[23.5,6.0]],'inner':[[23.5,0.5],[23.5,6.0]],'seams':1,'footprint':Rect2(23.5,0.5,0.5,5.5)},
 	{'id':'pump_wall_east_south','polygon':[[23.5,9.5],[24.0,9.5],[24.0,15.5],[23.5,15.5]],'inner':[[23.5,9.5],[23.5,15.5]],'seams':1,'footprint':Rect2(23.5,9.5,0.5,6.0)}
 ]
+# BEGIN Pump outer-wall composition additions
+const OUTER_SCENE_PATH = 'res://data/scenes/mh_pump_station.json'
+const OUTER_SCENE_BYTES = 7826
+const OUTER_SCENE_SHA256 = '557c180648bc8c73621b444dd108f2207535750947e9a7738a5716dd1b2a5437'
+const OUTER_WALL_EDGES = [
+	{'wall_id':'pump_wall_north','a':Vector2(24.0,0.0),'b':Vector2(24.0,0.5)},
+	{'wall_id':'pump_wall_south','a':Vector2(0.0,16.0),'b':Vector2(24.0,16.0)},
+	{'wall_id':'pump_wall_south','a':Vector2(24.0,15.5),'b':Vector2(24.0,16.0)},
+	{'wall_id':'pump_wall_west_north','a':Vector2(0.0,6.0),'b':Vector2(0.5,6.0)},
+	{'wall_id':'pump_wall_east_north','a':Vector2(24.0,0.5),'b':Vector2(24.0,6.0)},
+	{'wall_id':'pump_wall_east_north','a':Vector2(23.5,6.0),'b':Vector2(24.0,6.0)},
+	{'wall_id':'pump_wall_east_south','a':Vector2(24.0,9.5),'b':Vector2(24.0,15.5)}
+]
+var _outer_scene_attempted: bool = false
+var _outer_canonical_scene: Dictionary = {}
+
+func compose_outer_walls(legacy_packets: Array, canvas_value: Variant, snapshot_value: Variant, scene_value: Variant, key_value: Variant, projection_value: Variant, viewport_value: Variant) -> Array:
+	if not _outer_context_valid(canvas_value,snapshot_value,scene_value,key_value,projection_value,viewport_value): return legacy_packets
+	var scene_data: Dictionary = scene_value
+	var snapshot_data: Dictionary = snapshot_value
+	var current_key: String = key_value
+	var projection: RefCounted = projection_value
+	var current_packets: Array = build_packets(scene_data,snapshot_data,current_key,projection)
+	if current_packets.size()!=61 or legacy_packets.size()!=61 or legacy_packets!=current_packets: return legacy_packets
+	var staged: Array[Dictionary] = []
+	var ppm: float = float(projection.get('ppm'))
+	var relief: float = RELIEF_PIXELS*ppm/48.0
+	if not is_finite(relief) or relief<=0.0: return legacy_packets
+	for edge_index: int in range(OUTER_WALL_EDGES.size()):
+		var edge: Dictionary = OUTER_WALL_EDGES[edge_index]
+		var wall_id: String = edge.wall_id
+		var wall: Dictionary = {}
+		for candidate: Dictionary in WALLS:
+			if candidate.id==wall_id:
+				wall=candidate
+				break
+		if wall.is_empty() or not edge.a is Vector2 or not edge.b is Vector2: return legacy_packets
+		var ground_a_value: Variant = projection.call('project',Vector3(edge.a.x,0.0,edge.a.y))
+		var ground_b_value: Variant = projection.call('project',Vector3(edge.b.x,0.0,edge.b.y))
+		if not _material_vector2_finite(ground_a_value) or not _material_vector2_finite(ground_b_value): return legacy_packets
+		var ground_a: Vector2 = ground_a_value
+		var ground_b: Vector2 = ground_b_value
+		var top_a: Vector2 = ground_a-Vector2(0.0,relief)
+		var top_b: Vector2 = ground_b-Vector2(0.0,relief)
+		var points: PackedVector2Array = PackedVector2Array([ground_a,ground_b,top_b,top_a])
+		if not _outer_quad_valid(points): return legacy_packets
+		var footprint_value: Variant = wall.get('footprint')
+		if typeof(footprint_value)!=TYPE_RECT2: return legacy_packets
+		var one_packet: Array = []
+		var packet_id: String = wall_id+':outer_face:'+str(edge_index)
+		if not _push(one_packet,packet_id,'wall_face',points,Color(0.105,0.17,0.20),true,wall_id,footprint_value) or one_packet.size()!=1: return legacy_packets
+		staged.append(one_packet[0])
+	if staged.size()!=7: return legacy_packets
+	var composed: Array = legacy_packets.duplicate(true)
+	var inserted_by_wall: Dictionary = {}
+	for packet: Dictionary in staged:
+		var wall_id: String = packet.wall_id
+		var face_index: int = -1
+		var cap_index: int = -1
+		for packet_index: int in range(composed.size()):
+			var existing_value: Variant = composed[packet_index]
+			if not existing_value is Dictionary: return legacy_packets
+			if existing_value.get('id')==wall_id+':face':
+				if face_index>=0: return legacy_packets
+				face_index=packet_index
+			if existing_value.get('id')==wall_id+':cap':
+				if cap_index>=0: return legacy_packets
+				cap_index=packet_index
+		var prior_count: int = int(inserted_by_wall.get(wall_id,0))
+		var insert_index: int = face_index+1+prior_count
+		if face_index<0 or cap_index!=insert_index or insert_index>=composed.size(): return legacy_packets
+		composed.insert(insert_index,packet)
+		inserted_by_wall[wall_id]=prior_count+1
+		if composed.size()>MAX_PACKETS: return legacy_packets
+	if composed.size()!=68 or not _outer_context_valid(canvas_value,snapshot_value,scene_value,key_value,projection_value,viewport_value): return legacy_packets
+	return composed
+
+func _outer_context_valid(canvas_value: Variant, snapshot_value: Variant, scene_value: Variant, key_value: Variant, projection_value: Variant, viewport_value: Variant) -> bool:
+	if not canvas_value is CanvasItem or not is_instance_valid(canvas_value) or canvas_value.is_queued_for_deletion() or not canvas_value.is_inside_tree(): return false
+	if not snapshot_value is Dictionary or not scene_value is Dictionary or typeof(key_value)!=TYPE_STRING or not _material_viewport_valid(viewport_value): return false
+	var snapshot_data: Dictionary = snapshot_value
+	var scene_data: Dictionary = scene_value
+	var current_key: String = key_value
+	var viewport: Rect2 = viewport_value
+	if viewport.position!=Vector2.ZERO or not P.snapshot(snapshot_data) or not snapshot_data.has('entryToken') or snapshot_data.get('entryToken')!=null: return false
+	if snapshot_data.get('worldId')!='mist_harbor' or snapshot_data.get('sceneId')!=SCENE_ID: return false
+	var epoch: Variant = snapshot_data.get('worldEpoch')
+	if not P.counter(epoch,1) or current_key!='mist_harbor:'+SCENE_ID+':'+str(epoch): return false
+	if canvas_value.get('snapshot')!=snapshot_data or canvas_value.get('scene')!=scene_data or canvas_value.get('current_key')!=current_key: return false
+	if canvas_value.get('scene_hash')!=OUTER_SCENE_SHA256 or canvas_value.get('camera')!=projection_value: return false
+	var stored_viewport: Variant = canvas_value.get('viewport_rect')
+	if typeof(stored_viewport)!=TYPE_RECT2 or stored_viewport!=viewport: return false
+	if canvas_value.get_viewport_rect()!=viewport or not _outer_projection_valid(projection_value,viewport): return false
+	if not _outer_scene_loaded() or not _outer_json_equal(scene_data,_outer_canonical_scene) or not _ensure_layout(scene_data,snapshot_data,current_key): return false
+	return true
+
+func _outer_projection_valid(projection_value: Variant, viewport: Rect2) -> bool:
+	if not projection_value is RefCounted or not is_instance_valid(projection_value): return false
+	var projection: RefCounted = projection_value
+	if projection.get_script()!=ProjectionScript: return false
+	var initialized_value: Variant = projection.get('initialized')
+	var origin_value: Variant = projection.get('origin')
+	var center_value: Variant = projection.get('screen_center')
+	var size_value: Variant = projection.get('viewport')
+	var ppm_value: Variant = projection.get('ppm')
+	if typeof(initialized_value)!=TYPE_BOOL or not initialized_value or not _material_vector3_finite(origin_value) or not _material_vector2_finite(center_value) or not _material_vector2_finite(size_value): return false
+	var size: Vector2 = size_value
+	return size.x>0.0 and size.y>0.0 and size==viewport.size and P.number(ppm_value,0.0,256.0) and float(ppm_value)>0.0
+
+func _outer_scene_loaded() -> bool:
+	if _outer_scene_attempted: return not _outer_canonical_scene.is_empty()
+	_outer_scene_attempted=true
+	var file: FileAccess = FileAccess.open(OUTER_SCENE_PATH,FileAccess.READ)
+	if file==null or file.get_length()!=OUTER_SCENE_BYTES:
+		if file!=null:
+			file.close()
+		return false
+	var bytes: PackedByteArray = file.get_buffer(OUTER_SCENE_BYTES)
+	file.close()
+	if bytes.size()!=OUTER_SCENE_BYTES:
+		return false
+	var hashing: HashingContext = HashingContext.new()
+	if hashing.start(HashingContext.HASH_SHA256)!=OK or hashing.update(bytes)!=OK or hashing.finish().hex_encode()!=OUTER_SCENE_SHA256:
+		return false
+	var source_text: String = bytes.get_string_from_utf8()
+	if source_text.to_utf8_buffer()!=bytes:
+		return false
+	var decoded: Variant = JSON.parse_string(source_text)
+	if not decoded is Dictionary:
+		return false
+	_outer_canonical_scene=decoded
+	return true
+
+func _outer_json_equal(actual: Variant, expected: Variant, depth: int = 0) -> bool:
+	if depth>64:
+		return false
+	var expected_type: int = typeof(expected)
+	if expected_type==TYPE_INT or expected_type==TYPE_FLOAT:
+		return P.number(actual) and float(actual)==float(expected)
+	if typeof(actual)!=expected_type:
+		return false
+	if expected is Dictionary:
+		var actual_dictionary: Dictionary = actual
+		var expected_dictionary: Dictionary = expected
+		if actual_dictionary.size()!=expected_dictionary.size():
+			return false
+		for field: Variant in expected_dictionary:
+			if not actual_dictionary.has(field) or not _outer_json_equal(actual_dictionary[field],expected_dictionary[field],depth+1):
+				return false
+		return true
+	if expected is Array:
+		var actual_array: Array = actual
+		var expected_array: Array = expected
+		if actual_array.size()!=expected_array.size():
+			return false
+		for index: int in range(expected_array.size()):
+			if not _outer_json_equal(actual_array[index],expected_array[index],depth+1):
+				return false
+		return true
+	return actual==expected
+
+func _outer_quad_valid(points: PackedVector2Array) -> bool:
+	if points.size()!=4 or not _material_points_finite(points):
+		return false
+	var area2: float = 0.0
+	var orientation: float = 0.0
+	for index: int in range(4):
+		var point: Vector2 = points[index]
+		var next_point: Vector2 = points[(index+1)%4]
+		var next_next: Vector2 = points[(index+2)%4]
+		var edge: Vector2 = next_point-point
+		var next_edge: Vector2 = next_next-next_point
+		var turn: float = edge.cross(next_edge)
+		if edge==Vector2.ZERO or not is_finite(turn) or turn==0.0 or (orientation!=0.0 and (turn>0.0)!=(orientation>0.0)):
+			return false
+		orientation=turn
+		area2+=point.x*next_point.y-point.y*next_point.x
+	return is_finite(area2) and area2!=0.0 and (area2>0.0)==(orientation>0.0)
+# END Pump outer-wall composition additions
 
 func is_wall_id(value) -> bool:
 	if typeof(value)!=TYPE_STRING:
