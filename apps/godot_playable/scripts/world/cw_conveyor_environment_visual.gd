@@ -308,8 +308,7 @@ func _build_floor_commands(projection_value: Variant) -> Array[Dictionary]:
 			var points: PackedVector2Array = _project_rectangle(projection_value,cell,0.0)
 			if points.size()!=4 or not _points_finite(points):
 				return []
-			var variation_step: int = ((column+2*row)%3)-1
-			var delta: float = float(variation_step)*0.004
+			var delta: float = 0.0
 			var colors: PackedColorArray = PackedColorArray()
 			colors.append(_floor_vertex_color(cell.position.x,cell.position.y,delta))
 			colors.append(_floor_vertex_color(cell.end.x,cell.position.y,delta))

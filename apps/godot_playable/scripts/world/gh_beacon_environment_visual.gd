@@ -172,7 +172,7 @@ func draw_floor(canvas: Variant, snapshot: Variant, scene: Variant, current_key:
 			var z: float = float(row)*4.0
 			var corners: Array = [[x,z],[x+4,z],[x+4,z+4],[x,z+4]]
 			var colors: PackedColorArray = PackedColorArray()
-			var delta: float = float((column+2*row)%3-1)*0.004
+			var delta: float = 0.0
 			for corner: Array in corners:
 				var px: float = float(corner[0])
 				var pz: float = float(corner[1])
