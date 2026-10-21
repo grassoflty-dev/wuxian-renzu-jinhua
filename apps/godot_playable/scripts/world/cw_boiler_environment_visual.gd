@@ -513,7 +513,7 @@ func _pressure_steam_polygon_valid(points: PackedVector2Array) -> bool:
 		elif (turn>0.0)!=(winding>0.0):
 			return false
 		signed_area += term
-	return is_finite(signed_area) and absf(signed_area)>0.000001
+	return is_finite(signed_area) and signed_area != 0.0
 
 # Convex polygon/viewport SAT. -1 invalid arithmetic, 0 offscreen, 1 positive overlap.
 func _pressure_steam_visibility(points: PackedVector2Array, viewport: Rect2) -> int:
@@ -546,10 +546,26 @@ func _pressure_steam_visibility(points: PackedVector2Array, viewport: Rect2) -> 
 			separated = true
 	return 0 if separated else 1
 
+func _pressure_steam_canvas_matches(canvas_value: Variant, snapshot_value: Variant, scene_value: Variant, current_key_value: Variant, projection_value: Variant, viewport_value: Variant, reduced_motion_value: Variant) -> bool:
+	if not _valid_canvas(canvas_value) or not viewport_value is Rect2 or typeof(reduced_motion_value)!=TYPE_BOOL:
+		return false
+	var canvas: CanvasItem = canvas_value
+	var viewport: Rect2 = viewport_value
+	var stored_viewport: Variant = canvas.get('viewport_rect')
+	var stored_reduced_motion: Variant = canvas.get('reduced_motion')
+	if not canvas.is_visible_in_tree() or not _finite_rect(viewport) or viewport.position!=Vector2.ZERO or not stored_viewport is Rect2 or typeof(stored_reduced_motion)!=TYPE_BOOL or stored_reduced_motion!=reduced_motion_value:
+		return false
+	var actual_viewport: Rect2 = canvas.get_viewport_rect()
+	if not _finite_rect(actual_viewport) or actual_viewport!=viewport or stored_viewport!=viewport:
+		return false
+	return _outer_face_context_matches(canvas,snapshot_value,scene_value,current_key_value,projection_value,viewport_value)
+
 func draw_pressure_steam(canvas_value: Variant, snapshot_value: Variant, scene_value: Variant, current_key_value: Variant, projection_value: Variant, viewport_value: Variant, reduced_motion_value: Variant) -> bool:
 	if typeof(reduced_motion_value)!=TYPE_BOOL or not _valid_canvas(canvas_value) or not _valid_context(snapshot_value,scene_value,current_key_value,projection_value,viewport_value):
 		return false
 	if typeof(projection_value.get('initialized'))!=TYPE_BOOL or not projection_value.get('initialized') or snapshot_value.get('entryToken')!=null or snapshot_value.player.currentHp<=0:
+		return false
+	if not _pressure_steam_canvas_matches(canvas_value,snapshot_value,scene_value,current_key_value,projection_value,viewport_value,reduced_motion_value):
 		return false
 	var frame: Dictionary = _pressure_steam_frame(snapshot_value,scene_value)
 	if frame.is_empty() or frame.phase!='active':
@@ -578,6 +594,8 @@ func draw_pressure_steam(canvas_value: Variant, snapshot_value: Variant, scene_v
 		any_visible = any_visible or visibility==1
 		plans.append(points)
 	if not any_visible:
+		return false
+	if not _pressure_steam_canvas_matches(canvas_value,snapshot_value,scene_value,current_key_value,projection_value,viewport_value,reduced_motion_value):
 		return false
 	# Complete 72-point plan validated before the first of exactly three commands.
 	var canvas: CanvasItem = canvas_value
