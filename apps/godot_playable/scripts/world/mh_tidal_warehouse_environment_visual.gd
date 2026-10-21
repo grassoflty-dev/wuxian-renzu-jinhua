@@ -318,6 +318,7 @@ func draw_floor(canvas_value, frame_value, snapshot, scene, key, camera, viewpor
 		var points: PackedVector2Array = patch.points
 		var uvs: PackedVector2Array = patch.uvs
 		canvas.draw_polygon(points,colors,uvs,texture)
+	_draw_ground_ambient(canvas_value,frame_value,snapshot,scene,key,camera,viewport)
 	return true
 
 func draw_wall(canvas_value, frame_value, wall_value, snapshot, scene, key, camera, viewport, crates: MHWarehouseCratesVisual = null) -> bool:
@@ -488,4 +489,153 @@ func _outer_face_plan(canvas_value, frame_value, wall_value, snapshot, scene, ke
 	if vertices != 32 or not _same(counts,{'warehouse_wall_north':1,'warehouse_wall_south':2,'warehouse_wall_west_north':1,'warehouse_wall_west_south':1,'warehouse_wall_east_north':2,'warehouse_wall_east_south':1}):
 		return []
 	return visible_faces
+
+# BEGIN GROUND AMBIENT FIELD
+const GROUND_AMBIENT_FIELD: Dictionary = {
+	"rgb":[0.05,0.10,0.13],
+	"alpha":[0.02,0.10],
+	"axis":[1.0,1.0]
+}
+
+func _ground_ambient_capture(canvas_value, frame_value, snapshot, scene, key, camera, viewport) -> Dictionary:
+	if not _outer_canvas_context(canvas_value,snapshot,scene,key,camera,viewport) or not _frame_valid(frame_value,snapshot,scene,key,camera,viewport):
+		return {}
+	if typeof(viewport) != TYPE_RECT2 or typeof(frame_value) != TYPE_DICTIONARY:
+		return {}
+	var viewport_rect: Rect2 = viewport
+	var canvas: CanvasItem = canvas_value
+	if viewport_rect.position != Vector2.ZERO or canvas.get_global_transform_with_canvas() != Transform2D.IDENTITY:
+		return {}
+	if frame_value.stoneReady != true or not _texture_ready('stone'):
+		return {}
+	return {
+		"snapshot":snapshot.duplicate(true),
+		"scene":scene.duplicate(true),
+		"frame":frame_value.duplicate(true),
+		"key":key,
+		"hash":OUTER_SCENE_SHA256,
+		"camera":camera,
+		"origin":camera.get('origin'),
+		"center":camera.get('screen_center'),
+		"ppm":camera.get('ppm'),
+		"camera_viewport":camera.get('viewport'),
+		"viewport":viewport
+	}
+
+func _ground_ambient_current(capture, canvas_value, frame_value, snapshot, scene, key, camera, viewport) -> bool:
+	if not _outer_canvas_context(canvas_value,snapshot,scene,key,camera,viewport) or not _frame_valid(frame_value,snapshot,scene,key,camera,viewport):
+		return false
+	if typeof(viewport) != TYPE_RECT2 or viewport.position != Vector2.ZERO:
+		return false
+	var canvas: CanvasItem = canvas_value
+	if canvas.get_global_transform_with_canvas() != Transform2D.IDENTITY:
+		return false
+	if not capture is Dictionary or capture.size() != 11:
+		return false
+	for name in ['snapshot','scene','frame','key','hash','camera','origin','center','ppm','camera_viewport','viewport']:
+		if not capture.has(name):
+			return false
+	if not _same(capture.snapshot,snapshot) or not _same(capture.scene,scene) or not _same(capture.frame,frame_value):
+		return false
+	if capture.key != key or capture.hash != OUTER_SCENE_SHA256 or capture.camera != camera:
+		return false
+	if typeof(capture.origin) != TYPE_VECTOR3 or capture.origin != camera.get('origin'):
+		return false
+	if typeof(capture.center) != TYPE_VECTOR2 or capture.center != camera.get('screen_center'):
+		return false
+	if typeof(capture.ppm) != TYPE_FLOAT or capture.ppm != camera.get('ppm'):
+		return false
+	if typeof(capture.camera_viewport) != TYPE_VECTOR2 or capture.camera_viewport != camera.get('viewport'):
+		return false
+	if typeof(capture.viewport) != TYPE_RECT2 or capture.viewport != viewport:
+		return false
+	return true
+
+func _ground_ambient_color(world: Vector3, minimum: Vector2, maximum: Vector2) -> Color:
+	var axis: Vector2 = Vector2(GROUND_AMBIENT_FIELD.axis[0],GROUND_AMBIENT_FIELD.axis[1])
+	var t: float = (Vector2(world.x,world.z)-minimum).dot(axis)/(maximum-minimum).dot(axis)
+	return Color(GROUND_AMBIENT_FIELD.rgb[0],GROUND_AMBIENT_FIELD.rgb[1],GROUND_AMBIENT_FIELD.rgb[2],lerpf(GROUND_AMBIENT_FIELD.alpha[0],GROUND_AMBIENT_FIELD.alpha[1],t))
+
+func _ground_ambient_plan(capture, camera, viewport) -> Dictionary:
+	if not capture is Dictionary or capture.size() != 11 or not _projection(camera,viewport) or not _rect(viewport):
+		return {}
+	if not capture.has('scene') or not capture.scene is Dictionary or capture.camera != camera:
+		return {}
+	var canonical_scene: Dictionary = capture.scene
+	var walkables_value: Variant = canonical_scene.get('walkablePolygons')
+	if not walkables_value is Array or walkables_value.size() != 1:
+		return {}
+	var walkable_value: Variant = walkables_value[0]
+	if not walkable_value is Dictionary:
+		return {}
+	var walkable: Dictionary = walkable_value
+	if walkable.get('id') != 'mh_tidal_warehouse_walkable_area':
+		return {}
+	var polygon_value: Variant = walkable.get('polygon')
+	if not polygon_value is Array or polygon_value.size() != 4:
+		return {}
+	var world_points: Array[Vector3] = []
+	var minimum: Vector2 = Vector2(INF,INF)
+	var maximum: Vector2 = Vector2(-INF,-INF)
+	for point_value: Variant in polygon_value:
+		if not point_value is Array or point_value.size() != 2 or not P.number(point_value[0]) or not P.number(point_value[1]):
+			return {}
+		var point: Array = point_value
+		var x: float = float(point[0])
+		var z: float = float(point[1])
+		if not is_finite(x) or not is_finite(z):
+			return {}
+		world_points.append(Vector3(x,0.0,z))
+		minimum = minimum.min(Vector2(x,z))
+		maximum = maximum.max(Vector2(x,z))
+	var alpha_min: float = float(GROUND_AMBIENT_FIELD.alpha[0])
+	var alpha_max: float = float(GROUND_AMBIENT_FIELD.alpha[1])
+	var rgb: Array = GROUND_AMBIENT_FIELD.rgb
+	var axis: Vector2 = Vector2(GROUND_AMBIENT_FIELD.axis[0],GROUND_AMBIENT_FIELD.axis[1])
+	var span: Vector2 = maximum-minimum
+	var denominator: float = span.dot(axis)
+	if not _v2(minimum) or not _v2(maximum) or not _v2(span) or not _v2(axis) or not is_finite(denominator) or denominator <= 0.0:
+		return {}
+	if not is_finite(alpha_min) or not is_finite(alpha_max) or alpha_min < 0.0 or alpha_max > 1.0 or alpha_max <= alpha_min:
+		return {}
+	var color_alpha_min: float = _ground_ambient_color(world_points[0],minimum,maximum).a
+	var color_alpha_max: float = _ground_ambient_color(world_points[2],minimum,maximum).a
+	if not is_finite(color_alpha_min) or not is_finite(color_alpha_max) or color_alpha_min < 0.0 or color_alpha_max > 1.0 or color_alpha_max < color_alpha_min:
+		return {}
+	if rgb.size() != 3 or not P.number(rgb[0],0.0,1.0) or not P.number(rgb[1],0.0,1.0) or not P.number(rgb[2],0.0,1.0):
+		return {}
+	var points: PackedVector2Array = PackedVector2Array()
+	var colors: PackedColorArray = PackedColorArray()
+	var screen_min: Vector2 = Vector2(INF,INF)
+	var screen_max: Vector2 = Vector2(-INF,-INF)
+	for world: Vector3 in world_points:
+		var screen_value: Variant = camera.call('project',world)
+		if not _v2(screen_value):
+			return {}
+		var screen: Vector2 = screen_value
+		var color: Color = _ground_ambient_color(world,minimum,maximum)
+		if not is_finite(color.r) or not is_finite(color.g) or not is_finite(color.b) or not is_finite(color.a) or color.a < 0.0 or color.a > 1.0 or color.a < color_alpha_min or color.a > color_alpha_max:
+			return {}
+		points.append(screen)
+		colors.append(color)
+		screen_min = screen_min.min(screen)
+		screen_max = screen_max.max(screen)
+	var projected_bounds: Rect2 = Rect2(screen_min,screen_max-screen_min)
+	if not _rect(projected_bounds) or not _outer_quad_valid(points):
+		return {}
+	if _outer_sat(points,viewport) != 1:
+		return {}
+	return {'points':points,'colors':colors}
+
+func _draw_ground_ambient(canvas_value, frame_value, snapshot, scene, key, camera, viewport) -> bool:
+	var capture: Dictionary = _ground_ambient_capture(canvas_value,frame_value,snapshot,scene,key,camera,viewport)
+	if capture.is_empty():
+		return false
+	var plan: Dictionary = _ground_ambient_plan(capture,camera,viewport)
+	if plan.is_empty() or not _ground_ambient_current(capture,canvas_value,frame_value,snapshot,scene,key,camera,viewport):
+		return false
+	var canvas: CanvasItem = canvas_value
+	canvas.draw_polygon(plan.points,plan.colors)
+	return true
+# END GROUND AMBIENT FIELD
 

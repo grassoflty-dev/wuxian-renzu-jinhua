@@ -404,4 +404,103 @@ func draw_floor(canvas_value: Variant, snapshot_value: Variant, scene_value: Var
 		return false
 	for command: Dictionary in drawable:
 		canvas_value.draw_colored_polygon(command.points,command.color)
+	_draw_ground_light_field(canvas_value,snapshot_value,scene_value,key_value,scene_hash_value,camera_value,viewport)
 	return true
+
+# BEGIN OPTIONAL GROUND LIGHT FIELD v1
+const GROUND_LIGHT_WORLD: Array[Vector3] = [
+	Vector3(0.0,0.0,0.0),
+	Vector3(24.0,0.0,0.0),
+	Vector3(24.0,0.0,16.0),
+	Vector3(0.0,0.0,16.0)
+]
+const GROUND_LIGHT_RGB: Color = Color(0.32,0.38,0.40,1.0)
+const GROUND_LIGHT_ALPHA: Array[float] = [
+	0.04,
+	0.03,
+	0.01,
+	0.02
+]
+
+func _ground_light_plan(camera_value: Variant) -> Dictionary:
+	if not camera_value is RefCounted or not is_instance_valid(camera_value) or camera_value.get_script() != ProjectionScript:
+		return {}
+	var camera: RefCounted = camera_value
+	var points: PackedVector2Array = _project_world(GROUND_LIGHT_WORLD,camera)
+	if points.size() != 4:
+		return {}
+	var colors: PackedColorArray = PackedColorArray()
+	for alpha: float in GROUND_LIGHT_ALPHA:
+		colors.append(Color(GROUND_LIGHT_RGB.r,GROUND_LIGHT_RGB.g,GROUND_LIGHT_RGB.b,alpha))
+	return {'world':GROUND_LIGHT_WORLD.duplicate(),'points':points,'colors':colors}
+
+func _ground_light_capture(canvas_value: Variant, snapshot_value: Variant, scene_value: Variant, key_value: Variant, hash_value: Variant, camera_value: Variant, viewport_value: Variant) -> Dictionary:
+	if not snapshot_value is Dictionary or not scene_value is Dictionary or not viewport_value is Rect2:
+		return {}
+	var snapshot: Dictionary = snapshot_value
+	var scene: Dictionary = scene_value
+	var viewport: Rect2 = viewport_value
+	if not snapshot.has('entryToken') or snapshot.get('entryToken') != null or not _canvas_matches(canvas_value,snapshot,scene,key_value,hash_value,camera_value,viewport) or not _context(snapshot,scene,key_value,hash_value):
+		return {}
+	var canvas: CanvasItem = canvas_value
+	var camera: RefCounted = camera_value
+	var transform: Transform2D = canvas.get_global_transform_with_canvas()
+	if transform != Transform2D.IDENTITY:
+		return {}
+	var actual_viewport: Variant = canvas.get_viewport_rect()
+	if not actual_viewport is Rect2:
+		return {}
+	var plan: Dictionary = _ground_light_plan(camera)
+	if plan.is_empty():
+		return {}
+	return {'canvas':canvas,'snapshot':snapshot.duplicate(true),'scene':scene.duplicate(true),'key':key_value,'hash':hash_value,'camera':camera,'origin':camera.get('origin'),'ppm':camera.get('ppm'),'center':camera.get('screen_center'),'camera_viewport':camera.get('viewport'),'initialized':camera.get('initialized'),'viewport':viewport,'stored_viewport':canvas.get('viewport_rect'),'actual_viewport':actual_viewport,'transform':transform,'plan':plan}
+
+func _ground_light_capture_matches(capture: Dictionary, canvas_value: Variant, snapshot_value: Variant, scene_value: Variant, key_value: Variant, hash_value: Variant, camera_value: Variant, viewport_value: Variant) -> bool:
+	if not snapshot_value is Dictionary or not scene_value is Dictionary or not viewport_value is Rect2:
+		return false
+	var snapshot: Dictionary = snapshot_value
+	var scene: Dictionary = scene_value
+	var viewport: Rect2 = viewport_value
+	if not snapshot.has('entryToken') or snapshot.get('entryToken') != null or capture.get('canvas') != canvas_value or capture.get('key') != key_value or capture.get('hash') != hash_value or capture.get('camera') != camera_value or capture.get('viewport') != viewport:
+		return false
+	if snapshot != capture.get('snapshot') or scene != capture.get('scene') or not _canvas_matches(canvas_value,snapshot,scene,key_value,hash_value,camera_value,viewport) or not _context(snapshot,scene,key_value,hash_value):
+		return false
+	var canvas: CanvasItem = canvas_value
+	var camera: RefCounted = camera_value
+	var actual_viewport: Variant = canvas.get_viewport_rect()
+	return actual_viewport is Rect2 and actual_viewport == capture.get('actual_viewport') and canvas.get('viewport_rect') == capture.get('stored_viewport') and camera.get('origin') == capture.get('origin') and camera.get('ppm') == capture.get('ppm') and camera.get('screen_center') == capture.get('center') and camera.get('viewport') == capture.get('camera_viewport') and camera.get('initialized') == capture.get('initialized') and canvas.get_global_transform_with_canvas() == capture.get('transform') and capture.get('transform') == Transform2D.IDENTITY
+
+func _draw_ground_light_field(canvas_value: Variant, snapshot_value: Variant, scene_value: Variant, key_value: Variant, hash_value: Variant, camera_value: Variant, viewport_value: Variant) -> bool:
+	var capture: Dictionary = _ground_light_capture(canvas_value,snapshot_value,scene_value,key_value,hash_value,camera_value,viewport_value)
+	if capture.is_empty():
+		return false
+	var plan: Dictionary = capture.plan
+	var world: Variant = plan.get('world')
+	var points: Variant = plan.get('points')
+	var colors: Variant = plan.get('colors')
+	if not world is Array or world.size() != 4 or world != GROUND_LIGHT_WORLD or not points is PackedVector2Array or points.size() != 4 or not colors is PackedColorArray or colors.size() != 4:
+		return false
+	var canonical_world: Array = world
+	var projected: PackedVector2Array = points
+	var vertex_colors: PackedColorArray = colors
+	for index: int in range(4):
+		var vertex_value: Variant = canonical_world[index]
+		if not vertex_value is Vector3:
+			return false
+		var vertex: Vector3 = vertex_value
+		if not _finite_v3(vertex) or vertex.y != 0.0:
+			return false
+	var viewport: Rect2 = capture.viewport
+	if not _valid_polygon(projected) or _visible(projected,viewport) != 1:
+		return false
+	for index: int in range(4):
+		var color: Color = vertex_colors[index]
+		var expected_alpha: float = Color(GROUND_LIGHT_RGB.r,GROUND_LIGHT_RGB.g,GROUND_LIGHT_RGB.b,GROUND_LIGHT_ALPHA[index]).a
+		if not is_finite(color.r) or not is_finite(color.g) or not is_finite(color.b) or not is_finite(color.a) or color.r != GROUND_LIGHT_RGB.r or color.g != GROUND_LIGHT_RGB.g or color.b != GROUND_LIGHT_RGB.b or color.a != expected_alpha or color.a <= 0.0 or color.a > 0.04:
+			return false
+	if not _ground_light_capture_matches(capture,canvas_value,snapshot_value,scene_value,key_value,hash_value,camera_value,viewport_value):
+		return false
+	var canvas: CanvasItem = canvas_value
+	canvas.draw_polygon(projected,vertex_colors)
+	return true
+# END OPTIONAL GROUND LIGHT FIELD v1
