@@ -13,6 +13,19 @@ const WALLS: Dictionary = {
  'warehouse_wall_east_north':[[23.5,0.5],[24,0.5],[24,6],[23.5,6]],
  'warehouse_wall_east_south':[[23.5,9.5],[24,9.5],[24,15.5],[23.5,15.5]]
 }
+const OUTER_CANONICAL_SCENE: Dictionary = {"boundsM":{"depth":16.0,"width":24.0,"x":0,"z":0},"cameraZones":[],"checkpoints":[{"id":"mh_warehouse_checkpoint","navNode":"mh_warehouse_spawn_nav","position":[4.0,0.0,8.0]}],"collision":[{"id":"warehouse_wall_north","polygon":[[0.0,0.0],[24.0,0.0],[24.0,0.5],[0.0,0.5]]},{"id":"warehouse_wall_south","polygon":[[0.0,15.5],[24.0,15.5],[24.0,16.0],[0.0,16.0]]},{"id":"warehouse_wall_west_north","polygon":[[0.0,0.5],[0.5,0.5],[0.5,6.0],[0.0,6.0]]},{"id":"warehouse_wall_west_south","polygon":[[0.0,9.5],[0.5,9.5],[0.5,15.5],[0.0,15.5]]},{"id":"warehouse_wall_east_north","polygon":[[23.5,0.5],[24.0,0.5],[24.0,6.0],[23.5,6.0]]},{"id":"warehouse_wall_east_south","polygon":[[23.5,9.5],[24.0,9.5],[24.0,15.5],[23.5,15.5]]}],"doors":[],"explorationRegions":[{"id":"mh_tw_west_loading","polygon":[[0.5,0.5],[8.5,0.5],[8.5,15.5],[0.5,15.5]]},{"id":"mh_tw_storage_floor","polygon":[[8.5,0.5],[16.5,0.5],[16.5,15.5],[8.5,15.5]]},{"id":"mh_tw_beacon_bay","polygon":[[16.5,0.5],[23.5,0.5],[23.5,15.5],[16.5,15.5]]}],"hazards":[],"interactions":[{"event":"mist_beacon_west","id":"mh_west_beacon","kind":"beacon","position":[17.0,0.0,10.0]},{"event":null,"id":"mh_west_beacon_log_marker","kind":"beacon_caretaker_log_marker","position":[17.0,0.0,11.0]}],"logic":{"traversal":[]},"navigation":{"links":[{"from":"mh_warehouse_spawn_nav","to":"mh_warehouse_center_nav"},{"from":"mh_warehouse_center_nav","to":"mh_warehouse_beacon_nav"},{"from":"mh_warehouse_center_nav","to":"mh_warehouse_east_nav"}],"nodes":[{"id":"mh_warehouse_spawn_nav","position":[3.0,0.0,8.0]},{"id":"mh_warehouse_center_nav","position":[12.0,0.0,8.0]},{"id":"mh_warehouse_beacon_nav","position":[17.0,0.0,10.0]},{"id":"mh_warehouse_east_nav","position":[21.0,0.0,8.0]}]},"objectives":[],"occluders":[],"presentation":{"cameraProfile":"oblique_default","layers":[{"id":"visual.floor","zGroup":0},{"id":"visual.props_back","zGroup":10},{"id":"visual.props_dynamic","zGroup":20},{"id":"visual.foreground","zGroup":30},{"id":"visual.vfx_markers","zGroup":40}],"sprites":[{"assetId":"runtime2d.world.mistharbor.water_edge_stone.v1","id":"approved_warehouse_stone_water_module","layer":"visual.floor","position":[12.0,0.0,8.0]},{"assetId":"runtime2d.world.mistharbor.fog_bank.v1","id":"warehouse_inner_fog_bank","layer":"visual.props_back","position":[18.0,0.0,3.0]},{"assetId":"runtime2d.world.mistharbor.water_edge.v1","id":"warehouse_outer_water_edge","layer":"visual.props_back","position":[12.0,0.0,14.5]},{"assetId":"runtime2d.world.mistharbor.fog_bank.v1","id":"warehouse_fog_bank_foreground","layer":"visual.foreground","position":[6.0,0.0,12.0]}]},"sceneId":"mh_tidal_warehouse","schemaVersion":1,"spawns":[{"entityType":null,"id":"mh_warehouse_spawn","kind":"player","navNode":"mh_warehouse_spawn_nav","position":[3.0,0.0,8.0]},{"entityType":"enemy.mist_harbor.drowned","id":"mh_tidal_warehouse_drowned_01","kind":"enemy","navNode":"mh_warehouse_center_nav","position":[10.0,0.0,9.0]},{"entityType":"enemy.mist_harbor.drowned","id":"mh_tidal_warehouse_drowned_02","kind":"enemy","navNode":"mh_warehouse_beacon_nav","position":[14.0,0.0,11.0]},{"entityType":"enemy.mist_harbor.drowned","id":"mh_tidal_warehouse_drowned_03","kind":"enemy","navNode":"mh_warehouse_beacon_nav","position":[18.0,0.0,9.0]},{"entityType":"enemy.mist_harbor.signal_wraith","id":"mh_tidal_warehouse_signal_wraith_01","kind":"enemy","navNode":"mh_warehouse_east_nav","position":[19.0,0.0,5.0]}],"transitions":[{"id":"mh_warehouse_to_fog_pier","polygon":[[0.0,6.5],[2.0,6.5],[2.0,9.5],[0.0,9.5]],"spawnId":"mh_fog_pier_spawn","toSceneId":"mh_fog_pier"},{"id":"mh_warehouse_to_signal_yard","polygon":[[22.0,6.5],[24.0,6.5],[24.0,9.5],[22.0,9.5]],"spawnId":"mh_signal_yard_spawn","toSceneId":"mh_signal_yard"}],"triggers":[],"vfxMarkers":[{"assetId":"runtime2d.world.mistharbor.fog_vfx.v1","id":"warehouse_ambient_fog_marker","position":[12.0,0.0,4.0]}],"walkablePolygons":[{"id":"mh_tidal_warehouse_walkable_area","polygon":[[0.5,0.5],[23.5,0.5],[23.5,15.5],[0.5,15.5]]}],"worldId":"mist_harbor"}
+const OUTER_WALL_FACES: Array = [
+	{'owner':'warehouse_wall_north','a':Vector2(24,0),'b':Vector2(24,0.5),'low':0.0,'high':0.8},
+	{'owner':'warehouse_wall_south','a':Vector2(0,16),'b':Vector2(24,16),'low':0.0,'high':0.18},
+	{'owner':'warehouse_wall_south','a':Vector2(24,15.5),'b':Vector2(24,16),'low':0.0,'high':0.18},
+	{'owner':'warehouse_wall_west_north','a':Vector2(0,6),'b':Vector2(0.5,6),'low':0.0,'high':0.8},
+	{'owner':'warehouse_wall_west_south','a':Vector2(0,15.5),'b':Vector2(0.5,15.5),'low':0.18,'high':0.8},
+	{'owner':'warehouse_wall_east_north','a':Vector2(24,0.5),'b':Vector2(24,6),'low':0.0,'high':0.18},
+	{'owner':'warehouse_wall_east_north','a':Vector2(23.5,6),'b':Vector2(24,6),'low':0.0,'high':0.18},
+	{'owner':'warehouse_wall_east_south','a':Vector2(24,9.5),'b':Vector2(24,15.5),'low':0.0,'high':0.18}
+]
+const OUTER_WALL_COLOR: Color = Color('#273b40')
+const OUTER_SCENE_SHA256: String = 'bcf83727cbf17118a534547e8d50abd65f8c606a342290b66e5a778a0c2d61d9'
 const ROWS: Dictionary = {
  'approved_warehouse_stone_water_module':{'id':'approved_warehouse_stone_water_module','assetId':'runtime2d.world.mistharbor.water_edge_stone.v1','layer':'visual.floor','position':[12,0,8]},
  'warehouse_inner_fog_bank':{'id':'warehouse_inner_fog_bank','assetId':'runtime2d.world.mistharbor.fog_bank.v1','layer':'visual.props_back','position':[18,0,3]},
@@ -320,10 +333,15 @@ func draw_wall(canvas_value, frame_value, wall_value, snapshot, scene, key, came
 	var contact: PackedVector2Array = plan.contact
 	var side: PackedVector2Array = plan.side
 	var cap: PackedVector2Array = plan.cap
+	var outer_faces: Array = _outer_face_plan(canvas_value,frame_value,wall,snapshot,scene,key,camera,viewport)
 	if id_value == 'warehouse_wall_north' and crates != null and is_instance_valid(crates):
 		crates.draw_north_backdrop(canvas,snapshot,scene,key,camera,viewport)
 	canvas.draw_colored_polygon(contact,Color(0.01,0.025,0.03,0.14))
 	canvas.draw_colored_polygon(side,Color('#273b40'))
+	if not outer_faces.is_empty() and _frame_valid(frame_value,snapshot,scene,key,camera,viewport) and _outer_canvas_context(canvas_value,snapshot,scene,key,camera,viewport):
+		for face_value: Dictionary in outer_faces:
+			if face_value.owner == id_value:
+				canvas.draw_colored_polygon(face_value.points,OUTER_WALL_COLOR)
 	canvas.draw_colored_polygon(cap,Color('#506d75'))
 	return true
 
@@ -355,4 +373,119 @@ func legacy_bank_consumed(prop_value, snapshot, scene, key, camera, viewport, co
 		seen[value] = true
 	var frame: Dictionary = build_frame(snapshot,scene,key,camera,viewport)
 	return not frame.is_empty() and frame.fogReady == true and seen.has(id_value)
+
+func _outer_canvas_context(canvas_value, snapshot_value, scene_value, key_value, camera_value, viewport_value) -> bool:
+	if not _canvas(canvas_value) or not canvas_value.is_visible_in_tree() or not snapshot_value is Dictionary or not scene_value is Dictionary or not _rect(viewport_value):
+		return false
+	var snapshot: Dictionary = snapshot_value
+	var scene: Dictionary = scene_value
+	if not snapshot.has('entryToken') or snapshot.get('entryToken') != null or not _context(snapshot,scene,key_value) or not _same(scene,OUTER_CANONICAL_SCENE) or not _projection(camera_value,viewport_value):
+		return false
+	var canvas: CanvasItem = canvas_value
+	var bound_snapshot: Variant = canvas.get('snapshot')
+	var bound_scene: Variant = canvas.get('scene')
+	var bound_key: Variant = canvas.get('current_key')
+	var bound_hash: Variant = canvas.get('scene_hash')
+	var bound_camera: Variant = canvas.get('camera')
+	var bound_viewport: Variant = canvas.get('viewport_rect')
+	if not bound_snapshot is Dictionary or not _same(bound_snapshot,snapshot) or not bound_scene is Dictionary or not _same(bound_scene,scene):
+		return false
+	if typeof(bound_key) != TYPE_STRING or bound_key != key_value or typeof(bound_hash) != TYPE_STRING or bound_hash != OUTER_SCENE_SHA256 or bound_camera != camera_value or not _rect(bound_viewport) or bound_viewport != viewport_value:
+		return false
+	var viewport: Rect2 = viewport_value
+	var actual_viewport: Rect2 = canvas.get_viewport_rect()
+	return actual_viewport == viewport
+
+func _outer_quad_valid(points: PackedVector2Array) -> bool:
+	if points.size() != 4:
+		return false
+	for point: Vector2 in points:
+		if not _v2(point):
+			return false
+	var origin: Vector2 = points[0]
+	var area2: float = (points[1]-origin).cross(points[2]-origin)+(points[2]-origin).cross(points[3]-origin)
+	if not is_finite(area2) or area2 == 0.0:
+		return false
+	for index: int in range(4):
+		var edge: Vector2 = points[(index+1)%4]-points[index]
+		var next_edge: Vector2 = points[(index+2)%4]-points[(index+1)%4]
+		var turn: float = edge.cross(next_edge)
+		if not _v2(edge) or edge == Vector2.ZERO or not is_finite(turn) or turn == 0.0 or (turn > 0.0) != (area2 > 0.0):
+			return false
+	return true
+
+func _outer_sat(points: PackedVector2Array, viewport: Rect2) -> int:
+	var axes: Array = [Vector2.RIGHT,Vector2.DOWN]
+	for index: int in range(4):
+		var edge: Vector2 = points[(index+1)%4]-points[index]
+		axes.append(Vector2(-edge.y,edge.x))
+	var corners: Array = [viewport.position,Vector2(viewport.end.x,viewport.position.y),viewport.end,Vector2(viewport.position.x,viewport.end.y)]
+	var origin: Vector2 = points[0]
+	var separated: bool = false
+	for axis_value: Variant in axes:
+		if not _v2(axis_value) or axis_value == Vector2.ZERO:
+			return -1
+		var axis: Vector2 = axis_value
+		var polygon_min: float = INF
+		var polygon_max: float = -INF
+		var rect_min: float = INF
+		var rect_max: float = -INF
+		for point: Vector2 in points:
+			var projected: float = (point-origin).dot(axis)
+			if not is_finite(projected):
+				return -1
+			polygon_min = minf(polygon_min,projected)
+			polygon_max = maxf(polygon_max,projected)
+		for corner: Vector2 in corners:
+			var projected: float = (corner-origin).dot(axis)
+			if not is_finite(projected):
+				return -1
+			rect_min = minf(rect_min,projected)
+			rect_max = maxf(rect_max,projected)
+		if not is_finite(polygon_min) or not is_finite(polygon_max) or not is_finite(rect_min) or not is_finite(rect_max) or polygon_min >= polygon_max or rect_min >= rect_max:
+			return -1
+		if polygon_max <= rect_min or rect_max <= polygon_min:
+			separated = true
+	return 0 if separated else 1
+
+func _outer_face_plan(canvas_value, frame_value, wall_value, snapshot, scene, key, camera, viewport) -> Array:
+	if not wall_value is Dictionary or not WALLS.has(wall_value.get('id')) or not _outer_canvas_context(canvas_value,snapshot,scene,key,camera,viewport) or not _frame_valid(frame_value,snapshot,scene,key,camera,viewport):
+		return []
+	if OUTER_WALL_FACES.size() != 8:
+		return []
+	var counts: Dictionary = {}
+	var visible_faces: Array = []
+	var vertices: int = 0
+	for face_value: Variant in OUTER_WALL_FACES:
+		if not face_value is Dictionary or face_value.size() != 5:
+			return []
+		var owner_value: Variant = face_value.get('owner')
+		var a_value: Variant = face_value.get('a')
+		var b_value: Variant = face_value.get('b')
+		var low_value: Variant = face_value.get('low')
+		var high_value: Variant = face_value.get('high')
+		if typeof(owner_value) != TYPE_STRING or not WALLS.has(owner_value) or not _v2(a_value) or not _v2(b_value) or a_value == b_value or not P.number(low_value) or not P.number(high_value) or float(high_value) <= float(low_value):
+			return []
+		var a: Vector2 = a_value
+		var b: Vector2 = b_value
+		var low: float = float(low_value)
+		var high: float = float(high_value)
+		var points: PackedVector2Array = PackedVector2Array()
+		for world_point: Vector3 in [Vector3(a.x,low,a.y),Vector3(b.x,low,b.y),Vector3(b.x,high,b.y),Vector3(a.x,high,a.y)]:
+			var projected_value: Variant = camera.call('project',world_point)
+			if not _v2(projected_value):
+				return []
+			points.append(projected_value)
+		if not _outer_quad_valid(points):
+			return []
+		var visibility: int = _outer_sat(points,viewport)
+		if visibility < 0:
+			return []
+		vertices += points.size()
+		counts[owner_value] = int(counts.get(owner_value,0))+1
+		if visibility > 0:
+			visible_faces.append({'owner':owner_value,'points':points})
+	if vertices != 32 or not _same(counts,{'warehouse_wall_north':1,'warehouse_wall_south':2,'warehouse_wall_west_north':1,'warehouse_wall_west_south':1,'warehouse_wall_east_north':2,'warehouse_wall_east_south':1}):
+		return []
+	return visible_faces
 
