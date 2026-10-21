@@ -206,6 +206,18 @@ const WALLS: Dictionary = {
  'yard_wall_east_north':[[[23.5,0.5],[24,0.5],[24,6],[23.5,6]],[23.5,0.5],[23.5,6],[1,0],0.18],
  'yard_wall_east_south':[[[23.5,9.5],[24,9.5],[24,15.5],[23.5,15.5]],[23.5,9.5],[23.5,15.5],[1,0],0.18]
 }
+const OUTER_FACES: Array[Dictionary] = [
+ {'id':'yard_wall_north','a':[24,0],'b':[24,0.5],'low_from':''},
+ {'id':'yard_wall_south','a':[0,16],'b':[24,16],'low_from':''},
+ {'id':'yard_wall_south','a':[24,15.5],'b':[24,16],'low_from':''},
+ {'id':'yard_wall_west_north','a':[0,6],'b':[0.5,6],'low_from':''},
+ {'id':'yard_wall_west_south','a':[0,15.5],'b':[0.5,15.5],'low_from':'yard_wall_south'},
+ {'id':'yard_wall_east_north','a':[24,0.5],'b':[24,6],'low_from':''},
+ {'id':'yard_wall_east_north','a':[23.5,6],'b':[24,6],'low_from':''},
+ {'id':'yard_wall_east_south','a':[24,9.5],'b':[24,15.5],'low_from':''}
+]
+const OUTER_SCENE_BYTES: int = 8327
+const OUTER_SCENE_SHA256: String = '14f708142f6d4c15b8abdb3671e5357f845d96228c5b9aed719e19895e3a66d8'
 const SPRITES: Dictionary = {
  'approved_stone_water_surface':['runtime2d.world.mistharbor.water_edge_stone.v1','visual.floor',[12,0,8]],
  'yard_north_fog_bank':['runtime2d.world.mistharbor.fog_bank.v1','visual.props_back',[8,0,3]],
@@ -214,6 +226,8 @@ const SPRITES: Dictionary = {
 var attempted: bool = false
 var definition_ready: bool = false
 var textures: Dictionary = {}
+var _outer_scene_attempted: bool = false
+var _outer_scene: Dictionary = {}
 
 func _equal(actual: Variant, expected: Variant) -> bool:
 	if expected is Dictionary:
@@ -472,6 +486,24 @@ func draw_wall(canvas: Variant, snapshot: Variant, scene: Variant, key: Variant,
 		if points.size()!=4 or not _rect(_bounds(points)):
 			return false
 		plan.append(points)
+	var outer_for_wall: Array[PackedVector2Array] = []
+	if _outer_context_matches(canvas,snapshot,scene,key,projection,viewport):
+		var outer_plan: Dictionary = _outer_plan(projection,viewport)
+		var staged: Variant = outer_plan.get('faces')
+		if staged is Array and _outer_context_matches(canvas,snapshot,scene,key,projection,viewport):
+			for face_value: Variant in staged:
+				if not face_value is Dictionary:
+					outer_for_wall.clear()
+					break
+				if face_value.get('id')!=id_value:
+					continue
+				var points_value: Variant = face_value.get('points')
+				if not points_value is PackedVector2Array:
+					outer_for_wall.clear()
+					break
+				var extra_points: PackedVector2Array = points_value
+				outer_for_wall.append(extra_points)
+			plan.append_array(outer_for_wall)
 	var combined: PackedVector2Array = PackedVector2Array()
 	for points: PackedVector2Array in plan:
 		combined.append_array(points)
@@ -481,8 +513,120 @@ func draw_wall(canvas: Variant, snapshot: Variant, scene: Variant, key: Variant,
 		if not _color_valid(color):
 			return false
 	for index: int in range(3):
+		if index==2:
+			for points: PackedVector2Array in outer_for_wall:
+				canvas.draw_colored_polygon(points,colors[1])
 		canvas.draw_colored_polygon(plan[index],colors[index])
 	return true
+
+func _load_outer_scene_once() -> void:
+	if _outer_scene_attempted:
+		return
+	_outer_scene_attempted = true
+	var bytes: PackedByteArray = _read('res://data/scenes/mh_signal_yard.json',OUTER_SCENE_BYTES,OUTER_SCENE_BYTES)
+	if bytes.size()!=OUTER_SCENE_BYTES or _sha(bytes)!=OUTER_SCENE_SHA256:
+		return
+	var text: String = bytes.get_string_from_utf8()
+	if text.to_utf8_buffer()!=bytes:
+		return
+	var decoded: Variant = JSON.parse_string(text)
+	if decoded is Dictionary:
+		_outer_scene = decoded
+
+func _outer_context_matches(canvas_value: Variant, snapshot_value: Variant, scene_value: Variant, key_value: Variant, projection_value: Variant, viewport_value: Variant) -> bool:
+	if not _canvas(canvas_value) or not canvas_value.is_visible_in_tree() or not viewport_value is Rect2 or not _view(snapshot_value,scene_value,key_value,projection_value,viewport_value):
+		return false
+	var viewport: Rect2 = viewport_value
+	if viewport.position!=Vector2.ZERO or canvas_value.get_viewport_rect()!=viewport:
+		return false
+	var current_snapshot: Variant = canvas_value.get('snapshot')
+	var current_scene: Variant = canvas_value.get('scene')
+	var current_key: Variant = canvas_value.get('current_key')
+	var current_hash: Variant = canvas_value.get('scene_hash')
+	var current_camera: Variant = canvas_value.get('camera')
+	var current_viewport: Variant = canvas_value.get('viewport_rect')
+	if not current_snapshot is Dictionary or not current_scene is Dictionary or not current_viewport is Rect2 or not _equal(current_snapshot,snapshot_value) or not _equal(current_scene,scene_value) or current_key!=key_value or current_hash!=OUTER_SCENE_SHA256 or current_camera!=projection_value or current_viewport!=viewport:
+		return false
+	_load_outer_scene_once()
+	return not _outer_scene.is_empty() and _equal(scene_value,_outer_scene)
+
+func _outer_quad_valid(points: PackedVector2Array) -> bool:
+	if points.size()!=4:
+		return false
+	for point: Vector2 in points:
+		if not _finite(point):
+			return false
+	if not _rect(_bounds(points)):
+		return false
+	var area2: float = 0.0
+	for index: int in range(1,3):
+		area2 += (points[index]-points[0]).cross(points[index+1]-points[0])
+	if not is_finite(area2) or area2==0.0:
+		return false
+	for index: int in range(4):
+		var edge: Vector2 = points[(index+1)%4]-points[index]
+		var next_edge: Vector2 = points[(index+2)%4]-points[(index+1)%4]
+		var turn: float = edge.cross(next_edge)
+		if edge==Vector2.ZERO or not _finite(edge) or not is_finite(turn) or turn==0.0 or (turn>0.0)!=(area2>0.0):
+			return false
+	return true
+
+func _outer_visibility(points: PackedVector2Array, viewport: Rect2) -> int:
+	var corners: PackedVector2Array = PackedVector2Array([viewport.position,Vector2(viewport.end.x,viewport.position.y),viewport.end,Vector2(viewport.position.x,viewport.end.y)])
+	var axes: Array[Vector2] = [Vector2.RIGHT,Vector2.DOWN]
+	for index: int in range(4):
+		var edge: Vector2 = points[(index+1)%4]-points[index]
+		axes.append(Vector2(-edge.y,edge.x))
+	var separated: bool = false
+	for axis: Vector2 in axes:
+		if not _finite(axis) or axis==Vector2.ZERO:
+			return -1
+		var p_min: float = INF
+		var p_max: float = -INF
+		var v_min: float = INF
+		var v_max: float = -INF
+		for point: Vector2 in points:
+			var projection: float = (point-points[0]).dot(axis)
+			if not is_finite(projection):
+				return -1
+			p_min = minf(p_min,projection)
+			p_max = maxf(p_max,projection)
+		for point: Vector2 in corners:
+			var projection: float = (point-points[0]).dot(axis)
+			if not is_finite(projection):
+				return -1
+			v_min = minf(v_min,projection)
+			v_max = maxf(v_max,projection)
+		if p_min>=p_max or v_min>=v_max:
+			return -1
+		if p_max<=v_min or v_max<=p_min:
+			separated = true
+	return 0 if separated else 1
+
+func _outer_plan(projection: Variant, viewport: Rect2) -> Dictionary:
+	var candidates: Array[Dictionary] = []
+	for face: Dictionary in OUTER_FACES:
+		var wall: Array = WALLS[face.id]
+		var low: float = float(WALLS[face.low_from][4]) if face.low_from!='' else 0.0
+		var high: float = float(wall[4])
+		if low<0.0 or high<=low:
+			return {}
+		var a: Vector2 = Vector2(face.a[0],face.a[1])
+		var b: Vector2 = Vector2(face.b[0],face.b[1])
+		var world: Array[Vector3] = [Vector3(a.x,low,a.y),Vector3(b.x,low,b.y),Vector3(b.x,high,b.y),Vector3(a.x,high,a.y)]
+		var points: PackedVector2Array = _project(projection,world)
+		if not _outer_quad_valid(points):
+			return {}
+		candidates.append({'id':face.id,'points':points})
+	var faces: Array[Dictionary] = []
+	for candidate: Dictionary in candidates:
+		var points: PackedVector2Array = candidate.points
+		var visibility: int = _outer_visibility(points,viewport)
+		if visibility<0:
+			return {}
+		if visibility==1:
+			faces.append(candidate)
+	return {'faces':faces}
 
 func bank_rect(projection: Variant) -> Rect2:
 	var width: float = 10.0*float(projection.get('ppm'))
