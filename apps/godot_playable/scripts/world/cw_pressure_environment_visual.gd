@@ -28,6 +28,12 @@ const EXTERIOR_WALL_EDGES = {
 	'cw_pressure_hall_wall_east_south':[1,2]
 }
 
+const SHORT_SCENE_SHA: String = "53a7dc2925d5210da366abe8d03c07334c39cfe8b7da12f238090e27b1e5017a"
+const SHORT_CANONICAL_SCENE: Dictionary = {"boundsM":{"depth":16,"width":24,"x":0,"z":0},"cameraZones":[],"checkpoints":[{"id":"cw_pressure_hall_checkpoint","navNode":"cw_pressure_hall_spawn_nav","position":[4,0,8]}],"collision":[{"id":"cw_pressure_hall_wall_north","polygon":[[0,0],[24,0],[24,0.5],[0,0.5]]},{"id":"cw_pressure_hall_wall_south","polygon":[[0,15.5],[24,15.5],[24,16],[0,16]]},{"id":"cw_pressure_hall_wall_west_north","polygon":[[0,0.5],[0.5,0.5],[0.5,6],[0,6]]},{"id":"cw_pressure_hall_wall_west_south","polygon":[[0,9.5],[0.5,9.5],[0.5,15.5],[0,15.5]]},{"id":"cw_pressure_hall_wall_east_north","polygon":[[23.5,0.5],[24,0.5],[24,6],[23.5,6]]},{"id":"cw_pressure_hall_wall_east_south","polygon":[[23.5,9.5],[24,9.5],[24,15.5],[23.5,15.5]]}],"doors":[],"hazards":[],"interactionAggregates":[{"event":"clockworks_valves","markerId":"cw_clockworks_valves_staged","memberIds":["cw_pressure_valve_01_staged","cw_pressure_valve_02_staged","cw_pressure_valve_03_staged"]}],"interactions":[{"event":null,"id":"cw_pressure_valve_01_staged","kind":"valve_control","position":[8,0,8]},{"event":null,"id":"cw_pressure_valve_02_staged","kind":"valve_control","position":[12,0,8]},{"event":null,"id":"cw_pressure_valve_03_staged","kind":"valve_control","position":[16,0,8]},{"event":null,"id":"cw_clockworks_valves_staged","kind":"three_valve_sequence_staged_marker","position":[12,0,10]},{"event":null,"id":"cw_pressure_ui_staged","kind":"pressure_ui_staged_marker","position":[12,0,5]}],"logic":{"traversal":[]},"navigation":{"links":[{"from":"cw_pressure_hall_spawn_nav","to":"cw_pressure_hall_center_nav"},{"from":"cw_pressure_hall_center_nav","to":"cw_pressure_hall_spawn_nav"}],"nodes":[{"id":"cw_pressure_hall_spawn_nav","position":[3,0,8]},{"id":"cw_pressure_hall_center_nav","position":[12,0,8]}]},"objectives":[],"occluders":[],"presentation":{"cameraProfile":"oblique_default","layers":[{"id":"visual.floor","zGroup":0},{"id":"visual.props_back","zGroup":10},{"id":"visual.props_dynamic","zGroup":20}],"sprites":[{"assetId":"runtime2d.world.clockworks.floor_steel.v1","id":"cw_pressure_hall_steel_floor","layer":"visual.floor","position":[12,0,8]},{"assetId":"runtime2d.world.clockworks.factory_tiles.v1","id":"cw_pressure_hall_factory_tiles","layer":"visual.floor","position":[12,0,8]},{"assetId":"runtime2d.world.clockworks.pressure_pipes.v1","id":"cw_pressure_pipe_run_north","layer":"visual.props_back","position":[11,0,4]},{"assetId":"runtime2d.world.clockworks.pressure_pipes.v1","id":"cw_pressure_pipe_run_south","layer":"visual.props_back","position":[13,0,12]},{"assetId":"runtime2d.world.clockworks.pressure_pipe_valve.v1","id":"cw_pressure_valve_visual_01","layer":"visual.props_dynamic","position":[8,0,7]},{"assetId":"runtime2d.world.clockworks.pressure_pipe_valve.v1","id":"cw_pressure_valve_visual_02","layer":"visual.props_dynamic","position":[12,0,7]},{"assetId":"runtime2d.world.clockworks.pressure_pipe_valve.v1","id":"cw_pressure_valve_visual_03","layer":"visual.props_dynamic","position":[16,0,7]}]},"sceneId":"cw_pressure_hall","schemaVersion":1,"spawns":[{"entityType":null,"id":"cw_pressure_hall_spawn","kind":"player","navNode":"cw_pressure_hall_spawn_nav","position":[3,0,8]},{"entityType":"enemy.clockworks.forged_guard","id":"cw_pressure_hall_forged_guard_01","kind":"enemy","navNode":null,"position":[6.5,0,8]},{"entityType":"enemy.clockworks.forged_guard","id":"cw_pressure_hall_forged_guard_02","kind":"enemy","navNode":null,"position":[9.5,0,8]},{"entityType":"enemy.clockworks.pressure_drone","id":"cw_pressure_hall_pressure_drone_01","kind":"enemy","navNode":null,"position":[14,0,5]},{"entityType":"enemy.clockworks.pressure_drone","id":"cw_pressure_hall_pressure_drone_02","kind":"enemy","navNode":null,"position":[18,0,11]}],"transitions":[{"id":"cw_return_to_entry_foundry","polygon":[[0.5,6.5],[2.5,6.5],[2.5,9.5],[0.5,9.5]],"spawnId":"cw_entry_spawn","toSceneId":"cw_entry_foundry"},{"id":"cw_to_conveyor_bridge","polygon":[[22,6.5],[24,6.5],[24,9.5],[22,9.5]],"requiresEvent":"clockworks_valves","spawnId":"cw_conveyor_bridge_spawn","toSceneId":"cw_conveyor_bridge"}],"triggers":[],"vfxMarkers":[],"worldId":"clockworks"}
+const SHORT_UNION_FACES: Array = [{"id":"north_east_end","owner":"cw_pressure_hall_wall_north","a":[24,0],"b":[24,0.5],"low":0,"high":0.25},{"id":"south_east_end","owner":"cw_pressure_hall_wall_south","a":[24,15.5],"b":[24,16],"low":0,"high":0.25},{"id":"west_north_jamb","owner":"cw_pressure_hall_wall_west_north","a":[0,6],"b":[0.5,6],"low":0,"high":0.25},{"id":"east_north_jamb","owner":"cw_pressure_hall_wall_east_north","a":[23.5,6],"b":[24,6],"low":0,"high":0.25}]
+const SHORT_UNION_COLOR: Array = [0.19,0.22,0.23,1]
+const SHORT_UNION_MARKER: String = "pressure_short_union_v1"
+
 func is_wall_id(value) -> bool:
 	if typeof(value)!=TYPE_STRING:
 		return false
@@ -382,3 +388,187 @@ func _floor_quad_valid(points: PackedVector2Array, colors: PackedColorArray) -> 
 		if not is_finite(point.x) or not is_finite(point.y) or not _floor_color_finite(colors[index]):
 			return false
 	return true
+
+func _short_same(actual: Variant, expected: Variant) -> bool:
+	if expected is Dictionary:
+		if not actual is Dictionary or actual.size()!=expected.size():
+			return false
+		for key: Variant in expected:
+			if not actual.has(key) or not _short_same(actual[key],expected[key]):
+				return false
+		return true
+	if expected is Array:
+		if not actual is Array or actual.size()!=expected.size():
+			return false
+		for index: int in range(expected.size()):
+			if not _short_same(actual[index],expected[index]):
+				return false
+		return true
+	if typeof(expected) in [TYPE_INT,TYPE_FLOAT]:
+		return P.number(actual,float(expected),float(expected))
+	return typeof(actual)==typeof(expected) and actual==expected
+
+func _short_finite2(point: Vector2) -> bool:
+	return is_finite(point.x) and is_finite(point.y)
+
+func _short_context(canvas: Variant, snapshot: Variant, scene: Variant, key: Variant, hash: Variant, projection: Variant, viewport: Variant) -> bool:
+	if not canvas is CanvasItem or not is_instance_valid(canvas) or not canvas.is_inside_tree() or not canvas.is_visible_in_tree() or canvas.is_queued_for_deletion():
+		return false
+	if not snapshot is Dictionary or not P.snapshot(snapshot) or snapshot.get('entryToken')!=null or not P.counter(snapshot.get('worldEpoch'),1):
+		return false
+	if snapshot.get('worldId')!='clockworks' or snapshot.get('sceneId')!='cw_pressure_hall' or typeof(key)!=TYPE_STRING or key!='clockworks:cw_pressure_hall:'+str(snapshot.worldEpoch) or hash!=SHORT_SCENE_SHA:
+		return false
+	if not scene is Dictionary or not _short_same(scene,SHORT_CANONICAL_SCENE):
+		return false
+	if canvas.get('snapshot')!=snapshot or canvas.get('scene')!=scene or canvas.get('current_key')!=key or canvas.get('scene_hash')!=hash or canvas.get('camera')!=projection:
+		return false
+	if not viewport is Rect2 or not _floor_viewport_valid(viewport) or viewport.position!=Vector2.ZERO:
+		return false
+	var stored_viewport: Variant = canvas.get('viewport_rect')
+	var actual_viewport: Rect2 = canvas.get_viewport_rect()
+	if not stored_viewport is Rect2 or stored_viewport!=viewport or actual_viewport!=viewport:
+		return false
+	if not _floor_projection_valid(projection):
+		return false
+	var initialized: Variant = projection.get('initialized')
+	var origin: Variant = projection.get('origin')
+	var center: Variant = projection.get('screen_center')
+	var projection_size: Variant = projection.get('viewport')
+	if typeof(initialized)!=TYPE_BOOL or not initialized or not origin is Vector3 or not center is Vector2 or not projection_size is Vector2:
+		return false
+	return projection_size.x>0.0 and projection_size.y>0.0 and projection_size==viewport.size
+
+func _short_valid_quad(points: PackedVector2Array, color: Color) -> bool:
+	if points.size()!=4 or not _floor_color_finite(color) or color.r<0.0 or color.r>1.0 or color.g<0.0 or color.g>1.0 or color.b<0.0 or color.b>1.0 or color.a<0.0 or color.a>1.0:
+		return false
+	for point: Vector2 in points:
+		if not _short_finite2(point):
+			return false
+	var origin: Vector2 = points[0]
+	var area2: float = 0.0
+	for index: int in range(1,points.size()-1):
+		area2 += (points[index]-origin).cross(points[index+1]-origin)
+	if not is_finite(area2) or area2==0.0:
+		return false
+	var orientation: float = 0.0
+	for index: int in range(points.size()):
+		var edge: Vector2 = points[(index+1)%points.size()]-points[index]
+		var next_edge: Vector2 = points[(index+2)%points.size()]-points[(index+1)%points.size()]
+		var turn: float = edge.cross(next_edge)
+		if not _short_finite2(edge) or edge==Vector2.ZERO or not is_finite(turn) or turn==0.0:
+			return false
+		if orientation==0.0:
+			orientation = turn
+		elif (turn>0.0)!=(orientation>0.0):
+			return false
+	return true
+
+func _short_visible(points: PackedVector2Array, viewport: Rect2) -> int:
+	if points.size()!=4 or not _floor_viewport_valid(viewport):
+		return -1
+	for point: Vector2 in points:
+		if not _short_finite2(point):
+			return -1
+	var axes: Array[Vector2] = [Vector2.RIGHT,Vector2.DOWN]
+	for index: int in range(points.size()):
+		var edge: Vector2 = points[(index+1)%points.size()]-points[index]
+		axes.append(Vector2(-edge.y,edge.x))
+	var corners: PackedVector2Array = PackedVector2Array([viewport.position,Vector2(viewport.end.x,viewport.position.y),viewport.end,Vector2(viewport.position.x,viewport.end.y)])
+	var origin: Vector2 = points[0]
+	var separated: bool = false
+	for axis: Vector2 in axes:
+		if not _short_finite2(axis) or axis==Vector2.ZERO:
+			return -1
+		var polygon_min: float = INF
+		var polygon_max: float = -INF
+		var rect_min: float = INF
+		var rect_max: float = -INF
+		for point: Vector2 in points:
+			var projected: float = (point-origin).dot(axis)
+			if not is_finite(projected):
+				return -1
+			polygon_min = minf(polygon_min,projected)
+			polygon_max = maxf(polygon_max,projected)
+		for corner: Vector2 in corners:
+			var projected: float = (corner-origin).dot(axis)
+			if not is_finite(projected):
+				return -1
+			rect_min = minf(rect_min,projected)
+			rect_max = maxf(rect_max,projected)
+		if not is_finite(polygon_min) or not is_finite(polygon_max) or not is_finite(rect_min) or not is_finite(rect_max) or polygon_min>=polygon_max or rect_min>=rect_max:
+			return -1
+		if polygon_max<=rect_min or rect_max<=polygon_min:
+			separated = true
+	return 0 if separated else 1
+
+func stage_short_union(source_packets: Array, canvas: Variant, snapshot: Variant, scene: Variant, key: Variant, hash: Variant, projection: Variant, viewport: Variant) -> Dictionary:
+	if not _short_context(canvas,snapshot,scene,key,hash,projection,viewport) or source_packets.is_empty() or source_packets.size()>MAX_PACKETS:
+		return {}
+	var rebuilt: Array = build_packets(scene,snapshot,key,projection)
+	if rebuilt.is_empty() or not _short_same(source_packets,rebuilt):
+		return {}
+	for packet: Variant in source_packets:
+		if not packet is Dictionary or packet.get(SHORT_UNION_MARKER)==true:
+			return {}
+		for face: Dictionary in SHORT_UNION_FACES:
+			if packet.get('id')==str(face.owner)+':short_union_face':
+				return {}
+	var plans: Array[Dictionary] = []
+	for face: Dictionary in SHORT_UNION_FACES:
+		var owner: String = str(face.owner)
+		var cap: Dictionary = {}
+		var cap_count: int = 0
+		for candidate: Variant in source_packets:
+			if candidate.get('id')==owner+':cap' or candidate.get('role')=='wall_cap' and candidate.get('wall_id')==owner:
+				cap_count += 1
+				if candidate.get('id')==owner+':cap' and candidate.get('role')=='wall_cap' and candidate.get('wall_id')==owner:
+					cap = candidate
+		if cap_count!=1 or cap.is_empty():
+			return {}
+		var a: Array = face.a
+		var b: Array = face.b
+		var world: Array[Vector3] = [Vector3(float(a[0]),float(face.low),float(a[1])),Vector3(float(b[0]),float(face.low),float(b[1])),Vector3(float(b[0]),float(face.high),float(b[1])),Vector3(float(a[0]),float(face.high),float(a[1]))]
+		var points: PackedVector2Array = PackedVector2Array()
+		for point: Vector3 in world:
+			var projected: Variant = projection.call('project',point)
+			if not projected is Vector2 or not _short_finite2(projected):
+				return {}
+			points.append(projected)
+		var color: Color = Color(SHORT_UNION_COLOR[0],SHORT_UNION_COLOR[1],SHORT_UNION_COLOR[2],SHORT_UNION_COLOR[3])
+		if not _short_valid_quad(points,color):
+			return {}
+		var bounds: Rect2 = Rect2(points[0],Vector2.ZERO)
+		for point: Vector2 in points:
+			bounds = bounds.expand(point)
+		if not _floor_viewport_valid(bounds):
+			return {}
+		var visible: int = _short_visible(points,viewport)
+		if visible<0:
+			return {}
+		plans.append({'owner':owner,'cap_id':owner+':cap','footprint':cap.get('footprint'),'points':points,'color':color,'visible':visible>0})
+	var insertions: Dictionary = {}
+	for plan: Dictionary in plans:
+		if plan.visible:
+			insertions[plan.cap_id] = {'id':plan.owner+':short_union_face','role':'wall_face','points':plan.points,'color':plan.color,'filled':true,'wall_id':plan.owner,'footprint':plan.footprint,'pressure_short_union_v1':true}
+	var output: Array = []
+	for packet: Dictionary in source_packets:
+		var id: Variant = packet.get('id')
+		if typeof(id)==TYPE_STRING and insertions.has(id):
+			output.append(insertions[id])
+		output.append(packet)
+	if output.size()>MAX_PACKETS or not _short_context(canvas,snapshot,scene,key,hash,projection,viewport):
+		return {}
+	return {'packets':output,'source':source_packets.duplicate(true),'output':output.duplicate(true),'snapshot':snapshot.duplicate(true),'scene':scene.duplicate(true),'key':key,'hash':hash,'canvas':canvas,'projection':projection,'origin':projection.get('origin'),'center':projection.get('screen_center'),'size':projection.get('viewport'),'ppm':projection.get('ppm'),'viewport':viewport}
+
+func short_union_current(frame: Dictionary, source_packets: Array, canvas: Variant, snapshot: Variant, scene: Variant, key: Variant, hash: Variant, projection: Variant, viewport: Variant) -> bool:
+	if frame.is_empty() or not _short_context(canvas,snapshot,scene,key,hash,projection,viewport):
+		return false
+	if frame.get('canvas')!=canvas or frame.get('projection')!=projection or frame.get('key')!=key or frame.get('hash')!=hash or frame.get('viewport')!=viewport:
+		return false
+	if not _short_same(frame.get('snapshot'),snapshot) or not _short_same(frame.get('scene'),scene) or not _short_same(frame.get('source'),source_packets):
+		return false
+	if frame.get('origin')!=projection.get('origin') or frame.get('center')!=projection.get('screen_center') or frame.get('size')!=projection.get('viewport') or frame.get('ppm')!=projection.get('ppm'):
+		return false
+	var packets: Variant = frame.get('packets')
+	var output: Variant = frame.get('output')
+	return packets is Array and output is Array and _short_same(packets,output)
