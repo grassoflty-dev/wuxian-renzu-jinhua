@@ -666,7 +666,7 @@ func commit(s: Dictionary, data: Dictionary, hash: String) -> void:
 		cw_entry_foundry_environment_visual.prepare(snapshot,scene,current_key,scene_hash)
 	if snapshot.get('worldId')=='mist_harbor' and snapshot.get('sceneId')=='mh_tidal_warehouse':
 		mh_tidal_warehouse_environment_visual.prepare_resources(snapshot,scene,current_key)
-		mh_warehouse_crates_visual.prepare_resources()
+		mh_warehouse_crates_visual.prepare_resources(self,snapshot,scene,current_key,camera,viewport_rect)
 	gh_central_shaft_environment_visual.prepare(snapshot,scene,current_key,scene_hash)
 	gh_exit_environment_visual.prepare(snapshot,scene,current_key,scene_hash)
 	last_snapshot_at = Time.get_ticks_msec()
