@@ -40,6 +40,7 @@ const MhExtractionEnvironmentVisual = preload('res://scripts/world/mh_extraction
 const GhSentinelFloorMaterialVisual = preload('res://scripts/world/gh_sentinel_floor_material_visual.gd')
 const GhSentinelEnvironmentVisual = preload('res://scripts/world/gh_sentinel_environment_visual.gd')
 const GhDeepDeconFloorMaterialVisual = preload('res://scripts/world/gh_deep_decon_floor_material_visual.gd')
+const GhDeepDeconEnvironmentVisual = preload('res://scripts/world/gh_deep_decon_environment_visual.gd')
 const GhGateAEnvironmentVisual = preload('res://scripts/world/gh_gate_a_environment_visual.gd')
 const GhPowerFloorMaterialVisual = preload('res://scripts/world/gh_power_floor_material_visual.gd')
 const GhEntryWallModulesVisual = preload('res://scripts/world/gh_entry_wall_modules_visual.gd')
@@ -144,6 +145,7 @@ var cw_pressure_floor_material_visual = CwPressureFloorMaterialVisual.new()
 var gh_sentinel_floor_material_visual = GhSentinelFloorMaterialVisual.new()
 var gh_sentinel_environment_visual = GhSentinelEnvironmentVisual.new()
 var gh_deep_decon_floor_material_visual = GhDeepDeconFloorMaterialVisual.new()
+var gh_deep_decon_environment_visual = GhDeepDeconEnvironmentVisual.new()
 var gh_gate_a_environment_visual = GhGateAEnvironmentVisual.new()
 var gh_power_floor_material_visual = GhPowerFloorMaterialVisual.new()
 var gh_entry_wall_modules_visual = GhEntryWallModulesVisual.new()
@@ -1009,6 +1011,8 @@ func _draw() -> void:
 			if _gh_lockdown_open_seal(wall):
 				continue
 			if _gh_exit_open_barrier(wall):
+				continue
+			if gh_deep_decon_environment_visual.draw_wall(self,snapshot,scene,current_key,scene_hash,camera,wall,viewport_rect):
 				continue
 			_poly(wall.polygon,0,Color('#4b5659'),true)
 			_poly(wall.polygon,0,Color('#819092'),false)
