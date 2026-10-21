@@ -37,6 +37,7 @@ const GhSentinelEnvironmentVisual = preload('res://scripts/world/gh_sentinel_env
 const GhShaftDustVisual = preload('res://scripts/world/gh_shaft_dust_visual.gd')
 const GhDeepDeconFloorMaterialVisual = preload('res://scripts/world/gh_deep_decon_floor_material_visual.gd')
 const GhDeepDeconEnvironmentVisual = preload('res://scripts/world/gh_deep_decon_environment_visual.gd')
+const GhDeepDeconAlcoveVisual = preload('res://scripts/world/gh_deep_decon_alcove_visual.gd')
 const GhGateAEnvironmentVisual = preload('res://scripts/world/gh_gate_a_environment_visual.gd')
 const GhPowerFloorMaterialVisual = preload('res://scripts/world/gh_power_floor_material_visual.gd')
 const GhEntryWallModulesVisual = preload('res://scripts/world/gh_entry_wall_modules_visual.gd')
@@ -137,6 +138,7 @@ var gh_sentinel_environment_visual = GhSentinelEnvironmentVisual.new()
 var gh_shaft_dust_visual = GhShaftDustVisual.new()
 var gh_deep_decon_floor_material_visual = GhDeepDeconFloorMaterialVisual.new()
 var gh_deep_decon_environment_visual = GhDeepDeconEnvironmentVisual.new()
+var gh_deep_decon_alcove_visual = GhDeepDeconAlcoveVisual.new()
 var gh_gate_a_environment_visual = GhGateAEnvironmentVisual.new()
 var gh_power_floor_material_visual = GhPowerFloorMaterialVisual.new()
 var gh_entry_wall_modules_visual = GhEntryWallModulesVisual.new()
@@ -648,6 +650,7 @@ func _draw() -> void:
 	var cw_furnace_heart_shell_drawn: bool = cw_furnace_heart_environment_visual.draw_shell(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
 	var cw_shutdown_exit_shell_drawn: bool = cw_shutdown_exit_environment_visual.draw_shell(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
 	# Canonical static geometry is display only. No spawns, routes, navigation or hidden objectives.
+	var gh_deep_decon_alcove_receipt: Dictionary = {}
 	for wall in scene.get('collision',[]):
 		if cw_shutdown_exit_shell_drawn and cw_shutdown_exit_environment_visual.owns_collision(wall):
 			continue
@@ -715,6 +718,8 @@ func _draw() -> void:
 			if gh_gate_a_environment_visual.draw_wall(self,snapshot,scene,current_key,camera,wall,viewport_rect):
 				continue
 			if gh_deep_decon_environment_visual.draw_wall(self,snapshot,scene,current_key,scene_hash,camera,wall,viewport_rect):
+				continue
+			if gh_deep_decon_alcove_visual.draw_or_consume(self,snapshot,scene,current_key,scene_hash,camera,wall,viewport_rect,gh_deep_decon_alcove_receipt):
 				continue
 			_poly(wall.polygon,0,Color('#4b5659'),true)
 			_poly(wall.polygon,0,Color('#819092'),false)
