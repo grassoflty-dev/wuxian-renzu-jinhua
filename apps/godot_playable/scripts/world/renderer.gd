@@ -1300,6 +1300,7 @@ func _draw_cw_pressure_packets(packets: Array) -> void:
 				draw_polyline(outline,color,width,true)
 
 func _draw_mh_pump_packets(packets: Array) -> void:
+	packets = mh_pump_environment_visual.compose_outer_walls(packets,self,snapshot,scene,current_key,camera,viewport_rect)
 	for packet in packets:
 		if not packet is Dictionary:
 			continue
