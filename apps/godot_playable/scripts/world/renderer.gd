@@ -1288,6 +1288,12 @@ func _draw_gh_power_packets(packets: Array) -> void:
 				draw_polyline(outline,color,width,true)
 
 func _draw_cw_pressure_packets(packets: Array) -> void:
+	var short_source: Array = packets
+	var short_frame: Dictionary = cw_pressure_environment_visual.stage_short_union(short_source,self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
+	var short_checked: bool = false
+	var short_allowed: bool = false
+	if not short_frame.is_empty():
+		packets = short_frame.packets
 	for packet in packets:
 		if not packet is Dictionary:
 			continue
@@ -1295,6 +1301,12 @@ func _draw_cw_pressure_packets(packets: Array) -> void:
 		var color = packet.get('color')
 		if not points is PackedVector2Array or not color is Color:
 			continue
+		if not short_frame.is_empty() and packet.get('pressure_short_union_v1')==true:
+			if not short_checked:
+				short_allowed = cw_pressure_environment_visual.short_union_current(short_frame,short_source,self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
+				short_checked = true
+			if not short_allowed:
+				continue
 		if packet.get('filled')==true and points.size()>=3:
 			draw_colored_polygon(points,color)
 		elif points.size()>=2:
