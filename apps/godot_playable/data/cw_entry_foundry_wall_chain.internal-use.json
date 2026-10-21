@@ -1,0 +1,125 @@
+{
+  "schema": "wuxian.cw-entry-foundry-wall-chain.internal-use/v1",
+  "approval": "SOURCE_ONLY_NEW_USE_APPROVED",
+  "publicRelease": "NOT_ESTABLISHED",
+  "GodotDisplay": "NOT_RUN",
+  "runtimeValidation": "NOT_RUN",
+  "sourceHistoricalStatus": "PARTIAL_SOURCE_CANDIDATE_NOT_RUNTIME_ADMITTED",
+  "source": {
+    "path": "res://assets/props/clockworks/foundry_wall_chain_source.png",
+    "bytes": 819043,
+    "sha256": "001a331d8f9cd7caeba3432fc7325782f1b5a0230ff514b0f2b45aa72f6cfd7f",
+    "gitBlob": "075ea0cb49a2a0690346a589190aa3ef0bac5714",
+    "canvas": [
+      1983,
+      793
+    ],
+    "format": "RGBA8"
+  },
+  "installation": {
+    "worldId": "clockworks",
+    "sceneId": "cw_entry_foundry",
+    "wallId": "cw_entry_foundry_wall_north",
+    "wallPolygon": [
+      [
+        0,
+        0
+      ],
+      [
+        24,
+        0
+      ],
+      [
+        24,
+        0.5
+      ],
+      [
+        0,
+        0.5
+      ]
+    ],
+    "visualHeightM": 1,
+    "scene": {
+      "path": "res://data/scenes/cw_entry_foundry.json",
+      "bytes": 5551,
+      "sha256": "d90f852367b998cf5874b82fed583f1254664d4a88a8175bb3c94524b8f496b1",
+      "gitBlob": "3ad44fa1c5aab21738ffcbf744eb1059aadf303a"
+    }
+  },
+  "sourcePixelEdgeCorners": [
+    [
+      0,
+      0
+    ],
+    [
+      1983,
+      0
+    ],
+    [
+      1983,
+      793
+    ],
+    [
+      0,
+      793
+    ]
+  ],
+  "uvConvention": "completeStandaloneCanvasEdges",
+  "UV": [
+    [
+      0,
+      0
+    ],
+    [
+      1,
+      0
+    ],
+    [
+      1,
+      1
+    ],
+    [
+      0,
+      1
+    ]
+  ],
+  "worldCorners": [
+    [
+      4,
+      0.8,
+      0.5
+    ],
+    [
+      5.5,
+      0.8,
+      0.5
+    ],
+    [
+      5.5,
+      0.2,
+      0.5
+    ],
+    [
+      4,
+      0.2,
+      0.5
+    ]
+  ],
+  "modulate": [
+    1,
+    1,
+    1,
+    1
+  ],
+  "static": true,
+  "marginException": {
+    "requested12PercentTransparentMarginNotMet": true,
+    "acceptedForThisFullCanvasWallUseOnly": true,
+    "atlasOrCropClaim": false,
+    "originalDimensionsPreserved": true
+  },
+  "sameFrameRequiresOriginalNorthWallDraw": true,
+  "resourceFailure": "skipsOptionalChainOnly",
+  "noFloorShadow": true,
+  "noCollision": true
+}
