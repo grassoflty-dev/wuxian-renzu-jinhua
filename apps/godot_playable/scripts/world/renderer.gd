@@ -573,6 +573,10 @@ func _draw() -> void:
 	var gh_entry_floor_packets = gh_entry_floor_material_visual.build_packets(snapshot,scene,current_key,camera)
 	gh_entry_floor_material_visual.draw_tiles(self,gh_entry_floor_packets,get_viewport_rect())
 	gh_entry_ambient_visual.draw_floor(self,snapshot,scene,camera)
+	if gh_supply_crate_visual!=null:
+		gh_supply_crate_visual.draw_beacon_contact_shadow(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
+	if registered_props!=null:
+		registered_props.draw_beacon_contact_shadow(self,snapshot,scene,current_key,scene_hash,camera,viewport_rect)
 	var rs_active = _rs_environment_context()
 	var rs_terminal_feet: Array = []
 	var rs_back_packets: Array = []
