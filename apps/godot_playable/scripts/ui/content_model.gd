@@ -73,7 +73,10 @@ static func narrative(before: Dictionary, target: Dictionary, receipt: Dictionar
 			}
 			var key = before.worldId+':'+before.sceneId+':'+id
 			if checkpoints.has(key) and SCENE_NAMES.has(before.sceneId):
-				return '检查点已确认：'+SCENE_NAMES[before.sceneId]+checkpoints[key]+'。需要保留旅程时，请使用保存。'
+				var entry_lines = {
+					'mist_harbor:mh_fog_pier:mh_fog_pier_checkpoint':'视觉链路衰减。远端目标无法确认。 ',
+					'clockworks:cw_entry_foundry:cw_entry_foundry_checkpoint':'生产线无人值守，但压力循环仍在运行。 '}
+				return entry_lines.get(key,'')+'检查点已确认：'+SCENE_NAMES[before.sceneId]+checkpoints[key]+'。需要保留旅程时，请使用保存。'
 		if P.snapshot(before) and P.snapshot(after) and typeof(target.get('entityId'))==TYPE_STRING and typeof(target.get('kind'))==TYPE_STRING and kind=='scene_checkpoint' and typeof(after.get('checkpointId'))==TYPE_STRING and after.checkpointId==id and SCENE_NAMES.has(before.sceneId):
 			var station_hive_checkpoints = {
 				'return_station:rs_core_room:rs_core_checkpoint':true,
