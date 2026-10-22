@@ -32,7 +32,7 @@ func accept(rows, s: Dictionary, renderer) -> void:
 	var ordered: Array = deferred.duplicate(true)
 	deferred.clear()
 	for row in rows:
-		if row is Dictionary and not ordered.any(func(item): return item.get('eventId')==row.get('eventId')):
+		if row is Dictionary and P.counter(row.get('eventId'),1) and not ordered.any(func(item): return item.get('eventId')==row.get('eventId')):
 			ordered.append(row)
 	ordered.sort_custom(func(a,b): return a.get('eventId',0)<b.get('eventId',0) if a is Dictionary and b is Dictionary else false)
 	var seed_only = not seeded
