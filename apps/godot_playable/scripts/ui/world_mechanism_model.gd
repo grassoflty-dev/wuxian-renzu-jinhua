@@ -13,12 +13,13 @@ static func project(s: Dictionary, eligible) -> Array:
 	if not s.sceneId.begins_with(prefix):
 		return []
 	if s.worldId=='grey_hive':
+		var decon_lines: Array = local_decon_environment(s)
 		var beacon = s.get('greyHiveBeacon')
 		if not beacon is Dictionary or beacon.size()!=2 or typeof(beacon.get('state'))!=TYPE_STRING or not beacon.state in ['uncollected','carried','mounted'] or typeof(beacon.get('legacyCompletedWithoutReceipt'))!=TYPE_BOOL or beacon.legacyCompletedWithoutReceipt and beacon.state!='uncollected':
-			return ['信标：状态未确认']+extraction_controls(s)
+			return ['信标：状态未确认']+extraction_controls(s)+decon_lines
 		if beacon.legacyCompletedWithoutReceipt:
-			return ['信标：收取回执未确认']+extraction_controls(s)
-		return ['信标：'+{'uncollected':'尚未收取','carried':'已携带','mounted':'已部署'}[beacon.state]]+extraction_controls(s)
+			return ['信标：收取回执未确认']+extraction_controls(s)+decon_lines
+		return ['信标：'+{'uncollected':'尚未收取','carried':'已携带','mounted':'已部署'}[beacon.state]]+extraction_controls(s)+decon_lines
 	if s.worldId=='mist_harbor':
 		var pump = s.get('mistHarborPump')
 		if not pump is Dictionary or pump.size()!=1 or typeof(pump.get('state'))!=TYPE_STRING or not pump.state in ['ready','draining','drained']:
@@ -96,6 +97,36 @@ static func pressure_valve_receipts(s: Dictionary) -> Array:
 		var state = '已记录' if raw_receipts.has(VALVES[n]) else '未记录'
 		lines.append('阀门 '+str(n+1)+' 回执：'+state)
 	return lines
+static func local_decon_environment(s: Dictionary) -> Array:
+	if not P.snapshot(s) or s.get('worldId')!='grey_hive' or s.get('sceneId')!='gh_deep_decon' or s.get('entryToken')!=null:
+		return []
+	var point: Dictionary = s.player.transform.positionM
+	if not P.number(point.yM,0,1):
+		return []
+	var specs: Array = [
+		['gh_decon_steam_jet_zone','steam_jet','pressure','蒸汽',[[7,4],[10,4],[10,6.5],[7,6.5]]],
+		['gh_decon_mist_zone','decon_mist','toxin','消杀雾',[[14,9],[18,9],[18,14],[14,14]]]
+	]
+	var lines: Array = []
+	for spec in specs:
+		for h in s.hazards:
+			if h.entityId!=spec[0] or h.kind!=spec[1] or typeof(h.get('phaseActive'))!=TYPE_BOOL or h.has('heightRangeM'):
+				continue
+			var e = Presentation.environment(h)
+			if e.is_empty() or e.tag!=spec[2] or h.polygonM!=spec[4] or not decon_contains(point,h.polygonM):
+				continue
+			lines.append(spec[3]+'：'+{'warning':'预警','active':'危险','recovery':'间歇','suppressed':'已抑制'}[e.phase])
+	return lines
+static func decon_contains(point: Dictionary, polygon: Array) -> bool:
+	if in_polygon(point,polygon):
+		return true
+	for n in range(polygon.size()):
+		var a: Array = polygon[n]
+		var b: Array = polygon[(n+1)%polygon.size()]
+		var cross: float = (point.xM-a[0])*(b[1]-a[1])-(point.zM-a[1])*(b[0]-a[0])
+		if abs(cross)<=0.00001 and point.xM>=minf(a[0],b[0])-0.00001 and point.xM<=maxf(a[0],b[0])+0.00001 and point.zM>=minf(a[1],b[1])-0.00001 and point.zM<=maxf(a[1],b[1])+0.00001:
+			return true
+	return false
 static func local_environment(s: Dictionary) -> Array:
 	if not P.snapshot(s) or not P.point(s.player.transform.positionM) or not P.number(s.player.transform.positionM.yM,0,0.1):
 		return []
