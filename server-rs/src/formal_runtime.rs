@@ -3962,6 +3962,15 @@ fn advance_owner_step_body(
                 .find(|sentinel| sentinel.entity_id == SENTINEL_SPAWN_ID)
                 .map(|sentinel| sentinel.position_m)
             {
+                let Some(current_view)=state.world.sentinels.iter().find(|s|s.entity_id==*sentinel_id)
+                    .and_then(|s|s.encounter_view(state.stepper.config.hz)) else {continue;};
+                let expected_phase=match kind {
+                    "SentinelAttackWindup"=>"light_windup",
+                    "SentinelHeavyWindup"=>"heavy_windup",
+                    "SentinelChargeWindup"=>"charge_windup",
+                    _=>continue,
+                };
+                if current_view.phase!=expected_phase || current_view.warning.is_none() {continue;}
                 emit_presentation(state, kind, position, 1.0);
                 if let Some(view)=state.world.sentinels.iter().find(|s|s.entity_id==*sentinel_id)
                     .and_then(|s|s.encounter_view(state.stepper.config.hz)) {

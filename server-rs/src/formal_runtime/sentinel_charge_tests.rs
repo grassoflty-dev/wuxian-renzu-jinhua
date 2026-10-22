@@ -76,3 +76,84 @@ fn phase(r:&FormalRuntime,active:bool,consumed:bool)->Sentinel {
         crate::world_v3::apply_sentinel(&mut s.world,crate::sentinel_ai::SentinelCommand::Activate{sentinel_id:SENTINEL_SPAWN_ID.into()}).unwrap();}
     assert_eq!(actor(&r),committed);assert_eq!(r.snapshot().unwrap().sentinel_encounter,Some(warning));assert!(!r.state.lock().unwrap().world_persistent_v1.grey_hive.sentinel_first_kill);
 }
+
+#[test]
+fn third_light_guard_cancels_heavy_windup_but_keeps_authoritative_feedback() {
+    for guarded in [false,true] {
+        let r = fixture();
+        let scene = r.scene_runtime.lock().unwrap().clone().unwrap();
+        let mut s = r.state.lock().unwrap();
+        let tuning = crate::continuous_combat::combat_v1();
+        let guard = &tuning.actions["guard"];
+        assert!(s.pending_combat.is_empty());
+        assert!(s.world.combat_state.active_action.is_none());
+        s.world.player.position_m = p(9.,8.);
+        let hp = s.world.player_hp;
+        let energy = s.world.player_energy;
+        {
+            let actor = &mut s.world.sentinels[0];
+            assert_eq!(actor.position_m,p(8.,8.));
+            assert!(actor.charge_controller.is_some());
+            actor.state = SentinelState::Attack;
+            actor.state_remaining_ms = 100;
+            actor.attack_serial = 2;
+            assert!(actor.validate());
+        }
+        s.presentation_events.clear();
+        s.next_presentation_event_id = 1;
+        if guarded {
+            s.pending_combat.push(CombatIntent::GuardStart {request_id:991});
+        }
+        for step in 1..=6 {
+            let seq = s.world.last_input_seq+1;
+            let client_ms = s.world.last_client_time_ms+17;
+            s.latest_sample = InputSample::new(
+                s.world.revision.world_epoch,seq,client_ms,0.,0.).unwrap();
+            s.latest_input_received_at = Instant::now();
+            advance_owner_step_with_scene(&mut s,Some(&scene)).unwrap();
+            if step==5 {
+                assert_eq!(s.world.sentinels[0].state,SentinelState::Attack);
+                assert_eq!(s.world.sentinels[0].state_remaining_ms,15);
+                assert_eq!(s.world.sentinels[0].attack_serial,2);
+                assert_eq!(s.world.combat_state.guard_active(
+                    guard.windup_ms,guard.active_ms),guarded);
+            }
+        }
+        let actor = &s.world.sentinels[0];
+        assert_eq!((actor.attack_serial,actor.state_remaining_ms),(3,400));
+        assert!(actor.charge_controller.as_ref().unwrap().attack.is_none());
+        let view = project_sentinel_encounter(&s,&scene).unwrap();
+        let heavy:Vec<_> = s.presentation_events.iter()
+            .filter(|e|e.kind=="SentinelHeavyWindup").collect();
+        let impacts:Vec<_> = s.presentation_events.iter()
+            .filter(|e|e.kind=="GuardImpact").collect();
+        if guarded {
+            assert_eq!(actor.state,SentinelState::Stagger);
+            assert_eq!(view.phase,"stagger");
+            assert!(view.warning.is_none());
+            assert!(heavy.is_empty());
+            assert_eq!(impacts.len(),1);
+            let feedback = impacts[0].combat_feedback.as_ref().unwrap();
+            assert_eq!(feedback.outcome,crate::world_v3::CombatOutcome::Blocked);
+            assert_eq!(feedback.world_id,"grey_hive");
+            assert_eq!(feedback.scene_id,SENTINEL_SCENE_ID);
+            assert_eq!(feedback.request_id,Some(991));
+            assert_eq!(feedback.source_id.as_deref(),Some(SENTINEL_SPAWN_ID));
+            assert_eq!(feedback.target_id.as_deref(),Some("player"));
+            assert_eq!(s.world.player_hp,hp);
+            assert_eq!(s.world.player_energy,energy-guard.energy);
+            assert!(!s.presentation_events.iter().any(|e|e.kind=="Damaged"));
+        } else {
+            assert_eq!(actor.state,SentinelState::HeavyAttack);
+            assert_eq!(view.phase,"heavy_windup");
+            assert!(view.warning.is_some());
+            assert_eq!(heavy.len(),1);
+            assert_eq!(heavy[0].actor_id.as_deref(),Some(SENTINEL_SPAWN_ID));
+            assert_eq!(heavy[0].attack_id,Some(3));
+            assert_eq!(heavy[0].duration_ms,Some(view.remaining_ms));
+            assert!(impacts.is_empty());
+            assert_eq!(s.world.player_hp,hp-8);
+            assert_eq!(s.world.player_energy,energy);
+        }
+    }
+}

@@ -72,3 +72,47 @@ fn owner_step(w:&mut crate::world_v3::WorldStateV3,k:&StaticKccWorld,seq:u64,int
  let mut s=sentinel();s.charge_controller.as_mut().unwrap().charge_serial=MAX-1;let target=start(&mut s,&k);assert_eq!(s.charge_controller.as_ref().unwrap().charge_serial,MAX);active(&mut s,&k,target);let mut hits=0;for _ in 0..40{hits+=tick_sentinel(&mut s,target,0.017,&k).1.len();}assert_eq!(hits,1);assert_eq!(s.state,SentinelState::Recover);assert!(s.validate());
  let mut s=sentinel();s.take_damage(1);assert_eq!(s.encounter_view(60).unwrap().remaining_ms,134);assert_eq!(s.state_remaining_ms,120);
 }
+
+#[test]
+fn charge_enabled_chase_respects_authored_pylon_and_keeps_legacy_motion() {
+    let clear = world();
+    let mut blocked_world = clear.clone();
+    blocked_world.walls.push(Aabb::new(7.,8.,5.,7.).unwrap());
+    let start = p(8.31,6.25);
+    let player = p(6.,6.);
+    let dt = 1.0/60.0;
+    let mut base = sentinel();
+    base.position_m = start;
+    base.attack_serial = 2;
+    assert!(base.validate());
+    assert!(blocked_world.can_occupy(start,0.3));
+    assert!(blocked_world.stable_actor_footprint(start,0.3));
+
+    let mut open = base.clone();
+    let (_, open_damage) = tick_sentinel(&mut open,player,dt,&clear);
+    let advance = horizontal_distance(start,open.position_m);
+    assert!((advance-2.2*dt).abs()<0.00001);
+    assert_eq!(open.state,SentinelState::Chase);
+    assert!(open_damage.is_empty());
+
+    let mut blocked = base.clone();
+    let (events, damage) = tick_sentinel(&mut blocked,player,dt,&blocked_world);
+    assert!(blocked_world.can_occupy(blocked.position_m,0.3));
+    assert!(blocked_world.stable_actor_footprint(blocked.position_m,0.3));
+    assert!(horizontal_distance(start,blocked.position_m)<=advance+0.00001);
+    assert_eq!((blocked.state,blocked.hp,blocked.attack_serial),
+               (SentinelState::Chase,base.hp,base.attack_serial));
+    assert_eq!(blocked.charge_controller,base.charge_controller);
+    assert!(damage.is_empty());
+    assert_eq!(events,vec![SentinelEvent::Moved {
+        sentinel_id:blocked.entity_id.clone(),position_m:blocked.position_m,
+    }]);
+
+    let mut legacy = base;
+    legacy.charge_controller = None;
+    let (_, legacy_damage) = tick_sentinel(&mut legacy,player,dt,&blocked_world);
+    assert_eq!(legacy.position_m,open.position_m);
+    assert_eq!((legacy.state,legacy.hp,legacy.attack_serial),
+               (SentinelState::Chase,100,2));
+    assert!(legacy_damage.is_empty());
+}

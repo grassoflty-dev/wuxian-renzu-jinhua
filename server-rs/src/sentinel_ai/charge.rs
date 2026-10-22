@@ -83,7 +83,7 @@ impl Sentinel {
 fn lerp(a:Vec3,b:Vec3,t:f32)->Vec3 {Vec3{x_m:a.x_m+(b.x_m-a.x_m)*t,y_m:a.y_m,z_m:a.z_m+(b.z_m-a.z_m)*t}}
 // At most 5 cm between tested actor discs (30 cm radius), so even a thin wall
 // cannot fall between samples. Static deck/terrain eligibility is checked too.
-fn supported_endpoint(from:Vec3,to:Vec3,kcc:&StaticKccWorld)->Vec3 {
+pub(super) fn supported_endpoint(from:Vec3,to:Vec3,kcc:&StaticKccWorld)->Vec3 {
     let steps=(horizontal_distance(from,to)/0.05).ceil().max(1.0) as usize;
     let mut endpoint=from;
     for n in 0..=steps {let p=lerp(from,to,n as f32/steps as f32);
