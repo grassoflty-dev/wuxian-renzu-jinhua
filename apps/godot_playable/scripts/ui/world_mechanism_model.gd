@@ -38,7 +38,19 @@ static func extraction_controls(s: Dictionary) -> Array:
 	if not P.context(s) or s.get('entryToken')!=null:
 		return []
 	var specs: Array = []
-	if s.worldId=='grey_hive' and s.sceneId=='gh_exit':
+	if s.worldId=='grey_hive' and s.sceneId in ['gh_power_room','gh_lockdown']:
+		if not P.snapshot(s):
+			return []
+		var current_specs: Dictionary = {
+			'gh_power_room':['gh_power_console','power_console','主电控制'],
+			'gh_lockdown':['gh_lockdown_terminal','lockdown_terminal','隔离控制']
+		}
+		var current_spec: Array = current_specs[s.sceneId]
+		var known_rows: Array = s.interactables.filter(func(row): return row.entityId==current_spec[0])
+		if known_rows.size()!=1:
+			return []
+		specs = [current_spec]
+	elif s.worldId=='grey_hive' and s.sceneId=='gh_exit':
 		specs = [['gh_exit_extraction_console','extraction_console','撤离控制'],['gh_extraction_return_to_rs','world_gate','归航门']]
 	elif s.worldId=='mist_harbor' and s.sceneId=='mh_extraction':
 		specs = [['mh_extraction_return_to_rs','world_gate','归航门']]
