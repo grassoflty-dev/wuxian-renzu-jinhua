@@ -1,5 +1,6 @@
 extends RefCounted
 const P = preload('res://scripts/bridge/protocol.gd')
+const ContactGeometry = preload('res://scripts/world/gh_supply_crate_visual.gd')
 const CONFIG = {
 	'rs_terminal':{'id':'runtime2d.world.returnstation.terminal.v1','width':1071,'height':1218,'nominal':72},
 	'beacon_folded':{'id':'runtime2d.prop.beacon.folded.v1','width':1226,'height':1005,'nominal':36},
@@ -60,6 +61,78 @@ func _hash(v) -> bool:
 	return true
 func canvas_height(key: String, ppm: float) -> float:
 	return float(CONFIG[key].nominal)*(ppm/48.0) if CONFIG.has(key) and is_finite(ppm) and ppm>0 else 0.0
+static func _contact_beacon_row_valid(scene: Dictionary, art_id: String, asset_id: String, expected: Vector3) -> bool:
+	var presentation: Variant = scene.get('presentation')
+	if not presentation is Dictionary:
+		return false
+	var sprites: Variant = presentation.get('sprites')
+	if not sprites is Array:
+		return false
+	var sprite_rows: Array = sprites
+	if not P.rows(sprite_rows,2048) or not P.unique(sprite_rows,'id'):
+		return false
+	var matches = sprite_rows.filter(func(row): return row is Dictionary and row.get('id')==art_id and row.get('assetId')==asset_id and row.get('layer')=='visual.props_dynamic')
+	if matches.size()!=1:
+		return false
+	var position: Variant = matches[0].get('position')
+	return position is Array and position.size()==3 and P.number(position[0],expected.x,expected.x) and P.number(position[1],0.0,0.0) and P.number(position[2],expected.z,expected.z)
+
+static func _contact_select_beacon(canvas: CanvasItem, snapshot: Dictionary, scene: Dictionary) -> Dictionary:
+	var beacon: Variant = snapshot.get('greyHiveBeacon')
+	if not beacon is Dictionary or beacon.size()!=2 or typeof(beacon.get('state'))!=TYPE_STRING or typeof(beacon.get('legacyCompletedWithoutReceipt'))!=TYPE_BOOL or beacon.legacyCompletedWithoutReceipt or not beacon.state in ['uncollected','mounted']:
+		return {}
+	var folded: bool = beacon.state=='uncollected'
+	var key = 'beacon_folded' if folded else 'beacon_deployed'
+	var marker_id = 'gh_beacon_deploy_marker' if folded else 'gh_beacon_storage_mount_marker'
+	var art_id = 'beacon_folded_approved' if folded else 'beacon_mounted_approved'
+	var asset_id = 'runtime2d.prop.beacon.folded.v1' if folded else 'runtime2d.prop.beacon.deployed.v1'
+	var expected = Vector3(8.0,0.0,8.0) if folded else Vector3(17.0,0.0,8.0)
+	if not _contact_beacon_row_valid(scene,art_id,asset_id,expected) or not canvas.has_method('_ground_beacon_body'):
+		return {}
+	var matches = snapshot.interactables.filter(func(row): return row is Dictionary and row.get('entityId')==marker_id)
+	if matches.size()!=1 or not P.transform(matches[0].get('transform')):
+		return {}
+	var marker_position: Vector3 = P.vector(matches[0].transform.positionM)
+	var selected: Variant = canvas.call('_ground_beacon_body')
+	if not selected is Dictionary or selected.size()!=4 or selected.get('id')!='beacon-body:'+marker_id or selected.get('kind')!='beacon_body' or not selected.get('p') is Vector3 or selected.p!=marker_position or marker_position!=expected:
+		return {}
+	var data: Variant = selected.get('data')
+	if not data is Dictionary or data.size()!=1 or data.get('key')!=key:
+		return {}
+	return {'key':key,'center':marker_position}
+
+func draw_beacon_contact_shadow(canvas_value: Variant, snapshot_value: Variant, scene_value: Variant, current_key_value: Variant, scene_hash_value: Variant, projection_value: Variant, viewport_value: Variant) -> bool:
+	if not canvas_value is CanvasItem or not is_instance_valid(canvas_value) or not snapshot_value is Dictionary or not scene_value is Dictionary or typeof(current_key_value)!=TYPE_STRING or typeof(scene_hash_value)!=TYPE_STRING or not projection_value is RefCounted or not is_instance_valid(projection_value) or not viewport_value is Rect2:
+		return false
+	var canvas: CanvasItem = canvas_value
+	var snapshot: Dictionary = snapshot_value
+	var scene: Dictionary = scene_value
+	var current_key: String = current_key_value
+	var scene_hash: String = scene_hash_value
+	var projection: RefCounted = projection_value
+	var viewport: Rect2 = viewport_value
+	if not ContactGeometry._contact_context_valid(snapshot,scene,current_key,scene_hash) or not ContactGeometry._contact_canvas_valid(canvas,snapshot,scene,current_key,scene_hash,projection,viewport):
+		return false
+	var selection = _contact_select_beacon(canvas,snapshot,scene)
+	if selection.is_empty():
+		return false
+	var key: String = selection.key
+	var cached: Variant = textures.get(key)
+	var center: Variant = selection.center
+	if not center is Vector3 or center.y!=0.0 or not cached is Texture2D or not is_instance_valid(cached):
+		return false
+	var radii = Vector2(0.20,0.13) if key=='beacon_folded' else Vector2(0.28,0.18)
+	var tint = Color(0.015,0.020,0.022,0.08)
+	var snapshot_frame = snapshot.duplicate(true)
+	var scene_frame = scene.duplicate(true)
+	var camera_frame = {'origin':projection.get('origin'),'center':projection.get('screen_center'),'viewport':projection.get('viewport'),'ppm':projection.get('ppm'),'initialized':projection.get('initialized')}
+	var plan: Dictionary = ContactGeometry._contact_build_plan(Vector2(center.x,center.z),radii,tint,scene,projection,viewport)
+	var final_selection = _contact_select_beacon(canvas,snapshot,scene)
+	if plan.is_empty() or final_selection!=selection or snapshot_frame!=snapshot or scene_frame!=scene or projection.get('origin')!=camera_frame.origin or projection.get('screen_center')!=camera_frame.center or projection.get('viewport')!=camera_frame.viewport or projection.get('ppm')!=camera_frame.ppm or projection.get('initialized')!=camera_frame.initialized or not ContactGeometry._contact_context_valid(snapshot,scene,current_key,scene_hash) or not ContactGeometry._contact_canvas_valid(canvas,snapshot,scene,current_key,scene_hash,projection,viewport) or textures.get(key)!=cached or not cached is Texture2D or not is_instance_valid(cached):
+		return false
+	canvas.draw_colored_polygon(plan.points,plan.color)
+	return true
+
 func draw_body(canvas: CanvasItem, key: String, foot: Vector2, ppm: float) -> bool:
 	if not CONFIG.has(key) or not is_finite(foot.x) or not is_finite(foot.y) or not is_finite(ppm) or ppm<=0:
 		return false
