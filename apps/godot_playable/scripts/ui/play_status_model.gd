@@ -38,6 +38,13 @@ static func milestones(s: Dictionary) -> Array:
 			lines.append(('✓ ' if event in progress.completedEvents else '○ ')+Content.EVENT_LABELS[event])
 			if lines.size()==3:
 				break
+		if world=='grey_hive' and P.snapshot(s) and s.progression.currentWorldId=='grey_hive' and s.get('entryToken')==null and progress.visitId>0:
+			var choice = progress.get('hiveChoice')
+			if typeof(choice)==TYPE_STRING:
+				if choice=='taken':
+					lines.append('已记录的白芷选择：我会帮你离开这里。')
+				elif choice=='left':
+					lines.append('已记录的白芷选择：我不能带你走。')
 	elif world=='return_station':
 		for known in ['grey_hive','mist_harbor','clockworks']:
 			var progress = Content.progress(s,known)
