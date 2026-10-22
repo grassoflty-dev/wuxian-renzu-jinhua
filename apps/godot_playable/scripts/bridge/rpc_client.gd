@@ -191,7 +191,10 @@ func _handle(v) -> void:
 		if item.method=='hello':
 			_drop('E_HANDSHAKE_REJECTED')
 			return
-		failed.emit(id,item.method,v.error.code,item.association)
+		var code: String = v.error.code
+		if not item.method in READS and code=='E_RPC_RESPONSE_LIMIT_MUTATION_UNKNOWN':
+			code = 'UNKNOWN_MUTATION'
+		failed.emit(id,item.method,code,item.association)
 		return
 	if v.error!=null:
 		_drop('E_RESPONSE_PROTOCOL')
