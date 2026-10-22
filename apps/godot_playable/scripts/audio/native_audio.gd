@@ -73,7 +73,7 @@ func update(s: Dictionary, scene: Dictionary, generation: int, eligible: bool, h
  output_context = reader.context_key
  world_enabled = enabled
  for v in voices.duplicate():
-  if not v.player.playing or Time.get_ticks_msec()>=v.until or not v.ui and (not enabled or not reader.authorized(v.row.event,s,scene)):
+  if not v.player.playing or Time.get_ticks_msec()>=v.until or not v.ui and (not enabled or not reader.authorized(v.row.event,s,scene) or reader.age(v.row,s)>=v.get('duration',0.0)):
    release_voice(v)
  if not enabled:
   return
@@ -136,7 +136,7 @@ func play_cue(id: String, row: Dictionary, age_ms: float, pan: float, ui: bool) 
  if remaining<=0:
   player.queue_free()
   return
- voices.append({'player':player,'row':row,'ui':ui,'until':Time.get_ticks_msec()+int(ceil(remaining))})
+ voices.append({'player':player,'row':row,'ui':ui,'duration':remaining+age_ms,'until':Time.get_ticks_msec()+int(ceil(remaining))})
  player.play(age_ms/1000.0)
  if not player.has_stream_playback():
   audio_failure()

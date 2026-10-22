@@ -297,7 +297,11 @@ func _append_wall_commands(commands: Array[Dictionary], projection: RefCounted, 
 	var bz: float = float(inner_b[1])
 	var ox: float = float(outward[0])
 	var oz: float = float(outward[1])
-	var contact_world: Array[Vector2] = [Vector2(ax,az),Vector2(bx,bz),Vector2(bx+ox*0.04,bz+oz*0.04),Vector2(ax+ox*0.04,az+oz*0.04)]
+	# Clip only southern side faces/contacts hidden by the complete south cap.
+	var southern_side: bool = wall_data == WALLS['gh_gate_b_wall_west_south'] or wall_data == WALLS['gh_gate_b_wall_east_south']
+	var south_cap_height: float = float(WALLS['gh_gate_b_wall_south'].height)
+	var contact_bz: float = bz - south_cap_height if southern_side else bz
+	var contact_world: Array[Vector2] = [Vector2(ax,az),Vector2(bx,contact_bz),Vector2(bx+ox*0.04,contact_bz+oz*0.04),Vector2(ax+ox*0.04,az+oz*0.04)]
 	var contact_points: PackedVector2Array = PackedVector2Array()
 	for point in contact_world:
 		var screen: Vector2 = _project(projection,point.x,0.0,point.y)
@@ -307,6 +311,11 @@ func _append_wall_commands(commands: Array[Dictionary], projection: RefCounted, 
 	commands.append({'kind':'solid','points':contact_points,'color':FLOOR_CONTACT})
 	var side_points: PackedVector2Array = PackedVector2Array()
 	var side_world: Array[Vector3] = [Vector3(ax,0.0,az),Vector3(bx,0.0,bz),Vector3(bx,height,bz),Vector3(ax,height,az)]
+	if southern_side:
+		side_world = [Vector3(ax,0.0,az),Vector3(bx,0.0,contact_bz),Vector3(bx,south_cap_height,bz)]
+		if height > south_cap_height:
+			side_world.append(Vector3(bx,height,bz))
+		side_world.append(Vector3(ax,height,az))
 	for point in side_world:
 		var screen: Vector2 = projection.project(point)
 		if not _finite_vec2(screen):
