@@ -939,7 +939,128 @@ func draw_ground(c: Variant,s: Variant,d: Variant,k: Variant,h: Variant,camera: 
 			plans.append({"points":points,"uv":uv})
 	for plan: Dictionary in plans:
 		c.draw_polygon(plan.points,PackedColorArray([Color(.36,.45,.50,1)]),plan.uv,_textures.stone)
+	_field_draw(c,s,d,k,h,camera,viewport)
 	return true
+
+# BEGIN Extraction ground field
+const FIELD_XZ = [[0.5,0.5],[23.5,0.5],[23.5,15.5],[0.5,15.5]]
+const FIELD_RGB = [0.12,0.16,0.18]
+const FIELD_ALPHA = [0.025,0.010]
+const FIELD_AXIS = [0.0,1.0,0.5,15.0]
+
+func _field_bind(c: Variant,s: Variant,d: Variant,k: Variant,h: Variant,p: Variant,v: Variant) -> bool:
+	if not c is CanvasItem or not is_instance_valid(c) or not s is Dictionary or not d is Dictionary or not p is RefCounted or not is_instance_valid(p) or not v is Rect2:
+		return false
+	if typeof(k)!=TYPE_STRING or typeof(h)!=TYPE_STRING or not s.has("entryToken") or s.get("entryToken")!=null or not _loaded or not _ready or not matches_context(c,s,d,k,h,p,v):
+		return false
+	var canvas: CanvasItem = c
+	var rect: Rect2 = v
+	return canvas.is_visible_in_tree() and rect.position==Vector2.ZERO and _finite2(rect.end) and canvas.get_viewport_rect()==rect and canvas.get_global_transform()==Transform2D.IDENTITY and canvas.get_global_transform_with_canvas()==Transform2D.IDENTITY
+
+func _field_capture(c: Variant,s: Variant,d: Variant,k: Variant,h: Variant,p: Variant,v: Variant) -> Dictionary:
+	if not _field_bind(c,s,d,k,h,p,v): return {}
+	var snapshot_data: Dictionary = s
+	var scene_data: Dictionary = d
+	var canvas: CanvasItem = c
+	var camera: RefCounted = p
+	return {"snapshot":snapshot_data.duplicate(true),"scene":scene_data.duplicate(true),
+		"id":canvas.get_instance_id(),"key":k,"hash":h,"camera":camera,"viewport":v,
+		"origin":camera.get("origin"),"center":camera.get("screen_center"),"ppm":camera.get("ppm"),
+		"initialized":camera.get("initialized"),"size":camera.get("viewport"),
+		"global":canvas.get_global_transform(),"with_canvas":canvas.get_global_transform_with_canvas()}
+
+func _field_same(m: Dictionary,c: Variant,s: Variant,d: Variant,k: Variant,h: Variant,p: Variant,v: Variant) -> bool:
+	if m.is_empty() or not _field_bind(c,s,d,k,h,p,v): return false
+	var canvas: CanvasItem = c
+	var camera: RefCounted = p
+	return (_same(s,m.snapshot) and _same(d,m.scene)
+		and _same(canvas.get("snapshot"),m.snapshot) and _same(canvas.get("scene"),m.scene)
+		and canvas.get_instance_id()==m.id and k==m.key and h==m.hash and canvas.get("scene_hash")==m.hash
+		and camera==m.camera and v==m.viewport and camera.get("origin")==m.origin
+		and camera.get("screen_center")==m.center and camera.get("ppm")==m.ppm
+		and camera.get("initialized")==m.initialized and camera.get("viewport")==m.size
+		and canvas.get_global_transform()==m.global and canvas.get_global_transform_with_canvas()==m.with_canvas)
+
+func _field_color(x: float,z: float) -> Color:
+	var t: float = (float(FIELD_AXIS[0])*x+float(FIELD_AXIS[1])*z-float(FIELD_AXIS[2]))/float(FIELD_AXIS[3])
+	return Color(float(FIELD_RGB[0]),float(FIELD_RGB[1]),float(FIELD_RGB[2]),lerpf(float(FIELD_ALPHA[0]),float(FIELD_ALPHA[1]),t))
+
+func _field_color_ok(color: Color) -> bool:
+	for component: float in [color.r,color.g,color.b,color.a]:
+		if not is_finite(component) or component<0.0 or component>1.0: return false
+	var low: float = Color(0,0,0,minf(float(FIELD_ALPHA[0]),float(FIELD_ALPHA[1]))).a
+	var high: float = Color(0,0,0,maxf(float(FIELD_ALPHA[0]),float(FIELD_ALPHA[1]))).a
+	return color.a>=low and color.a<=high
+
+func _field_quad(points: PackedVector2Array) -> bool:
+	if points.size()!=4: return false
+	for point: Vector2 in points:
+		if not _finite2(point): return false
+	var area2: float = 0.0
+	for i: int in range(1,3):
+		var term: float = (points[i]-points[0]).cross(points[i+1]-points[0])
+		if not is_finite(term): return false
+		area2+=term
+	if not is_finite(area2) or area2==0.0: return false
+	var low: Vector2 = points[0]
+	var high: Vector2 = points[0]
+	for i: int in range(4):
+		var edge: Vector2 = points[(i+1)%4]-points[i]
+		var next: Vector2 = points[(i+2)%4]-points[(i+1)%4]
+		var turn: float = edge.cross(next)
+		if not _finite2(edge) or edge==Vector2.ZERO or not is_finite(turn) or turn==0.0 or (turn>0.0)!=(area2>0.0): return false
+		low=low.min(points[i])
+		high=high.max(points[i])
+	return _finite2(high-low) and high.x>low.x and high.y>low.y
+
+func _field_visible(points: PackedVector2Array,rect: Rect2) -> int:
+	var corners: PackedVector2Array = PackedVector2Array([rect.position,Vector2(rect.end.x,rect.position.y),rect.end,Vector2(rect.position.x,rect.end.y)])
+	var axes: Array[Vector2] = [Vector2.RIGHT,Vector2.DOWN]
+	for i: int in range(4):
+		var edge: Vector2 = points[(i+1)%4]-points[i]
+		axes.append(Vector2(-edge.y,edge.x))
+	var separated: bool = false
+	for axis: Vector2 in axes:
+		if not _finite2(axis) or axis==Vector2.ZERO: return -1
+		var plo: float = INF
+		var phi: float = -INF
+		var rlo: float = INF
+		var rhi: float = -INF
+		for point: Vector2 in points:
+			var value: float = (point-points[0]).dot(axis)
+			if not is_finite(value): return -1
+			plo=minf(plo,value)
+			phi=maxf(phi,value)
+		for point: Vector2 in corners:
+			var value: float = (point-points[0]).dot(axis)
+			if not is_finite(value): return -1
+			rlo=minf(rlo,value)
+			rhi=maxf(rhi,value)
+		if not is_finite(plo) or not is_finite(phi) or not is_finite(rlo) or not is_finite(rhi) or plo>=phi or rlo>=rhi: return -1
+		if phi<=rlo or rhi<=plo: separated=true
+	return 0 if separated else 1
+
+func _field_draw(c: Variant,s: Variant,d: Variant,k: Variant,h: Variant,p: Variant,v: Variant) -> bool:
+	var capture: Dictionary = _field_capture(c,s,d,k,h,p,v)
+	if capture.is_empty() or not _same(FIELD_XZ,_source.walkablePolygons[0].polygon): return false
+	var points: PackedVector2Array = PackedVector2Array()
+	var colors: PackedColorArray = PackedColorArray()
+	for pair: Array in FIELD_XZ:
+		var x: float = float(pair[0])
+		var z: float = float(pair[1])
+		var point: Vector2 = _project(p,Vector3(x,0.0,z))
+		var color: Color = _field_color(x,z)
+		if not _finite2(point) or not _field_color_ok(color): return false
+		points.append(point)
+		colors.append(color)
+	if colors.size()!=4 or not _field_quad(points): return false
+	var visibility: int = _field_visible(points,v)
+	if visibility!=1: return false
+	if not _field_same(capture,c,s,d,k,h,p,v): return false
+	var canvas: CanvasItem = c
+	canvas.draw_polygon(points,colors)
+	return true
+# END Extraction ground field
 
 func draw_wall(c: Variant,wall: Variant,s: Variant,d: Variant,k: Variant,h: Variant,camera: Variant,viewport: Variant) -> bool:
 	if not matches_context(c,s,d,k,h,camera,viewport) or not wall is Dictionary:
