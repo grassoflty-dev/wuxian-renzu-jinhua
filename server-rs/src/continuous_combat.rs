@@ -298,7 +298,7 @@ impl Default for CombatState {
 }
 impl CombatState {
     pub fn claim(&mut self, request_id: u64) -> bool {
-        if request_id == 0 || request_id <= self.last_request_id || !self.handled.insert(request_id)
+        if request_id == 0 || request_id > 9_007_199_254_740_991 || request_id <= self.last_request_id || !self.handled.insert(request_id)
         {
             return false;
         }
