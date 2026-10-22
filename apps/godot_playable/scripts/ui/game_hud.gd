@@ -26,6 +26,10 @@ var interact_press: Dictionary = {}
 var status_label: Label
 var hp_label: Label
 var energy_label: Label
+var vitals: VBoxContainer
+var hp_meter: ProgressBar
+var energy_meter: ProgressBar
+var vitals_snapshot_valid = false
 var objectives: Label
 var hint: Label
 var entry_wait_label: Label
@@ -50,7 +54,7 @@ func _ready() -> void:
 	status_label.position = Vector2(60,12)
 	status_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(status_label)
-	var vitals = VBoxContainer.new()
+	vitals = VBoxContainer.new()
 	vitals.position = Vector2(60,44)
 	vitals.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vitals.add_theme_constant_override('separation',0)
@@ -63,6 +67,8 @@ func _ready() -> void:
 	energy_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	energy_label.add_theme_color_override('font_color',Color(HudTheme.BASE.system))
 	vitals.add_child(energy_label)
+	hp_meter = _make_vital_meter(hp_label,'HpRatioMeter',Color(HudTheme.BASE.danger))
+	energy_meter = _make_vital_meter(energy_label,'EnergyRatioMeter',Color(HudTheme.BASE.system))
 	objectives = Label.new()
 	objectives.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	objectives.offset_left = -430
@@ -184,6 +190,7 @@ func _ready() -> void:
 		_add_movement_button(buttons,direction_id)
 	call_deferred('_load_internal_icons')
 	resized.connect(_queue_bottom_layout)
+	resized.connect(_layout_vital_meters)
 	bottom.resized.connect(_queue_bottom_layout)
 	bottom_content.minimum_size_changed.connect(_queue_bottom_layout)
 	_queue_bottom_layout()
@@ -195,6 +202,41 @@ func set_entry_wait_text(value: String) -> void:
 	entry_wait_label.text = value
 	entry_wait_label.visible = not value.is_empty()
 	_queue_bottom_layout()
+
+func _make_vital_meter(label: Label, meter_name: String, tint: Color) -> ProgressBar:
+	var meter = ProgressBar.new()
+	meter.name = meter_name
+	meter.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	meter.focus_mode = Control.FOCUS_NONE
+	meter.show_percentage = false
+	meter.min_value = 0.0
+	meter.max_value = 100.0
+	meter.step = 0.0
+	meter.value = 0.0
+	meter.visible = false
+	meter.clip_contents = true
+	meter.self_modulate = tint
+	label.add_child(meter)
+	label.resized.connect(_layout_vital_meters)
+	return meter
+
+func _layout_vital_meters() -> void:
+	if not is_instance_valid(hp_meter) or not is_instance_valid(energy_meter) or not is_instance_valid(objectives):
+		return
+	var meter_scale = layout_scale if is_finite(layout_scale) and layout_scale>0.0 else 1.0
+	var gap = 8.0*meter_scale
+	var right_edge = minf(size.x-20.0,objectives.position.x-gap)
+	for pair in [[hp_label,hp_meter],[energy_label,energy_meter]]:
+		var label: Label = pair[0]
+		var meter: ProgressBar = pair[1]
+		var origin_x = vitals.position.x+label.position.x+label.size.x+gap
+		var width = minf(128.0*meter_scale,right_edge-origin_x)
+		meter.visible = vitals_snapshot_valid and is_finite(width) and width>=64.0*meter_scale
+		if meter.visible:
+			meter.custom_minimum_size = Vector2(64.0*meter_scale,8.0*meter_scale)
+			meter.position = Vector2(label.size.x+gap,maxf(0.0,(label.size.y-8.0*meter_scale)*0.5))
+			meter.size = Vector2(width,8.0*meter_scale)
+
 func _queue_bottom_layout() -> void:
 	if layout_queued or layout_busy:
 		return
@@ -377,6 +419,9 @@ func _update_movements(s: Dictionary, eligible: bool, movements) -> void:
 			if state.button.disabled:
 				state.button.disabled = false
 func update_view(s: Dictionary, connection: String, eligible: bool, interaction: String, scale: float, target = {}, traversal = {}, actions = [], guard = {}, movements = [], pulse_key: String = 'Q') -> void:
+	var valid_snapshot = P.snapshot(s)
+	if not valid_snapshot:
+		s = {}
 	var desired: Dictionary = {}
 	if eligible and P.snapshot(s) and _interaction_association_valid(target) and P.same(target.context,s):
 		desired = target.duplicate(true)
@@ -419,6 +464,12 @@ func update_view(s: Dictionary, connection: String, eligible: bool, interaction:
 	else:
 		hp_label.text = '岑遥 · 生命 %d / %d'%[s.player.currentHp,s.player.maxHp]
 		energy_label.text = '能量 %d / %d'%[s.player.currentEnergy,s.player.maxEnergy]
+	vitals_snapshot_valid = valid_snapshot
+	hp_meter.value = 100.0*(float(s.player.currentHp)/float(s.player.maxHp)) if valid_snapshot else 0.0
+	energy_meter.value = 100.0*(float(s.player.currentEnergy)/float(s.player.maxEnergy)) if valid_snapshot else 0.0
+	if not valid_snapshot:
+		hp_meter.hide()
+		energy_meter.hide()
 	var display = PlayStatus.project(s,eligible)
 	var lines: Array = display.objectives.duplicate()
 	if not display.milestones.is_empty():
@@ -442,3 +493,4 @@ func update_view(s: Dictionary, connection: String, eligible: bool, interaction:
 	if layout_scale!=scale:
 		layout_scale = scale
 		_queue_bottom_layout()
+	call_deferred('_layout_vital_meters')
