@@ -128,6 +128,41 @@ impl CapabilityState {
         Ok(())
     }
 
+    /// A captured capability clock cannot be ahead of its enclosing owner clock.
+    /// Preserve lagging/absent clocks; admission must not normalize saved state.
+    pub(crate) fn validate_saved_clock(&self, server_time_ms: u64) -> Result<(), CapabilityError> {
+        if self.last_now_ms.is_some_and(|last| last > server_time_ms) {
+            return Err(CapabilityError::NonMonotonicClock);
+        }
+        Ok(())
+    }
+
+    /// Restore rebases epochs only; saved tick/revision counters must not lead the owner.
+    /// Compare copies in that epoch without mutating or normalizing persisted state.
+    pub(crate) fn validate_saved_revisions(&self, owner: WorldRevision) -> Result<(), CapabilityError> {
+        for saved in std::iter::once(self.current_revision).chain(self.last_tick_revision) {
+            let restored = WorldRevision { world_epoch: owner.world_epoch, ..saved };
+            if !revision_at_least(owner, restored) {
+                return Err(CapabilityError::StaleRevision);
+            }
+        }
+        Ok(())
+    }
+
+    /// Preserve the tick guard's event-clock ordering, including accepted None resets.
+    pub(crate) fn validate_saved_event_clocks(
+        &self,
+        last_damaged_at_ms: Option<u64>,
+        last_combat_at_ms: Option<u64>,
+    ) -> Result<(), CapabilityError> {
+        if timestamp_regressed(last_damaged_at_ms, self.last_damage_at_ms)
+            || timestamp_regressed(last_combat_at_ms, self.last_combat_at_ms)
+        {
+            return Err(CapabilityError::NonMonotonicClock);
+        }
+        Ok(())
+    }
+
     pub fn current_revision(&self) -> WorldRevision {
         self.current_revision
     }
