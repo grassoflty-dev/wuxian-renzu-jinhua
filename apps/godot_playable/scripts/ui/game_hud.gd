@@ -215,7 +215,18 @@ func _make_vital_meter(label: Label, meter_name: String, tint: Color) -> Progres
 	meter.value = 0.0
 	meter.visible = false
 	meter.clip_contents = true
-	meter.self_modulate = tint
+	var background = StyleBoxFlat.new()
+	background.bg_color = Color(HudTheme.BASE.background)
+	var fill = StyleBoxFlat.new()
+	fill.bg_color = tint
+	for style in [background,fill]:
+		style.set_border_width_all(0)
+		style.content_margin_left = 0.0
+		style.content_margin_right = 0.0
+		style.content_margin_top = 0.0
+		style.content_margin_bottom = 0.0
+	meter.add_theme_stylebox_override('background',background)
+	meter.add_theme_stylebox_override('fill',fill)
 	label.add_child(meter)
 	label.resized.connect(_layout_vital_meters)
 	return meter
