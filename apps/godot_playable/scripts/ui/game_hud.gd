@@ -307,6 +307,7 @@ func _add_player_action(buttons: HFlowContainer, action_id: String) -> void:
 	player_action_states[action_id] = state
 	button.text = PLAYER_ACTION_LABELS[action_id]
 	button.tooltip_text = '尝试'+button.text+('；使用当前瞄准方向。' if action_id in ['primaryAttack','pierce'] else '。')+('\n'+Icons.USE_TEXT[action_id] if Icons.USE_TEXT.has(action_id) else '')
+	state['tooltip'] = button.tooltip_text
 	button.mouse_filter = Control.MOUSE_FILTER_STOP
 	button.focus_mode = Control.FOCUS_NONE
 	button.visible = false
@@ -336,10 +337,11 @@ func _update_player_actions(s: Dictionary, eligible: bool, actions) -> void:
 				break
 			common_generation = row.generation
 			selected[row.entityId] = row.duplicate(true)
+	var busy = not selected.is_empty() and (PLAYER_ACTION_LABELS.has(s.player.actionState) or s.player.actionState=='guard')
 	for action_id in PLAYER_ACTION_LABELS:
 		var state = player_action_states[action_id]
 		var desired: Dictionary = selected.get(action_id,{})
-		if desired.is_empty() or not _interaction_identity_same(desired,state.display):
+		if busy or desired.is_empty() or not _interaction_identity_same(desired,state.display):
 			state.press.clear()
 			state.display.clear()
 		if desired.is_empty():
@@ -347,10 +349,10 @@ func _update_player_actions(s: Dictionary, eligible: bool, actions) -> void:
 			state.button.visible = false
 		else:
 			state.display = desired
+			state.button.tooltip_text = state.tooltip+('\n当前动作尚未结束' if busy else '')
 			if not state.button.visible:
 				state.button.visible = true
-			if state.button.disabled:
-				state.button.disabled = false
+			state.button.disabled = busy
 func _guard_association_valid(value) -> bool:
 	return _interaction_association_valid(value) and typeof(value.entityId)==TYPE_STRING and value.entityId=='guard' and value.kind=='player_guard' and value.label=='防御'
 func _cancel_guard_capture() -> void:
