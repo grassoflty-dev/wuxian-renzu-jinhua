@@ -134,7 +134,9 @@ pub fn tick_sentinel(
             let dx = (player.x_m - s.position_m.x_m) / d;
             let dz = (player.z_m - s.position_m.z_m) / d;
             let candidate=Vec3{x_m:s.position_m.x_m+dx*2.2*dt_s,z_m:s.position_m.z_m+dz*2.2*dt_s,..s.position_m};
-            if kcc.stable_actor_footprint(candidate,0.3) {s.position_m=candidate;}
+            if s.charge_controller.is_some() {
+                s.position_m=charge::supported_endpoint(s.position_m,candidate,kcc);
+            } else if kcc.stable_actor_footprint(candidate,0.3) {s.position_m=candidate;}
             events.push(SentinelEvent::Moved {
                 sentinel_id: s.entity_id.clone(),
                 position_m: s.position_m,
