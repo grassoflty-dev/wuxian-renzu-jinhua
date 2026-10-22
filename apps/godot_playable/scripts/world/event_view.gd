@@ -77,6 +77,8 @@ func _duration(e: Dictionary) -> float:
 func _authorized(e: Dictionary, s: Dictionary, renderer) -> bool:
 	if e.get('protocolVersion')!=2 or not renderer.visible_point(P.vector(e.positionM)):
 		return false
+	if e.get('combatFeedback') is Dictionary and not e.kind in COMBAT:
+		return false
 	if e.kind in COMBAT:
 		var f = e.get('combatFeedback')
 		if not f is Dictionary or f.get('worldId')!=s.worldId or f.get('sceneId')!=s.sceneId or f.get('outcome')!=COMBAT[e.kind] or not P.counter(e.get('durationMs'),1,2000):
