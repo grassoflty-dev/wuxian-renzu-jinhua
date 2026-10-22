@@ -206,12 +206,21 @@ func draw_wall(canvas: Variant, snapshot: Variant, scene: Variant, current_key: 
 		return false
 	var relief: Vector2 = Vector2(0,12.0*float(projection.ppm)/48.0)
 	var face: PackedVector2Array = PackedVector2Array([ground[0],ground[1],ground[1]-relief,ground[0]-relief])
+	var contact_b: Vector2 = b
+	if wall.id in ['beacon_wall_west_south','beacon_wall_east_south']:
+		# Native y-height of the existing relief; south-cap overlap is terminal.
+		var south_cap_height: float = relief.y / float(projection.ppm)
+		contact_b.y -= south_cap_height
+		var clipped_ground: PackedVector2Array = _project(projection,[[contact_b.x,contact_b.y]])
+		if clipped_ground.size()!=1:
+			return false
+		face = PackedVector2Array([ground[0],clipped_ground[0],ground[1]-relief,ground[0]-relief])
 	for index: int in range(cap.size()):
 		cap[index] -= relief
 	var outline: PackedVector2Array = cap.duplicate()
 	outline.append(cap[0])
 	var commands: Array[Dictionary] = [
-		{'kind':'polygon','points':_project(projection,[[a.x,a.y],[b.x,b.y],[b.x+inside.x,b.y+inside.y],[a.x+inside.x,a.y+inside.y]]),'colors':PackedColorArray([Color(0.02,0.06,0.045,0.12)])},
+		{'kind':'polygon','points':_project(projection,[[a.x,a.y],[contact_b.x,contact_b.y],[contact_b.x+inside.x,contact_b.y+inside.y],[a.x+inside.x,a.y+inside.y]]),'colors':PackedColorArray([Color(0.02,0.06,0.045,0.12)])},
 		{'kind':'polygon','points':face,'colors':PackedColorArray([Color('#26352f')])},
 		{'kind':'polygon','points':cap,'colors':PackedColorArray([Color('#35483e')])},
 		{'kind':'line','points':outline,'colors':PackedColorArray([Color(0.42745098,0.50980392,0.46666667,0.35)]),'width':float(projection.ppm)/48.0}
