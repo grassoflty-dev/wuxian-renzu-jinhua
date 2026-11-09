@@ -6501,6 +6501,14 @@ fn project_scene_view(state: &RuntimeState, scene: Option<&SceneRuntime>) -> Wor
     }
     view.boss_encounter = warden_encounter::project(state, scene);
     live_rules::project_information(state, Some(definition), view.dense_occupied_region.as_deref(), None, &mut view.capabilities);
+    // The veil layer: an authored-region world has no dense/contact provider to
+    // publish visibility, so it is derived here from the region the player
+    // occupies plus the regions an open boundary makes visible. This stays on
+    // the world view and never enters a neighbor/route payload, whose contract
+    // forbids actors, capabilities, map knowledge and visible regions.
+    if let Some(visible) = live_rules::project_authored_region_visibility(state, definition) {
+        view.current_visible_regions = Some(visible);
+    }
     view.world_id = definition.world_id.clone();
     view.scene_id = definition.scene_id.clone();
     view.checkpoint_id = scene.checkpoint_id.clone();
@@ -12723,6 +12731,73 @@ mod tests {
             .as_ref()
             .unwrap()
             .contains(&"rs_core_west".to_string()));
+    }
+
+    #[test]
+    fn hub_projection_publishes_region_visibility_without_touching_neighbor_wire() {
+        let (runtime, root) = acoustic_fixture("hub_visibility");
+        let registry = runtime
+            .scene_registry
+            .lock()
+            .unwrap()
+            .as_ref()
+            .unwrap()
+            .clone();
+        let scene = SceneRuntime::new(registry, "rs_core_room", 1).unwrap();
+        let mut state = runtime.state.lock().unwrap();
+        state.world =
+            WorldStateV3::new("return_station", 1, Vec3::new(4.0, 0.0, 8.0).unwrap()).unwrap();
+        state.world.scene_id = "rs_core_room".into();
+        state.paused = false;
+        state.pending_entry = None;
+        state.pending_exit = None;
+
+        let west = project_scene_view(&state, Some(&scene));
+        assert_eq!(
+            west.current_visible_regions,
+            Some(vec![
+                "rs_core_center".into(),
+                "rs_core_north".into(),
+                "rs_core_south".into(),
+                "rs_core_west".into()
+            ])
+        );
+        // Without a scene the previous "no region semantics" answer stands, so
+        // nothing outside the hub gains a veil.
+        let foreign = project_scene_view(&state, None);
+        assert_eq!(foreign.current_visible_regions, None);
+
+        state.world.player.position_m = Vec3::new(20.0, 0.0, 8.0).unwrap();
+        let gate = project_scene_view(&state, Some(&scene));
+        assert_eq!(
+            gate.current_visible_regions,
+            Some(vec![
+                "rs_core_center".into(),
+                "rs_core_gate".into(),
+                "rs_core_north".into(),
+                "rs_core_south".into()
+            ])
+        );
+        assert_ne!(west.current_visible_regions, gate.current_visible_regions);
+
+        // Contract that must not move: a neighbor/route payload never carries
+        // hidden information, including visible regions.
+        let wire = serde_json::to_value(&gate.hive_route_neighbor).unwrap();
+        for forbidden in [
+            "actors",
+            "capabilities",
+            "mapKnowledge",
+            "exploredMap",
+            "currentVisibleRegions",
+        ] {
+            assert!(wire.get(forbidden).is_none());
+        }
+        drop(state);
+        runtime.stop_owner.store(true, Ordering::SeqCst);
+        if let Some(handle) = runtime.owner_handle.lock().unwrap().take() {
+            handle.join().unwrap();
+        }
+        let _ = std::fs::remove_dir_all(root);
     }
 
     #[test]

@@ -727,6 +727,217 @@ pub(super) fn project_information(
     projection.map_knowledge = Some(knowledge);
 }
 
+/// How far two region outlines may be apart and still count as touching.
+const OPEN_BOUNDARY_GAP_M: f32 = 0.05;
+/// A touching span shorter than this is a corner kiss, not an opening a player
+/// can see through, so it must not make the neighbouring region visible.
+const OPEN_BOUNDARY_MIN_M: f32 = 0.5;
+/// Sampling step used to measure the touching span between two outlines.
+const OPEN_BOUNDARY_SAMPLE_M: f32 = 0.25;
+
+/// Worlds whose scene visibility is authored purely by exploration-region
+/// geometry. The hive scenes publish it through their dense/service providers
+/// and the harbour/clockworks scenes through the MH/CW contact provider, so
+/// only the return station qualifies.
+fn region_geometry_visibility_world(world_id: &str) -> bool {
+    world_id == crate::world_persistent_v1::RETURN_STATION_ID
+}
+
+/// Cheap rejection: outlines whose bounding boxes are further apart than `gap`
+/// cannot share a boundary.
+fn polygon_bounds_gap_within(a: &[[f32; 2]], b: &[[f32; 2]], gap: f32) -> bool {
+    fn bounds(points: &[[f32; 2]]) -> Option<(f32, f32, f32, f32)> {
+        let mut bounds = (f32::INFINITY, f32::INFINITY, f32::NEG_INFINITY, f32::NEG_INFINITY);
+        for [x, z] in points {
+            if !x.is_finite() || !z.is_finite() {
+                return None;
+            }
+            bounds = (bounds.0.min(*x), bounds.1.min(*z), bounds.2.max(*x), bounds.3.max(*z));
+        }
+        Some(bounds)
+    }
+    let (Some((amin_x, amin_z, amax_x, amax_z)), Some((bmin_x, bmin_z, bmax_x, bmax_z))) =
+        (bounds(a), bounds(b))
+    else {
+        return false;
+    };
+    let dx = (amin_x - bmax_x).max(bmin_x - amax_x).max(0.0);
+    let dz = (amin_z - bmax_z).max(bmin_z - amax_z).max(0.0);
+    (dx * dx + dz * dz).sqrt() <= gap
+}
+
+/// True when two region outlines share at least [`OPEN_BOUNDARY_MIN_M`] of
+/// boundary within [`OPEN_BOUNDARY_GAP_M`], i.e. there is an opening a player
+/// can see through. A wall between them leaves a gap wider than the tolerance.
+fn regions_share_open_boundary(a: &[[f32; 2]], b: &[[f32; 2]]) -> bool {
+    if a.len() < 3 || b.len() < 3 || !polygon_bounds_gap_within(a, b, OPEN_BOUNDARY_GAP_M) {
+        return false;
+    }
+    let mut open = 0.0_f32;
+    for index in 0..b.len() {
+        let [ax, az] = b[index];
+        let [bx, bz] = b[(index + 1) % b.len()];
+        let length = ((bx - ax) * (bx - ax) + (bz - az) * (bz - az)).sqrt();
+        if !length.is_finite() || length <= 0.0 {
+            continue;
+        }
+        let steps = ((length / OPEN_BOUNDARY_SAMPLE_M).ceil() as usize).max(1);
+        let step = length / steps as f32;
+        for sample in 0..steps {
+            let t = (sample as f32 + 0.5) / steps as f32;
+            if super::polygon_edge_distance(ax + (bx - ax) * t, az + (bz - az) * t, a)
+                <= OPEN_BOUNDARY_GAP_M
+            {
+                open += step;
+                if open >= OPEN_BOUNDARY_MIN_M {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
+/// Region ids visible from `(x, z)` under the authored-geometry rule: the region
+/// the player occupies plus every region that shares an open boundary with it.
+/// Standing on the wall band between regions falls back to the nearest authored
+/// region instead of claiming that nothing is visible.
+fn visible_region_ids(
+    regions: &[crate::scene_runtime::ScenePolygon],
+    x: f32,
+    z: f32,
+) -> Option<Vec<String>> {
+    if regions.len() < 2 || !x.is_finite() || !z.is_finite() {
+        return None;
+    }
+    let mut occupied: Vec<usize> = (0..regions.len())
+        .filter(|index| super::point_in_or_on_polygon(x, z, &regions[*index].polygon))
+        .collect();
+    if occupied.is_empty() {
+        let nearest = regions
+            .iter()
+            .enumerate()
+            .map(|(index, region)| (index, super::polygon_edge_distance(x, z, &region.polygon)))
+            .min_by(|a, b| a.1.total_cmp(&b.1))?;
+        occupied.push(nearest.0);
+    }
+    let mut visible: Vec<String> = occupied
+        .iter()
+        .map(|index| regions[*index].id.clone())
+        .collect();
+    for index in 0..regions.len() {
+        if occupied.contains(&index) {
+            continue;
+        }
+        if occupied.iter().any(|here| {
+            regions_share_open_boundary(&regions[*here].polygon, &regions[index].polygon)
+        }) {
+            visible.push(regions[index].id.clone());
+        }
+    }
+    visible.sort();
+    visible.dedup();
+    Some(visible)
+}
+
+/// Authored-region visibility for the live scene of a world that has no
+/// per-region visibility provider. `None` means this scene publishes no
+/// region-geometry visibility, so every other world keeps its previous
+/// projection byte for byte.
+pub(super) fn project_authored_region_visibility(
+    state: &RuntimeState,
+    scene: &SceneDefinition,
+) -> Option<Vec<String>> {
+    if !region_geometry_visibility_world(&scene.world_id)
+        || scene.world_id != state.world.world_id
+        || scene.scene_id != state.world.scene_id
+        || scene.exploration_regions.is_empty()
+    {
+        return None;
+    }
+    let position = state.world.player.position_m;
+    visible_region_ids(&scene.exploration_regions, position.x_m, position.z_m)
+}
+
+#[cfg(test)]
+mod region_visibility_tests {
+    use super::*;
+
+    fn rect(x0: f32, x1: f32, z0: f32, z1: f32) -> Vec<[f32; 2]> {
+        vec![[x0, z0], [x1, z0], [x1, z1], [x0, z1]]
+    }
+
+    fn hub() -> crate::scene_runtime::SceneDefinition {
+        serde_json::from_str(include_str!("../../../content/scenes/compiled/rs_core_room.json"))
+            .unwrap()
+    }
+
+    #[test]
+    fn open_boundary_counts_and_a_wall_between_regions_does_not() {
+        assert!(regions_share_open_boundary(
+            &rect(0.5, 8.0, 0.5, 15.5),
+            &rect(8.0, 16.0, 6.0, 10.0)
+        ));
+        // The hub's 0.5 m wall band keeps two regions out of sight of each other.
+        assert!(!regions_share_open_boundary(
+            &rect(0.5, 8.0, 0.5, 15.5),
+            &rect(8.5, 16.0, 0.5, 15.5)
+        ));
+        // Touching at one corner is not an opening.
+        assert!(!regions_share_open_boundary(
+            &rect(0.0, 8.0, 0.0, 8.0),
+            &rect(8.0, 16.0, 8.0, 16.0)
+        ));
+        assert!(!regions_share_open_boundary(
+            &rect(0.0, 8.0, 0.0, 8.0),
+            &rect(20.0, 28.0, 0.0, 8.0)
+        ));
+    }
+
+    #[test]
+    fn hub_visibility_is_current_plus_open_neighbours_never_all_or_nothing() {
+        let scene = hub();
+        assert_eq!(scene.scene_id, "rs_core_room");
+        assert_eq!(scene.exploration_regions.len(), 5);
+        // Standing in the west hall: its three open neighbours follow, the gate
+        // behind the centre block does not, so the set is neither all nor empty.
+        let west = visible_region_ids(&scene.exploration_regions, 4.0, 8.0).unwrap();
+        assert_eq!(
+            west,
+            vec![
+                "rs_core_center",
+                "rs_core_north",
+                "rs_core_south",
+                "rs_core_west"
+            ]
+        );
+        // Standing at the gate: the west hall drops out, the gate and its three
+        // neighbours stay.
+        let gate = visible_region_ids(&scene.exploration_regions, 20.0, 8.0).unwrap();
+        assert_eq!(
+            gate,
+            vec![
+                "rs_core_center",
+                "rs_core_gate",
+                "rs_core_north",
+                "rs_core_south"
+            ]
+        );
+        assert_ne!(west, gate, "visibility must move with the player");
+        // A position on the wall band is still answered, never empty.
+        let band = visible_region_ids(&scene.exploration_regions, 8.0, 8.0).unwrap();
+        assert!(!band.is_empty());
+    }
+
+    #[test]
+    fn only_the_authored_region_world_publishes_geometry_visibility() {
+        assert!(region_geometry_visibility_world("return_station"));
+        assert!(!region_geometry_visibility_world("grey_hive"));
+        assert!(!region_geometry_visibility_world("mist_harbor"));
+        assert!(!region_geometry_visibility_world("clockworks"));
+    }
+}
+
 #[cfg(test)]
 mod whole_floor_map_tests {
     use super::*;
