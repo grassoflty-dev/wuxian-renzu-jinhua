@@ -53,7 +53,8 @@ func draw_body(canvas: CanvasItem, family: String, scope: String, tick: int, ser
 	var texture=_texture(family)
 	if texture==null: return false
 	var size=texture.get_size()/2.0
-	var factor=(0.9 if family=='pressure_drone' else 1.0)*ppm/size.y
+	var metres=(0.9 if family=='pressure_drone' else 1.0)
+	var factor=maxf(metres,1.1)*ppm/size.y
 	if not is_finite(factor) or factor<=0: return false
 	var source=Rect2(Vector2(cell%2,floori(float(cell)/2.0))*size,size)
 	canvas.draw_texture_rect_region(texture,Rect2(foot-Vector2(size.x*0.5,size.y*0.92)*factor,size*factor),source,Color.WHITE,false,true)

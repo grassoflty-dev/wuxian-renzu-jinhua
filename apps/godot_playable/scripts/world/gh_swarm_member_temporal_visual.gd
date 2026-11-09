@@ -80,7 +80,7 @@ func draw_body(canvas:CanvasItem,s:Dictionary,actor:Dictionary,member:Dictionary
 	var size=atlas.get_size()
 	var cell_size=size/2.0
 	var source=Rect2(Vector2((cell%2)*cell_size.x,int(cell/2)*cell_size.y),cell_size)
-	var height=0.6*ppm
+	var height=maxf(0.6,0.9)*ppm
 	var display=Vector2(height*cell_size.x/cell_size.y,height)
 	if not display.is_finite() or display.x<=0.0 or display.y<=0.0: return false
 	canvas.draw_texture_rect_region(atlas,Rect2(foot-Vector2(display.x*0.5,display.y*0.84),display),source,Color.WHITE)

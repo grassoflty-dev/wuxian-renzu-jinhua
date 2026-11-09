@@ -3,11 +3,14 @@ extends RefCounted
 const P = preload('res://scripts/bridge/protocol.gd')
 const STEEL = 'res://assets/materials/cw_pressure_end_steel_local_r1.png'
 const FACADE = 'res://assets/props/return_station/rs_orthographic_facade_local_r1.png'
+const FACADE_R2 = 'res://assets/props/return_station/rs_orthographic_facade_local_r2.png'
 const DECK_ATLAS = 'res://assets/props/return_station/rs_walk_deck_material_atlas_local_r1.png'
 const DECK_ATLAS_R2 = 'res://assets/props/return_station/rs_walk_deck_material_atlas_local_r2.png'
 const DECK_ATLAS_R3 = 'res://assets/props/return_station/rs_walk_deck_material_atlas_local_r3.png'
 const DISTANT_SHELL = 'res://assets/props/return_station/rs_distant_shell_local_r1.png'
+const DISTANT_SHELL_R2 = 'res://assets/props/return_station/rs_distant_shell_local_r2.png'
 const AMBIENT_BACKDROP = 'res://assets/props/return_station/rs_ambient_backdrop_local_r1.png'
+const AMBIENT_BACKDROP_R2 = 'res://assets/props/return_station/rs_ambient_backdrop_local_r2.png'
 const OWNERS = {
 	'north_bulkhead':Rect2(0,0,24,0.5), 'south_bulkhead':Rect2(0,15.5,24,0.5),
 	'west_bulkhead_north':Rect2(0,0.5,0.5,4.5), 'west_bulkhead_south':Rect2(0,10,0.5,5.5),
@@ -61,7 +64,8 @@ func _load_once() -> bool:
 	if attempted: return ready
 	attempted=true
 	steel=_texture(STEEL)
-	facade=_texture(FACADE)
+	facade=_texture(FACADE_R2)
+	if not is_instance_valid(facade): facade=_texture(FACADE)
 	if not is_instance_valid(steel) or steel.get_size()!=Vector2(1254,1254):
 		if probe_enabled and not probe_done: probe_required_failure='required_steel'
 		return false
@@ -226,16 +230,24 @@ func _valid_shell_image(image: Image) -> bool:
 func _shell_ready() -> bool:
 	if not shell_attempted:
 		shell_attempted=true
-		if probe_enabled: probe_shell_import='absent'
-		if ResourceLoader.exists(DISTANT_SHELL,'Texture2D'):
-			var imported=ResourceLoader.load(DISTANT_SHELL,'Texture2D') as Texture2D
-			if is_instance_valid(imported) and _valid_shell_image(imported.get_image()): shell_texture=imported
-			if probe_enabled: probe_shell_import='accepted' if is_instance_valid(shell_texture) else 'unqualified'
+		if ResourceLoader.exists(DISTANT_SHELL_R2,'Texture2D'):
+			var r2_imported=ResourceLoader.load(DISTANT_SHELL_R2,'Texture2D') as Texture2D
+			if is_instance_valid(r2_imported) and _valid_shell_image(r2_imported.get_image()): shell_texture=r2_imported
 		if not is_instance_valid(shell_texture):
-			var raw=Image.new()
-			var decoded=raw.load(DISTANT_SHELL)==OK
-			if decoded and _valid_shell_image(raw): shell_texture=ImageTexture.create_from_image(raw)
-			if probe_enabled: probe_shell_raw='decode_failed' if not decoded else ('accepted' if is_instance_valid(shell_texture) else 'unqualified')
+			var r2_raw=Image.new()
+			var r2_decoded=r2_raw.load(DISTANT_SHELL_R2)==OK
+			if r2_decoded and _valid_shell_image(r2_raw): shell_texture=ImageTexture.create_from_image(r2_raw)
+		if not is_instance_valid(shell_texture):
+			if probe_enabled: probe_shell_import='absent'
+			if ResourceLoader.exists(DISTANT_SHELL,'Texture2D'):
+				var imported=ResourceLoader.load(DISTANT_SHELL,'Texture2D') as Texture2D
+				if is_instance_valid(imported) and _valid_shell_image(imported.get_image()): shell_texture=imported
+				if probe_enabled: probe_shell_import='accepted' if is_instance_valid(shell_texture) else 'unqualified'
+			if not is_instance_valid(shell_texture):
+				var raw=Image.new()
+				var decoded=raw.load(DISTANT_SHELL)==OK
+				if decoded and _valid_shell_image(raw): shell_texture=ImageTexture.create_from_image(raw)
+				if probe_enabled: probe_shell_raw='decode_failed' if not decoded else ('accepted' if is_instance_valid(shell_texture) else 'unqualified')
 	return is_instance_valid(shell_texture)
 
 func _distant_shell_plane(camera, axis: String, fixed: float, start: float, end: float, base_y: float = 0.375, phase: float = 0.0) -> Array:
@@ -261,14 +273,23 @@ func _valid_backdrop_image(image: Image) -> bool:
 func _backdrop_ready() -> bool:
 	if not backdrop_attempted:
 		backdrop_attempted=true
-		if ResourceLoader.exists(AMBIENT_BACKDROP,'Texture2D'):
-			var imported=ResourceLoader.load(AMBIENT_BACKDROP,'Texture2D') as Texture2D
-			if is_instance_valid(imported) and _valid_backdrop_image(imported.get_image()): backdrop_texture=imported
+		if ResourceLoader.exists(AMBIENT_BACKDROP_R2,'Texture2D'):
+			var r2_imported=ResourceLoader.load(AMBIENT_BACKDROP_R2,'Texture2D') as Texture2D
+			if is_instance_valid(r2_imported) and _valid_backdrop_image(r2_imported.get_image()): backdrop_texture=r2_imported
 		if not is_instance_valid(backdrop_texture):
-			var raw=Image.new()
-			if raw.load(AMBIENT_BACKDROP)==OK and _valid_backdrop_image(raw):
-				if is_instance_valid(raw) and not raw.is_empty(): raw.generate_mipmaps()
-				backdrop_texture=ImageTexture.create_from_image(raw)
+			var r2_raw=Image.new()
+			if r2_raw.load(AMBIENT_BACKDROP_R2)==OK and _valid_backdrop_image(r2_raw):
+				if is_instance_valid(r2_raw) and not r2_raw.is_empty(): r2_raw.generate_mipmaps()
+				backdrop_texture=ImageTexture.create_from_image(r2_raw)
+		if not is_instance_valid(backdrop_texture):
+			if ResourceLoader.exists(AMBIENT_BACKDROP,'Texture2D'):
+				var imported=ResourceLoader.load(AMBIENT_BACKDROP,'Texture2D') as Texture2D
+				if is_instance_valid(imported) and _valid_backdrop_image(imported.get_image()): backdrop_texture=imported
+			if not is_instance_valid(backdrop_texture):
+				var raw=Image.new()
+				if raw.load(AMBIENT_BACKDROP)==OK and _valid_backdrop_image(raw):
+					if is_instance_valid(raw) and not raw.is_empty(): raw.generate_mipmaps()
+					backdrop_texture=ImageTexture.create_from_image(raw)
 	return is_instance_valid(backdrop_texture)
 
 func prepare(snapshot: Dictionary, scene: Dictionary, key: String, camera, environment, feet: Array) -> Dictionary:
