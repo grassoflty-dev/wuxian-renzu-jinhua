@@ -1,5 +1,5 @@
 extends RefCounted
-const BASE = {'background':'#0B121A','panel':'#16202A','panelRaised':'#1B2934','border':'#344652','text':'#E7EDF2','textMuted':'#8D9AA5','system':'#58D7F0','accent':'#D9AD58','danger':'#E1504C','success':'#55C89C','focus':'#9FEEFF'}
+const BASE = {'background':'#0B121A','panel':'#16202A','panelRaised':'#1B2934','border':'#344652','text':'#E7EDF2','textMuted':'#8D9AA5','system':'#C4BDB8','accent':'#D9AD58','danger':'#E1504C','success':'#55C89C','focus':'#9FEEFF'}
 static func palette(world: String) -> Dictionary:
 	var colors = BASE.duplicate()
 	if world=='mist_harbor':
