@@ -767,7 +767,7 @@ func _capability() -> void:
 		_text('能力状态尚未同步')
 	else:
 		var use_text = {
-			'information.local_map_i':'M / 地图：只显示权威允许的已探索信息。',
+			'information.local_map_i':'M / 地图：需先获得并选用本能力；只显示权威允许的已探索信息。',
 			'information.enemy_vitals_basic':'生命信息：只显示健康、受伤、重伤、濒危四档，不显示精确生命数值。',
 			'perception.rear_view_i':'后方视野：显示来自当前权威授权的信息。',
 			'perception.acoustic_mapping_i':'声学映射：雾港声源方向与距离来自权威投影。',
@@ -1147,7 +1147,7 @@ func _enhancement_local_button(text: String, choice: String) -> void:
 	box.add_child(button)
 func _enhancement() -> void:
 	var use_text = {
-		'information.local_map_i':'M / 地图：只显示权威允许的已探索信息。',
+		'information.local_map_i':'M / 地图：需先获得并选用本能力；只显示权威允许的已探索信息。',
 		'perception.rear_view_i':'后方视野：显示来自当前权威授权的信息。',
 		'body.regeneration_i':'再生：由权威自动处理，受伤与战斗后的恢复不由本页触发。'}
 	_text('灰巢首次撤离后的真实能力终端选择。一次确认，无法从此界面授予其他能力。')

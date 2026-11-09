@@ -187,6 +187,7 @@ func set_snapshot(s: Dictionary) -> void:
 				if feature is Dictionary and feature.get('channel') in CHANNELS and feature.get('knowledge') in ['explored_only','detected_only','known','full'] and v is Dictionary and P.number(v.get('x'),-4096,4096) and P.number(v.get('y'),-4096,4096):
 					points.append({'p':Vector2(v.x,v.y),'category':_category(feature.channel),'channel':feature.channel,'knowledge':feature.knowledge})
 	if polygons.is_empty() and points.is_empty():
+		message = _empty_message(topology)
 		queue_redraw()
 		return
 	message = '本世界地图 · 未知区域隐藏'
@@ -226,6 +227,12 @@ func _region_visible(room_id: String) -> bool:
 		if room_id.begins_with(str(region)+':'):
 			return true
 	return false
+func _empty_message(topology: bool) -> String:
+	# Two different reasons produce an empty map; name the real one instead of
+	# implying the panel is broken. The authority still owns every polygon shown.
+	if not topology:
+		return '尚未获得并选用「局部地图」能力，地图暂不可用。'
+	return '本区域暂无已探索的地图数据。'
 func _category(channel: String) -> String:
 	if channel=='objectives':
 		return 'objective'
