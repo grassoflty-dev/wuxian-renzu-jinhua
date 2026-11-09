@@ -24,6 +24,8 @@ var player_point = Vector2.ZERO
 var has_player_point = false
 var legend: Array = []
 var region_state_legend = false
+var visible_regions = {}
+var shroud_active = false
 var accent = Color('#436679')
 var message = '当前没有可显示的地图信息。'
 func _map_polygon(v: Array) -> bool:
@@ -47,6 +49,8 @@ func set_snapshot(s: Dictionary) -> void:
 	junction_replaced.clear()
 	legend.clear()
 	region_state_legend = false
+	visible_regions.clear()
+	shroud_active = false
 	range_rect = Rect2()
 	player_point = Vector2.ZERO
 	has_player_point = false
@@ -76,6 +80,11 @@ func set_snapshot(s: Dictionary) -> void:
 	var map = c.get('exploredMap')
 	var current_ids = _validated_room_ids(c.get('mapCurrentRoomIds'))
 	var explored_ids = _validated_room_ids(c.get('mapExploredRoomIds'))
+	# Region-level visibility is authored by the authority for the dense hive
+	# scenes; the map only mirrors it. No field means no shroud at all, so every
+	# scene without region data keeps the previous rendering byte for byte.
+	visible_regions = _validated_room_ids(s.get('currentVisibleRegions'))
+	shroud_active = not visible_regions.is_empty()
 	var region_ids = {}
 	if topology and map is Dictionary and map.get('worldId')==s.worldId and P.point(map.get('playerPositionM')) and P.rows(map.get('rooms'),256) and P.unique(map.rooms,'roomId'):
 		player_point = Vector2(map.playerPositionM.xM,map.playerPositionM.zM)
@@ -93,7 +102,7 @@ func set_snapshot(s: Dictionary) -> void:
 				outline.append([vertex.xM,vertex.zM])
 				center += Vector2(vertex.xM,vertex.zM)
 			if _map_polygon(outline):
-				var state = 'current' if current_ids.has(room.roomId) else ('explored' if explored_ids.has(room.roomId) else 'neutral')
+				var state = 'current' if current_ids.has(room.roomId) else ('visible' if _region_visible(room.roomId) else ('explored' if explored_ids.has(room.roomId) else 'neutral'))
 				polygons.append({'p':outline,'color':accent,'id':room.roomId,'state':state})
 				if state!='neutral': region_state_legend = true
 				region_ids[room.roomId] = true
@@ -208,6 +217,15 @@ func _validated_room_ids(value) -> Dictionary:
 		if not P.ident(id) or result.has(id): return {}
 		result[id] = true
 	return result
+func _region_visible(room_id: String) -> bool:
+	if room_id.is_empty() or visible_regions.is_empty():
+		return false
+	if visible_regions.has(room_id):
+		return true
+	for region in visible_regions:
+		if room_id.begins_with(str(region)+':'):
+			return true
+	return false
 func _category(channel: String) -> String:
 	if channel=='objectives':
 		return 'objective'
@@ -237,6 +255,7 @@ func _layout_text(ui_scale: float, atlas_mode: bool) -> Dictionary:
 	if not polygons.is_empty() or not points.is_empty():
 		if has_player_point: entries.append('你在这里（当前图层）')
 		if atlas_mode and region_state_legend: entries.append('角标+粗边：当前可见 · 斜纹：已知或此前探索')
+		if atlas_mode and shroud_active and region_state_legend: entries.append('亮边：当前视野内 · 暗纱：视野之外')
 		var detected = false
 		var known = false
 		var channels = {}
@@ -395,15 +414,22 @@ func _draw() -> void:
 			var position = Vector2(p[0],p[1])
 			poly.append(_map(position,fit))
 			uv.append((fill.position+(position-range_rect.position)/range_rect.size*fill.size)/map_atlas.get_size())
+		# Three tiers, highest first: the current room, rooms inside the
+		# authority's current visible regions, then everything merely known.
 		# Explored and neutral rooms share one dimmed, hatched treatment so a
 		# known-but-not-current room never reads as more visible than an explored one.
-		var dim = item.state!='current'
-		var opacity = 0.45 if dim else 1.0
+		var tier = str(item.get('state','neutral'))
+		var dim = tier!='current' and tier!='visible'
+		var opacity = 1.0 if tier=='current' else (0.78 if tier=='visible' else 0.45)
 		draw_polygon(poly,PackedColorArray([Color(1,1,1,opacity)]),uv,map_atlas)
 		for i in range(poly.size()):
 			_strip(poly[i],poly[(i+1)%poly.size()],2,(1.5 if dim else 2.0)*ui_scale,opacity)
 		if dim:
 			_hatch_polygon(poly,Color(0.90,0.94,0.97,0.30),8.0*ui_scale,1.0*ui_scale)
+			# Per-room shroud: a veil clipped to the room outline, never a global
+			# fade, and only when the snapshot actually carries region data.
+			if shroud_active:
+				draw_colored_polygon(poly,Color(0.02,0.035,0.05,0.32))
 	# Current boundaries are drawn last so shared edges retain their meaning.
 	for item in polygons:
 		if item.state!='current': continue

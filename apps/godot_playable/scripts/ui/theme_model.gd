@@ -7,7 +7,7 @@ static var tooltip_material_attempted = false
 static var tooltip_material: AtlasTexture
 static var range_accent_attempted = false
 static var range_accent_material: AtlasTexture
-const BASE = {'background':'#0B121A','panel':'#16202A','panelRaised':'#1B2934','border':'#344652','text':'#E7EDF2','textMuted':'#8D9AA5','system':'#C4BDB8','accent':'#D9AD58','danger':'#E1504C','success':'#55C89C','focus':'#9FEEFF'}
+const BASE = {'background':'#0B121A','panel':'#16202A','panelRaised':'#1B2934','border':'#344652','text':'#E7EDF2','textMuted':'#8D9AA5','system':'#C4BDB8','accent':'#D9AD58','danger':'#E1504C','success':'#55C89C','focus':'#E5DDD6'}
 static func install_tooltip_skin(control: Control) -> void:
 	if not tooltip_material_attempted:
 		tooltip_material_attempted = true
