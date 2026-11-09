@@ -411,6 +411,10 @@ var action_badges: Dictionary = {}
 var action_badges_attempted: Dictionary = {}
 var action_effects: Dictionary = {}
 var action_effects_attempted: Dictionary = {}
+# Painted vertical band (v0,v1) of the chosen action art; the alpha sheets are
+# 1254 rows tall but only rows 417..836 carry paint, so the quad maps that band
+# instead of the whole transparent sheet.
+var action_effect_v_band: Dictionary = {}
 var occluder_alpha = {}
 var viewport_rect = Rect2()
 var safe_rect_provider: Callable
@@ -4019,12 +4023,17 @@ func _action_effect_texture(kind: String) -> Texture2D:
 	action_effects_attempted[kind]=true
 	# Prefer the alpha-cut VFX art (transparent background); the HUD skill icon is
 	# an opaque sheet and only stays as a compatibility fallback.
+	# r1/r2 are the same 1254x1254 sheet with the painted band on rows 417..836.
+	var band: Vector2 = Vector2(417.0/1254.0,837.0/1254.0)
 	var icon=PlayerStatusUiArt.atlas('res://assets/ui/skill_family/vfx_'+kind+'_alpha_r2.png',Rect2(0,0,1254,1254))
 	if icon==null or icon.atlas==null or icon.atlas.get_size()!=Vector2(1254,1254):
 		icon=PlayerStatusUiArt.atlas('res://assets/ui/skill_family/vfx_'+kind+'_alpha_r1.png',Rect2(0,0,1254,1254))
 	if icon==null or icon.atlas==null or icon.atlas.get_size()!=Vector2(1254,1254):
+		# Opaque HUD fallback fills the sheet, so it must keep the full 0..1 span.
+		band=Vector2(0.0,1.0)
 		icon=PlayerStatusUiArt.atlas('res://assets/ui/skill_family/'+kind+'.png',Rect2(0,0,1254,1254))
 	if icon!=null and icon.atlas!=null and icon.atlas.get_size()==Vector2(1254,1254): action_effects[kind]=icon
+	action_effect_v_band[kind]=band
 	return action_effects.get(kind)
 
 func _action_badge_slot(foot: Vector2, label: String) -> Rect2:
@@ -4111,7 +4120,8 @@ func _action() -> void:
 					var side: Vector2 = span.normalized().orthogonal()*maxf(6.0,float(ap.lineHalfWidthM)*2.0*camera.ppm)*0.5
 					var tint: Color = Color(1,1,1,dash_fade)
 					var quad := PackedVector2Array([from+side,from-side,to-side,to+side])
-					var uvs := PackedVector2Array([Vector2(0,0),Vector2(0,1),Vector2(1,1),Vector2(1,0)])
+					var band: Vector2 = action_effect_v_band.get('dash',Vector2(0.0,1.0))
+					var uvs := PackedVector2Array([Vector2(0,band.x),Vector2(0,band.y),Vector2(1,band.y),Vector2(1,band.x)])
 					draw_polygon(quad,PackedColorArray([tint,tint,tint,tint]),uvs,dash_art)
 			elif ap.phase=='active' and status_icon==null:
 				draw_line(camera.project(pos),camera.project(pos-Vector3(dir.x,0,dir.y)*0.7),c,4,true)
