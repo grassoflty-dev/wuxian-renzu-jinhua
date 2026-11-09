@@ -1202,6 +1202,20 @@ impl FormalRuntime {
         Self::capture_inactive_shaft(state,scene)
     }
 
+    /// Void the run-scoped Grey Hive state after the player walks back to the hub.
+    /// Map knowledge (`map_knowledge_archive_v2`), the sentinel first-kill records,
+    /// hub exploration, the inventory and the player's HP are deliberately kept:
+    /// they are knowledge/possession, not this run's progress.
+    fn abandon_grey_hive_run(state: &mut RuntimeState) {
+        if let Some(history) = state.world_persistent_v1.scene_history_v1.as_mut() {
+            history.scene_states.retain(|scene| !scene.scene_id.starts_with("gh_"));
+        }
+        state.world_persistent_v1.grey_hive.beacon = None;
+        state.shaft_owner = None;
+        state.shaft_deferred = false;
+        state.shaft_inactive_history = None;
+    }
+
     fn capture_inactive_shaft(state:&mut RuntimeState,scene:&SceneRuntime)->Result<(),String> {
         let definition=scene.current_scene();
         if shaft_lift::source_support_valid(definition) {
@@ -2006,6 +2020,47 @@ impl FormalRuntime {
         if target.world_id!=source.world_id && source.world_id=="grey_hive" {gh_map_archive::import_history(&mut next_state,active_scene)?;}
 
         let mut next_route = state.route.clone();
+        // Human decision 2026-11-10: the maintenance entrance is the only way back
+        // out of the hive, so crossing it back to the hub ends the run instead of
+        // keeping it open behind the player. Completion/rewards are untouched; the
+        // run's event progress and scene history are void (a later entry is a new
+        // run), while map knowledge is archived above and therefore kept.
+        // A world that is already completed is never abandoned (save validation
+        // forbids clearing events while `completed`), so that door keeps its old
+        // non-destructive behaviour and never becomes a dead door.
+        let grey_hive_completed = state
+            .route
+            .progress
+            .iter()
+            .find(|progress| progress.world_id == "grey_hive")
+            .is_some_and(|progress| progress.completed);
+        let abandoning_run = source.world_id == "grey_hive"
+            && target.world_id == "return_station"
+            && gate_id == "gh_entry_back_to_rs"
+            && !grey_hive_completed;
+        if abandoning_run {
+            match apply_route_command(
+                &mut next_route,
+                RouteCommand::Abandon {
+                    world_id: "grey_hive".into(),
+                    request_id: format!("world-gate-abandon-{request_id}"),
+                },
+                state.world.revision,
+            ) {
+                RouteResult::Applied { ref events, .. }
+                    if matches!(events.as_slice(), [crate::world_progression::RouteEvent::Abandoned { world_id }] if world_id == "grey_hive")
+                        || (matches!(events.as_slice(), [crate::world_progression::RouteEvent::DuplicateIgnored { .. }])
+                            // A replayed request id is only an acknowledgement when the
+                            // route really is at the hub now; otherwise the run would be
+                            // silently kept open behind the player.
+                            && next_route.current_world_id == "return_station") => {}
+                RouteResult::Applied { .. } => return Err("E_WORLD_GATE_ABANDON_NOT_APPLIED".into()),
+                RouteResult::Rejected { code, message } => {
+                    return Err(format!("E_WORLD_GATE_ABANDON: {code:?}: {message}"));
+                }
+            }
+            Self::abandon_grey_hive_run(&mut next_state);
+        }
         if target.world_id == "grey_hive" {
             let gh = next_route
                 .progress
@@ -2122,12 +2177,17 @@ impl FormalRuntime {
             .find(|spawn| spawn.kind == "player")
             .ok_or("E_SCENE_PLAYER_SPAWN")?;
         // Activate only the authored first-entry checkpoint, before committing the candidate.
+        // A run abandoned by walking back to the hub has no recorded progress, so the
+        // next entry is a new run and re-arms the same entry checkpoint.
         let first_gh_entry = source.world_id == "return_station"
             && source.scene_id == "rs_core_room"
             && gate_id == "rs_world_gate_to_gh"
             && target.world_id == "grey_hive"
             && target.scene_id == "gh_entry_maintenance"
-            && state.route.progress.iter().any(|progress| progress.world_id == "grey_hive" && progress.visit_id == 0);
+            && state.route.progress.iter().any(|progress| {
+                progress.world_id == "grey_hive"
+                    && (progress.visit_id == 0 || progress.completed_events.is_empty())
+            });
         let entry_checkpoint_event = if first_gh_entry && candidate.checkpoint_id.is_none() {
             Some(candidate.checkpoint(
                 "gh_entry_checkpoint",

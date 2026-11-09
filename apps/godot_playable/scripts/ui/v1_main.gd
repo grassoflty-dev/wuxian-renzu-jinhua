@@ -108,6 +108,7 @@ var pause_owned: Dictionary = {}
 var ticket: Dictionary = {}
 var enhancement_pending: Dictionary = {}
 var last_feedback = ''
+var run_end_notice = ''
 var save_notice: Dictionary = {}
 var preferences = {'scale':1.0,'fullscreen':false,'color':false,'reduced':false,'muted':false,'volume':0.35}
 var pointer_seen = false
@@ -318,6 +319,11 @@ func _gameplay_inputs_released() -> bool:
 			return false
 	return not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
 func _process(delta: float) -> void:
+	if not run_end_notice.is_empty():
+		# The gate receipt also prints its generic 'interaction confirmed' line, so the
+		# run-end notice is published one frame later and is never overwritten silently.
+		_feedback(run_end_notice)
+		run_end_notice = ''
 	_maybe_beacon_exit_ready()
 	_maybe_hive_route_ready()
 	_maybe_walk_in_gate()
@@ -1688,6 +1694,16 @@ func _response(_rpc_id: int, method: String, result, association: Dictionary) ->
 			var current_gh = Content.progress(snapshot,'grey_hive')
 			if not prior_gh.is_empty() and prior_gh.visitId==0 and not current_gh.is_empty() and current_gh.visitId==1:
 				gh_arrival_token = snapshot.entryToken.duplicate(true)
+		# Human decision 2026-11-10: walking back out through the maintenance door
+		# ends the run. Say so explicitly - the run's progress is void, only map
+		# knowledge is kept - instead of leaving the player at a silent hub.
+		if origin is Dictionary and P.snapshot(origin) and origin.worldId=='grey_hive' and origin.sceneId=='gh_entry_maintenance' and snapshot.worldId=='return_station' and snapshot.sceneId=='rs_core_room':
+			var gh_after = Content.progress(snapshot,'grey_hive')
+			var gh_void: bool = not gh_after.is_empty() and gh_after.get('completed')==false and gh_after.get('completedEvents') is Array and gh_after.completedEvents.is_empty()
+			if gh_void:
+				run_end_notice = '已返回归航站 · 本轮灰巢探索结束（本轮进度作废，地图知识保留）'
+			else:
+				run_end_notice = '已返回归航站'
 	if snapshot_applied and (method=='formal_continue' and purpose=='journey' or method=='formal_save' and purpose=='save'):
 		_trace_save_flow('snapshot_applied',method,_rpc_id,r,snapshot)
 	match purpose:

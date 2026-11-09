@@ -364,3 +364,78 @@ fn assert_reconstruction_after_continue(
         .scene_history_v1
         .is_none());
 }
+
+/// Human decision 2026-11-10: walking back out to the hub voids the run. Only
+/// run-scoped state may disappear; map knowledge and first-kill/roster records
+/// are knowledge and must survive.
+#[test]
+fn abandon_grey_hive_run_voids_run_state_and_keeps_map_knowledge() {
+    use crate::world_persistent_v1::{
+        GhMapKnowledgeArchiveV2, GreyHiveBeaconState, SceneHistoryV1,
+    };
+    let mut state = FormalRuntime::initial_state(1).unwrap();
+    let record = crate::formal_runtime::gh_map_archive::test_record();
+    state.world_persistent_v1.map_knowledge_archive_v2 = Some(GhMapKnowledgeArchiveV2 {
+        schema_version: 2,
+        records: vec![record.clone()],
+        shaft_upper_observation: None,
+        lockdown_observation: None,
+    });
+    state.world_persistent_v1.scene_history_v1 = Some(SceneHistoryV1 {
+        schema_version: 1,
+        scene_states: vec![
+            SceneStateSave {
+                scene_id: "gh_entry_maintenance".into(),
+                activated_ids: vec!["gh_entry_tutorial_terminal".into()],
+                emitted_event_ids: vec!["hive_power".into()],
+                checkpoint_id: Some("gh_entry_checkpoint".into()),
+            },
+            SceneStateSave {
+                scene_id: "gh_power_room".into(),
+                activated_ids: vec!["gh_power_console".into()],
+                emitted_event_ids: vec!["hive_power".into()],
+                checkpoint_id: None,
+            },
+            SceneStateSave {
+                scene_id: "rs_core_room".into(),
+                activated_ids: vec![],
+                emitted_event_ids: vec![],
+                checkpoint_id: None,
+            },
+        ],
+    });
+    state.world_persistent_v1.grey_hive.beacon = Some(GreyHiveBeaconState::new_uncollected());
+    state.world_persistent_v1.grey_hive.sentinel_first_kill = true;
+    state.world_persistent_v1.grey_hive.gate_b_actor_roster_version = 1;
+    state.world_persistent_v1.grey_hive.swarm_actor_roster_version = 1;
+    state.shaft_deferred = true;
+
+    FormalRuntime::abandon_grey_hive_run(&mut state);
+
+    let history = state
+        .world_persistent_v1
+        .scene_history_v1
+        .as_ref()
+        .expect("hub history stays present");
+    assert_eq!(
+        history
+            .scene_states
+            .iter()
+            .map(|row| row.scene_id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["rs_core_room"],
+        "every grey_hive run row is dropped and the hub row is kept"
+    );
+    assert!(state.world_persistent_v1.grey_hive.beacon.is_none(), "carried beacon is run progress");
+    assert!(state.world_persistent_v1.grey_hive.sentinel_first_kill, "first-kill record is knowledge");
+    assert_eq!(state.world_persistent_v1.grey_hive.gate_b_actor_roster_version, 1,
+        "roster versions are content markers, not run progress");
+    assert_eq!(state.world_persistent_v1.grey_hive.swarm_actor_roster_version, 1);
+    assert_eq!(
+        state.world_persistent_v1.map_knowledge_archive_v2.as_ref().unwrap().records,
+        vec![record],
+        "qualified map knowledge is never dropped by an abandon"
+    );
+    assert!(!state.shaft_deferred, "volatile shaft ownership is cleared");
+    assert!(state.shaft_owner.is_none() && state.shaft_inactive_history.is_none());
+}

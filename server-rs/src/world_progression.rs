@@ -87,6 +87,10 @@ pub enum RouteCommand {
     Progress { event_id: String, request_id: String },
     Complete { world_id: String, request_id: String },
     Revisit { world_id: String, request_id: String },
+    /// Leave the current world back to the hub without completing it.
+    /// Human decision 2026-11-10: walking back out of the Grey Hive abandons
+    /// the run instead of silently keeping it open.
+    Abandon { world_id: String, request_id: String },
     GrantReward {
         world_id: String,
         reward_id: String,
@@ -103,6 +107,7 @@ pub enum RouteEvent {
     Progressed { world_id: String, event_id: String },
     Completed { world_id: String, first_completion: bool },
     Revisited { world_id: String, visit_id: u64, revisit_count: u32 },
+    Abandoned { world_id: String },
     RewardGranted { world_id: String, reward_id: String },
     DuplicateIgnored { request_id: String },
 }
@@ -118,6 +123,7 @@ pub enum RouteRejectCode {
     RevisitLimitReached,
     RewardKeyMalformed,
     RewardAlreadyGranted,
+    RunNotAbandonable,
     InvalidCatalog,
 }
 
@@ -249,6 +255,7 @@ pub fn apply_route_command(state: &mut RouteState, command: RouteCommand, revisi
     let request_id = match &command {
         RouteCommand::Enter { request_id, .. } | RouteCommand::Progress { request_id, .. }
         | RouteCommand::Complete { request_id, .. } | RouteCommand::Revisit { request_id, .. }
+        | RouteCommand::Abandon { request_id, .. }
         | RouteCommand::GrantReward { request_id, .. } => request_id,
     }.clone();
     if request_id.trim().is_empty() { return rejected(RouteRejectCode::EmptyId, "requestId is required"); }
@@ -261,6 +268,7 @@ pub fn apply_route_command(state: &mut RouteState, command: RouteCommand, revisi
         RouteCommand::Progress { event_id, .. } => progress(state, &catalog, &event_id),
         RouteCommand::Complete { world_id, .. } => complete(state, &catalog, &world_id),
         RouteCommand::Revisit { world_id, .. } => revisit(state, &catalog, &world_id),
+        RouteCommand::Abandon { world_id, .. } => abandon(state, &catalog, &world_id),
         RouteCommand::GrantReward { world_id, reward_id, policy, request_id, visit_id, cycle_id } => {
             grant_reward(state, &world_id, &reward_id, policy, request_id, visit_id, cycle_id, revision)
         }
@@ -307,7 +315,11 @@ fn enter(state: &mut RouteState, catalog: &Catalog, requested: &str) -> Result<V
 
 fn progress(state: &mut RouteState, catalog: &Catalog, event_id: &str) -> Result<Vec<RouteEvent>, (RouteRejectCode, String)> {
     if event_id.trim().is_empty() { return Err((RouteRejectCode::EmptyId, "eventId is required".into())); }
-    let definition = catalog.worlds.iter().find(|w| w.world_id == state.current_world_id).expect("validated catalog");
+    // The hub is not a catalog world: reject instead of panicking when no run is
+    // in progress (walking back to the hub now returns current_world_id to it).
+    let Some(definition) = catalog.worlds.iter().find(|w| w.world_id == state.current_world_id) else {
+        return Err((RouteRejectCode::WorldNotCurrent, format!("no run is in progress for {}", state.current_world_id)));
+    };
     if !definition.required_events.iter().any(|id| id == event_id) {
         return Err((RouteRejectCode::RequiredProgressMissing, format!("event is not valid for {}", state.current_world_id)));
     }
@@ -347,6 +359,27 @@ fn revisit(state: &mut RouteState, catalog: &Catalog, requested: &str) -> Result
     Ok(vec![RouteEvent::Revisited { world_id: world_id.to_string(), visit_id: p.visit_id, revisit_count: p.revisit_count }])
 }
 
+/// Walk back out of the current world into the hub without completing it.
+///
+/// Human decision 2026-11-10: leaving through the maintenance door abandons the
+/// run. Completion records and the reward ledger are never touched; only the
+/// run-scoped event progress is cleared so the next entry is a new run. Map
+/// knowledge lives outside `RouteState` and is therefore preserved by design.
+fn abandon(state: &mut RouteState, catalog: &Catalog, requested: &str) -> Result<Vec<RouteEvent>, (RouteRejectCode, String)> {
+    let world_id = migrate_world_id(requested).map_err(|c| (c, format!("unknown world: {requested}")))?;
+    if catalog.worlds.iter().all(|w| w.world_id != world_id) {
+        return Err((RouteRejectCode::UnknownWorld, format!("unknown world: {requested}")));
+    }
+    if world_id != state.current_world_id {
+        return Err((RouteRejectCode::WorldNotCurrent, "only the current world can be abandoned".into()));
+    }
+    let p = state.progress.iter_mut().find(|p| p.world_id == world_id).expect("frozen world exists");
+    if p.completed { return Err((RouteRejectCode::RunNotAbandonable, "a completed world cannot be abandoned".into())); }
+    p.completed_events.clear();
+    state.current_world_id = "return_station".to_string();
+    Ok(vec![RouteEvent::Abandoned { world_id: world_id.to_string() }])
+}
+
 fn grant_reward(state: &mut RouteState, requested: &str, reward_id: &str, policy: RewardPolicy, request_id: String, visit_id: Option<u64>, cycle_id: Option<u64>, revision: WorldRevision) -> Result<Vec<RouteEvent>, (RouteRejectCode, String)> {
     let world_id = migrate_world_id(requested).map_err(|c| (c, format!("unknown world: {requested}")))?;
     if reward_id.trim().is_empty() { return Err((RouteRejectCode::EmptyId, "rewardId is required".into())); }
@@ -372,3 +405,111 @@ fn catalog() -> Result<Catalog, String> {
 
 fn applied(state: &RouteState, events: Vec<RouteEvent>) -> RouteResult { RouteResult::Applied { events, projection: project_route(state) } }
 fn rejected(code: RouteRejectCode, message: &str) -> RouteResult { RouteResult::Rejected { code, message: message.to_string() } }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn revision() -> WorldRevision { WorldRevision::new(1, 0, 1).expect("valid revision") }
+    fn gh(state: &RouteState) -> &WorldProgress { state.progress.iter().find(|p| p.world_id == WORLD_GREY_HIVE).unwrap() }
+
+    fn entered_run() -> RouteState {
+        let mut state = RouteState::new();
+        assert!(matches!(
+            apply_route_command(&mut state, RouteCommand::Enter { world_id: WORLD_GREY_HIVE.into(), request_id: "enter".into() }, revision()),
+            RouteResult::Applied { .. }));
+        for (index, event) in ["hive_power", "hive_lockdown"].into_iter().enumerate() {
+            assert!(matches!(
+                apply_route_command(&mut state, RouteCommand::Progress { event_id: event.into(), request_id: format!("progress-{index}") }, revision()),
+                RouteResult::Applied { .. }));
+        }
+        state
+    }
+
+    #[test]
+    fn abandon_voids_the_run_and_returns_the_route_to_the_hub() {
+        let mut state = entered_run();
+        state.set_hive_choice_once(HiveChoice::Taken);
+        state.record_sentinel_first_kill(WORLD_GREY_HIVE);
+        let before_rewards = state.reward_ledger.clone();
+        let result = apply_route_command(&mut state, RouteCommand::Abandon { world_id: WORLD_GREY_HIVE.into(), request_id: "leave".into() }, revision());
+        match result {
+            RouteResult::Applied { ref events, .. } => {
+                assert_eq!(events, &vec![RouteEvent::Abandoned { world_id: WORLD_GREY_HIVE.into() }]);
+            }
+            RouteResult::Rejected { .. } => panic!("abandon must be accepted for an in-progress run"),
+        }
+        assert_eq!(state.current_world_id, "return_station", "the hub must become the current world");
+        let progress = gh(&state);
+        assert!(progress.completed_events.is_empty(), "the run's progress is void");
+        assert!(!progress.completed, "abandoning never completes the world");
+        assert!(!progress.first_completion, "abandoning never grants a first completion");
+        assert_eq!(progress.hive_choice, HiveChoice::Taken, "decisions are knowledge, not run progress");
+        assert!(progress.sentinel_first_kill_recorded, "first-kill records are knowledge, not run progress");
+        assert_eq!(state.reward_ledger, before_rewards, "no reward may be granted by leaving");
+        assert_eq!(project_route(&state).current_world_id, "return_station");
+    }
+
+    #[test]
+    fn abandon_then_enter_starts_a_new_run() {
+        let mut state = entered_run();
+        assert!(matches!(
+            apply_route_command(&mut state, RouteCommand::Abandon { world_id: WORLD_GREY_HIVE.into(), request_id: "leave".into() }, revision()),
+            RouteResult::Applied { .. }));
+        assert!(matches!(
+            apply_route_command(&mut state, RouteCommand::Enter { world_id: WORLD_GREY_HIVE.into(), request_id: "re-enter".into() }, revision()),
+            RouteResult::Applied { events, .. } if matches!(events.as_slice(), [RouteEvent::Entered { world_id, .. }] if world_id == WORLD_GREY_HIVE)));
+        let progress = gh(&state);
+        assert!(progress.completed_events.is_empty(), "a re-entry after abandon carries no events");
+        assert_eq!(state.current_world_id, WORLD_GREY_HIVE);
+        // The next event progresses the new run normally.
+        assert!(matches!(
+            apply_route_command(&mut state, RouteCommand::Progress { event_id: "hive_power".into(), request_id: "power-again".into() }, revision()),
+            RouteResult::Applied { events, .. } if matches!(events.as_slice(), [RouteEvent::Progressed { event_id, .. }] if event_id == "hive_power")));
+        assert_eq!(gh(&state).completed_events, vec!["hive_power".to_string()]);
+    }
+
+    #[test]
+    fn abandon_is_rejected_for_the_wrong_or_a_completed_world() {
+        let mut state = entered_run();
+        assert!(matches!(
+            apply_route_command(&mut state, RouteCommand::Abandon { world_id: WORLD_MIST_HARBOR.into(), request_id: "wrong-world".into() }, revision()),
+            RouteResult::Rejected { code: RouteRejectCode::WorldNotCurrent, .. }));
+        assert_eq!(gh(&state).completed_events, vec!["hive_power".to_string(), "hive_lockdown".to_string()]);
+        let mut completed = entered_run();
+        assert!(matches!(
+            apply_route_command(&mut completed, RouteCommand::Progress { event_id: "hive_extraction".into(), request_id: "extract".into() }, revision()),
+            RouteResult::Applied { .. }));
+        assert!(matches!(
+            apply_route_command(&mut completed, RouteCommand::Complete { world_id: WORLD_GREY_HIVE.into(), request_id: "complete".into() }, revision()),
+            RouteResult::Applied { events, .. } if matches!(events.as_slice(), [RouteEvent::Completed { first_completion: true, .. }])));
+        assert!(matches!(
+            apply_route_command(&mut completed, RouteCommand::Abandon { world_id: WORLD_GREY_HIVE.into(), request_id: "leave-completed".into() }, revision()),
+            RouteResult::Rejected { code: RouteRejectCode::RunNotAbandonable, .. }));
+        assert!(gh(&completed).completed && gh(&completed).first_completion);
+        assert_eq!(completed.current_world_id, WORLD_GREY_HIVE);
+    }
+
+    #[test]
+    fn abandon_is_idempotent_for_a_replayed_request_id() {
+        let mut state = entered_run();
+        assert!(matches!(
+            apply_route_command(&mut state, RouteCommand::Abandon { world_id: WORLD_GREY_HIVE.into(), request_id: "leave".into() }, revision()),
+            RouteResult::Applied { .. }));
+        assert!(matches!(
+            apply_route_command(&mut state, RouteCommand::Abandon { world_id: WORLD_GREY_HIVE.into(), request_id: "leave".into() }, revision()),
+            RouteResult::Applied { events, .. } if matches!(events.as_slice(), [RouteEvent::DuplicateIgnored { request_id }] if request_id == "leave")));
+        assert_eq!(state.current_world_id, "return_station");
+    }
+
+    #[test]
+    fn progress_at_the_hub_is_rejected_instead_of_panicking() {
+        let mut state = entered_run();
+        assert!(matches!(
+            apply_route_command(&mut state, RouteCommand::Abandon { world_id: WORLD_GREY_HIVE.into(), request_id: "leave".into() }, revision()),
+            RouteResult::Applied { .. }));
+        assert!(matches!(
+            apply_route_command(&mut state, RouteCommand::Progress { event_id: "hive_power".into(), request_id: "hub-progress".into() }, revision()),
+            RouteResult::Rejected { code: RouteRejectCode::WorldNotCurrent, .. }));
+    }
+}
