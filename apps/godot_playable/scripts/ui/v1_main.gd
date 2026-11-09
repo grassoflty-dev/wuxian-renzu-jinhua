@@ -27,6 +27,21 @@ const WALK_IN_GATES = {
 	'return_station:rs_core_room:rs_world_gate_marker':{'gate':'rs_world_gate_to_gh','radius':0.9},
 	'grey_hive:gh_entry_maintenance:gh_entry_return_marker':{'gate':'gh_entry_back_to_rs','radius':0.6}
 }
+# Same-floor grey_hive rooms are joined into one walkable union by the authority and
+# committed when the player crosses the seam (`advance_hive_route` /
+# `advance_gate_shaft_upper` / `advance_shaft_lockdown` / `advance_gate_decon` in
+# formal_runtime.rs), so a transition key never has to be pressed. Two authored
+# events can still hold a door shut inside the hive: `hive_power` (the gate A
+# barrier collision `requiresEvent`) and `hive_lockdown` (the lockdown/bio seams).
+# When one is missing the client says so once instead of letting the wall look
+# merely solid. `sentinel_first_kill` also gates one seam but the client snapshot
+# does not expose it, so nothing is claimed for it here.
+const HIVE_SEAM_LOCKS = [
+	{'scene':'gh_gate_a','x':9.5,'z0':0.5,'z1':13.5,'event':'hive_power','hint':'闸门未通电：先在电力室恢复供电'},
+	{'scene':'gh_lockdown','x':24.0,'z0':6.5,'z1':9.5,'event':'hive_lockdown','hint':'前方通道尚未开启：需先启动隔离协议'},
+	{'scene':'gh_bio_isolation','x':24.0,'z0':6.5,'z1':9.5,'event':'hive_lockdown','hint':'前方通道尚未开启：需先启动隔离协议'},
+	{'scene':'gh_sentinel_arena','x':24.0,'z0':6.5,'z1':9.5,'event':'','sentinel':true,'hint':'前方通道尚未开启：需先击破哨兵'}
+]
 var audio
 var rpc
 var catalog = Catalog.new()
@@ -50,6 +65,10 @@ var hive_route_ready_pending: Dictionary = {}
 var walk_in_pending = 0
 var walk_in_block_until = 0
 var walk_in_hint_at = 0
+var seam_hint_at = 0
+var hive_route_boundary_key = ""
+var hive_route_boundary_at = 0
+var hive_route_ready_at = 0
 var exit_preview_journey := false
 var exit_postframe_resume: Dictionary = {}
 var status: Dictionary = {}
@@ -302,6 +321,7 @@ func _process(delta: float) -> void:
 	_maybe_beacon_exit_ready()
 	_maybe_hive_route_ready()
 	_maybe_walk_in_gate()
+	_maybe_seam_hint()
 	_maybe_exit_ready()
 	_maybe_exit_resume()
 	var pair_view=snapshot.get('beaconExitNeighbor',{})
@@ -327,6 +347,7 @@ func _process(delta: float) -> void:
 				pair_visual_hold_pending = {'id':pause_id,'generation':generation,'connection':rpc.connection_generation,'context':_context().duplicate(true),'sequence':lifecycle_sequence}
 	elif not dense_unavailable:
 		dense_visual_hold = false
+	_maybe_pair_visual_resume()
 	if not pair_visual_hold_pending.is_empty() and (uncertain or close_attempted or not rpc.authenticated or pair_visual_hold_pending.generation!=generation or pair_visual_hold_pending.connection!=rpc.connection_generation or pair_visual_hold_pending.sequence!=lifecycle_sequence or not P.context(pair_visual_hold_pending.context) or not P.snapshot(snapshot) or not P.same(pair_visual_hold_pending.context,snapshot) or not rpc.pending.has(pair_visual_hold_pending.id)):
 		pair_visual_hold_pending.clear()
 	if not pair_visual_hold_receipt.is_empty() and (uncertain or close_attempted or not rpc.authenticated or pair_visual_hold_receipt.generation!=generation or pair_visual_hold_receipt.connection!=rpc.connection_generation or pair_visual_hold_receipt.sequence!=lifecycle_sequence or not P.snapshot(snapshot) or not P.same(pair_visual_hold_receipt.context,snapshot) or snapshot.get('entryToken')!=null or not exit_entry_preview.is_empty() or not ready_pending.is_empty()):
@@ -1136,6 +1157,8 @@ func _interaction_prompt(i: Dictionary) -> String:
 	if typeof(i.get('active'))!=TYPE_BOOL or not i.active:
 		return label+' · 当前不可用'
 	if _interact_walk_in(i):
+		return '步入通道 · '+label
+	if i.get('kind')=='scene_transition' and snapshot.get('worldId')=='grey_hive' and not label.is_empty():
 		return '步入通道 · '+label
 	if i.get('kind')=='npc_dialogue':
 		return '[F] '+label if _baizhi_available(i) else label+' · 当前对白不可用'
@@ -2027,24 +2050,77 @@ func _maybe_beacon_exit_ready() -> void:
 	if not v is Dictionary or v.get('ready')!=false or not P.token(v.get('token')) or not v.get('targetSceneSourceSha256') is String or not renderer.beacon_exit_preview_ready(): return
 	var token: Dictionary=v.token.duplicate(true)
 	var hash: String=v.targetSceneSourceSha256
-	var id=_request('formal_scene_ready',{'token':token,'remainPaused':false,'exitPreparedSourceSha256':hash,'pairProof':{'progression':snapshot.progression.duplicate(true),'beacon':snapshot.get('greyHiveBeacon'),'sourceSha':catalog.source_hash}},'beacon_exit_ready',{'token':token,'hash':hash,'expectedCommand':'scene-ready:'+str(int(token.generation))},false)
+	var id=_request('formal_scene_ready',{'token':token,'remainPaused':false,'exitPreparedSourceSha256':hash,'pairProof':{'progression':_proof_value(snapshot.progression.duplicate(true)),'beacon':snapshot.get('greyHiveBeacon'),'sourceSha':catalog.source_hash}},'beacon_exit_ready',{'token':token,'hash':hash,'expectedCommand':'scene-ready:'+str(int(token.generation))},false)
 	if id>0: beacon_exit_ready_pending={'id':id,'token':token}
 
 func _maybe_hive_route_ready() -> void:
 	if not hive_route_ready_pending.is_empty() or not exit_entry_preview.is_empty() or not journey_started or not focused or uncertain or close_attempted or not critical.is_empty() or not is_instance_valid(renderer) or not P.snapshot(snapshot) or snapshot.get('entryToken')!=null or status.is_empty() or not P.same(status,snapshot) or status.get('paused')!=false: return
 	var v=snapshot.get('hiveRouteNeighbor')
-	if not v is Dictionary or v.get('ready')!=false or not P.token(v.get('token')) or not v.get('targetSceneSourceSha256') is String or not renderer.hive_route_preview_ready(): return
+	if not v is Dictionary or v.get('ready')!=false or not P.token(v.get('token')) or not v.get('targetSceneSourceSha256') is String: return
+	# The pair preview normally authorises the crossing. If its frame never commits
+	# the seam would stay shut forever and F cannot help (the authority answers
+	# E_SEAM_WALK_PREPARING for these ids), so after 1.5 s on the same shut boundary
+	# the proof is sent anyway, at most once a second. The authority, never this
+	# timeout, decides the crossing.
+	if not renderer.hive_route_preview_ready():
+		if _hive_route_boundary_age()<1500 or Time.get_ticks_msec()-hive_route_ready_at<1000: return
 	var token: Dictionary=v.token.duplicate(true)
 	var hash: String=v.targetSceneSourceSha256
-	var proof={'hiveRoute':true,'progression':snapshot.progression.duplicate(true),'sourceSha':catalog.source_hash}
+	var proof={'hiveRoute':true,'progression':_proof_value(snapshot.progression.duplicate(true)),'sourceSha':catalog.source_hash}
 	if v.has('arenaShuttersOpen'):
 		if typeof(v.arenaShuttersOpen)!=TYPE_BOOL: return
 		proof['arenaShuttersOpen']=v.arenaShuttersOpen
 	var id=_request('formal_scene_ready',{'token':token,'remainPaused':false,'exitPreparedSourceSha256':hash,'pairProof':proof},'hive_route_ready',{'token':token,'hash':hash,'expectedCommand':'scene-ready:'+str(int(token.generation))},false)
-	if id>0: hive_route_ready_pending={'id':id,'token':token}
+	if id>0:
+		hive_route_ready_pending={'id':id,'token':token}
+		hive_route_ready_at=Time.get_ticks_msec()
 
 func _walk_in_scope() -> String:
 	return '' if snapshot.is_empty() else str(snapshot.get('worldId'))+':'+str(snapshot.get('sceneId'))
+
+# Wire numbers arrive as floats, but the authority compares the echoed progression
+# against its own integer-valued JSON and serde_json treats 1 and 1.0 as different
+# values, so every pair proof was refused as stale (E_SEAM_PROOF_STALE) and the
+# same-floor seams could never open. Rebuild the echo with integer counters.
+func _proof_value(v):
+	if typeof(v)==TYPE_FLOAT:
+		if is_finite(v) and float(int(v))==v: return int(v)
+		return v
+	if v is Dictionary:
+		var out: Dictionary={}
+		for key in v: out[key]=_proof_value(v[key])
+		return out
+	if v is Array:
+		var rows: Array=[]
+		for item in v: rows.append(_proof_value(item))
+		return rows
+	return v
+
+func _hive_route_boundary_age() -> int:
+	var b=snapshot.get('hiveRouteBoundary')
+	if not b is Dictionary or b.get('closed')!=true: return 0
+	var key=str(b.get('sourceSceneId'))+':'+str(b.get('worldEpoch'))+':'+str(b.get('targetSceneId'))+':'+str(b.get('east'))
+	if key!=hive_route_boundary_key:
+		hive_route_boundary_key=key
+		hive_route_boundary_at=Time.get_ticks_msec()
+	return Time.get_ticks_msec()-hive_route_boundary_at
+
+# The pair/route visual hold pauses the authority while a region frame is missing, but
+# nothing ever resumed it: one late region frame stalled the run for good (observed in
+# gh_power_room, paused=true with the dense region ready again). Resume exactly when the
+# dense region is ready and the pause receipt is confirmed; nothing else changes sides.
+func _maybe_pair_visual_resume() -> void:
+	if pair_visual_hold_receipt.is_empty() or pair_visual_hold_receipt.get('confirmed')!=true: return
+	if dense_visual_hold or not is_instance_valid(renderer) or not renderer.dense_region_ready(): return
+	if uncertain or close_attempted or not critical.is_empty() or not is_instance_valid(rpc) or not rpc.authenticated or not focused: return
+	if not P.status(status) or not status.paused or not P.same(status,snapshot) or status.get('lastLifecycleCommandSequence')!=pair_visual_hold_receipt.get('sequence'): return
+	if not P.snapshot(snapshot) or snapshot.get('entryToken')!=null or snapshot.get('exitEntryPreview')==true or snapshot.get('shaftServiceEntryPreview')==true: return
+	if not ready_pending.is_empty() or not exit_entry_preview.is_empty() or not pair_visual_hold_pending.is_empty(): return
+	if not _advance_lifecycle(): return
+	if _request('formal_resume',{'context':_context(),'commandSequence':lifecycle_sequence},'resume',{'sequence':lifecycle_sequence},true)<=0:
+		_hold('E_PAIR_VISUAL_RESUME')
+		return
+	pair_visual_hold_receipt.clear()
 
 func _authored_interaction(id: String) -> Dictionary:
 	var rows=catalog.current.get('interactions')
@@ -2102,6 +2178,50 @@ func _walk_in_enter(gate: String, native: Dictionary) -> void:
 		return
 	walk_in_pending=id
 	_feedback('正在通过入口')
+
+# A grey_hive seam whose progression event is missing leaves the player facing a
+# closed boundary with no `hiveRouteNeighbor` frame (the server publishes the
+# boundary from geometry alone and only publishes the neighbor when the pair could
+# be prepared). Say why once per few seconds; nothing is requested, nothing changes.
+func _maybe_seam_hint() -> void:
+	if Time.get_ticks_msec()-seam_hint_at<5000: return
+	if snapshot.is_empty() or snapshot.get('worldId')!='grey_hive': return
+	if not _eligible() or not snapshot.has('player') or not snapshot.player is Dictionary or not P.transform(snapshot.player.get('transform')): return
+	if _movement_axes().x<=0: return
+	if snapshot.get('hiveRouteNeighbor') is Dictionary: return
+	var boundary=snapshot.get('hiveRouteBoundary')
+	var shut: bool=boundary is Dictionary and boundary.get('closed')==true
+	var player := P.vector(snapshot.player.transform.positionM)
+	for row in HIVE_SEAM_LOCKS:
+		if str(row.scene)!=str(snapshot.get('sceneId')): continue
+		if player.x<float(row.x)-1.2 or player.x>float(row.x)+1.2: continue
+		if player.z<float(row.z0)-0.4 or player.z>float(row.z1)+0.4: continue
+		if row.get('sentinel')==true:
+			if not _hive_sentinel_alive(): continue
+			seam_hint_at=Time.get_ticks_msec()
+			_feedback(str(row.hint))
+			return
+		var progress = Content.progress(snapshot,'grey_hive')
+		if not progress is Dictionary or progress.is_empty(): return
+		var events = progress.get('completedEvents')
+		if not events is Array or events.has(str(row.event)): return
+		seam_hint_at=Time.get_ticks_msec()
+		_feedback(str(row.hint))
+		return
+	if not shut: return
+	var width: float=20.0 if str(snapshot.get('sceneId')) in ['gh_entry_maintenance','gh_power_room'] else 24.0
+	var z0: float=5.5 if width==20.0 else 6.5
+	var z1: float=8.5 if width==20.0 else 9.5
+	if absf(player.x-width)>1.2 or player.z<z0-0.4 or player.z>z1+0.4: return
+	seam_hint_at=Time.get_ticks_msec()
+	_feedback('前方通道尚未开启')
+
+func _hive_sentinel_alive() -> bool:
+	var rows=snapshot.get('actors')
+	if not rows is Array: return false
+	for row in rows:
+		if row is Dictionary and row.get('entityType')=='enemy.grey_hive.sentinel' and row.get('active')==true: return true
+	return false
 
 func _maybe_exit_resume() -> void:
 	if exit_postframe_resume.is_empty() or not exit_entry_preview.is_empty() or not focused or uncertain or close_attempted or not critical.is_empty() or snapshot.is_empty() or status.is_empty(): return
