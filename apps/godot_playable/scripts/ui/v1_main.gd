@@ -20,6 +20,13 @@ const EARNED_TRAVERSAL_START = {'row':{'id':'cw_gear_earned_air_step','from':[11
 const ACTION_KEYS = {KEY_J:'primaryAttack',KEY_SHIFT:'dash',KEY_SPACE:'contextTraversal',KEY_Q:'pulse',KEY_E:'guardStart',KEY_R:'pierce'}
 const SCENE_RPC = {'scene_transition':'formal_scene_transition','scene_checkpoint':'formal_scene_checkpoint','scene_trigger':'formal_scene_trigger','environment_control':'formal_environment_control','world_gate':'formal_world_gate','mission_terminal':'formal_mission_terminal_status','capability_terminal':'formal_capability_terminal_status','save_rest_terminal':'formal_save_rest_terminal'}
 const INTERACT_KINDS = ['power_console','door_panel','terminal','lockdown_terminal','facility_log','bio_log_terminal','gate_b_panel','extraction_console','beacon','pump_control','valve_control','beacon_collect','beacon_mount','coolant_valve','static_dialogue_marker']
+# Same-floor doors entered by walking across a threshold instead of pressing F.
+# The authority still decides whether a door is open; a rejection is surfaced as
+# a message and the player stays where they are (no silent pass-through).
+const WALK_IN_GATES = {
+	'return_station:rs_core_room:rs_world_gate_marker':{'gate':'rs_world_gate_to_gh','radius':0.9},
+	'grey_hive:gh_entry_maintenance:gh_entry_return_marker':{'gate':'gh_entry_back_to_rs','radius':0.6}
+}
 var audio
 var rpc
 var catalog = Catalog.new()
@@ -40,6 +47,9 @@ var snapshot: Dictionary = {}
 var exit_entry_preview: Dictionary = {}
 var beacon_exit_ready_pending: Dictionary = {}
 var hive_route_ready_pending: Dictionary = {}
+var walk_in_pending = 0
+var walk_in_block_until = 0
+var walk_in_hint_at = 0
 var exit_preview_journey := false
 var exit_postframe_resume: Dictionary = {}
 var status: Dictionary = {}
@@ -229,7 +239,7 @@ func _request(method: String, params: Dictionary, purpose: String = '', extra: D
 			loading_message = '正在切换场景，等待请求完成'
 		elif method=='formal_world_gate' and P.snapshot(snapshot) and P.context(_context()) and P.same(_context(),snapshot):
 			var origin = snapshot.worldId+':'+snapshot.sceneId+':'+str(params.get('id',''))
-			hint_world = {'return_station:rs_core_room:rs_world_gate_to_gh':'grey_hive','return_station:rs_core_room:rs_world_gate_to_mh':'mist_harbor','return_station:rs_core_room:rs_world_gate_to_cw':'clockworks','grey_hive:gh_exit:gh_extraction_return_to_rs':'return_station','mist_harbor:mh_extraction:mh_extraction_return_to_rs':'return_station','clockworks:cw_shutdown_exit:cw_shutdown_return_to_rs':'return_station'}.get(origin,'')
+			hint_world = {'return_station:rs_core_room:rs_world_gate_to_gh':'grey_hive','return_station:rs_core_room:rs_world_gate_to_mh':'mist_harbor','return_station:rs_core_room:rs_world_gate_to_cw':'clockworks','grey_hive:gh_entry_maintenance:gh_entry_back_to_rs':'return_station','grey_hive:gh_exit:gh_extraction_return_to_rs':'return_station','mist_harbor:mh_extraction:mh_extraction_return_to_rs':'return_station','clockworks:cw_shutdown_exit:cw_shutdown_return_to_rs':'return_station'}.get(origin,'')
 			if hint_world=='return_station': loading_message = '正在返回归航站，等待请求完成'
 		world_loading.begin_loading(Panels.WORLDS.get(hint_world,'正在进入世界'))
 		world_loading.set_short_lore(loading_message)
@@ -291,6 +301,7 @@ func _gameplay_inputs_released() -> bool:
 func _process(delta: float) -> void:
 	_maybe_beacon_exit_ready()
 	_maybe_hive_route_ready()
+	_maybe_walk_in_gate()
 	_maybe_exit_ready()
 	_maybe_exit_resume()
 	var pair_view=snapshot.get('beaconExitNeighbor',{})
@@ -1114,12 +1125,18 @@ func _storage_inventory_available(i: Dictionary) -> bool:
 	return P.vector(native_row.transform.positionM)==authored_position
 func _is_rs_gh_signpost(i: Dictionary) -> bool:
 	return snapshot.get('worldId')=='return_station' and snapshot.get('sceneId')=='rs_core_room' and catalog.current.get('worldId')=='return_station' and catalog.current.get('sceneId')=='rs_core_room' and i.get('entityId')=='rs_gh_entry_marker' and i.get('kind')=='grey_hive_entry_marker'
+func _interact_walk_in(i: Dictionary) -> bool:
+	if typeof(i.get('entityId'))!=TYPE_STRING or i.get('kind')!='world_gate': return false
+	var key: String=_walk_in_scope()+':'+str(i.entityId)
+	return WALK_IN_GATES.has(key) and not _authored_interaction(str(i.entityId)).is_empty()
 func _interaction_prompt(i: Dictionary) -> String:
 	var label = _interaction_label(i)
 	if _is_rs_gh_signpost(i):
 		return '灰巢入口标识 · 仅作标识，不可操作'
 	if typeof(i.get('active'))!=TYPE_BOOL or not i.active:
 		return label+' · 当前不可用'
+	if _interact_walk_in(i):
+		return '步入通道 · '+label
 	if i.get('kind')=='npc_dialogue':
 		return '[F] '+label if _baizhi_available(i) else label+' · 当前对白不可用'
 	if SCENE_RPC.has(i.get('kind')) or i.get('kind') in INTERACT_KINDS or _storage_inventory_available(i):
@@ -1173,6 +1190,11 @@ func _destination_label(i: Dictionary) -> String:
 			return ''
 		var matches = native_rows.filter(func(row): return row.get('entityId')==i.entityId)
 		if matches.size()!=1 or matches[0].get('kind')!='world_gate' or matches[0].get('active')!=true or not P.transform(matches[0].get('transform')) or matches[0].transform!=i.transform:
+			return ''
+		return '返回归航站'
+	elif i.kind=='world_gate' and i.entityId=='gh_entry_return_marker' and snapshot.worldId=='grey_hive' and snapshot.sceneId=='gh_entry_maintenance':
+		var authored = _authored_interaction('gh_entry_return_marker')
+		if authored.is_empty() or authored.get('kind')!='world_gate_marker' or i.get('active')!=true or not P.transform(i.get('transform')) or P.vector(i.transform.positionM)!=Vector3(0.9,0,7):
 			return ''
 		return '返回归航站'
 	elif i.kind=='scene_transition':
@@ -1348,6 +1370,11 @@ func _interact() -> void:
 			_feedback('入口来源不匹配')
 			return
 		id = {'rs_world_gate_marker':'rs_world_gate_to_gh','rs_mh_world_gate_marker':'rs_world_gate_to_mh','rs_cw_world_gate_marker':'rs_world_gate_to_cw'}[id]
+	elif kind=='world_gate' and id=='gh_entry_return_marker':
+		if snapshot.worldId!='grey_hive' or snapshot.sceneId!='gh_entry_maintenance':
+			_feedback('入口来源不匹配')
+			return
+		id = 'gh_entry_back_to_rs'
 	if id=='cw_shutdown_return_to_rs' and (snapshot.worldId!='clockworks' or snapshot.sceneId!='cw_shutdown_exit') or id=='mh_extraction_return_to_rs' and (snapshot.worldId!='mist_harbor' or snapshot.sceneId!='mh_extraction'):
 		_feedback('返回入口来源不匹配')
 		return
@@ -2015,6 +2042,66 @@ func _maybe_hive_route_ready() -> void:
 		proof['arenaShuttersOpen']=v.arenaShuttersOpen
 	var id=_request('formal_scene_ready',{'token':token,'remainPaused':false,'exitPreparedSourceSha256':hash,'pairProof':proof},'hive_route_ready',{'token':token,'hash':hash,'expectedCommand':'scene-ready:'+str(int(token.generation))},false)
 	if id>0: hive_route_ready_pending={'id':id,'token':token}
+
+func _walk_in_scope() -> String:
+	return '' if snapshot.is_empty() else str(snapshot.get('worldId'))+':'+str(snapshot.get('sceneId'))
+
+func _authored_interaction(id: String) -> Dictionary:
+	var rows=catalog.current.get('interactions')
+	if not P.rows(rows,2048): return {}
+	var matches: Array=[]
+	for row in rows:
+		if row is Dictionary and row.get('id')==id: matches.append(row)
+	return matches[0] if matches.size()==1 else {}
+
+func _native_world_gate(id: String) -> Dictionary:
+	var rows=snapshot.get('interactables')
+	if not P.rows(rows,2048): return {}
+	var matches: Array=[]
+	for row in rows:
+		if row is Dictionary and row.get('entityId')==id and row.get('kind')=='world_gate' and row.get('active')==true and P.transform(row.get('transform')): matches.append(row)
+	return matches[0] if matches.size()==1 else {}
+
+# Walk-in doors: crossing the threshold around the authored door marker sends the
+# same world-gate command F would send. Movement alone therefore changes the scene.
+func _maybe_walk_in_gate() -> void:
+	if walk_in_pending>0 and (not is_instance_valid(rpc) or not rpc.pending.has(walk_in_pending)): walk_in_pending=0
+	if walk_in_pending>0 or not is_instance_valid(rpc) or not rpc.authenticated or not journey_started or uncertain or close_attempted or not is_instance_valid(catalog) or not P.snapshot(snapshot) or not snapshot.has('player') or not snapshot.player is Dictionary or not P.transform(snapshot.player.get('transform')): return
+	var scope: String=_walk_in_scope()
+	if scope.is_empty() or not catalog.current is Dictionary or catalog.current.is_empty(): return
+	if str(catalog.current.get('worldId'))+':'+str(catalog.current.get('sceneId'))!=scope: return
+	if Time.get_ticks_msec()<walk_in_block_until: return
+	var player := P.vector(snapshot.player.transform.positionM)
+	var flat := Vector2(player.x,player.z)
+	for key in WALK_IN_GATES.keys():
+		if not str(key).begins_with(scope+':'): continue
+		var id: String=str(key).substr(scope.length()+1)
+		var authored: Dictionary=_authored_interaction(id)
+		if authored.is_empty() or authored.get('kind')!='world_gate_marker': continue
+		var native: Dictionary=_native_world_gate(id)
+		if native.is_empty():
+			# The authority drops the row while the door is shut. Say so instead of
+			# letting the player walk into an unusable opening in silence.
+			var position=authored.get('position')
+			if typeof(position)==TYPE_ARRAY and position.size()==3 and P.number(position[0]) and P.number(position[2]) and Time.get_ticks_msec()-walk_in_hint_at>4000 and flat.distance_to(Vector2(float(position[0]),float(position[2])))<=2.5:
+				walk_in_hint_at=Time.get_ticks_msec()
+				_feedback('入口当前不可用：尚未解锁')
+			continue
+		var door := P.vector(native.transform.positionM)
+		if flat.distance_to(Vector2(door.x,door.z))>float(WALK_IN_GATES[key].radius): continue
+		if not _eligible(): continue
+		_walk_in_enter(str(WALK_IN_GATES[key].gate),native)
+		return
+
+func _walk_in_enter(gate: String, native: Dictionary) -> void:
+	var rid=_id('walkin')
+	walk_in_block_until=Time.get_ticks_msec()+1500
+	var id=_request('formal_world_gate',{'id':gate,'requestId':rid,'worldEpoch':snapshot.worldEpoch},'interaction',{'expectedCommand':rid,'target':native.duplicate(true),'before':snapshot.duplicate(true)},true)
+	if id<=0:
+		_feedback('入口请求未发送，请稍后再试')
+		return
+	walk_in_pending=id
+	_feedback('正在通过入口')
 
 func _maybe_exit_resume() -> void:
 	if exit_postframe_resume.is_empty() or not exit_entry_preview.is_empty() or not focused or uncertain or close_attempted or not critical.is_empty() or snapshot.is_empty() or status.is_empty(): return

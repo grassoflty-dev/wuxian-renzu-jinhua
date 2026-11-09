@@ -1,7 +1,7 @@
 extends RefCounted
 const P = preload('res://scripts/bridge/protocol.gd')
 const WorldProjection = preload('res://scripts/world/projection.gd')
-const ENTRY_SCENE_SHA = '5deb6c01b2ad81144144ae2526c06f8c337839e8d880aeb1b3af3a225afe787b'
+const ENTRY_SCENE_SHA = '4bf7a69a72e714a8de36c683f8b04fa7b1c89bbb9a358b2735dc7d2775915eaf'
 const CONFIG = {
 	'maintenance':{'id':'runtime2d.enemy.infected_maintenance_worker.v1','path':'res://assets/enemies/grey_hive/maintenance_sheet.png','bytes':1870188,'sha':'f7ee9460d18be46a8aea81fda2e566b29e5ac7b80d9ad2b20fd58f2f7e7a8168','source_sha':'6b7055df24acfa58edfdf0342c67efb60f9fac892c80110d449700bf7021477d','canvas':[1447,1086],'rect':[17,3,428,522],'foot':[266,511],'height':1.72},
 	'security':{'id':'runtime2d.enemy.infected_security.v1','path':'res://assets/enemies/grey_hive/security_sheet.png','bytes':1827592,'sha':'cee3c171a14d82317e98ef00f39c3341a16364931dd8d56ec0ced330bcbecf66','source_sha':'7bd9d4cf19f36d189cdf81530c3dee48450179696a7dbceb24eaf375714de4e4','canvas':[1407,1072],'rect':[14,0,332,542],'foot':[190,537],'height':1.72},

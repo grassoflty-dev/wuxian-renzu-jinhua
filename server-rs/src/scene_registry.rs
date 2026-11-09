@@ -495,11 +495,18 @@ pub(crate) fn valid_id(id: &str) -> bool {
 
 /// Published scene digests that still identify the same scene after an authored edit.
 /// A stored digest from an older save or route must keep loading; it may warn.
-pub const LEGACY_SCENE_SOURCE_SHA256: [(&str, &str, &str); 1] = [(
-    "rs_core_room",
-    "927f8dc466403837b081027bafb04c3c66a6ca17ee71bf5ce0a7d891e4fb3ad9",
-    "d61ae6d81faeca1b3ec32009af44092f72564e2268923d09d8ae24544e21a852",
-)];
+pub const LEGACY_SCENE_SOURCE_SHA256: [(&str, &str, &str); 2] = [
+    (
+        "rs_core_room",
+        "927f8dc466403837b081027bafb04c3c66a6ca17ee71bf5ce0a7d891e4fb3ad9",
+        "d61ae6d81faeca1b3ec32009af44092f72564e2268923d09d8ae24544e21a852",
+    ),
+    (
+        "gh_entry_maintenance",
+        "5deb6c01b2ad81144144ae2526c06f8c337839e8d880aeb1b3af3a225afe787b",
+        "4bf7a69a72e714a8de36c683f8b04fa7b1c89bbb9a358b2735dc7d2775915eaf",
+    ),
+];
 
 /// Exact match, or a known old→new alias for this scene id.
 pub fn scene_source_matches(scene_id: &str, stored: &str, current: &str) -> bool {

@@ -14,7 +14,7 @@ fn data()->Option<&'static Value>{DATA.get_or_init(||{
 pub(super) fn variant(scene:&SceneDefinition,open:bool,shaft:Option<bool>)->Option<&'static str>{
  if scene.world_id!="grey_hive"{return None;}
  let key=match (scene.scene_id.as_str(),scene.verified_source_sha256.as_str()) {
-  ("gh_entry_maintenance","5deb6c01b2ad81144144ae2526c06f8c337839e8d880aeb1b3af3a225afe787b")=>"entry",
+  ("gh_entry_maintenance","4bf7a69a72e714a8de36c683f8b04fa7b1c89bbb9a358b2735dc7d2775915eaf")=>"entry",
   ("gh_central_shaft","6880bdf8dbab71a8bf74e38b8c614ad751e564cf87e8a2936ee801e52b72a832")=>match shaft? {false=>"shaft_deferred",true=>if open{"shaft_active_open"}else{"shaft_active_closed"}},
   ("gh_lockdown","23e5d5d9f37f6f44b1f8b9105aab656424778ef5edf0e775bbc364143fe1b30c")=>if open{"lockdown_open"}else{"lockdown_closed"},
   ("gh_lockdown","718489a1ea4ec4622ccdcefc8459a1dc1bd4f66ccf26abc813b6a06519197850")=>if open{"lockdown_legacy_open"}else{"lockdown_legacy_closed"},
@@ -80,7 +80,7 @@ mod tests {
  }
  #[test]
  fn strict_source_owners_and_complete_rows() {
-  let mut scene=fixture(include_str!("../../../content/scenes/compiled/gh_entry_maintenance.json"),"5deb6c01b2ad81144144ae2526c06f8c337839e8d880aeb1b3af3a225afe787b");
+  let mut scene=fixture(include_str!("../../../content/scenes/compiled/gh_entry_maintenance.json"),"4bf7a69a72e714a8de36c683f8b04fa7b1c89bbb9a358b2735dc7d2775915eaf");
   assert_eq!(variant(&scene,false,None),Some("entry"));
   let id="grey_hive.gh_entry_maintenance.info_v1.entry_transit";
   let p=Vec3{x_m:10.0,y_m:0.0,z_m:7.0};assert_eq!(occupied("entry",p,None).as_deref(),Some(id));
@@ -88,7 +88,7 @@ mod tests {
   let mut duplicate=expected.clone();duplicate.push(expected[0].clone());assert!(stored_regions("entry",&duplicate).is_empty());
   let mut malformed=expected.clone();malformed[0].outline_m[0].x_m+=1.0;assert!(stored_regions("entry",&malformed).is_empty());
   scene.verified_source_sha256="wrong".into();assert_eq!(variant(&scene,false,None),None);
-  scene.verified_source_sha256="5deb6c01b2ad81144144ae2526c06f8c337839e8d880aeb1b3af3a225afe787b".into();scene.collision[0].polygon[0][0]+=1.0;assert_eq!(variant(&scene,false,None),None);
+  scene.verified_source_sha256="4bf7a69a72e714a8de36c683f8b04fa7b1c89bbb9a358b2735dc7d2775915eaf".into();scene.collision[0].polygon[0][0]+=1.0;assert_eq!(variant(&scene,false,None),None);
  }
  #[test]
  fn gate_passage_requires_open_and_actual_complete_visit() {

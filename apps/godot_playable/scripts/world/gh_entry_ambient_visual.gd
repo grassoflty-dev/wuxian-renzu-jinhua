@@ -5,7 +5,7 @@ const ProjectionScript = preload("res://scripts/world/projection.gd")
 
 const WORLD_ID: String = "grey_hive"
 const SCENE_ID: String = "gh_entry_maintenance"
-const SCENE_SHA256: String = "5deb6c01b2ad81144144ae2526c06f8c337839e8d880aeb1b3af3a225afe787b"
+const SCENE_SHA256: String = "4bf7a69a72e714a8de36c683f8b04fa7b1c89bbb9a358b2735dc7d2775915eaf"
 const FLOOR_WASH: Color = Color("#496d73")
 const FLOOR_WASH_ALPHA: float = 0.04
 const MOTE_COLOR: Color = Color("#b8ccce")

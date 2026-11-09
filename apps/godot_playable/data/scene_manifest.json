@@ -15,8 +15,8 @@
     "path": "res://data/scenes/cw_shutdown_exit.json"
   },
   "gh_entry_maintenance": {
-    "bytes": 5472,
-    "sha256": "5deb6c01b2ad81144144ae2526c06f8c337839e8d880aeb1b3af3a225afe787b",
+    "bytes": 5645,
+    "sha256": "4bf7a69a72e714a8de36c683f8b04fa7b1c89bbb9a358b2735dc7d2775915eaf",
     "path": "res://data/scenes/gh_entry_maintenance.json"
   },
   "cw_conveyor_bridge": {

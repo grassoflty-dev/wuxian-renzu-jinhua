@@ -159,7 +159,7 @@ func draw_entry_contact_shadow(canvas, snapshot, scene, current_key, scene_hash,
 		return false
 	if not P.snapshot(snapshot) or not snapshot.has('entryToken') or snapshot.entryToken!=null or not P.counter(snapshot.get('worldEpoch'),1) or snapshot.get('worldId')!='grey_hive' or snapshot.get('sceneId')!='gh_entry_maintenance' or snapshot.player.currentHp<=0:
 		return false
-	if scene.get('worldId')!='grey_hive' or scene.get('sceneId')!='gh_entry_maintenance' or scene_hash!='5deb6c01b2ad81144144ae2526c06f8c337839e8d880aeb1b3af3a225afe787b' or current_key!='grey_hive:gh_entry_maintenance:'+str(snapshot.worldEpoch):
+	if scene.get('worldId')!='grey_hive' or scene.get('sceneId')!='gh_entry_maintenance' or scene_hash!='4bf7a69a72e714a8de36c683f8b04fa7b1c89bbb9a358b2735dc7d2775915eaf' or current_key!='grey_hive:gh_entry_maintenance:'+str(snapshot.worldEpoch):
 		return false
 	if not canvas.has_method('actor_visible') or canvas.call('actor_visible','player')!=true: return false
 	var projection_script: Variant = projection.get_script()

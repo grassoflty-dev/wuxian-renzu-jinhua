@@ -27,7 +27,7 @@ const EXPECTED_SCENES: [(&str, &str); 11] = [
     ),
     (
         "gh_entry_maintenance.json",
-        "5deb6c01b2ad81144144ae2526c06f8c337839e8d880aeb1b3af3a225afe787b",
+        "4bf7a69a72e714a8de36c683f8b04fa7b1c89bbb9a358b2735dc7d2775915eaf",
     ),
     (
         "gh_exit.json",

@@ -11,7 +11,7 @@ fn sha(scene:&str,legacy:bool)->Option<&'static str>{Some(match scene {
  "gh_deep_decon"=>"a53fd5c62a4540a375b51f7286798c7bab1a5c73aa37e98d3f4d6bad7b24f1c0",
  "gh_beacon"=>"e6434c598904d7fe36f4f48ebc67559e6d484eb535393a7b447bc99cbf86c766",
  "gh_exit"=>"b32ad8d1204e9eaf45512b0e2d5ea22e08f5bd09ec0b5e31980e41336c45ee09",
- "gh_entry_maintenance"=>"5deb6c01b2ad81144144ae2526c06f8c337839e8d880aeb1b3af3a225afe787b",
+ "gh_entry_maintenance"=>"4bf7a69a72e714a8de36c683f8b04fa7b1c89bbb9a358b2735dc7d2775915eaf",
  "gh_central_shaft"=>"6880bdf8dbab71a8bf74e38b8c614ad751e564cf87e8a2936ee801e52b72a832",
  "gh_lockdown" if legacy=>"718489a1ea4ec4622ccdcefc8459a1dc1bd4f66ccf26abc813b6a06519197850",
  "gh_lockdown"=>"23e5d5d9f37f6f44b1f8b9105aab656424778ef5edf0e775bbc364143fe1b30c",

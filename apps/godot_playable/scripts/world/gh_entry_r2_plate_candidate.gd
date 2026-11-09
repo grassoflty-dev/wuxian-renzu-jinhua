@@ -7,7 +7,7 @@ const SETTING = 'wuxian/visual_candidates/gh_entry_r2'
 const IMAGE_PATH = 'res://assets/props/grey_hive/gh_entry_whole_map_20261101_r2.png'
 const IMAGE_BYTES = 2943000
 const IMAGE_SHA256 = '550b5ebb8a70decd94f454ab0416ac8ce7722338168243181be824f6571fd045'
-const SCENE_SHA256 = '5deb6c01b2ad81144144ae2526c06f8c337839e8d880aeb1b3af3a225afe787b'
+const SCENE_SHA256 = '4bf7a69a72e714a8de36c683f8b04fa7b1c89bbb9a358b2735dc7d2775915eaf'
 const ORIGIN_PIXEL = Vector2(780,140)
 const REFERENCE_PPM = 40.0
 

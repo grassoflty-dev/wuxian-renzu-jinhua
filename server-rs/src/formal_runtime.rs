@@ -1916,6 +1916,14 @@ impl FormalRuntime {
                 }
                 ("rs_core_room", "cw_shutdown_exit_portal_staged", "exit_portal_staged_marker")
             }
+            // Walk back out of the maintenance entrance to the hub. This door has no
+            // progression condition of its own: it is the same doorway the player walked
+            // in through, so leaving must always be possible without an interaction key.
+            ("grey_hive", "gh_entry_back_to_rs") if source.scene_id == "gh_entry_maintenance" => (
+                "rs_core_room",
+                "gh_entry_return_marker",
+                "world_gate_marker",
+            ),
             ("grey_hive", "gh_extraction_return_to_rs") if source.scene_id == "gh_exit" => {
                 let gh = state
                     .route
@@ -6627,6 +6635,7 @@ fn project_scene_view(state: &RuntimeState, scene: Option<&SceneRuntime>) -> Wor
                         "capability_terminal".into()
                     }
                     ("rs_core_room", "rs_save_rest_terminal_marker") => "save_rest_terminal".into(),
+                    ("gh_entry_maintenance", "gh_entry_return_marker") => "world_gate".into(),
                     _ => item.kind.clone(),
                 },
                 transform: Transform {

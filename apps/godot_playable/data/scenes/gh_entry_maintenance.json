@@ -129,6 +129,16 @@
   "interactions": [
     {
       "event": null,
+      "id": "gh_entry_return_marker",
+      "kind": "world_gate_marker",
+      "position": [
+        0.9,
+        0.0,
+        7.0
+      ]
+    },
+    {
+      "event": null,
       "id": "gh_entry_tutorial_terminal",
       "kind": "terminal",
       "position": [

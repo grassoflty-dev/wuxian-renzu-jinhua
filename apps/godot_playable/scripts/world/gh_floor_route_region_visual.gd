@@ -3,7 +3,7 @@ extends RefCounted
 const P = preload('res://scripts/bridge/protocol.gd')
 const SOURCE = 'res://data/gh_floor_route_regions.local.json'
 const HASHES = {
-	'gh_entry_maintenance':['5deb6c01b2ad81144144ae2526c06f8c337839e8d880aeb1b3af3a225afe787b'],
+	'gh_entry_maintenance':['4bf7a69a72e714a8de36c683f8b04fa7b1c89bbb9a358b2735dc7d2775915eaf'],
 	'gh_central_shaft':['6880bdf8dbab71a8bf74e38b8c614ad751e564cf87e8a2936ee801e52b72a832'],
 	'gh_lockdown':['23e5d5d9f37f6f44b1f8b9105aab656424778ef5edf0e775bbc364143fe1b30c','718489a1ea4ec4622ccdcefc8459a1dc1bd4f66ccf26abc813b6a06519197850'],
 	'gh_gate_b':['a82c10a6fa50129c48267e255d2ca86f4ebaca43e0e0da81b639ee88228312c1'],

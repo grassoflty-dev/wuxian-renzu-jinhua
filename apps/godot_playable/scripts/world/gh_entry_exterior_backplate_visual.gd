@@ -5,7 +5,7 @@ const MAPPING_RESOURCE = "res://data/gh_entry_exterior_backplate_20261027_r1.int
 const TEXTURE_RESOURCE = "res://assets/props/grey_hive/gh_entry_exterior_backplate_20261027_r1.png"
 const PNG_BYTES = 2211708
 const PNG_SHA256 = "1c936f9c07abe19a63b4277e2173817625905225b1ac55ff894d7969edec803c"
-const SCENE_SHA256 = "5deb6c01b2ad81144144ae2526c06f8c337839e8d880aeb1b3af3a225afe787b"
+const SCENE_SHA256 = "4bf7a69a72e714a8de36c683f8b04fa7b1c89bbb9a358b2735dc7d2775915eaf"
 
 var _attempted: bool = false
 var _texture: CanvasTexture
