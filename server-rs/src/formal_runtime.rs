@@ -1581,7 +1581,7 @@ impl FormalRuntime {
             return Err("E_SAVE_SUPPORT_FRAME_INVALID".into());
         }
         if let Some(scene) = scene_runtime.as_ref() {
-            update_mist_harbor_exploration(&mut restored, scene.current_scene(), false)?;
+            update_scene_exploration(&mut restored, scene.current_scene(), false)?;
             environmental_hazards::prepare_scene(&mut restored, scene.current_scene())?;
             warden_encounter::prepare_scene(&mut restored, scene.current_scene())?;
             ordinary_enemy_presentation::prepare_restored(&mut restored, scene);
@@ -2214,7 +2214,7 @@ impl FormalRuntime {
         next_state.kcc = kcc;
         next_state.install_capability_state(next_state.world.clone(), capabilities)?;
         if target.world_id == "mist_harbor" {
-            update_mist_harbor_exploration(&mut next_state, &target, true)?;
+            update_scene_exploration(&mut next_state, &target, true)?;
         }
         environmental_hazards::prepare_scene(&mut next_state, &target)?;
         next_state.stepper = stepper;
@@ -2528,7 +2528,7 @@ impl FormalRuntime {
         state.install_capability_state(next_world, capabilities)?;
         state.kcc = kcc;
         state.world_persistent_v1.environment = environment;
-        update_mist_harbor_exploration(&mut state, &scene, true)?;
+        update_scene_exploration(&mut state, &scene, true)?;
         state.latest_sample = InputSample::new(state.world.revision.world_epoch, 0, 0, 0.0, 0.0)
             .map_err(|e| format!("E_SCENE_INPUT: {e:?}"))?;
         state.stepper = FixedStepClock::new(state.stepper.config);
@@ -2930,7 +2930,7 @@ impl FormalRuntime {
         state.route = route;
         state.kcc = kcc;
         state.world_persistent_v1.environment = environment;
-        update_mist_harbor_exploration(&mut state, &scene, true)?;
+        update_scene_exploration(&mut state, &scene, true)?;
         state.stepper = FixedStepClock::new(state.stepper.config);
         state.latest_sample = InputSample::new(transition.next_epoch, 0, 0, 0.0, 0.0)
             .map_err(|e| format!("E_SCENE_INPUT: {e:?}"))?;
@@ -5289,7 +5289,7 @@ fn advance_owner_step_with_input_age(
         }
     }
     if let Some(scene) = scene {
-        update_mist_harbor_exploration(state, scene.current_scene(), false)?;
+        update_scene_exploration(state, scene.current_scene(), false)?;
     }
     combat_presentation::present_events(state, &output.combat);
     let now_ms = state.world.server_time_ms;
@@ -5670,8 +5670,12 @@ fn mhcw_history_contact<'a>(state:&'a RuntimeState,d:&crate::scene_runtime::Scen
         if c.revision!=state.world.revision || c.body!=state.world.player {return None;}c
     };
     if c.world_id!=state.world.world_id || c.scene_id!=state.world.scene_id
-        || d.world_id!=c.world_id || d.scene_id!=c.scene_id || d.verified_source_sha256!=c.scene_sha
+        || d.world_id!=c.world_id || d.scene_id!=c.scene_id
+        || !crate::scene_registry::scene_source_matches(&d.scene_id,&c.scene_sha,&d.verified_source_sha256)
         || c.server_time_ms!=state.world.server_time_ms {return None;}
+    if crate::scene_registry::legacy_scene_source_alias(&d.scene_id,&c.scene_sha,&d.verified_source_sha256) {
+        eprintln!("W_SCENE_SOURCE_LEGACY_ALIAS scene={}",d.scene_id);
+    }
     mhcw_map_region::group(d,c.layer)?;Some(c)
 }
 fn mhcw_for_definition<'a>(state:&'a RuntimeState,d:&crate::scene_runtime::SceneDefinition)->Option<&'a MhcwContact> {
@@ -5749,11 +5753,14 @@ fn shaft_floor_region_eligible(state:&RuntimeState, scene:&SceneRuntime,
     support:Option<&crate::moving_support::SupportSceneView>,floor_y:f32) -> bool {
     let definition=scene.current_scene();
     let Some(support)=support else{return false;};
+    if crate::scene_registry::legacy_scene_source_alias(&definition.scene_id,&support.scene_source_sha256,&definition.verified_source_sha256) {
+        eprintln!("W_SCENE_SOURCE_LEGACY_ALIAS scene={}",definition.scene_id);
+    }
     definition.world_id=="grey_hive" && definition.scene_id=="gh_central_shaft"
         && state.world.world_id==definition.world_id && state.world.scene_id==definition.scene_id
         && scene.world_epoch==state.world.revision.world_epoch
         && support.world_id==definition.world_id && support.scene_id==definition.scene_id
-        && support.world_epoch==scene.world_epoch && support.scene_source_sha256==definition.verified_source_sha256
+        && support.world_epoch==scene.world_epoch && crate::scene_registry::scene_source_matches(&definition.scene_id,&support.scene_source_sha256,&definition.verified_source_sha256)
         && support.rider.position_m==state.world.player.position_m
         && shaft_floor_contact_flags(state.shaft_owner.is_some(),state.shaft_deferred,support.rider.mode,
             state.world.player.position_m.y_m,floor_y,state.world.player.grounded,state.world.combat_state.active_traversal.is_some())
@@ -5921,14 +5928,19 @@ fn record_dense_exploration(state:&mut RuntimeState, floor_route_key:Option<&str
     state.world.explored.player_position_m=state.world.player.position_m;
 }
 
-fn update_mist_harbor_exploration(
+/// Records real exploration for the worlds that author an exploration-region
+/// whitelist. Worlds without one are no-ops; this never invents progress.
+fn update_scene_exploration(
     state: &mut RuntimeState,
     scene: &crate::scene_runtime::SceneDefinition,
     mark_spawn: bool,
 ) -> Result<(), String> {
-    if scene.world_id != crate::world_persistent_v1::MIST_HARBOR_ID {
-        return Ok(());
-    }
+    let world_id = scene.world_id.as_str();
+    let allowed: &[&str] = match world_id {
+        crate::world_persistent_v1::MIST_HARBOR_ID => &crate::world_persistent_v1::MIST_HARBOR_EXPLORATION_REGION_IDS,
+        crate::world_persistent_v1::RETURN_STATION_ID => &crate::world_persistent_v1::RETURN_STATION_EXPLORATION_REGION_IDS,
+        _ => return Ok(()),
+    };
     let position = state.world.player.position_m;
     if mark_spawn {
         if let Some(spawn) = scene.spawns.iter().find(|spawn| spawn.kind == "player") {
@@ -5945,7 +5957,7 @@ fn update_mist_harbor_exploration(
             if let Some(region) = containing.first() {
                 state
                     .world_persistent_v1
-                    .mark_explored(&region.id)
+                    .mark_explored_in(world_id, &region.id)
                     .map_err(|error| format!("E_EXPLORATION_STATE: {error:?}"))?;
             }
         }
@@ -5956,14 +5968,14 @@ fn update_mist_harbor_exploration(
         {
             state
                 .world_persistent_v1
-                .mark_explored(&region.id)
+                .mark_explored_in(world_id, &region.id)
                 .map_err(|error| format!("E_EXPLORATION_STATE: {error:?}"))?;
         }
     }
     let rooms = scene
         .exploration_regions
         .iter()
-        .filter(|region| state.world_persistent_v1.is_explored(&region.id))
+        .filter(|region| allowed.contains(&region.id.as_str()) && state.world_persistent_v1.is_explored_in(world_id, &region.id))
         .map(|region| crate::world_v3::ExploredRoom {
             room_id: region.id.clone(),
             outline_m: region
@@ -7471,8 +7483,11 @@ fn shaft_reentry(scene:&crate::scene_runtime::SceneDefinition,world:&WorldStateV
     seam_footprint:bool)
     ->Result<(Option<shaft_lift::ShaftOwner>,bool),String> {
     let Some(saved)=history.as_ref() else {return shaft_old_floor_entry_inner(scene,world,events,seam_footprint);};
-    if saved.scene_source_sha256!=scene.verified_source_sha256 || saved.deferred==saved.frame.is_some() {
+    if !crate::scene_registry::scene_source_matches(&scene.scene_id,&saved.scene_source_sha256,&scene.verified_source_sha256) || saved.deferred==saved.frame.is_some() {
         return Err("E_SHAFT_HISTORY_CONTEXT".into());
+    }
+    if crate::scene_registry::legacy_scene_source_alias(&scene.scene_id,&saved.scene_source_sha256,&scene.verified_source_sha256) {
+        eprintln!("W_SCENE_SOURCE_LEGACY_ALIAS scene={}",scene.scene_id);
     }
     let result=if saved.deferred {
         shaft_old_floor_entry_inner(scene,world,events,seam_footprint)?
@@ -12564,25 +12579,25 @@ mod tests {
         ]);
         let scene: crate::scene_runtime::SceneDefinition = serde_json::from_value(scene).unwrap();
 
-        update_mist_harbor_exploration(&mut state, &scene, true).unwrap();
+        update_scene_exploration(&mut state, &scene, true).unwrap();
         assert_eq!(
             state.world_persistent_v1.mist_harbor.explored_region_ids,
             ["mh_ps_intake"]
         );
         state.world.player.position_m = Vec3::new(5.0, 0.0, 2.0).unwrap();
-        update_mist_harbor_exploration(&mut state, &scene, false).unwrap();
+        update_scene_exploration(&mut state, &scene, false).unwrap();
         assert_eq!(
             state.world_persistent_v1.mist_harbor.explored_region_ids,
             ["mh_ps_intake"]
         );
         state.world.player.position_m = Vec3::new(5.34, 0.0, 2.0).unwrap();
-        update_mist_harbor_exploration(&mut state, &scene, false).unwrap();
+        update_scene_exploration(&mut state, &scene, false).unwrap();
         assert_eq!(
             state.world_persistent_v1.mist_harbor.explored_region_ids,
             ["mh_ps_intake"]
         );
         state.world.player.position_m = Vec3::new(5.35, 0.0, 2.0).unwrap();
-        update_mist_harbor_exploration(&mut state, &scene, false).unwrap();
+        update_scene_exploration(&mut state, &scene, false).unwrap();
         assert!(state.world_persistent_v1.is_explored("mh_ps_control_hall"));
 
         let walked_ids = state
@@ -12626,6 +12641,88 @@ mod tests {
         state.install_build(build).unwrap();
         let selected = project_view(&state);
         assert_eq!(selected.capabilities.explored_map.rooms.len(), 2);
+    }
+
+    #[test]
+    fn return_station_exploration_records_hub_regions() {
+        let mut state = FormalRuntime::initial_state(1).unwrap();
+        state.world =
+            WorldStateV3::new("return_station", 1, Vec3::new(4.0, 0.0, 8.0).unwrap()).unwrap();
+        state.world.scene_id = "rs_core_room".into();
+        state.capabilities.world_id = "return_station".into();
+        state.capabilities.explored_map = state.world.explored.clone();
+        let scene: crate::scene_runtime::SceneDefinition = serde_json::from_str(include_str!(
+            "../../content/scenes/compiled/rs_core_room.json"
+        ))
+        .unwrap();
+
+        update_scene_exploration(&mut state, &scene, true).unwrap();
+        assert_eq!(
+            state.world_persistent_v1.return_station.explored_region_ids,
+            ["rs_core_west"]
+        );
+        assert_eq!(state.world.explored.world_id, "return_station");
+        assert_eq!(state.world.explored.rooms.len(), 1);
+        assert_eq!(state.world.explored.rooms[0].room_id, "rs_core_west");
+        assert_eq!(state.world.explored.rooms[0].outline_m.len(), 4);
+
+        state.world.player.position_m = Vec3::new(10.0, 0.0, 8.0).unwrap();
+        update_scene_exploration(&mut state, &scene, false).unwrap();
+        assert_eq!(
+            state.world_persistent_v1.return_station.explored_region_ids,
+            ["rs_core_center", "rs_core_west"]
+        );
+        assert_eq!(state.world.explored.rooms.len(), 2);
+        assert!(state.world_persistent_v1.mist_harbor.explored_region_ids.is_empty());
+        assert!(state.world_persistent_v1.validate().is_ok());
+
+        let old_save = crate::world_persistent_v1::WorldPersistentState::default();
+        assert_eq!(
+            scene
+                .exploration_regions
+                .iter()
+                .filter(|region| old_save.is_explored_in("return_station", &region.id))
+                .count(),
+            0
+        );
+
+        let rev = state.world.revision;
+        crate::capability_v1::apply_command_at_revision(
+            &mut state.capabilities,
+            crate::capability_v1::CapabilityCommand::Grant {
+                capability_id: crate::capability_v1::CAP_LOCAL_MAP.into(),
+            },
+            rev,
+        )
+        .unwrap();
+        crate::capability_v1::apply_command_at_revision(
+            &mut state.capabilities,
+            crate::capability_v1::CapabilityCommand::Select {
+                capability_ids: vec![crate::capability_v1::CAP_LOCAL_MAP.into()],
+            },
+            rev,
+        )
+        .unwrap();
+        let build = state.progression_v6.clone();
+        state.install_build(build).unwrap();
+        let mut output = crate::world_v3::CapabilityProjection::new(
+            vec![],
+            state.world.explored.clone(),
+            vec![],
+            crate::world_v3::RearViewAuthorization::denied(),
+        );
+        super::live_rules::project_information(&state, Some(&scene), None, None, &mut output);
+        assert_eq!(output.map_topology_authorized, Some(true));
+        assert_eq!(output.explored_map.rooms.len(), 2);
+        assert_eq!(
+            output.map_current_room_ids,
+            Some(vec!["rs_core_center".to_string()])
+        );
+        assert!(output
+            .map_explored_room_ids
+            .as_ref()
+            .unwrap()
+            .contains(&"rs_core_west".to_string()));
     }
 
     #[test]

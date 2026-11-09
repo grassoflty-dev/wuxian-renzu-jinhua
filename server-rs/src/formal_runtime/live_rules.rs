@@ -641,7 +641,8 @@ pub(super) fn project_information(
             let mhcw=super::mhcw_for_definition(state,d);
             let mhcw_history=super::mhcw_history_group(state,d);
             let supported=mhcw_history.is_some() || floor_route_key.is_some() || super::dense_service_wing::admitted(d)
-                || super::bio_info::admitted(d) || super::decon_info::admitted(d) || super::beacon_exit_info::admitted(d);
+                || super::bio_info::admitted(d) || super::decon_info::admitted(d) || super::beacon_exit_info::admitted(d)
+                || !d.exploration_regions.is_empty();
             if supported {
                 let current:Vec<String>=if let Some(c)=mhcw {
                     super::mhcw_map_region::group(d,c.layer).and_then(|g|super::mhcw_map_region::rows(g,&c.region)).unwrap_or_default().into_iter().map(|r|r.room_id).collect()
@@ -654,7 +655,7 @@ pub(super) fn project_information(
                     else if super::decon_info::admitted(d) {super::decon_info::rows(id).unwrap_or_default().into_iter().map(|r|r.room_id).collect()}
                     else if super::beacon_exit_info::admitted(d) {super::beacon_exit_info::rows(&d.scene_id,id).unwrap_or_default().into_iter().map(|r|r.room_id).collect()}
                     else if super::dense_service_wing::region_polygon(d,id).is_some() {vec![id.to_owned()]} else {vec![]}
-                } else {vec![]};
+                } else if let Some(region) = d.exploration_regions.iter().find(|region| super::point_in_or_on_polygon(state.world.player.position_m.x_m, state.world.player.position_m.z_m, &region.polygon)) { vec![region.id.clone()] } else {vec![]};
                 let displayed:std::collections::BTreeSet<_>=rooms.iter().map(|r|r.room_id.as_str()).collect();
                 projection.map_current_room_ids=Some(current.into_iter().filter(|id|displayed.contains(id.as_str())).collect());
                 // Reproject with no transient occupied parent: only provider-validated

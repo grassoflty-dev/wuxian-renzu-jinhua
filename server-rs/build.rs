@@ -152,7 +152,7 @@ const REVIEWED_SCENES: [(&str, &str, &str); 18] = [
 ];
 const NATIVE_AUXILIARY_SCENES: [(&str, &str, &str); 1] = [(
     "rs_core_room.json",
-    "927f8dc466403837b081027bafb04c3c66a6ca17ee71bf5ce0a7d891e4fb3ad9",
+    "d61ae6d81faeca1b3ec32009af44092f72564e2268923d09d8ae24544e21a852",
     "return_station",
 )];
 const EXPECTED_INPUTS: [(&str, &str); 4] = [

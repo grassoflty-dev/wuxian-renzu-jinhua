@@ -50,6 +50,11 @@ pub const MIST_HARBOR_EXPLORATION_REGION_IDS: [&str; 27] = [
     "mh_ex_exit_section",
 ];
 
+pub const RETURN_STATION_ID: &str = "return_station";
+pub const RETURN_STATION_EXPLORATION_REGION_IDS: [&str; 5] = [
+    "rs_core_center", "rs_core_gate", "rs_core_north", "rs_core_south", "rs_core_west",
+];
+
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PumpStatus {
@@ -81,6 +86,17 @@ pub struct MistHarborPersistentState {
     pub pump: PumpPersistentState,
     #[serde(default)]
     pub explored_region_ids: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ReturnStationPersistentState {
+    /// Pure append. An old save without this field is an empty set, never an error, never cleared.
+    #[serde(default)]
+    pub explored_region_ids: Vec<String>,
+}
+impl ReturnStationPersistentState {
+    fn is_default(&self) -> bool { self.explored_region_ids.is_empty() }
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
@@ -234,6 +250,8 @@ pub struct WorldPersistentState {
     pub clockworks: ClockworksPersistentState,
     #[serde(default)]
     pub mist_harbor: MistHarborPersistentState,
+    #[serde(default, skip_serializing_if = "ReturnStationPersistentState::is_default")]
+    pub return_station: ReturnStationPersistentState,
     #[serde(default, skip_serializing_if = "Option::is_none", deserialize_with = "deserialize_scene_history_v1")]
     pub scene_history_v1: Option<SceneHistoryV1>,
     #[serde(default, skip_serializing_if = "Option::is_none", deserialize_with = "deserialize_map_archive")]
@@ -495,6 +513,12 @@ impl WorldPersistentState {
         }) {
             return Err(PumpStateError::InvalidState);
         }
+        let mut rs_seen = std::collections::BTreeSet::new();
+        if self.return_station.explored_region_ids.iter().any(|id| {
+            !RETURN_STATION_EXPLORATION_REGION_IDS.contains(&id.as_str()) || !rs_seen.insert(id)
+        }) {
+            return Err(PumpStateError::InvalidState);
+        }
         if let Some(history) = &self.scene_history_v1 {
             if history.schema_version != SCENE_HISTORY_V1_SCHEMA_VERSION
                 || history.scene_states.len() > MAX_SCENE_HISTORY_ROWS
@@ -557,10 +581,30 @@ impl WorldPersistentState {
     }
 
     pub fn mark_explored(&mut self, region_id: &str) -> Result<bool, PumpStateError> {
-        if !MIST_HARBOR_EXPLORATION_REGION_IDS.contains(&region_id) {
-            return Err(PumpStateError::InvalidState);
-        }
-        let ids = &mut self.mist_harbor.explored_region_ids;
+        self.mark_explored_in(MIST_HARBOR_ID, region_id)
+    }
+
+    pub fn is_explored(&self, region_id: &str) -> bool {
+        self.is_explored_in(MIST_HARBOR_ID, region_id)
+    }
+
+    /// Records a region only for worlds with an authored exploration whitelist.
+    pub fn mark_explored_in(&mut self, world_id: &str, region_id: &str) -> Result<bool, PumpStateError> {
+        let ids = match world_id {
+            MIST_HARBOR_ID => {
+                if !MIST_HARBOR_EXPLORATION_REGION_IDS.contains(&region_id) {
+                    return Err(PumpStateError::InvalidState);
+                }
+                &mut self.mist_harbor.explored_region_ids
+            }
+            RETURN_STATION_ID => {
+                if !RETURN_STATION_EXPLORATION_REGION_IDS.contains(&region_id) {
+                    return Err(PumpStateError::InvalidState);
+                }
+                &mut self.return_station.explored_region_ids
+            }
+            _ => return Err(PumpStateError::InvalidState),
+        };
         if ids.iter().any(|id| id == region_id) {
             return Ok(false);
         }
@@ -569,11 +613,12 @@ impl WorldPersistentState {
         Ok(true)
     }
 
-    pub fn is_explored(&self, region_id: &str) -> bool {
-        self.mist_harbor
-            .explored_region_ids
-            .iter()
-            .any(|id| id == region_id)
+    pub fn is_explored_in(&self, world_id: &str, region_id: &str) -> bool {
+        match world_id {
+            MIST_HARBOR_ID => self.mist_harbor.explored_region_ids.iter().any(|id| id == region_id),
+            RETURN_STATION_ID => self.return_station.explored_region_ids.iter().any(|id| id == region_id),
+            _ => false,
+        }
     }
 }
 
@@ -584,4 +629,75 @@ fn valid_scene_history_id(id: &str) -> bool {
 fn unique_valid_scene_history_ids(values: &[String]) -> bool {
     let mut seen = std::collections::BTreeSet::new();
     values.iter().all(|id| valid_scene_history_id(id) && seen.insert(id))
+}
+
+#[cfg(test)]
+mod return_station_persistence_tests {
+    use super::*;
+
+    #[test]
+    fn old_save_without_return_station_deserialises_to_empty_set() {
+        let empty: WorldPersistentState = serde_json::from_str("{}").unwrap();
+        assert!(empty.return_station.explored_region_ids.is_empty());
+        let rendered = serde_json::to_string(&empty).unwrap();
+        assert!(!rendered.contains("returnStation"));
+        let round_trip: WorldPersistentState = serde_json::from_str(&rendered).unwrap();
+        assert!(round_trip.return_station.explored_region_ids.is_empty());
+        let legacy: WorldPersistentState =
+            serde_json::from_str(r#"{"mistHarbor":{"exploredRegionIds":["mh_fp_entry_berth"]}}"#).unwrap();
+        assert_eq!(legacy.mist_harbor.explored_region_ids, ["mh_fp_entry_berth"]);
+        assert!(legacy.return_station.explored_region_ids.is_empty());
+        assert!(legacy.validate().is_ok());
+    }
+
+    #[test]
+    fn return_station_marks_append_without_touching_mist_harbor() {
+        let mut state = WorldPersistentState::default();
+        assert!(state.mark_explored_in(RETURN_STATION_ID, "rs_core_west").unwrap());
+        assert!(!state.mark_explored_in(RETURN_STATION_ID, "rs_core_west").unwrap());
+        assert_eq!(state.return_station.explored_region_ids, ["rs_core_west"]);
+        assert!(state.is_explored_in(RETURN_STATION_ID, "rs_core_west"));
+        assert!(!state.is_explored_in(RETURN_STATION_ID, "rs_core_gate"));
+        assert!(state.mist_harbor.explored_region_ids.is_empty());
+        assert!(!state.is_explored("rs_core_west"));
+
+        assert!(state.mark_explored("mh_fp_entry_berth").unwrap());
+        assert!(state.is_explored("mh_fp_entry_berth"));
+        assert!(state.return_station.explored_region_ids.iter().all(|id| !id.starts_with("mh_")));
+        assert_eq!(state.return_station.explored_region_ids, ["rs_core_west"]);
+    }
+
+    #[test]
+    fn unknown_region_and_unknown_world_are_rejected() {
+        let mut state = WorldPersistentState::default();
+        assert_eq!(
+            state.mark_explored_in(RETURN_STATION_ID, "rs_core_unknown"),
+            Err(PumpStateError::InvalidState)
+        );
+        assert_eq!(
+            state.mark_explored_in(RETURN_STATION_ID, "mh_fp_entry_berth"),
+            Err(PumpStateError::InvalidState)
+        );
+        assert_eq!(
+            state.mark_explored_in("grey_hive", "rs_core_west"),
+            Err(PumpStateError::InvalidState)
+        );
+        assert!(state.return_station.explored_region_ids.is_empty());
+        assert!(!state.is_explored_in("grey_hive", "rs_core_west"));
+    }
+
+    #[test]
+    fn validate_accepts_both_worlds_and_rejects_duplicate_or_foreign_rs_ids() {
+        let mut state = WorldPersistentState::default();
+        state.mist_harbor.explored_region_ids = vec!["mh_fp_entry_berth".into()];
+        state.return_station.explored_region_ids = vec!["rs_core_gate".into(), "rs_core_west".into()];
+        assert!(state.validate().is_ok());
+
+        state.return_station.explored_region_ids = vec!["rs_core_west".into(), "rs_core_west".into()];
+        assert_eq!(state.validate(), Err(PumpStateError::InvalidState));
+        state.return_station.explored_region_ids = vec!["rs_core_foreign".into()];
+        assert_eq!(state.validate(), Err(PumpStateError::InvalidState));
+        state.return_station.explored_region_ids = Vec::new();
+        assert!(state.validate().is_ok());
+    }
 }

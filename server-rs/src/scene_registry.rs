@@ -493,6 +493,48 @@ pub(crate) fn valid_id(id: &str) -> bool {
             .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.' | ':'))
 }
 
+/// Published scene digests that still identify the same scene after an authored edit.
+/// A stored digest from an older save or route must keep loading; it may warn.
+pub const LEGACY_SCENE_SOURCE_SHA256: [(&str, &str, &str); 1] = [(
+    "rs_core_room",
+    "927f8dc466403837b081027bafb04c3c66a6ca17ee71bf5ce0a7d891e4fb3ad9",
+    "d61ae6d81faeca1b3ec32009af44092f72564e2268923d09d8ae24544e21a852",
+)];
+
+/// Exact match, or a known old→new alias for this scene id.
+pub fn scene_source_matches(scene_id: &str, stored: &str, current: &str) -> bool {
+    stored == current
+        || LEGACY_SCENE_SOURCE_SHA256.iter().any(|(id, old, new)| {
+            *id == scene_id && *old == stored && *new == current
+        })
+}
+
+/// True only when the match came from an alias (callers may warn).
+pub fn legacy_scene_source_alias(scene_id: &str, stored: &str, current: &str) -> bool {
+    stored != current && scene_source_matches(scene_id, stored, current)
+}
+
+#[cfg(test)]
+mod scene_source_alias_tests {
+    use super::*;
+
+    const OLD: &str = "927f8dc466403837b081027bafb04c3c66a6ca17ee71bf5ce0a7d891e4fb3ad9";
+    const NEW: &str = "d61ae6d81faeca1b3ec32009af44092f72564e2268923d09d8ae24544e21a852";
+
+    #[test]
+    fn exact_old_alias_unrelated_and_foreign_id_matches() {
+        assert!(scene_source_matches("rs_core_room", NEW, NEW));
+        assert!(!legacy_scene_source_alias("rs_core_room", NEW, NEW));
+        assert!(scene_source_matches("rs_core_room", OLD, NEW));
+        assert!(legacy_scene_source_alias("rs_core_room", OLD, NEW));
+        let unrelated = "0".repeat(64);
+        assert!(!scene_source_matches("rs_core_room", &unrelated, NEW));
+        assert!(!legacy_scene_source_alias("rs_core_room", &unrelated, NEW));
+        assert!(!scene_source_matches("mh_fog_pier", OLD, NEW));
+        assert!(!legacy_scene_source_alias("mh_fog_pier", OLD, NEW));
+    }
+}
+
 #[cfg(test)]
 mod hive_route_transaction_tests {
     use super::*;

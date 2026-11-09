@@ -35,8 +35,8 @@
     "path": "res://data/scenes/gh_gate_b.json"
   },
   "rs_core_room": {
-    "bytes": 8097,
-    "sha256": "927f8dc466403837b081027bafb04c3c66a6ca17ee71bf5ce0a7d891e4fb3ad9",
+    "bytes": 9486,
+    "sha256": "d61ae6d81faeca1b3ec32009af44092f72564e2268923d09d8ae24544e21a852",
     "path": "res://data/scenes/rs_core_room.json"
   },
   "mh_drowned_quay": {
