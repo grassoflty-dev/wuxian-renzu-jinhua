@@ -4,6 +4,12 @@ const V = preload('res://scripts/world/presentation.gd')
 const CHANNELS = ['topology','terrain','connections','objectives','enemies','hazards','loot','npcs','secrets']
 const CHANNEL_TAGS = {'enemies':'E','hazards':'H','loot':'L','npcs':'N','secrets':'S'}
 const CATEGORY_LABELS = {'objective':'目标','hazard':'风险信息','other':'其他信息'}
+# Display-only room names. The authority, the save and the scene data carry only
+# room_id (ExploredRoom {room_id, outline_m}), so the Chinese names live here in
+# the view layer and are never written back. Unknown ids, and every world whose
+# regions are not listed, fall back to the authored id verbatim.
+const ROOM_DISPLAY_NAMES = {'center':'中央厅','gate':'登机口','north':'北厅','south':'南厅','west':'西厅'}
+const ROOM_DISPLAY_PREFIXES = ['rs_core_']
 const MAP_ATLAS_PATH = 'res://assets/ui/map/map_region_ui_local_r1.png'
 const MAP_ATLAS_RECTS = [Rect2(64,64,290,290),Rect2(482,64,290,290),Rect2(844,204,380,40),Rect2(28,610,388,32),Rect2(520,520,214,214),Rect2(948,516,172,216),Rect2(80,916,280,244),Rect2(520,936,216,216),Rect2(904,916,256,256)]
 var map_atlas: Texture2D
@@ -340,6 +346,59 @@ func _fit(ui_scale: float, layout: Dictionary) -> Dictionary:
 	return {'factor':factor,'origin':origin,'legend_y':size.y-footer,'header_y':header}
 func _map(p: Vector2, fit: Dictionary) -> Vector2:
 	return fit.origin+(p-range_rect.position)*fit.factor
+# room_id -> display name. Purely presentational: a hub region authored as
+# rs_core_center reads 中央厅, anything unmapped is shown as authored.
+func _room_display_name(room_id: String) -> String:
+	if ROOM_DISPLAY_NAMES.has(room_id):
+		return str(ROOM_DISPLAY_NAMES[room_id])
+	for prefix in ROOM_DISPLAY_PREFIXES:
+		if room_id.begins_with(prefix):
+			var tail = room_id.substr(prefix.length())
+			if ROOM_DISPLAY_NAMES.has(tail):
+				return str(ROOM_DISPLAY_NAMES[tail])
+			break
+	return room_id
+# Names sit at the centroid of each drawn room; a room too small for its label
+# is left unlabelled rather than clipped. Never affects geometry or authority data.
+func _draw_room_names(fit: Dictionary, ui_scale: float) -> void:
+	var font = ThemeDB.fallback_font
+	if font==null or polygons.is_empty():
+		return
+	var font_size = int(12*ui_scale)
+	if font_size<1:
+		return
+	for item in polygons:
+		if not item is Dictionary:
+			continue
+		var poly = item.get('p')
+		if not poly is Array or poly.size()<3:
+			continue
+		var lo = Vector2(INF,INF)
+		var hi = Vector2(-INF,-INF)
+		var bad := false
+		for vertex in poly:
+			if not vertex is Array or vertex.size()<2 or not P.number(vertex[0],-4096,4096) or not P.number(vertex[1],-4096,4096):
+				bad = true
+				break
+			var mapped = _map(Vector2(float(vertex[0]),float(vertex[1])),fit)
+			if not mapped.is_finite():
+				bad = true
+				break
+			lo = lo.min(mapped)
+			hi = hi.max(mapped)
+		if bad or not is_finite(lo.x) or not is_finite(hi.x):
+			continue
+		var box = Rect2(lo,hi-lo)
+		var text = _room_display_name(str(item.get('id','')))
+		if text.is_empty() or box.size.x<=0.0 or box.size.y<float(font_size)*1.6:
+			continue
+		var text_width = font.get_string_size(text,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x
+		if text_width+8.0*ui_scale>box.size.x:
+			continue
+		var tier = str(item.get('state','neutral'))
+		var color = Color(0.94,0.97,1.0,0.96) if tier=='current' else (Color(0.88,0.93,0.97,0.84) if tier=='visible' else Color(0.80,0.86,0.92,0.64))
+		var baseline = box.position.y+box.size.y*0.5+font.get_ascent(font_size)*0.5
+		draw_string(font,Vector2(box.position.x,baseline),text,HORIZONTAL_ALIGNMENT_CENTER,box.size.x,font_size,color)
 func _atlas_cell(index: int) -> Rect2:
 	return MAP_ATLAS_RECTS[index]
 func _icon(p: Vector2, index: int, extent: float) -> void:
@@ -451,6 +510,7 @@ func _draw() -> void:
 		var arm = 9.0*ui_scale
 		draw_line(corner,corner+Vector2(arm,0),Color(0.93,0.97,1.0,0.95),2.5*ui_scale,true)
 		draw_line(corner,corner+Vector2(0,arm),Color(0.93,0.97,1.0,0.95),2.5*ui_scale,true)
+	_draw_room_names(fit,ui_scale)
 	for line in connections:
 		if junction_replaced.has(line.id): continue
 		_strip(_map(line.from,fit),_map(line.to,fit),3,3*ui_scale)
@@ -523,6 +583,7 @@ func _draw_legacy() -> void:
 		for p in item.p:
 			poly.append(_map(Vector2(p[0],p[1]),fit))
 		draw_colored_polygon(poly,item.color)
+	_draw_room_names(fit,ui_scale)
 	for line in connections:
 		draw_line(_map(line.from,fit),_map(line.to,fit),accent.lightened(0.4),2*ui_scale,true)
 	for item in points:
