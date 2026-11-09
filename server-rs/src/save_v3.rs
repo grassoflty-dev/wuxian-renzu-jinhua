@@ -239,7 +239,7 @@ impl SaveV3 {
             || !crate::continuous_kcc::StaticKccWorld::grey_hive_first_flow(route_has_power(
                 &self.route,
             ))
-            .can_occupy(self.player.position_m, self.player.radius_m)
+            .can_player_occupy(self.player.position_m, self.player.radius_m)
         {
             return Err("E_SAVE_NUMERIC_INVALID".into());
         }
@@ -388,6 +388,14 @@ impl SaveV3 {
             kcc: crate::continuous_kcc::StaticKccWorld::grey_hive_first_flow(route_has_power(
                 &self.route,
             )),
+            shaft_owner: None,
+            shaft_deferred: false,
+            shaft_inactive_history: None,
+            pending_exit: None,
+            beacon_exit_admission: None,
+            beacon_exit_latch: None,
+            hive_route_admission: None,
+            hive_route_latch: None,
             stepper,
             latest_sample: crate::continuous_input::InputSample::new(
                 epoch,
@@ -415,6 +423,9 @@ impl SaveV3 {
             enhancement_terminal: None,
             baizhi: Default::default(),
             last_owner_error: None,
+            dense_region_previous: None,
+            mhcw_contact: None,
+            mhcw_paused_history: None,
         })
     }
 }

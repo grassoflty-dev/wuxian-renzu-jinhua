@@ -40,6 +40,13 @@ use std::time::{Duration, Instant};
 #[path = "../tests/support/entry_readiness.rs"]
 pub(crate) mod entry_test_support;
 
+mod dense_service_wing;
+mod decon_info;
+mod beacon_exit_info;
+mod bio_info;
+mod floor_route_info;
+pub(crate) mod shaft_lift;
+pub(crate) mod shaft_lower_service;
 pub mod baizhi;
 pub mod build_ui;
 pub mod build_v6;
@@ -54,6 +61,10 @@ mod clockworks_campaign;
 pub(crate) mod clockworks_controls;
 pub(crate) mod clockworks_roster;
 pub(crate) mod gear_shaft_support;
+pub(crate) mod mhcw_map_region;
+pub(crate) mod gh_map_archive;
+mod known_route_map;
+mod gh_known_route_map;
 pub(crate) mod grey_hive_roster;
 pub(crate) mod grey_hive_beacon;
 pub(crate) mod swarm_roster;
@@ -382,6 +393,17 @@ pub struct FormalInteractionResponse {
 }
 
 #[derive(Clone)]
+pub(crate) struct MhcwContact {
+    scene_id:String,scene_sha:String,world_id:String,revision:crate::world_v3::WorldRevision,
+    server_time_ms:u64,body:crate::continuous_kcc::KccBody,layer:&'static str,region:String,
+}
+#[derive(Clone)]
+pub(crate) struct MhcwPausedHistory {
+    original: MhcwContact,
+    pause_revision: crate::world_v3::WorldRevision,
+    paused_body: crate::continuous_kcc::KccBody,
+}
+#[derive(Clone)]
 pub(crate) struct RuntimeState {
     pub(crate) world: WorldStateV3,
     pub(crate) world_persistent_v1: crate::world_persistent_v1::WorldPersistentState,
@@ -392,6 +414,11 @@ pub(crate) struct RuntimeState {
     pub(crate) effect_sources_v6: Vec<crate::effects::EffectSource>,
     pub(crate) effective_rules_v6: crate::player_rules::EffectivePlayerRules,
     pub(crate) kcc: StaticKccWorld,
+    // Present only for the admitted two-stop Shaft scene. The complete scene,
+    // save, KCC and presentation gates must agree before this is populated.
+    pub(crate) shaft_owner: Option<shaft_lift::ShaftOwner>,
+    pub(crate) shaft_deferred: bool,
+    pub(crate) shaft_inactive_history: Option<crate::save_v5::ShaftInactiveHistory>,
     pub(crate) stepper: FixedStepClock,
     pub(crate) latest_sample: InputSample,
     pub(crate) latest_input_received_at: Instant,
@@ -412,6 +439,68 @@ pub(crate) struct RuntimeState {
     pub(crate) enhancement_terminal: Option<EnhancementTerminalContext>,
     pub(crate) baizhi: baizhi::DialogueState,
     pub(crate) last_owner_error: Option<String>,
+    // Nonpersistent tie-break state; never grants movement or progression.
+    pub(crate) dense_region_previous: Option<(String,u64,String)>,
+    pub(crate) mhcw_contact: Option<MhcwContact>,
+    pub(crate) mhcw_paused_history: Option<MhcwPausedHistory>,
+    // Exit-only candidate ownership. This never enters a SaveV6 record.
+    pub(crate) pending_exit: Option<Box<PendingExit>>,
+    // Volatile, scene-epoch-scoped acknowledgment of a geometry-only preview.
+    pub(crate) beacon_exit_admission: Option<BeaconExitAdmission>,
+    pub(crate) beacon_exit_latch: Option<BeaconExitLatch>,
+    pub(crate) hive_route_admission: Option<HiveRouteAdmission>,
+    pub(crate) hive_route_latch: Option<HiveRouteLatch>,
+}
+
+#[derive(Clone)]
+pub(crate) struct HiveRouteAdmission {
+    source_scene:String, source_sha:String, target_scene:String, target_sha:String,
+    epoch:u64, generation:u64, events:BTreeSet<String>, sentinel_first_kill:bool, elite_first_kill:bool,
+}
+
+#[derive(Clone)]
+pub(crate) struct HiveRouteLatch {
+    source_scene:String, source_sha:String, target_scene:String, target_sha:String,
+    epoch:u64, events:BTreeSet<String>, sentinel_first_kill:bool, elite_first_kill:bool,
+}
+
+fn hive_route_preview_scene(world:&str,scene:&str)->bool {
+    world=="clockworks" && ["cw_entry_foundry","cw_pressure_hall","cw_conveyor_bridge","cw_boiler_chamber","cw_gear_shaft","cw_furnace_heart","cw_forged_guard_arena","cw_regulator_core","cw_shutdown_exit"].contains(&scene)
+        || world=="mist_harbor" && ["mh_fog_pier","mh_tidal_warehouse","mh_signal_yard","mh_drowned_quay","mh_breakwater","mh_pump_station","mh_resonance_tower","mh_warden_arena","mh_extraction"].contains(&scene)
+        || world=="grey_hive" && ["gh_entry_maintenance","gh_power_room","gh_lockdown","gh_bio_isolation",
+        "gh_gate_b","gh_deep_decon","gh_sentinel_arena","gh_beacon","gh_exit"].contains(&scene)
+}
+
+#[derive(Clone)]
+pub(crate) struct BeaconExitAdmission {
+    source_scene:String, source_sha:String, epoch:u64, target_sha:String, generation:u64,
+    events:BTreeSet<String>, beacon:Option<crate::world_persistent_v1::GreyHiveBeaconState>,
+}
+
+#[derive(Clone)]
+pub(crate) struct BeaconExitLatch {
+    source_scene:String,source_sha:String,target_scene:String,target_sha:String,epoch:u64,
+    events:BTreeSet<String>,beacon:Option<crate::world_persistent_v1::GreyHiveBeaconState>,
+}
+
+#[derive(Clone)]
+pub(crate) struct PendingExit {
+    candidate: Box<RuntimeState>,
+    scene: SceneRuntime,
+    token: crate::world_v3::SceneEntryToken,
+    base_revision: crate::world_v3::WorldRevision,
+    base_world: String,
+    base_scene_id: String,
+    base_scene: Option<(String,u64,String)>,
+    source_hash: String,
+    intent: ExitCommitIntent,
+}
+
+#[derive(Clone)]
+enum ExitCommitIntent {
+    Transition,
+    DefaultContinue { durable: Option<crate::save_v6::SaveV6>, backup: Option<crate::save_v6::recovery::Backup>, expected: Option<Vec<u8>> },
+    SlotContinue { slot: String, display_name: String, durable: Option<crate::save_v6::SaveV6>, backup: Option<crate::save_v6::recovery::Backup>, expected: Option<Vec<u8>> },
 }
 
 /// An exact live journey identity for asynchronous lifecycle commands.
@@ -448,6 +537,100 @@ pub struct FormalRuntime {
 }
 
 impl FormalRuntime {
+    fn pending_exit_view(stage: &PendingExit) -> WorldView {
+        let mut view=project_scene_view(&stage.candidate,Some(&stage.scene));
+        // A prepared target is not committed scene knowledge.
+        view.current_visible_regions=None;
+        view.dense_occupied_region=None;
+        view.dense_entity_regions=None;
+        view.capabilities.map_topology_authorized=Some(false);
+        view.capabilities.map_knowledge=None;
+        view.capabilities.map_current_room_ids=None;
+        view.capabilities.map_explored_room_ids=None;
+        view.capabilities.map_known_junctions=None;
+        view.capabilities.map_known_vertical_links=None;
+        view.capabilities.map_known_height_references=None;
+        view.capabilities.explored_map.rooms.clear();
+        view.capabilities.explored_map.connections.clear();
+        view.capabilities.explored_map.objectives.clear();
+        view.capabilities.enemy_vitals.clear();
+        view.actors.clear();
+        view.interactables.clear();
+        view.doors.clear();
+        view.hazards.clear();
+        view.objectives.clear();
+        let base=SessionContext{world_id:stage.base_world.clone(),scene_id:stage.base_scene_id.clone(),world_epoch:stage.base_revision.world_epoch};
+        if stage.scene.current_scene().scene_id=="gh_central_shaft" {
+            view.shaft_service_entry_preview=Some(true);view.shaft_service_entry_base=Some(base);
+            view.shaft_service_entry_lifecycle_sequence=Some(stage.candidate.last_lifecycle_sequence);
+        } else {
+            view.exit_entry_preview=Some(true);view.exit_entry_base=Some(base);
+            view.exit_entry_lifecycle_sequence=Some(stage.candidate.last_lifecycle_sequence);
+        }
+        view
+    }
+
+    fn stage_exit(active: &mut RuntimeState, active_scene: &Option<SceneRuntime>, candidate: RuntimeState, target: SceneRuntime, intent: ExitCommitIntent) -> Result<WorldView,String> {
+        if active.pending_exit.is_some() || active.pending_entry.is_some() || candidate.pending_exit.is_some() {return Err("E_SCENE_ENTRY_NOT_READY".into());}
+        if active_scene.as_ref().is_some_and(|s|s.world_epoch!=active.world.revision.world_epoch || s.current_scene().world_id!=active.world.world_id || s.current_scene().scene_id!=active.world.scene_id) {return Err("E_EXIT_PREVIEW_BASE".into());}
+        let token=candidate.pending_entry.clone().ok_or("E_EXIT_PREVIEW_TOKEN")?;
+        let definition=target.current_scene();
+        let hash=definition.verified_source_sha256.clone();
+        let exit=definition.scene_id=="gh_exit" && ["b32ad8d1204e9eaf45512b0e2d5ea22e08f5bd09ec0b5e31980e41336c45ee09","6ab262467e1992feac94f27d8bf571dcf77ddbc8c1693a79c57b3aeebff0c54c"].contains(&hash.as_str());
+        let shaft=shaft_lower_service::ADMISSION_READY && definition.scene_id=="gh_central_shaft"
+            && candidate.shaft_owner.as_ref().is_some_and(|o|o.geometry.service_v2 && shaft_lower_service::candidate_geometry(definition).as_ref()==Some(&o.geometry))
+            && crate::moving_support::ShaftLowerRecipeIdentity::for_scene(definition).as_ref()==candidate.world_persistent_v1.shaft_recipe_format_v2.as_ref()
+            && candidate.kcc.can_player_occupy(candidate.world.player.position_m,candidate.world.player.radius_m);
+        if token.world_id!="grey_hive" || token.scene_id!=definition.scene_id || token.world_epoch!=candidate.world.revision.world_epoch
+            || candidate.world.world_id!=token.world_id || candidate.world.scene_id!=token.scene_id || target.world_epoch!=token.world_epoch
+            || definition.world_id!="grey_hive" || !(exit||shaft) || token.generation<=active.entry_generation {return Err("E_EXIT_PREVIEW_IDENTITY".into());}
+        let base_scene=active_scene.as_ref().map(|s|(s.scene_id.clone(),s.world_epoch,s.current_scene().verified_source_sha256.clone()));
+        let pending=PendingExit{candidate:Box::new(candidate),scene:target,token:token.clone(),base_revision:active.world.revision,
+            base_world:active.world.world_id.clone(),base_scene_id:active.world.scene_id.clone(),base_scene,source_hash:hash,intent};
+        let view=Self::pending_exit_view(&pending);
+        // Reserve this generation even if this preview is later discarded.
+        active.entry_generation=token.generation;
+        active.pending_exit=Some(Box::new(pending));
+        Ok(view)
+    }
+
+    // Older migration sources without an exact deferred preimage keep the
+    // maintained Continue transaction and the complete old Exit physics.
+    fn force_legacy_exit(restored: &mut RuntimeState, scene: &mut Option<SceneRuntime>) -> Result<(),String> {
+        let runtime=scene.as_mut().ok_or("E_EXIT_PREVIEW_SCENE")?;
+        runtime.select_utility_legacy().map_err(|_|"E_UTILITY_VARIANT_SOURCE")?;
+        let events=completed_world_events(restored,"grey_hive");
+        let kcc=scene_kcc_for_state(runtime.current_scene(),&events,restored)?;
+        if !kcc.can_player_occupy(restored.world.player.position_m,restored.world.player.radius_m)
+            || !restored.world.actors_have_stable_support(&kcc)
+            || restored.world.generic_actors.iter().filter(|a|a.hp>0).any(|a|!a.validate() || !kcc.can_occupy(a.position_m,a.body_radius_m()))
+            || !kcc.valid_saved_support_contact(&restored.world.player,restored.world.server_time_ms) {
+            return Err("E_UTILITY_LEGACY_CONTACT".into());
+        }
+        restored.kcc=kcc;
+        Ok(())
+    }
+
+    pub fn exit_preview_pending(&self) -> Result<bool,String> {
+        let state=self.state.lock().map_err(|_|"E_RUNTIME_LOCK_POISONED")?;
+        Ok(state.pending_exit.is_some())
+    }
+    pub fn cancel_exit_preview(&self) -> Result<bool,String> {
+        let mut state=self.state.lock().map_err(|_|"E_RUNTIME_LOCK_POISONED")?;
+        if !state.paused && state.pending_entry.is_none() && hive_route_preview_scene(&state.world.world_id,&state.world.scene_id) {
+            state.entry_generation=state.entry_generation.checked_add(1).filter(|n|*n<=build_ui::MAX_SAFE_REVISION).ok_or("E_SCENE_ENTRY_GENERATION_EXHAUSTED")?;
+        }
+        state.beacon_exit_admission=None;
+        state.hive_route_admission=None;
+        let Some(stage)=state.pending_exit.take() else {return Ok(false);};
+        // Cancellation retains the old world and stops stale held input.
+        state.last_lifecycle_sequence=state.last_lifecycle_sequence.max(stage.candidate.last_lifecycle_sequence);
+        state.paused=true;
+        state.latest_sample.move_x=0.0;
+        state.latest_sample.move_z=0.0;
+        state.pending_combat.clear();
+        Ok(true)
+    }
     pub fn new() -> Result<Self, String> {
         let save_root =
             std::env::temp_dir().join(format!("wuxian-formal-runtime-test-{}", std::process::id()));
@@ -500,7 +683,7 @@ impl FormalRuntime {
 
     pub fn list_save_slots(&self) -> Vec<crate::save_slots::SlotSummary> {
         crate::save_slots::list_slots(&self.save_root).into_iter().map(|mut slot| {
-            if slot.recoverable && slot.valid {
+            if slot.valid && (slot.recoverable || !crate::save_slots::is_reserved_slot_id(&slot.slot_id)) {
                 let candidate = if slot.slot_id == "legacy-save-v3" { self.read_default_candidate() }
                     else { crate::save_slots::read_slot_v6_candidate(&self.save_root, &slot.slot_id).map(|(_, save)| save) };
                 let validation = candidate.and_then(|save| {
@@ -528,6 +711,7 @@ impl FormalRuntime {
             .state
             .lock()
             .map_err(|_| "E_RUNTIME_LOCK_POISONED".to_string())?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if state.pending_entry.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if state.world.player_hp == 0 { return Err("E_RUNTIME_DEAD".into()); }
         let mut candidate = state.progression_v6.clone();
@@ -540,6 +724,7 @@ impl FormalRuntime {
             .state
             .lock()
             .map_err(|_| "E_RUNTIME_LOCK_POISONED".to_string())?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if state.pending_entry.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if state.world.player_hp == 0 { return Err("E_RUNTIME_DEAD".into()); }
         let mut candidate = state.progression_v6.clone();
@@ -552,6 +737,7 @@ impl FormalRuntime {
             .state
             .lock()
             .map_err(|_| "E_RUNTIME_LOCK_POISONED".to_string())?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if state.pending_entry.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if state.world.player_hp == 0 { return Err("E_RUNTIME_DEAD".into()); }
         let mut candidate = state.progression_v6.clone();
@@ -565,6 +751,7 @@ impl FormalRuntime {
             .state
             .lock()
             .map_err(|_| "E_RUNTIME_LOCK_POISONED".to_string())?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if state.pending_entry.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if state.world.player_hp == 0 { return Err("E_RUNTIME_DEAD".into()); }
         let mut candidate = state.progression_v6.clone();
@@ -582,6 +769,7 @@ impl FormalRuntime {
             .state
             .lock()
             .map_err(|_| "E_RUNTIME_LOCK_POISONED".to_string())?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if state.pending_entry.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if state.world.player_hp == 0 { return Err("E_RUNTIME_DEAD".into()); }
         let mut candidate = state.progression_v6.clone();
@@ -594,6 +782,7 @@ impl FormalRuntime {
             .state
             .lock()
             .map_err(|_| "E_RUNTIME_LOCK_POISONED".to_string())?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if state.pending_entry.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if state.world.player_hp == 0 { return Err("E_RUNTIME_DEAD".into()); }
         let mut candidate = state.progression_v6.clone();
@@ -615,6 +804,7 @@ impl FormalRuntime {
             .state
             .lock()
             .map_err(|_| "E_RUNTIME_LOCK_POISONED".to_string())?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         let mut progression = state.progression_v6.clone();
         progression.sync_capabilities(&state.capabilities);
         let (sources, rules) = progression
@@ -632,6 +822,7 @@ impl FormalRuntime {
             .state
             .lock()
             .map_err(|_| "E_RUNTIME_LOCK_POISONED".to_string())?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if state.pending_entry.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if state.world.player_hp == 0 { return Err("E_RUNTIME_DEAD".into()); }
         let scene = self
@@ -819,14 +1010,31 @@ impl FormalRuntime {
         self.reject_dead_save(Some(slot_id))?;
         self.reject_staged_clockworks_save(Some(slot_id))?;
         let mut state = self.state.lock().map_err(|_| "E_RUNTIME_LOCK_POISONED")?;
-        let (display_name, save, recovery) = if slot_id == "legacy-save-v3" {
-            { let (save, recovery) = self.read_default_source()?; (String::new(), save, recovery) }
+        if state.pending_exit.is_some() {return Err("E_SCENE_ENTRY_NOT_READY".into());}
+        let (display_name, save, recovery, expected) = if slot_id == "legacy-save-v3" {
+            { let (save, recovery, expected) = self.read_default_source_with_raw()?; (String::new(), save, recovery, expected) }
         } else {
-            crate::save_slots::read_slot_v6_source(&self.save_root, slot_id)?
+            crate::save_slots::read_slot_v6_source_with_raw(&self.save_root, slot_id)?
         };
-        let (mut restored, scene_runtime) = self.prepare_default_save(&save, &state)?;
+        let (mut restored, mut scene_runtime) = self.prepare_default_save(&save, &state)?;
         let upgraded = scanner_reward::restore_candidate(&mut restored, scene_runtime.as_ref(), &save.save)?;
         let mut scene = self.scene_runtime.lock().map_err(|_| "E_SCENE_RUNTIME_LOCK_POISONED")?;
+        let service_continue=restored.world.world_id=="grey_hive" && restored.world.scene_id=="gh_central_shaft"
+            && restored.shaft_owner.as_ref().is_some_and(|o|o.geometry.service_v2);
+        if restored.world.world_id=="grey_hive" && restored.world.scene_id=="gh_exit" || service_continue {
+            if service_continue && recovery.is_none() && expected.is_none() {return Err("E_SHAFT_SERVICE_SOURCE_GUARD".into());}
+            let need_write=if slot_id=="legacy-save-v3" {recovery.is_some() || upgraded || !crate::save_v6::path_present(&crate::save_v6::save_path(&self.save_root))}
+                else {recovery.is_some() || upgraded || !crate::save_slots::slot_v6_present(&self.save_root,slot_id)?};
+            if need_write && recovery.is_none() && expected.is_none() {
+                Self::force_legacy_exit(&mut restored,&mut scene_runtime)?;
+            } else {
+                let durable=if need_write {Some(if upgraded {crate::save_v6::SaveV6::capture(&restored,scene_runtime.as_ref())?} else {save.clone()})} else {None};
+                let intent=if slot_id=="legacy-save-v3" {ExitCommitIntent::DefaultContinue{durable,backup:recovery,expected}}
+                    else {ExitCommitIntent::SlotContinue{slot:slot_id.into(),display_name,durable,backup:recovery,expected}};
+                let target=scene_runtime.ok_or("E_EXIT_PREVIEW_SCENE")?;
+                return Self::stage_exit(&mut state,&scene,restored,target,intent);
+            }
+        }
         let mut slot = self.active_slot.lock().map_err(|_| "E_SLOT_LOCK_POISONED")?;
         #[cfg(test)] if recovery.is_some() { crate::save_v6::recovery_test_before_continue(); }
         // Commit the complete validated candidate before publishing either live owner.
@@ -899,9 +1107,14 @@ impl FormalRuntime {
 
         // V6 captures the active scene for validation and carries the route and
         // per-world mechanics that remain live while the owner changes scenes.
-        let source_save = crate::save_v6::SaveV6::capture(source_state, Some(source_scene))?;
+        if mhcw_map_region::group(source_definition,"ground_y0").is_some() {
+            mhcw_map_region::archive_valid_history(&mut next_state)?;
+        }
+        if source_definition.world_id=="grey_hive" {gh_map_archive::import_history(&mut next_state,source_scene)?;}
+        let source_save = crate::save_v6::SaveV6::capture(&next_state, Some(source_scene))?;
         next_state.route = source_save.save.progression.clone();
         next_state.world_persistent_v1 = source_save.world_persistent_v1.clone();
+        Self::capture_inactive_shaft(&mut next_state,source_scene)?;
 
         let next_epoch = source_state
             .world
@@ -951,6 +1164,8 @@ impl FormalRuntime {
         world.player_max_energy = source_state.world.player_max_energy;
         world.combat_state.traversal_markers = candidate.traversals();
 
+        next_state.shaft_owner=None;
+        next_state.shaft_deferred=false;
         let kcc = scene_kcc_for_state(
             &target,
             &route_completed_events(&next_state.route, &target.world_id),
@@ -984,6 +1199,23 @@ impl FormalRuntime {
             let captured = crate::save_v6::SaveV6::capture(state, Some(scene))?;
             state.world_persistent_v1 = captured.world_persistent_v1;
         }
+        Self::capture_inactive_shaft(state,scene)
+    }
+
+    fn capture_inactive_shaft(state:&mut RuntimeState,scene:&SceneRuntime)->Result<(),String> {
+        let definition=scene.current_scene();
+        if shaft_lift::source_support_valid(definition) {
+            if state.shaft_inactive_history.is_some() || state.shaft_owner.is_some()==state.shaft_deferred {
+                return Err("E_SHAFT_HISTORY_CONTEXT".into());
+            }
+            let frame=state.shaft_owner.as_ref().map(|owner|
+                owner.frame(definition,state.world.revision.world_epoch)
+                    .map_err(|e|format!("E_SHAFT_HISTORY: {e}"))).transpose()?;
+            state.shaft_inactive_history=Some(crate::save_v5::ShaftInactiveHistory {
+                scene_source_sha256:definition.verified_source_sha256.clone(),
+                deferred:state.shaft_deferred,frame,
+            });
+        }
         Ok(())
     }
 
@@ -1007,6 +1239,7 @@ impl FormalRuntime {
             .state
             .lock()
             .map_err(|_| "E_RUNTIME_LOCK_POISONED".to_string())?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         let mut scene = self
             .scene_runtime
             .lock()
@@ -1089,6 +1322,7 @@ impl FormalRuntime {
             .state
             .lock()
             .map_err(|_| "E_RUNTIME_LOCK_POISONED".to_string())?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if state.pending_entry.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if state.world.player_hp == 0 { return Err("E_RUNTIME_DEAD".into()); }
         let scene = self
@@ -1107,10 +1341,24 @@ impl FormalRuntime {
             .state
             .lock()
             .map_err(|_| "E_RUNTIME_LOCK_POISONED".to_string())?;
-        let (save, recovery) = self.read_default_source()?;
-        let (mut restored, scene_runtime) = self.prepare_default_save(&save, &state)?;
+        if state.pending_exit.is_some() {return Err("E_SCENE_ENTRY_NOT_READY".into());}
+        let (save, recovery, expected) = self.read_default_source_with_raw()?;
+        let (mut restored, mut scene_runtime) = self.prepare_default_save(&save, &state)?;
         let upgraded = scanner_reward::restore_candidate(&mut restored, scene_runtime.as_ref(), &save.save)?;
         let mut scene = self.scene_runtime.lock().map_err(|_| "E_SCENE_RUNTIME_LOCK_POISONED")?;
+        let service_continue=restored.world.world_id=="grey_hive" && restored.world.scene_id=="gh_central_shaft"
+            && restored.shaft_owner.as_ref().is_some_and(|o|o.geometry.service_v2);
+        if restored.world.world_id=="grey_hive" && restored.world.scene_id=="gh_exit" || service_continue {
+            if service_continue && recovery.is_none() && expected.is_none() {return Err("E_SHAFT_SERVICE_SOURCE_GUARD".into());}
+            let need_write=recovery.is_some() || upgraded || !crate::save_v6::path_present(&crate::save_v6::save_path(&self.save_root));
+            if need_write && recovery.is_none() && expected.is_none() {
+                Self::force_legacy_exit(&mut restored,&mut scene_runtime)?;
+            } else {
+                let durable=if need_write {Some(if upgraded {crate::save_v6::SaveV6::capture(&restored,scene_runtime.as_ref())?} else {save.clone()})} else {None};
+                let target=scene_runtime.ok_or("E_EXIT_PREVIEW_SCENE")?;
+                return Self::stage_exit(&mut state,&scene,restored,target,ExitCommitIntent::DefaultContinue{durable,backup:recovery,expected});
+            }
+        }
         let mut slot = self.active_slot.lock().map_err(|_| "E_SLOT_LOCK_POISONED")?;
         #[cfg(test)] if recovery.is_some() { crate::save_v6::recovery_test_before_continue(); }
         if recovery.is_some() || upgraded || !crate::save_v6::path_present(&crate::save_v6::save_path(&self.save_root)) {
@@ -1138,7 +1386,11 @@ impl FormalRuntime {
     }
 
     fn read_default_source(&self) -> Result<(crate::save_v6::SaveV6, Option<crate::save_v6::recovery::Backup>), String> {
-        if let Some(candidate) = crate::save_v6::read_candidate(&self.save_root)? {
+        self.read_default_source_with_raw().map(|(save,backup,_)|(save,backup))
+    }
+
+    fn read_default_source_with_raw(&self) -> Result<(crate::save_v6::SaveV6, Option<crate::save_v6::recovery::Backup>, Option<Vec<u8>>), String> {
+        if let Some(candidate) = crate::save_v6::read_candidate_with_raw(&self.save_root)? {
             return Ok(candidate);
         }
         let save = if crate::save_v6::path_present(&crate::save_v5::save_path(&self.save_root)) {
@@ -1148,7 +1400,7 @@ impl FormalRuntime {
                 .and_then(|legacy| crate::save_v5::from_v4(&legacy))
                 .and_then(crate::save_v6::SaveV6::from_v5)?
         };
-        Ok((save, None))
+        Ok((save, None, None))
     }
 
     /// Build and validate a candidate without installing it or writing save files.
@@ -1225,6 +1477,16 @@ impl FormalRuntime {
             if scene.world_id != save.save.world_id {
                 return Err("E_SAVE_SCENE_WORLD_MISMATCH".into());
             }
+            if let Some(history)=&restored.shaft_inactive_history {
+                let shaft=scene_runtime.as_ref().unwrap().shaft_definition().ok_or("E_SHAFT_HISTORY_SCENE")?;
+                if !shaft_lift::source_support_valid(shaft) || shaft.verified_source_sha256!=history.scene_source_sha256 {
+                    return Err("E_SHAFT_HISTORY_SCENE".into());
+                }
+                if let Some(frame)=&history.frame {
+                    shaft_lift::ShaftOwner::restore_frame(shaft,frame,frame.world_epoch,frame.server_time_ms)
+                        .map_err(|e|format!("E_SHAFT_HISTORY: {e}"))?;
+                }
+            }
             let spawned_legacy_actors = restored.world.generic_actors.is_empty();
             restore_generic_actors(&mut restored.world, scene,
                 &mut restored.world_persistent_v1,
@@ -1251,24 +1513,62 @@ impl FormalRuntime {
             )?;
             restore_sentinels(&mut restored.world, scene)?;
             enable_native_sentinel_charge(&mut restored.world, scene, scene_runtime.as_ref().unwrap().is_complete_clockworks_production())?;
-            restored.kcc = scene_kcc_for_state(
-                scene,
-                &completed_world_events(&restored, &save.save.world_id),
-                &restored,
-            )?;
+            let restored_scene_id=scene.scene_id.clone();
+            if restored_scene_id=="gh_lockdown" && lockdown_requires_legacy(scene_runtime.as_ref().unwrap(),&restored.world)? {
+                scene_runtime.as_mut().unwrap().select_lockdown_legacy().map_err(|_|"E_LOCKDOWN_VARIANT_SOURCE")?;
+            }
+            let p=restored.world.player.position_m;let radius=restored.world.player.radius_m;
+            let pair_straddle=radius.is_finite() && radius>0.0 && (0.0..=3.0).contains(&p.y_m) && p.z_m-radius>=6.5 && p.z_m+radius<=9.5
+                && ((restored_scene_id=="gh_beacon" && p.x_m<=24.0 && p.x_m+radius>24.0) || (restored_scene_id=="gh_exit" && p.x_m>=0.0 && p.x_m-radius<0.0));
+            let route_straddle=hive_route_straddling(&restored,scene_runtime.as_ref().unwrap());
+            if ["gh_bio_isolation","gh_deep_decon","gh_beacon","gh_exit"].contains(&restored_scene_id.as_str()) && utility_requires_legacy(scene_runtime.as_ref().unwrap(),&restored.world,&completed_world_events(&restored,"grey_hive"),pair_straddle || route_straddle)? {
+                scene_runtime.as_mut().unwrap().select_utility_legacy().map_err(|_|"E_UTILITY_VARIANT_SOURCE")?;
+            }
+            let scene=scene_runtime.as_ref().unwrap().current_scene();
+            (restored.shaft_owner,restored.shaft_deferred)=if shaft_lift::source_support_valid(scene) {
+                if let Some(frame)=save.save.moving_support_frame.as_ref() {
+                    let owner=shaft_lift::ShaftOwner::restore_frame(scene,frame,save.save.revision.world_epoch,
+                        save.save.server_time_ms).map_err(|e|format!("E_SHAFT_RESTORE: {e}"))?;
+                    (Some(owner),false)
+                } else {
+                    shaft_old_floor_entry(scene,&restored.world,&completed_world_events(&restored,&scene.world_id))?
+                }
+            } else {(None,false)};
+            restored.kcc = pair_kcc_for_state(&restored, scene_runtime.as_ref().unwrap())?;
+            if restored.kcc.is_beacon_exit_union() {
+                let active=scene_runtime.as_ref().unwrap();
+                let prepared=prepare_beacon_exit(&restored,active,true).ok_or("E_SEAM_RESTORE_PREPARATION")?;
+                restored.beacon_exit_latch=Some(beacon_exit_latch(&restored,active,&prepared));
+            }
+            if restored.kcc.is_hive_route_union() {
+                let active=scene_runtime.as_ref().unwrap();
+                let prepared=prepare_hive_route(&restored,active).ok_or("E_SEAM_RESTORE_PREPARATION")?;
+                restored.hive_route_latch=Some(hive_route_latch(&restored,active,&prepared));
+            }
+            if let Some(owner)=&restored.shaft_owner {
+                for actor in restored.world.generic_actors.iter().filter(|a|a.hp>0) {
+                    let radius=actor.body_radius_m();
+                    if !restored.kcc.can_occupy(actor.position_m,radius)
+                        || (shaft_lift::swept_obstructs(actor.position_m,actor.position_m,radius,owner.geometry.well)
+                            .map_err(|_|"E_SHAFT_ACTOR_CONTACT")?
+                            && owner.clock.pose().phase!=crate::moving_support::SupportPhase::UpperHold) {
+                        return Err("E_SHAFT_ACTOR_CONTACT".into());
+                    }
+                }
+            }
             if !restored.world.actors_have_stable_support(&restored.kcc) {
                 return Err("E_SAVE_ACTOR_SUPPORT_INVALID".into());
             }
             let upgraded_floor = gear_shaft_support::restore_candidate(&mut restored, &save.save, scene,
                 scene_runtime.as_ref().unwrap().is_complete_clockworks_production())?;
-            if !upgraded_floor && !restored.kcc.validate_saved_support_frame(save.save.moving_support_frame.as_ref(),
+            if !upgraded_floor && restored.shaft_owner.is_none() && !restored.shaft_deferred && !restored.kcc.validate_saved_support_frame(save.save.moving_support_frame.as_ref(),
                 save.save.revision.world_epoch, save.save.server_time_ms) {
                 return Err("E_SAVE_SUPPORT_FRAME_INVALID".into());
             }
             if !restored.kcc.valid_saved_support_contact(&restored.world.player, restored.world.server_time_ms) {
                 return Err("E_SAVE_SUPPORT_CONTACT_INVALID".into());
             }
-            if !restored.kcc.can_occupy(
+            if !restored.kcc.can_player_occupy(
                 restored.world.player.position_m,
                 restored.world.player.radius_m,
             ) {
@@ -1277,7 +1577,7 @@ impl FormalRuntime {
             restored.world.combat_state.traversal_markers =
                 scene_runtime.as_ref().unwrap().traversals();
         }
-        if scene_runtime.is_none() && save.save.moving_support_frame.is_some() {
+        if scene_runtime.is_none() && (save.save.moving_support_frame.is_some() || save.save.shaft_inactive_history.is_some()) {
             return Err("E_SAVE_SUPPORT_FRAME_INVALID".into());
         }
         if let Some(scene) = scene_runtime.as_ref() {
@@ -1358,6 +1658,9 @@ impl FormalRuntime {
             effect_sources_v6: Vec::new(),
             effective_rules_v6: crate::player_rules::EffectivePlayerRules::default(),
             kcc: StaticKccWorld::grey_hive_first_flow(false),
+            shaft_owner: None,
+            shaft_deferred: false,
+            shaft_inactive_history: None,
             stepper,
             latest_sample: InputSample::new(world_epoch, 0, 0, 0.0, 0.0)
                 .map_err(|error| format!("E_RUNTIME_INIT: {error:?}"))?,
@@ -1379,6 +1682,14 @@ impl FormalRuntime {
             enhancement_terminal: None,
             baizhi: Default::default(),
             last_owner_error: None,
+            dense_region_previous: None,
+            mhcw_contact: None,
+            mhcw_paused_history: None,
+            pending_exit: None,
+            beacon_exit_admission: None,
+            beacon_exit_latch: None,
+            hive_route_admission: None,
+            hive_route_latch: None,
         })
     }
 
@@ -1394,6 +1705,7 @@ impl FormalRuntime {
             .state
             .lock()
             .map_err(|_| "E_RUNTIME_LOCK_POISONED".to_string())?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         let next_epoch = state
             .world
             .revision
@@ -1431,6 +1743,11 @@ impl FormalRuntime {
     pub fn bridge_session_status(&self) -> Result<serde_json::Value, String> {
         let state = self.state.lock().map_err(|_| "E_RUNTIME_LOCK_POISONED")?;
         if state.last_owner_error.is_some() { return Err("E_SIMULATION_OWNER".into()); }
+        if let Some(stage)=state.pending_exit.as_ref() {
+            return Ok(serde_json::json!({"worldId":stage.token.world_id,"sceneId":stage.token.scene_id,
+                "worldEpoch":stage.token.world_epoch,"paused":true,"lastLifecycleCommandSequence":stage.candidate.last_lifecycle_sequence,
+                "entryToken":stage.token,"enhancementTerminalContext":null,"exitEntryPreview":true}));
+        }
         Ok(serde_json::json!({
             "worldId": state.world.world_id, "sceneId": state.world.scene_id,
             "worldEpoch": state.world.revision.world_epoch, "paused": state.paused,
@@ -1446,6 +1763,7 @@ impl FormalRuntime {
         if let Some(error) = &state.last_owner_error {
             return Err(format!("E_SIMULATION_OWNER: {error}"));
         }
+        if let Some(stage)=state.pending_exit.as_ref() {return Ok(Self::pending_exit_view(stage));}
         let scene_runtime = self
             .scene_runtime
             .lock()
@@ -1454,6 +1772,7 @@ impl FormalRuntime {
     }
 
     fn project_locked_scene_view(&self, state: &RuntimeState) -> Result<WorldView, String> {
+        if let Some(stage)=state.pending_exit.as_ref() {return Ok(Self::pending_exit_view(stage));}
         let scene = self
             .scene_runtime
             .lock()
@@ -1528,6 +1847,7 @@ impl FormalRuntime {
         world_epoch: u64,
     ) -> Result<WorldView, String> {
         let mut state = self.state.lock().map_err(|_| "E_RUNTIME_LOCK_POISONED")?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if state.world.player_hp == 0 { return Err("E_RUNTIME_DEAD".into()); }
         if state.paused {
             return Err("E_RUNTIME_PAUSED".into());
@@ -1672,6 +1992,11 @@ impl FormalRuntime {
             .map_err(|error| error.to_string())?;
         let target = candidate.current_scene().clone();
 
+        if target.world_id!=source.world_id && mhcw_map_region::group(source,"ground_y0").is_some() {
+            mhcw_map_region::archive_valid_history(&mut next_state)?;
+        }
+        if target.world_id!=source.world_id && source.world_id=="grey_hive" {gh_map_archive::import_history(&mut next_state,active_scene)?;}
+
         let mut next_route = state.route.clone();
         if target.world_id == "grey_hive" {
             let gh = next_route
@@ -1782,12 +2107,29 @@ impl FormalRuntime {
         }
         Self::hydrate_scene_history_for_candidate(&mut candidate, &next_state)?;
         clockworks_controls::restore_scene(&mut candidate, &next_state.world_persistent_v1.clockworks)?;
-        let target = candidate.current_scene().clone();
+        let mut target = candidate.current_scene().clone();
         let spawn = target
             .spawns
             .iter()
             .find(|spawn| spawn.kind == "player")
             .ok_or("E_SCENE_PLAYER_SPAWN")?;
+        // Activate only the authored first-entry checkpoint, before committing the candidate.
+        let first_gh_entry = source.world_id == "return_station"
+            && source.scene_id == "rs_core_room"
+            && gate_id == "rs_world_gate_to_gh"
+            && target.world_id == "grey_hive"
+            && target.scene_id == "gh_entry_maintenance"
+            && state.route.progress.iter().any(|progress| progress.world_id == "grey_hive" && progress.visit_id == 0);
+        let entry_checkpoint_event = if first_gh_entry && candidate.checkpoint_id.is_none() {
+            Some(candidate.checkpoint(
+                "gh_entry_checkpoint",
+                &format!("auto-gh-entry-checkpoint-{next_epoch}"),
+                next_epoch,
+                vec3_from_array(spawn.position),
+            ).map_err(|error| error.to_string())?)
+        } else {
+            None
+        };
         let mut world = WorldStateV3::new(
             &target.world_id,
             next_epoch,
@@ -1805,18 +2147,31 @@ impl FormalRuntime {
         world.rear_view = state.world.rear_view.clone();
         world.scene_id = target.scene_id.clone();
         world.checkpoint_id = candidate.checkpoint_id.clone();
+        preserve_grey_hive_exploration(&state.world, &mut world);
         world.generic_actors = spawn_generic_actors(&target)?;
         warden_encounter::prepare_world(&mut world, &target, state.world_persistent_v1.mist_harbor.warden_defeated)?;
         world.sentinels = spawn_authored_sentinels(&target)?;
+        if target.scene_id=="gh_lockdown" && lockdown_requires_legacy(&candidate,&world)? {
+            candidate.select_lockdown_legacy().map_err(|_|"E_LOCKDOWN_VARIANT_SOURCE")?;
+            target=candidate.current_scene().clone();
+        }
+        if ["gh_bio_isolation","gh_deep_decon","gh_beacon","gh_exit"].contains(&target.scene_id.as_str()) && utility_requires_legacy(&candidate,&world,&route_completed_events(&next_route,"grey_hive"),false)? {
+            candidate.select_utility_legacy().map_err(|_|"E_UTILITY_VARIANT_SOURCE")?;
+            target=candidate.current_scene().clone();
+        }
         world.player_hp = state.world.player_hp;
         world.player_max_hp = state.world.player_max_hp;
         world.player_energy = state.world.player_energy;
         world.player_max_energy = state.world.player_max_energy;
         world.combat_state.traversal_markers = candidate.traversals();
+        (next_state.shaft_owner,next_state.shaft_deferred)=if shaft_lift::source_support_valid(&target) {
+            shaft_reentry(&target,&world,&route_completed_events(&next_route,&target.world_id),&mut next_state.shaft_inactive_history,false)?
+        } else {(None,false)};
+        let mut kcc_state=state.clone();kcc_state.shaft_owner=next_state.shaft_owner.clone();kcc_state.shaft_deferred=next_state.shaft_deferred;
         let kcc = scene_kcc_for_state(
             &target,
             &route_completed_events(&next_route, &target.world_id),
-            &state,
+            &kcc_state,
         )?;
         let mut capabilities = state.capabilities.clone();
         rebase_capability_revision_epoch(&mut capabilities, next_epoch)?;
@@ -1871,6 +2226,9 @@ impl FormalRuntime {
         next_state.next_presentation_event_id = 1;
         next_state.sound_cues.clear();
         next_state.next_sound_cue_id = 1;
+        if let Some(event) = entry_checkpoint_event.as_ref() {
+            emit_scene_presentation(&mut next_state, event);
+        }
         Self::prepare_entry(&mut next_state, state.entry_generation)?;
         *state = next_state;
         *active = Some(candidate);
@@ -1889,6 +2247,7 @@ impl FormalRuntime {
             .state
             .lock()
             .map_err(|_| "E_RUNTIME_LOCK_POISONED".to_string())?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if state.world.player_hp == 0 { return Err("E_RUNTIME_DEAD".into()); }
         if state.paused {
             return Err("E_RUNTIME_PAUSED".into());
@@ -1949,6 +2308,7 @@ impl FormalRuntime {
             .state
             .lock()
             .map_err(|_| "E_RUNTIME_LOCK_POISONED".to_string())?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if state.pending_entry.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if state.world.player_hp == 0 { return Err("E_RUNTIME_DEAD".into()); }
         if state.paused {
@@ -2015,6 +2375,7 @@ impl FormalRuntime {
             .state
             .lock()
             .map_err(|_| "E_RUNTIME_LOCK_POISONED".to_string())?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if state.world.player_hp == 0 { return Err("E_RUNTIME_DEAD".into()); }
         if state.paused {
             return Err("E_RUNTIME_PAUSED".into());
@@ -2087,7 +2448,10 @@ impl FormalRuntime {
         registry: WorldRegistry,
         start_scene_id: &str,
     ) -> Result<WorldView, String> {
+        // Direct installation cannot provide an Exit target-resource preview.
+        if start_scene_id=="gh_exit" {return Err("E_EXIT_PREVIEW_REQUIRED".into());}
         let mut state = self.state.lock().map_err(|_| "E_RUNTIME_LOCK_POISONED")?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         let mut candidate = state.clone();
         let runtime = Self::prepare_scene_registry(&mut candidate, registry.clone(), start_scene_id)?;
         let mut scene = self.scene_runtime.lock().map_err(|_| "E_SCENE_RUNTIME_LOCK_POISONED")?;
@@ -2107,18 +2471,13 @@ impl FormalRuntime {
         let mut runtime =
             SceneRuntime::new(registry, start_scene_id, 1).map_err(|e| e.to_string())?;
         Self::hydrate_scene_history_for_candidate(&mut runtime, state)?;
-        let scene = runtime.current_scene().clone();
+        let mut scene = runtime.current_scene().clone();
         let spawn = scene
             .spawns
             .iter()
             .find(|s| s.kind == "player")
             .ok_or("E_SCENE_PLAYER_SPAWN")?;
         let environment = environmental_hazards::prepared_scene(&state, &scene)?;
-        let kcc = scene_kcc_for_state(
-            &scene,
-            &completed_world_events(&state, &scene.world_id),
-            &state,
-        )?;
         let mut world = WorldStateV3::new(
             &scene.world_id,
             state.world.revision.world_epoch,
@@ -2130,6 +2489,7 @@ impl FormalRuntime {
         world.rear_view = state.world.rear_view.clone();
         world.scene_id = scene.scene_id.clone();
         world.checkpoint_id = runtime.checkpoint_id.clone();
+        preserve_grey_hive_exploration(&state.world, &mut world);
         world.generic_actors = spawn_generic_actors(&scene)?;
         warden_encounter::prepare_world(&mut world, &scene, state.world_persistent_v1.mist_harbor.warden_defeated)?;
         reset_clockworks_regulator_encounter_for_new_boss(
@@ -2143,10 +2503,23 @@ impl FormalRuntime {
             &state.world_persistent_v1.clockworks,
         )?;
         world.sentinels = spawn_authored_sentinels(&scene)?;
+        if scene.scene_id=="gh_lockdown" && lockdown_requires_legacy(&runtime,&world)? {
+            runtime.select_lockdown_legacy().map_err(|_|"E_LOCKDOWN_VARIANT_SOURCE")?;
+            scene=runtime.current_scene().clone();
+        }
+        if ["gh_bio_isolation","gh_deep_decon","gh_beacon","gh_exit"].contains(&scene.scene_id.as_str()) && utility_requires_legacy(&runtime,&world,&completed_world_events(&state,"grey_hive"),false)? {
+            runtime.select_utility_legacy().map_err(|_|"E_UTILITY_VARIANT_SOURCE")?;
+            scene=runtime.current_scene().clone();
+        }
         world.player_hp = state.world.player_hp;
         world.player_max_hp = state.world.player_max_hp;
         world.player_energy = state.world.player_energy;
         world.player_max_energy = state.world.player_max_energy;
+        let events=completed_world_events(&state,&scene.world_id);
+        (state.shaft_owner,state.shaft_deferred)=if shaft_lift::source_support_valid(&scene) {
+            shaft_reentry(&scene,&world,&events,&mut state.shaft_inactive_history,false)?
+        } else {(None,false)};
+        let kcc=scene_kcc_for_state(&scene,&events,&state)?;
         let mut next_world = world;
         next_world.combat_state.traversal_markers = runtime.traversals();
         let mut capabilities = state.capabilities.clone();
@@ -2190,6 +2563,7 @@ impl FormalRuntime {
         world_epoch: u64,
     ) -> Result<WorldView, String> {
         let mut state = self.state.lock().map_err(|_| "E_RUNTIME_LOCK_POISONED")?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if state.world.player_hp == 0 { return Err("E_RUNTIME_DEAD".into()); }
         if state.paused {
             return Err("E_RUNTIME_PAUSED".into());
@@ -2229,6 +2603,7 @@ impl FormalRuntime {
         world_epoch: u64,
     ) -> Result<WorldView, String> {
         let mut state = self.state.lock().map_err(|_| "E_RUNTIME_LOCK_POISONED")?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if state.world.player_hp == 0 { return Err("E_RUNTIME_DEAD".into()); }
         if state.paused {
             return Err("E_RUNTIME_PAUSED".into());
@@ -2258,19 +2633,103 @@ impl FormalRuntime {
         world_epoch: u64,
     ) -> Result<WorldView, String> {
         let mut live_state = self.state.lock().map_err(|_| "E_RUNTIME_LOCK_POISONED")?;
+        let mut guard = self.scene_runtime.lock().map_err(|_| "E_SCENE_RUNTIME_LOCK_POISONED")?;
+        if live_state.pending_exit.is_some() {return Err("E_SCENE_ENTRY_NOT_READY".into());}
+        if !live_state.paused && live_state.pending_entry.is_none() && live_state.world.player_hp>0 {
+            if let Some(active)=guard.as_ref() {
+                let current=active.current_scene();let p=live_state.world.player.position_m;
+                let width=if ["gh_entry_maintenance","gh_power_room"].contains(&current.scene_id.as_str()) {20.0} else {24.0};
+                let east=p.x_m>=width/2.0;
+                let owned=match (current.scene_id.as_str(),east,id) {
+                    ("gh_entry_maintenance",true,"gh_entry_to_power_room") | ("gh_power_room",false,"gh_power_return_to_entry")
+                    | ("gh_lockdown",true,"gh_lockdown_to_bio_isolation") | ("gh_bio_isolation",true,"gh_bio_to_gate_b")
+                    | ("gh_deep_decon",true,"gh_deep_decon_to_sentinel_arena") | ("gh_sentinel_arena",false,"gh_sentinel_arena_return_to_deep_decon")
+                    | ("gh_sentinel_arena",true,"gh_sentinel_arena_to_beacon") => true,_=>false,
+                };
+                let shore_owned=matches!((current.scene_id.as_str(),east,id),
+                    ("mh_fog_pier",true,"mh_to_tidal_warehouse") | ("mh_tidal_warehouse",false,"mh_warehouse_to_fog_pier")
+                    | ("mh_tidal_warehouse",true,"mh_warehouse_to_signal_yard") | ("mh_signal_yard",false,"mh_signal_yard_to_warehouse")
+                    | ("mh_signal_yard",true,"mh_signal_yard_to_quay") | ("mh_drowned_quay",false,"mh_drowned_quay_to_signal_yard")
+                    | ("mh_drowned_quay",true,"mh_drowned_quay_to_breakwater") | ("mh_breakwater",false,"mh_breakwater_to_drowned_quay")
+                    | ("mh_breakwater",true,"mh_breakwater_to_pump_station") | ("mh_pump_station",false,"mh_pump_station_to_breakwater")
+                    | ("mh_pump_station",true,"mh_pump_station_to_tower") | ("mh_resonance_tower",false,"mh_tower_to_pump_station")
+                    | ("mh_resonance_tower",true,"mh_tower_to_warden_arena") | ("mh_warden_arena",false,"mh_warden_arena_to_tower")
+                    | ("mh_warden_arena",true,"mh_warden_arena_to_extraction") | ("mh_extraction",false,"mh_extraction_to_warden_arena"));
+                let cw_owned=matches!((current.scene_id.as_str(),east,id),
+                    ("cw_entry_foundry",true,"cw_to_pressure_hall") | ("cw_pressure_hall",false,"cw_return_to_entry_foundry")
+                    | ("cw_pressure_hall",true,"cw_to_conveyor_bridge") | ("cw_conveyor_bridge",false,"cw_bridge_to_pressure_hall")
+                    | ("cw_conveyor_bridge",true,"cw_bridge_to_boiler_chamber") | ("cw_boiler_chamber",false,"cw_boiler_return_to_conveyor_bridge")
+                    | ("cw_boiler_chamber",true,"cw_boiler_to_gear_shaft") | ("cw_gear_shaft",false,"cw_gear_return_to_boiler")
+                    | ("cw_furnace_heart",true,"cw_furnace_heart_to_arena") | ("cw_forged_guard_arena",false,"cw_arena_return_to_furnace_heart")
+                    | ("cw_forged_guard_arena",true,"cw_arena_to_regulator_core") | ("cw_regulator_core",false,"cw_regulator_core_return_to_arena")
+                    | ("cw_regulator_core",true,"cw_regulator_core_to_shutdown_exit") | ("cw_shutdown_exit",false,"cw_shutdown_exit_return_to_regulator_core"));
+                if (owned && active.hive_route_neighbor(east).is_some()) || (shore_owned && active.mh_shore_neighbor(east).is_some()) || (cw_owned && active.cw_early_neighbor(east).is_some()) {
+                    // Preserve the original request/epoch/range/progression errors,
+                    // but never install the ordinary spawn for a selected walk edge.
+                    let mut checked_state=live_state.clone();let mut checked_scene=guard.clone();
+                    Self::transition_scene_locked(&mut checked_state,&mut checked_scene,id,request_id,world_epoch,None)?;
+                    return Err("E_SEAM_WALK_PREPARING".into());
+                }
+            }
+        }
+        if ["gh_beacon_to_exit","gh_exit_to_beacon"].contains(&id) && !live_state.paused && live_state.pending_entry.is_none() && live_state.kcc.is_beacon_exit_union() {
+            let active=guard.as_ref().ok_or("E_SCENE_REGISTRY_NOT_LOADED")?;
+            let own=scene_kcc_for_state(active.current_scene(),&completed_world_events(&live_state,"grey_hive"),&live_state)?;
+            if !own.can_player_occupy(live_state.world.player.position_m,live_state.world.player.radius_m) {return Err("E_SEAM_WALK_ACTIVE".into());}
+        }
+        if ["gh_beacon_to_exit","gh_exit_to_beacon"].contains(&id)
+            && !live_state.paused && live_state.pending_entry.is_none() && live_state.world.player_hp>0
+            && guard.as_ref().is_some_and(|s|prepare_beacon_exit(&live_state,s,true).is_some()) {
+            // A supported pair is already preparing its visual proof; the
+            // ordinary interior trigger must not commit its spawn meanwhile.
+            return Err("E_SEAM_WALK_PREPARING".into());
+        }
+        if id=="gh_beacon_to_exit" && guard.as_ref().is_some_and(|s|s.current_scene().world_id=="grey_hive" && s.current_scene().scene_id=="gh_beacon") {
+            let mut candidate_state=live_state.clone();
+            let mut candidate_scene=guard.clone();
+            Self::transition_scene_locked(&mut candidate_state,&mut candidate_scene,id,request_id,world_epoch,None)?;
+            let target=candidate_scene.ok_or("E_EXIT_PREVIEW_SCENE")?;
+            return Self::stage_exit(&mut live_state,&guard,candidate_state,target,ExitCommitIntent::Transition);
+        }
+        Self::transition_scene_locked(&mut live_state, &mut guard, id, request_id, world_epoch, None)
+    }
+
+    fn transition_scene_locked(
+        live_state: &mut RuntimeState,
+        guard: &mut Option<SceneRuntime>,
+        id: &str,
+        request_id: &str,
+        world_epoch: u64,
+        seam: Option<(Vec3,Vec3)>,
+    ) -> Result<WorldView, String> {
         let mut state = live_state.clone();
         if state.world.player_hp == 0 { return Err("E_RUNTIME_DEAD".into()); }
         if state.paused {
             return Err("E_RUNTIME_PAUSED".into());
         }
-        let mut guard = self
-            .scene_runtime
-            .lock()
-            .map_err(|_| "E_SCENE_RUNTIME_LOCK_POISONED")?;
         let mut candidate = guard.as_ref().ok_or("E_SCENE_REGISTRY_NOT_LOADED")?.clone();
+        let source_definition=candidate.current_scene().clone();
         let source_world = candidate.current_scene().world_id.clone();
         let source_scene_id = candidate.current_scene().scene_id.clone();
-        Self::capture_departing_scene_history(&mut state, &candidate)?;
+        if source_world=="clockworks" && source_scene_id=="cw_gear_shaft" && id=="hive-route-cw_boiler_chamber" {
+            // The committed step has just cleared the source boundary. Capture
+            // source history at its actual supported pre-step contact; the live
+            // post-step body and mapped residual remain untouched for commit.
+            let previous=seam.ok_or("E_SEAM_POSITION")?.0;
+            let admission=state.hive_route_admission.as_ref().ok_or("E_SEAM_NOT_READY")?;
+            let target=candidate.cw_early_neighbor(false).ok_or("E_SEAM_NEIGHBOR")?;
+            if admission.source_scene!=source_scene_id || admission.source_sha!=source_definition.verified_source_sha256
+                || admission.target_scene!="cw_boiler_chamber" || admission.target_sha!=target.verified_source_sha256
+                || admission.epoch!=world_epoch || admission.events!=completed_world_events(&state,&source_world)
+                || admission.elite_first_kill!=state.world_persistent_v1.clockworks.forged_guard_elite_first_kill {return Err("E_SEAM_NOT_READY".into());}
+            let mut departing=state.clone();departing.world.player.position_m=previous;
+            if previous.y_m!=0.0 || !departing.world.player.grounded
+                || !departing.kcc.can_player_occupy(previous,departing.world.player.radius_m)
+                || !departing.kcc.valid_saved_support_contact(&departing.world.player,departing.world.server_time_ms) {return Err("E_SEAM_SOURCE_CONTACT".into());}
+            Self::capture_departing_scene_history(&mut departing,&candidate)?;
+            state.world_persistent_v1=departing.world_persistent_v1;
+            state.shaft_inactive_history=departing.shaft_inactive_history;
+        } else {Self::capture_departing_scene_history(&mut state,&candidate)?;}
         if is_clockworks_elite_arena_exit(
             &source_world,
             &source_scene_id,
@@ -2285,15 +2744,27 @@ impl FormalRuntime {
             return Err("E_SCENE_CLOCKWORKS_ELITE_FIRST_KILL_REQUIRED".into());
         }
         let completed_events = completed_world_events(&state, &source_world);
-        let transition = candidate
-            .transition_with_progression(
+        let hive_route_target=if seam.is_some() && ["grey_hive","mist_harbor","clockworks"].contains(&source_world.as_str()) {id.strip_prefix("hive-route-")} else {None};
+        let hive_route=hive_route_target.is_some();
+        let reverse_decon=seam.is_some() && source_world=="grey_hive" && source_scene_id=="gh_deep_decon" && id=="gh_deep_decon_walk_to_gate_b";
+        let beacon_exit=seam.is_some() && source_world=="grey_hive" && ((source_scene_id=="gh_beacon" && id=="gh_beacon_to_exit") || (source_scene_id=="gh_exit" && id=="gh_exit_to_beacon"));
+        let mut transition = (if let Some(target)=hive_route_target {
+            if source_world=="mist_harbor" {candidate.mh_shore_walk(target,request_id,world_epoch,seam.ok_or("E_SEAM_POSITION")?.0,&completed_events,state.world_persistent_v1.mist_harbor.warden_defeated)}
+            else if source_world=="clockworks" {candidate.cw_early_walk(target,request_id,world_epoch,seam.ok_or("E_SEAM_POSITION")?.0,&completed_events,state.world_persistent_v1.clockworks.forged_guard_elite_first_kill)}
+            else {candidate.hive_route_walk(target,request_id,world_epoch,seam.ok_or("E_SEAM_POSITION")?.0,&completed_events,state.world_persistent_v1.grey_hive.sentinel_first_kill)}
+        } else if beacon_exit {
+            candidate.beacon_exit_walk(id,request_id,world_epoch,seam.ok_or("E_SEAM_POSITION")?.0)
+        } else if reverse_decon {
+            candidate.decon_reverse_walk(request_id,world_epoch,seam.ok_or("E_SEAM_POSITION")?.0,&completed_events)
+        } else {candidate.transition_with_progression(
                 id,
                 request_id,
                 world_epoch,
-                state.world.player.position_m,
+                seam.map(|v| v.0).unwrap_or(state.world.player.position_m),
                 &completed_events,
-            )
+            )})
             .map_err(|e| e.to_string())?;
+        if let Some((_, mapped)) = seam { transition.position = mapped; }
         let is_registered_sentinel_beacon_transition = source_world == "grey_hive"
             && source_scene_id == SENTINEL_SCENE_ID
             && state.world.world_id == "grey_hive"
@@ -2344,12 +2815,26 @@ impl FormalRuntime {
         world.rear_view = state.world.rear_view.clone();
         world.scene_id = transition.target_scene_id.clone();
         world.checkpoint_id = candidate.checkpoint_id.clone();
+        preserve_grey_hive_exploration(&prior, &mut world);
         world.player_hp = prior.player_hp;
         world.player_max_hp = prior.player_max_hp;
         world.player_energy = prior.player_energy;
         world.player_max_energy = prior.player_max_energy;
+        let shaft_seam=seam.is_some() && source_world=="grey_hive"
+            && ((source_scene_id=="gh_gate_a" && transition.target_scene_id=="gh_central_shaft")
+                || (source_scene_id=="gh_central_shaft" && transition.target_scene_id=="gh_gate_a"));
+        let decon_seam=seam.is_some() && source_world=="grey_hive"
+            && ((source_scene_id=="gh_gate_b" && transition.target_scene_id=="gh_deep_decon")
+                || (source_scene_id=="gh_deep_decon" && transition.target_scene_id=="gh_gate_b"));
+        let lockdown_seam=seam.is_some() && source_world=="grey_hive"
+            && ((source_scene_id=="gh_central_shaft" && transition.target_scene_id=="gh_lockdown")
+                || (source_scene_id=="gh_lockdown" && transition.target_scene_id=="gh_central_shaft"));
+        if seam.is_some() {
+            world.player=prior.player.clone();
+            world.player.position_m=transition.position;
+        }
         world.combat_state.traversal_markers = candidate.traversals();
-        let scene = candidate.current_scene().clone();
+        let mut scene = candidate.current_scene().clone();
         let environment = environmental_hazards::prepared_scene(&state, &scene)?;
         world.generic_actors = spawn_generic_actors(&scene)?;
         warden_encounter::prepare_world(&mut world, &scene, state.world_persistent_v1.mist_harbor.warden_defeated)?;
@@ -2372,8 +2857,71 @@ impl FormalRuntime {
                 .forged_guard_elite_first_kill,
         )?;
         world.sentinels = spawn_authored_sentinels(&scene)?;
+        if scene.scene_id=="gh_lockdown" && lockdown_requires_legacy(&candidate,&world)? {
+            candidate.select_lockdown_legacy().map_err(|_|"E_LOCKDOWN_VARIANT_SOURCE")?;
+            scene=candidate.current_scene().clone();
+        }
+        if ["gh_bio_isolation","gh_deep_decon","gh_beacon","gh_exit"].contains(&scene.scene_id.as_str()) && utility_requires_legacy(&candidate,&world,&route_completed_events(&route,"grey_hive"),decon_seam || beacon_exit || hive_route)? {
+            candidate.select_utility_legacy().map_err(|_|"E_UTILITY_VARIANT_SOURCE")?;
+            scene=candidate.current_scene().clone();
+        }
         let target_events = route_completed_events(&route, &scene.world_id);
-        let kcc = scene_kcc_for_state(&scene, &target_events, &state)?;
+        let source_state=state.clone();
+        (state.shaft_owner,state.shaft_deferred)=if shaft_lift::source_support_valid(&scene) {
+            shaft_reentry(&scene,&world,&target_events,&mut state.shaft_inactive_history,shaft_seam || lockdown_seam)?
+        } else {(None,false)};
+        let mut target_state=state.clone();
+        if shaft_seam || decon_seam || lockdown_seam || beacon_exit || hive_route {target_state.world=world.clone();}
+        let mut kcc = scene_kcc_for_state(&scene, &target_events, &target_state)?;
+        if hive_route {
+            if ["mist_harbor","clockworks"].contains(&source_world.as_str()) && !kcc.can_player_occupy(transition.position,prior.player.radius_m) {return Err("E_SEAM_DESTINATION".into());}
+            let admission=state.hive_route_admission.as_ref().ok_or("E_SEAM_NOT_READY")?;
+            if admission.source_scene!=source_scene_id || admission.source_sha!=source_definition.verified_source_sha256
+                || admission.epoch!=world_epoch || admission.target_scene!=scene.scene_id || admission.target_sha!=scene.verified_source_sha256
+                || admission.events!=completed_world_events(&state,&source_world) || admission.sentinel_first_kill!=state.world_persistent_v1.grey_hive.sentinel_first_kill || admission.elite_first_kill!=state.world_persistent_v1.clockworks.forged_guard_elite_first_kill {return Err("E_SEAM_NOT_READY".into());}
+            let other=scene_kcc_for_state(&source_definition,&target_events,&source_state)?;
+            let width=if ["gh_entry_maintenance","gh_power_room"].contains(&source_scene_id.as_str()) {20.0} else {24.0};
+            let depth=if width==20.0 {14.0} else {16.0};
+            let source_position=seam.ok_or("E_SEAM_POSITION")?.0;
+            let offset=if source_position.x_m>=width/2.0 {-width} else {width};
+            kcc=if source_world=="mist_harbor" {kcc.join_mh_shore(&other,offset)}
+                else if source_world=="clockworks" && ((source_scene_id=="cw_boiler_chamber" && scene.scene_id=="cw_gear_shaft") || (source_scene_id=="cw_gear_shaft" && scene.scene_id=="cw_boiler_chamber")) {kcc.join_cw_gear_ground(&other,offset,scene.scene_id=="cw_gear_shaft")}
+                else if source_world=="clockworks" {kcc.join_cw_early(&other,offset)} else {kcc.join_hive_route(&other,offset,width,depth)}.map_err(|_|"E_SEAM_KCC")?;
+            if !kcc.can_player_occupy(transition.position,prior.player.radius_m) {return Err("E_SEAM_DESTINATION".into());}
+            state.hive_route_admission=None;
+            state.hive_route_latch=Some(HiveRouteLatch{source_scene:scene.scene_id.clone(),source_sha:scene.verified_source_sha256.clone(),target_scene:source_scene_id.clone(),target_sha:source_definition.verified_source_sha256.clone(),epoch:transition.next_epoch,events:target_events.clone(),sentinel_first_kill:state.world_persistent_v1.grey_hive.sentinel_first_kill,elite_first_kill:state.world_persistent_v1.clockworks.forged_guard_elite_first_kill});
+        } else if shaft_seam {
+            let other=scene_kcc_for_state(&source_definition,&target_events,&source_state)?;
+            kcc=kcc.join_gate_shaft_upper(&other,scene.scene_id=="gh_gate_a",world.server_time_ms,world.server_time_ms)
+                .map_err(|_|"E_SEAM_KCC")?;
+            if !kcc.can_player_occupy(transition.position,prior.player.radius_m) {return Err("E_SEAM_DESTINATION".into());}
+        } else if lockdown_seam {
+            let other=scene_kcc_for_state(&source_definition,&target_events,&source_state)?;
+            kcc=kcc.join_shaft_lockdown_upper(&other,scene.scene_id=="gh_central_shaft",world.server_time_ms,world.server_time_ms)
+                .map_err(|_|"E_SEAM_KCC")?;
+            if !kcc.can_player_occupy(transition.position,prior.player.radius_m) {return Err("E_SEAM_DESTINATION".into());}
+        } else if decon_seam {
+            let other=scene_kcc_for_state(&source_definition,&target_events,&source_state)?;
+            let offset=if scene.scene_id=="gh_gate_b" {24.0} else {-24.0};
+            kcc=kcc.join_gate_decon(&other,offset).map_err(|_|"E_SEAM_KCC")?;
+            if !kcc.can_player_occupy(transition.position,prior.player.radius_m) {return Err("E_SEAM_DESTINATION".into());}
+        } else if beacon_exit {
+            let admission=state.beacon_exit_admission.as_ref().ok_or("E_SEAM_NOT_READY")?;
+            if admission.source_scene!=source_scene_id || admission.source_sha!=source_definition.verified_source_sha256 || admission.epoch!=world_epoch || admission.target_sha!=scene.verified_source_sha256
+                || admission.events!=completed_world_events(&state,"grey_hive") || admission.beacon!=state.world_persistent_v1.grey_hive.beacon {return Err("E_SEAM_NOT_READY".into());}
+            let other=scene_kcc_for_state(&source_definition,&target_events,&source_state)?;
+            let offset=if scene.scene_id=="gh_beacon" {24.0} else {-24.0};
+            kcc=kcc.join_beacon_exit(&other,offset).map_err(|_|"E_SEAM_KCC")?;
+            if !kcc.can_player_occupy(transition.position,prior.player.radius_m) {return Err("E_SEAM_DESTINATION".into());}
+            state.beacon_exit_admission=None;
+            state.beacon_exit_latch=Some(BeaconExitLatch{source_scene:scene.scene_id.clone(),source_sha:scene.verified_source_sha256.clone(),target_scene:source_scene_id.clone(),target_sha:source_definition.verified_source_sha256.clone(),epoch:transition.next_epoch,events:target_events.clone(),beacon:state.world_persistent_v1.grey_hive.beacon.clone()});
+        } else if seam.is_some() {
+            let neighbor = candidate.same_floor_neighbor().ok_or("E_SEAM_NEIGHBOR")?;
+            let other = scene_kcc_for_state(neighbor, &target_events, &state)?;
+            let offset = if scene.scene_id == "gh_power_room" { 20.0 } else if scene.scene_id == "gh_gate_a" { -20.0 } else { return Err("E_SEAM_SCENE".into()); };
+            kcc = kcc.join_grey_hive_pair(&other, offset).map_err(|_| "E_SEAM_KCC")?;
+            if !kcc.can_player_occupy(transition.position, prior.player.radius_m) { return Err("E_SEAM_DESTINATION".into()); }
+        }
         let mut capabilities = state.capabilities.clone();
         rebase_capability_revision_epoch(&mut capabilities, transition.next_epoch)?;
         capabilities.world_id = transition.target_world_id.clone();
@@ -2408,6 +2956,13 @@ impl FormalRuntime {
         clockworks_controls::restore_scene(&mut candidate, &state.world_persistent_v1.clockworks)?;
         emit_scene_presentation(&mut state, &transition.event);
         Self::prepare_entry(&mut state, live_state.entry_generation)?;
+        state.beacon_exit_admission=None;
+        state.hive_route_admission=None;
+        if !hive_route {state.hive_route_latch=None;}
+        if !beacon_exit {state.beacon_exit_latch=None;}
+        // The readiness hold clears input, but this physical seam retains the
+        // already-consumed tick's velocity as part of its mapped state.
+        if seam.is_some() {state.world.player.velocity_mps=prior.player.velocity_mps;}
         *live_state = state;
         *guard = Some(candidate);
         Ok(project_scene_view(&live_state, guard.as_ref()))
@@ -2433,6 +2988,7 @@ impl FormalRuntime {
             .state
             .lock()
             .map_err(|_| "E_RUNTIME_LOCK_POISONED".to_string())?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if state.pending_entry.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if state.world.player_hp == 0 { return Err("E_RUNTIME_DEAD".into()); }
         if state.world.world_id != world_id {
@@ -2458,6 +3014,7 @@ impl FormalRuntime {
             .state
             .lock()
             .map_err(|_| "E_RUNTIME_LOCK_POISONED".to_string())?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if world_epoch != state.world.revision.world_epoch {
             return Err("E_EVENT_STALE_EPOCH".into());
         }
@@ -2480,6 +3037,7 @@ impl FormalRuntime {
         after_event_id: u64,
     ) -> Result<Vec<SoundCueEvent>, String> {
         let state = self.state.lock().map_err(|_| "E_RUNTIME_LOCK_POISONED")?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if world_epoch != state.world.revision.world_epoch {
             return Err("E_SOUND_CUE_STALE_EPOCH".into());
         }
@@ -2526,6 +3084,7 @@ impl FormalRuntime {
             .state
             .lock()
             .map_err(|_| "E_RUNTIME_LOCK_POISONED".to_string())?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         let mut scene_guard = self
             .scene_runtime
             .lock()
@@ -2689,6 +3248,7 @@ impl FormalRuntime {
         &self, interaction_id: &str, request_id: &str, world_epoch: u64, environment_only: bool,
     ) -> Result<FormalInteractionResponse, String> {
         let mut state = self.state.lock().map_err(|_| "E_RUNTIME_LOCK_POISONED")?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         let mut guard = self
             .scene_runtime
             .lock()
@@ -2995,6 +3555,7 @@ impl FormalRuntime {
             .state
             .lock()
             .map_err(|_| "E_RUNTIME_LOCK_POISONED".to_string())?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if sample.world_epoch != state.world.revision.world_epoch {
             return Err("E_INPUT_STALE_EPOCH".into());
         }
@@ -3032,6 +3593,7 @@ impl FormalRuntime {
                 .state
                 .lock()
                 .map_err(|_| "E_RUNTIME_LOCK_POISONED".to_string())?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
             if state.world.revision.world_epoch != wanted_epoch {
                 return Err("E_INPUT_STALE_EPOCH".into());
             }
@@ -3097,6 +3659,7 @@ impl FormalRuntime {
             .state
             .lock()
             .map_err(|_| "E_RUNTIME_LOCK_POISONED".to_string())?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if state.world.player_hp == 0 { return Err("E_RUNTIME_DEAD".into()); }
         if state.paused {
             return Err("E_RUNTIME_PAUSED".into());
@@ -3209,6 +3772,7 @@ impl FormalRuntime {
                 .state
                 .lock()
                 .map_err(|_| "E_RUNTIME_LOCK_POISONED".to_string())?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
             if state.world.revision.world_epoch != epoch {
                 return Err("E_ACTION_STALE_EPOCH".into());
             }
@@ -3242,6 +3806,7 @@ impl FormalRuntime {
             .state
             .lock()
             .map_err(|_| "E_RUNTIME_LOCK_POISONED".to_string())?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if state.world.player_hp == 0 { return Err("E_RUNTIME_DEAD".into()); }
         if state.paused {
             return Err("E_RUNTIME_PAUSED".into());
@@ -3339,6 +3904,7 @@ impl FormalRuntime {
             .state
             .lock()
             .map_err(|_| "E_RUNTIME_LOCK_POISONED".to_string())?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if state.world.player_hp == 0 { return Err("E_RUNTIME_DEAD".into()); }
         if state.pending_entry.is_some() {
             return Err("E_SCENE_ENTRY_NOT_READY".into());
@@ -3364,6 +3930,7 @@ impl FormalRuntime {
 
     pub fn choose_first_enhancement(&self, capability_id: &str, context: &EnhancementTerminalContext) -> Result<WorldView, String> {
         let mut state = self.state.lock().map_err(|_| "E_RUNTIME_LOCK_POISONED")?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if state.pending_entry.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if state.world.player_hp == 0 { return Err("E_RUNTIME_DEAD".into()); }
         if state.world.world_id != "return_station" || state.world.scene_id != "rs_core_room" {
@@ -3462,7 +4029,119 @@ impl FormalRuntime {
     /// Only a completed first frame for the exact prepared destination may release the owner.
     /// The generation protects repeated Continue even when the saved epoch is identical.
     pub fn scene_ready(&self, token: &crate::world_v3::SceneEntryToken, remain_paused: bool) -> Result<WorldView, String> {
+        self.scene_ready_with_exit_proof(token,remain_paused,None,None)
+    }
+
+    pub fn scene_ready_with_exit_proof(&self, token: &crate::world_v3::SceneEntryToken, remain_paused: bool, exit_source_hash: Option<&str>, pair_proof:Option<&serde_json::Value>) -> Result<WorldView, String> {
         let mut state = self.state.lock().map_err(|_| "E_RUNTIME_LOCK_POISONED")?;
+        if let Some(pending)=state.pending_exit.as_ref() {
+            let stage=(**pending).clone();
+            let shaft=stage.scene.current_scene().scene_id=="gh_central_shaft";
+            if exit_source_hash!=Some(stage.source_hash.as_str()) {return Err("E_EXIT_PREVIEW_PROOF_REQUIRED".into());}
+            if shaft {
+                if !shaft_lower_service::ADMISSION_READY {return Err("E_SHAFT_SERVICE_NOT_READY".into());}
+                let expected=crate::moving_support::ShaftLowerRecipeIdentity::for_scene(stage.scene.current_scene()).ok_or("E_SHAFT_SERVICE_PROOF")?;
+                let proof=pair_proof.and_then(|p|p.as_object()).ok_or("E_SHAFT_SERVICE_PROOF")?;
+                if proof.len()!=1 || proof.get("shaftLowerService")!=Some(&serde_json::to_value(expected).map_err(|_|"E_SHAFT_SERVICE_PROOF")?) {return Err("E_SHAFT_SERVICE_PROOF".into());}
+            } else if pair_proof.is_some() {return Err("E_EXIT_PREVIEW_PROOF_REQUIRED".into());}
+            let mut scene=self.scene_runtime.lock().map_err(|_|"E_SCENE_RUNTIME_LOCK_POISONED")?;
+            let active_identity=scene.as_ref().map(|s|(s.scene_id.clone(),s.world_epoch,s.current_scene().verified_source_sha256.clone()));
+            if &stage.token!=token || state.world.revision!=stage.base_revision || state.world.world_id!=stage.base_world || state.world.scene_id!=stage.base_scene_id || active_identity!=stage.base_scene
+                || state.entry_generation!=token.generation || stage.candidate.pending_entry.as_ref()!=Some(token)
+                || stage.candidate.world.world_id!=token.world_id || stage.candidate.world.scene_id!=token.scene_id || stage.candidate.world.revision.world_epoch!=token.world_epoch
+                || stage.scene.world_epoch!=token.world_epoch || stage.scene.current_scene().verified_source_sha256!=stage.source_hash {
+                return Err("E_SCENE_ENTRY_STALE_TOKEN".into());
+            }
+            let mut candidate=*stage.candidate;
+            candidate.world.bump_authority_revision().map_err(|e|format!("E_WORLD_REVISION: {e:?}"))?;
+            candidate.pending_entry=None;
+            candidate.pending_exit=None;
+            let resume_after_frame=!(remain_paused || candidate.entry_pause_requested);
+            // Keep the newly installed owner held until the client confirms its
+            // first matching source-owned frame through normal resume ordering.
+            candidate.paused=true;
+            candidate.entry_pause_requested=false;
+            candidate.stepper=FixedStepClock::new(candidate.stepper.config);
+            candidate.latest_input_received_at=Instant::now();
+            let mut source_lock: Option<std::fs::File>=None;
+            match stage.intent {
+                ExitCommitIntent::Transition => {},
+                ExitCommitIntent::DefaultContinue{durable,backup,expected} => {
+                    let mut slot=self.active_slot.lock().map_err(|_|"E_SLOT_LOCK_POISONED")?;
+                    if let Some(save)=durable.as_ref() {
+                        if let Some(raw)=expected.as_ref() {crate::save_v6::write_continued_guarded(&self.save_root,save,raw)?;}
+                        else {self.write_continued_default(save,backup.as_ref())?;}
+                    } else if let Some(raw)=expected.as_ref() {source_lock=Some(crate::save_v6::require_continued_source(&self.save_root,raw)?);}
+                    *slot=None;
+                },
+                ExitCommitIntent::SlotContinue{slot:slot_id,display_name,durable,backup,expected} => {
+                    let mut slot=self.active_slot.lock().map_err(|_|"E_SLOT_LOCK_POISONED")?;
+                    if let Some(save)=durable.as_ref() {
+                        if let Some(raw)=expected.as_ref() {crate::save_slots::write_continued_slot_guarded(&self.save_root,&slot_id,&display_name,save,raw)?;}
+                        else {crate::save_slots::write_continued_slot_v6(&self.save_root,&slot_id,&display_name,save,backup.as_ref())?;}
+                    } else if let Some(raw)=expected.as_ref() {source_lock=Some(crate::save_slots::require_continued_slot_source(&self.save_root,&slot_id,raw)?);}
+                    *slot=Some(slot_id);
+                },
+            }
+            *scene=Some(stage.scene);
+            *state=candidate;
+            let mut view=project_scene_view(&state,scene.as_ref());
+            if shaft {view.shaft_service_entry_resume_after_frame=Some(resume_after_frame);} else {view.exit_entry_resume_after_frame=Some(resume_after_frame);}
+            drop(source_lock);
+            return Ok(view);
+        }
+        if let Some(hash)=exit_source_hash.filter(|_|pair_proof.and_then(|p|p.get("hiveRoute")).and_then(|v|v.as_bool())==Some(true)) {
+            if state.pending_entry.is_some() || state.paused || state.world.player_hp==0 {return Err("E_SCENE_ENTRY_NOT_READY".into());}
+            let scene=self.scene_runtime.lock().map_err(|_|"E_SCENE_RUNTIME_LOCK_POISONED")?;
+            let active=scene.as_ref().ok_or("E_SCENE_REGISTRY_NOT_LOADED")?;
+            let prepared=prepare_hive_route(&state,active).ok_or("E_SCENE_ENTRY_STALE_TOKEN")?;
+            let proof=pair_proof.and_then(|v|v.as_object()).ok_or("E_SEAM_PROOF_REQUIRED")?;
+            let current=project_scene_view(&state,Some(active));
+            let arena_proof=state.world.world_id=="clockworks" && prepared.target_scene_id=="cw_forged_guard_arena";
+            if proof.len()!=if arena_proof {4} else {3} || arena_proof && proof.get("arenaShuttersOpen").and_then(|v|v.as_bool())!=Some(state.world_persistent_v1.clockworks.forged_guard_elite_first_kill)
+                || proof.get("sourceSha").and_then(|v|v.as_str())!=Some(active.current_scene().verified_source_sha256.as_str())
+                || proof.get("progression")!=Some(&serde_json::to_value(&current.progression).map_err(|_|"E_SEAM_PROOF_REQUIRED")?) {
+                return Err("E_SEAM_PROOF_STALE".into());
+            }
+            let generation=state.entry_generation.checked_add(1).filter(|n|*n<=build_ui::MAX_SAFE_REVISION).ok_or("E_SCENE_ENTRY_GENERATION_EXHAUSTED")?;
+            if token.world_id!=state.world.world_id || token.scene_id!=prepared.target_scene_id
+                || token.world_epoch!=state.world.revision.world_epoch.checked_add(1).ok_or("E_WORLD_EPOCH_EXHAUSTED")?
+                || token.generation!=generation || hash!=prepared.target_sha {return Err("E_SCENE_ENTRY_STALE_TOKEN".into());}
+            let latch=hive_route_latch(&state,active,&prepared);
+            state.kcc=prepared.union.clone();
+            state.hive_route_latch=Some(latch);
+            state.entry_generation=generation;
+            state.hive_route_admission=Some(HiveRouteAdmission{source_scene:state.world.scene_id.clone(),source_sha:active.current_scene().verified_source_sha256.clone(),target_scene:prepared.target_scene_id,target_sha:prepared.target_sha,epoch:state.world.revision.world_epoch,generation,events:completed_world_events(&state,&state.world.world_id),sentinel_first_kill:state.world_persistent_v1.grey_hive.sentinel_first_kill,elite_first_kill:state.world_persistent_v1.clockworks.forged_guard_elite_first_kill});
+            return Ok(project_scene_view(&state,scene.as_ref()));
+        }
+        if let Some(hash)=exit_source_hash {
+            // A neighbor acknowledgment authorizes only the current pair's
+            // geometry preview; it never installs the candidate scene.
+            if state.pending_entry.is_some() || state.paused || state.world.player_hp==0 {return Err("E_SCENE_ENTRY_NOT_READY".into());}
+            let scene=self.scene_runtime.lock().map_err(|_|"E_SCENE_RUNTIME_LOCK_POISONED")?;
+            let active=scene.as_ref().ok_or("E_SCENE_REGISTRY_NOT_LOADED")?;
+            let prepared=prepare_beacon_exit(&state,active,false).ok_or("E_SCENE_ENTRY_STALE_TOKEN")?;
+            let proof=pair_proof.and_then(|v|v.as_object()).ok_or("E_SEAM_PROOF_REQUIRED")?;
+            let arena_proof=state.world.world_id=="clockworks" && prepared.target_scene_id=="cw_forged_guard_arena";
+            if proof.len()!=if arena_proof {4} else {3} || arena_proof && proof.get("arenaShuttersOpen").and_then(|v|v.as_bool())!=Some(state.world_persistent_v1.clockworks.forged_guard_elite_first_kill)
+                || proof.get("sourceSha").and_then(|v|v.as_str())!=Some(active.current_scene().verified_source_sha256.as_str()) {return Err("E_SEAM_PROOF_REQUIRED".into());}
+            let current=project_scene_view(&state,Some(active));
+            if proof.get("progression")!=Some(&serde_json::to_value(&current.progression).map_err(|_|"E_SEAM_PROOF_REQUIRED")?)
+                || proof.get("beacon")!=Some(&serde_json::to_value(&current.grey_hive_beacon).map_err(|_|"E_SEAM_PROOF_REQUIRED")?) {return Err("E_SEAM_PROOF_STALE".into());}
+            let generation=state.entry_generation.checked_add(1).filter(|n|*n<=build_ui::MAX_SAFE_REVISION).ok_or("E_SCENE_ENTRY_GENERATION_EXHAUSTED")?;
+            if token.world_id!="grey_hive" || token.scene_id!=prepared.target_scene_id || token.world_epoch!=state.world.revision.world_epoch.checked_add(1).ok_or("E_WORLD_EPOCH_EXHAUSTED")?
+                || token.generation!=generation || hash!=prepared.target_sha {return Err("E_SCENE_ENTRY_STALE_TOKEN".into());}
+            state.entry_generation=generation;
+            state.beacon_exit_admission=Some(BeaconExitAdmission{source_scene:state.world.scene_id.clone(),source_sha:active.current_scene().verified_source_sha256.clone(),epoch:state.world.revision.world_epoch,target_sha:prepared.target_sha,generation,events:completed_world_events(&state,"grey_hive"),beacon:state.world_persistent_v1.grey_hive.beacon.clone()});
+            return Ok(project_scene_view(&state,scene.as_ref()));
+        }
+        // A single target-specific proof can select the lower-service recipe
+        // while this entry token still holds simulation and commands.
+        let service_proof=if let Some(value)=pair_proof {
+            let object=value.as_object().ok_or("E_SHAFT_SERVICE_PROOF")?;
+            if object.len()!=1 {return Err("E_SHAFT_SERVICE_PROOF".into());}
+            Some(object.get("shaftLowerService").ok_or("E_SHAFT_SERVICE_PROOF")?.clone())
+        } else {None};
         if state.world.player_hp == 0 { return Err("E_RUNTIME_DEAD".into()); }
         if state.pending_entry.as_ref() != Some(token)
             || token.world_id != state.world.world_id
@@ -3471,6 +4150,24 @@ impl FormalRuntime {
             return Err("E_SCENE_ENTRY_STALE_TOKEN".into());
         }
         let mut candidate = state.clone();
+        if let Some(proof)=service_proof {
+            if !shaft_lower_service::ADMISSION_READY {return Err("E_SHAFT_SERVICE_NOT_READY".into());}
+            let scene=self.scene_runtime.lock().map_err(|_|"E_SCENE_RUNTIME_LOCK_POISONED")?;
+            let active=scene.as_ref().ok_or("E_SCENE_REGISTRY_NOT_LOADED")?;let definition=active.current_scene();
+            if active.world_epoch!=token.world_epoch || definition.scene_id!="gh_central_shaft" || definition.world_id!="grey_hive" {return Err("E_SHAFT_SERVICE_PROOF".into());}
+            let identity=crate::moving_support::ShaftLowerRecipeIdentity::for_scene(definition).ok_or("E_SHAFT_SERVICE_PROOF")?;
+            if serde_json::to_value(&identity).map_err(|_|"E_SHAFT_SERVICE_PROOF")?!=proof
+                || state.world_persistent_v1.shaft_recipe_format_v2.as_ref().is_some_and(|old|old!=&identity) {return Err("E_SHAFT_SERVICE_PROOF".into());}
+            let old=state.shaft_owner.as_ref().ok_or("E_SHAFT_SERVICE_PROOF")?;
+            let owner=shaft_lower_service::candidate_from_old(definition,old,&state.world).ok_or("E_SHAFT_SERVICE_PROOF")?;
+            let events=completed_world_events(&state,"grey_hive");
+            let prior=scene_kcc_for_state(definition,&events,&state)?;
+            if !prior.can_player_occupy(state.world.player.position_m,state.world.player.radius_m) {return Err("E_SHAFT_SERVICE_CONTACT".into());}
+            candidate.shaft_owner=Some(owner);candidate.world_persistent_v1.shaft_recipe_format_v2=Some(identity);
+            let kcc=scene_kcc_for_state(definition,&events,&candidate)?;
+            if !kcc.can_player_occupy(state.world.player.position_m,state.world.player.radius_m) {return Err("E_SHAFT_SERVICE_CONTACT".into());}
+            candidate.kcc=kcc;candidate.hive_route_admission=None;candidate.hive_route_latch=None;
+        }
         candidate.world.bump_authority_revision().map_err(|error| format!("E_WORLD_REVISION: {error:?}"))?;
         candidate.pending_entry = None;
         candidate.paused = remain_paused || candidate.entry_pause_requested;
@@ -3478,6 +4175,7 @@ impl FormalRuntime {
         candidate.stepper = FixedStepClock::new(candidate.stepper.config);
         candidate.latest_input_received_at = Instant::now();
         let scene = self.scene_runtime.lock().map_err(|_| "E_SCENE_RUNTIME_LOCK_POISONED")?;
+        update_dense_exploration(&mut candidate, scene.as_ref())?;
         *state = candidate;
         Ok(project_scene_view(&state, scene.as_ref()))
     }
@@ -3512,6 +4210,21 @@ impl FormalRuntime {
 
     fn set_paused_in_context(&self, paused: bool, context: Option<&SessionContext>, sequence: Option<u64>) -> Result<WorldView, String> {
         let mut state = self.state.lock().map_err(|_| "E_RUNTIME_LOCK_POISONED")?;
+        let cancel_source=state.pending_exit.as_ref().is_some_and(|stage| paused && context.is_some_and(|c|c.world_id==stage.base_world && c.scene_id==stage.base_scene_id && c.world_epoch==stage.base_revision.world_epoch));
+        if cancel_source {
+            let stage=state.pending_exit.as_ref().expect("checked pending Exit");
+            if state.world.revision!=stage.base_revision || sequence.is_none_or(|n|n==0 || n>build_ui::MAX_SAFE_REVISION || n<=stage.candidate.last_lifecycle_sequence) {return Err("E_LIFECYCLE_STALE_COMMAND".into());}
+        }
+        if !cancel_source {
+          if let Some(stage)=state.pending_exit.as_mut() {
+            if !paused {return Err("E_SCENE_ENTRY_NOT_READY".into());}
+            if context.is_some_and(|c|c.world_id!=stage.token.world_id || c.scene_id!=stage.token.scene_id || c.world_epoch!=stage.token.world_epoch) {return Err("E_LIFECYCLE_STALE_CONTEXT".into());}
+            if sequence.is_some_and(|n|n==0 || n>build_ui::MAX_SAFE_REVISION || n<=stage.candidate.last_lifecycle_sequence) {return Err("E_LIFECYCLE_STALE_COMMAND".into());}
+            if let Some(n)=sequence {stage.candidate.last_lifecycle_sequence=n;}
+            stage.candidate.entry_pause_requested=true;
+            return Ok(Self::pending_exit_view(stage));
+          }
+        }
         if context.is_some_and(|context| context.world_id != state.world.world_id
             || context.scene_id != state.world.scene_id
             || context.world_epoch != state.world.revision.world_epoch) {
@@ -3523,6 +4236,17 @@ impl FormalRuntime {
         }
         if state.world.player_hp == 0 {
             if !paused { return Err("E_RUNTIME_DEAD".into()); }
+            if cancel_source {
+                let mut candidate=state.clone();
+                candidate.pending_exit=None;
+                candidate.beacon_exit_admission=None;
+                candidate.hive_route_admission=None;
+                candidate.paused=true;
+                candidate.last_lifecycle_sequence=sequence.expect("validated cancellation sequence");
+                let scene=self.scene_runtime.lock().map_err(|_|"E_SCENE_RUNTIME_LOCK_POISONED")?;
+                *state=candidate;
+                return Ok(project_scene_view(&state,scene.as_ref()));
+            }
             return self.project_locked_scene_view(&state);
         }
         if !paused && state.pending_entry.is_some() {
@@ -3535,8 +4259,16 @@ impl FormalRuntime {
             || state.world.player.velocity_mps != Vec3::zero()
             || !state.pending_combat.is_empty() || held_guard;
         let mut candidate = state.clone();
+        if cancel_source {candidate.pending_exit=None;}
         if let Some(sequence) = sequence { candidate.last_lifecycle_sequence = sequence; }
-        if paused { candidate.baizhi.revoke(); }
+        if paused {
+            candidate.baizhi.revoke();candidate.beacon_exit_admission=None;candidate.hive_route_admission=None;
+            // Invalidate any preview acknowledgment that was still in flight
+            // when this pair was paused or disconnected.
+            if candidate.pending_entry.is_none() && ((candidate.world.world_id=="grey_hive" && ["gh_beacon","gh_exit"].contains(&candidate.world.scene_id.as_str())) || (!state.paused && hive_route_preview_scene(&candidate.world.world_id,&candidate.world.scene_id))) {
+                candidate.entry_generation=candidate.entry_generation.checked_add(1).filter(|n|*n<=build_ui::MAX_SAFE_REVISION).ok_or("E_SCENE_ENTRY_GENERATION_EXHAUSTED")?;
+            }
+        }
         if !paused { candidate.enhancement_terminal = None; }
         else if context.is_some() && sequence.is_some() && !state.paused {
             if let Some(ticket) = candidate.enhancement_terminal.as_mut() {
@@ -3569,6 +4301,28 @@ impl FormalRuntime {
             }
         }
         let scene = self.scene_runtime.lock().map_err(|_| "E_SCENE_RUNTIME_LOCK_POISONED")?;
+        // Separate read-only witness: the original successful step is never
+        // re-signed as a fresh contact by a pause or resume.
+        candidate.mhcw_paused_history=None;
+        if paused {
+            if let Some(active)=scene.as_ref() {
+                if active.world_epoch==state.world.revision.world_epoch && candidate.world.server_time_ms==state.world.server_time_ms {
+                    if let Some(contact)=mhcw_history_contact(&state,active.current_scene()).cloned() {
+                        let mut released=contact.body.clone();released.velocity_mps=Vec3::zero();
+                        let support=candidate.kcc.support_rider_view(&candidate.world.player,candidate.world.server_time_ms,false).ok();
+                        let valid_support=support.as_ref().is_some_and(|r|match contact.layer {
+                            "ground_y0"=>r.mode==crate::moving_support::SupportRiderMode::Floor && r.support_id.is_none(),
+                            "gear_static_decks_y2"=>r.mode==crate::moving_support::SupportRiderMode::Surface
+                                && r.support_id.as_deref().is_some_and(|id|contact.region.rsplit(':').next()==Some(id)),
+                            _=>false,
+                        });
+                        if released==candidate.world.player && valid_support {
+                            candidate.mhcw_paused_history=Some(MhcwPausedHistory{original:contact,pause_revision:candidate.world.revision,paused_body:candidate.world.player.clone()});
+                        }
+                    }
+                }
+            }
+        }
         if (paused && context.is_some()) || (state.paused && !paused) {
             if let Some(scene) = scene.as_ref() {
                 // A new contextual hold refreshes the current phase before the
@@ -3587,6 +4341,7 @@ impl FormalRuntime {
             .state
             .lock()
             .map_err(|_| "E_RUNTIME_LOCK_POISONED".to_string())?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         let mut scene = self
             .scene_runtime
             .lock()
@@ -3686,11 +4441,11 @@ fn simulation_owner_loop(
             break;
         }
         if let Ok(mut state) = state.lock() {
-            if !state.paused && state.world.player_hp > 0 && state.last_owner_error.is_none() {
+            if state.pending_exit.is_none() && !state.paused && state.world.player_hp > 0 && state.last_owner_error.is_none() {
                 let backup = state.clone();
                 let scene_guard = scene_runtime.lock();
                 let result = match scene_guard {
-                    Ok(scene) => advance_owner_step_with_scene(&mut state, scene.as_ref()),
+                    Ok(mut scene) => advance_owner_step_with_pair_crossing(&mut state, &mut scene),
                     Err(_) => Err("E_SCENE_RUNTIME_LOCK_POISONED".into()),
                 };
                 if let Err(error) = result {
@@ -3704,6 +4459,558 @@ fn simulation_owner_loop(
             deadline = Instant::now() + interval;
         }
     }
+}
+
+// This narrowly selected pair shares a real full-rectangle floor and matched opening.
+// Any failure leaves the ordinary single-scene movement/transition behavior intact.
+fn prepared_shaft_neighbor(state:&RuntimeState,shaft:&crate::scene_runtime::SceneDefinition,
+    events:&std::collections::BTreeSet<String>)->Result<RuntimeState,String> {
+    if state.world.world_id!="grey_hive" || !["gh_gate_a","gh_lockdown"].contains(&state.world.scene_id.as_str())
+        || !shaft_lift::source_support_valid(shaft) {return Err("E_SHAFT_PREVIEW_CONTEXT".into());}
+    let mut preview=state.clone();
+    let p=state.world.player.position_m;
+    let mapped=if state.world.scene_id=="gh_gate_a" {Vec3::new(p.x_m-20.0,p.y_m,p.z_m+1.0)}
+        else {Vec3::new(p.x_m+24.0,p.y_m,p.z_m)}.map_err(|_|"E_SHAFT_PREVIEW_POSITION")?;
+    let mut world=WorldStateV3::new("grey_hive",state.world.revision.world_epoch,mapped)
+        .map_err(|_|"E_SHAFT_PREVIEW_WORLD")?;
+    world.revision=state.world.revision;
+    world.server_time_ms=state.world.server_time_ms;
+    world.scene_id=shaft.scene_id.clone();
+    world.player=state.world.player.clone();world.player.position_m=mapped;
+    world.generic_actors=spawn_generic_actors(shaft)?;
+    world.sentinels=spawn_authored_sentinels(shaft)?;
+    (preview.shaft_owner,preview.shaft_deferred)=shaft_reentry(shaft,&world,events,
+        &mut preview.shaft_inactive_history,true)?;
+    preview.world=world;
+    Ok(preview)
+}
+
+struct PreparedShaftSeam {
+    union:StaticKccWorld,
+    gate:bool,
+    target_scene_id:String,
+    target_sha:String,
+    shaft_deferred:Option<bool>,
+}
+
+fn prepare_gate_shaft_upper(state:&RuntimeState,active:&SceneRuntime)->Option<PreparedShaftSeam> {
+    let current=active.current_scene();
+    let neighbor=active.gate_shaft_upper_neighbor()?;
+    let gate=current.scene_id=="gh_gate_a";
+    let position=state.world.player.position_m;
+    if current.world_id!="grey_hive" || state.world.world_id!=current.world_id
+        || state.world.scene_id!=current.scene_id || state.world.player_hp==0
+        || active.world_epoch!=state.world.revision.world_epoch || neighbor.verified_source_sha256.len()!=64
+        || state.world.combat_state.active_traversal.is_some() || !state.world.player.grounded || position.y_m!=0.0
+        || (gate && position.x_m<10.0) || (!gate && position.x_m>12.0)
+        || (!gate && state.shaft_owner.as_ref().is_some_and(|o|o.clock.world_ms()!=state.world.server_time_ms))
+        || state.shaft_owner.as_ref().is_some_and(|o|o.surface_contact(position,state.world.player.radius_m)) {return None;}
+    let id=if gate {"gh_gate_a_to_shaft"} else {"gh_shaft_return_to_gate_a"};
+    let matching:Vec<_>=current.transitions.iter().filter(|t|t.id==id && t.to_scene_id==neighbor.scene_id
+        && t.requires_event.as_deref()==Some("hive_power")).collect();
+    let events=completed_world_events(state,"grey_hive");
+    if matching.len()!=1 || !events.contains("hive_power") {return None;}
+    let own=scene_kcc_for_state(current,&events,state).ok()?;
+    let (other,deferred)=if gate {
+        let preview=prepared_shaft_neighbor(state,neighbor,&events).ok()?;
+        (scene_kcc_for_state(neighbor,&events,&preview).ok()?,Some(preview.shaft_deferred))
+    } else {
+        let mut preview=state.clone();
+        preview.world.scene_id=neighbor.scene_id.clone();
+        preview.world.player.position_m=Vec3::new(position.x_m+20.0,position.y_m,position.z_m-1.0).ok()?;
+        preview.shaft_owner=None;preview.shaft_deferred=false;
+        (scene_kcc_for_state(neighbor,&events,&preview).ok()?,Some(state.shaft_deferred))
+    };
+    let dt=(state.stepper.config.dt_s()*1000.0).round() as u64;
+    let next=state.world.server_time_ms.checked_add(dt)?;
+    let union=own.join_gate_shaft_upper(&other,gate,state.world.server_time_ms,next).ok()?;
+    if !union.can_player_occupy(position,state.world.player.radius_m) {return None;}
+    Some(PreparedShaftSeam{union,gate,target_scene_id:neighbor.scene_id.clone(),
+        target_sha:neighbor.verified_source_sha256.clone(),shaft_deferred:deferred})
+}
+
+fn advance_gate_shaft_upper(state:&mut RuntimeState,scene:&mut Option<SceneRuntime>)->Option<Result<(),String>> {
+    if state.paused || state.pending_entry.is_some() {return None;}
+    let prepared=prepare_gate_shaft_upper(state,scene.as_ref()?)?;
+    let gate=prepared.gate;
+    let (id,seam)=if gate {("gh_gate_a_to_shaft",20.0)} else {("gh_shaft_return_to_gate_a",0.0)};
+    let position=state.world.player.position_m;
+    let backup=state.clone();
+    state.kcc=prepared.union;
+    if let Err(error)=advance_owner_step_with_scene(state,scene.as_ref()) {*state=backup;return Some(Err(error));}
+    let after=state.world.player.position_m;
+    let crossed=if gate {position.x_m<=seam && after.x_m>seam} else {position.x_m>=seam && after.x_m<seam};
+    if !crossed {return Some(Ok(()));}
+    let (z0,z1)=if gate {(6.0,8.0)} else {(7.0,9.0)};
+    if position.z_m<z0 || position.z_m>z1 || after.z_m<z0 || after.z_m>z1
+        || position.y_m!=0.0 || after.y_m!=0.0 {
+        *state=backup;
+        return Some(advance_owner_step_with_scene(state,scene.as_ref()));
+    }
+    let mapped=if gate {Vec3::new(after.x_m-20.0,after.y_m,after.z_m+1.0)}
+        else {Vec3::new(after.x_m+20.0,after.y_m,after.z_m-1.0)};
+    let Ok(mapped)=mapped else {*state=backup;return Some(Err("E_SEAM_POSITION".into()));};
+    let epoch=state.world.revision.world_epoch;
+    let request=format!("shaft-seam-{}-{}",epoch,state.world.server_time_ms);
+    let result=FormalRuntime::transition_scene_locked(state,scene,id,&request,epoch,Some((position,mapped))).map(|_|());
+    if result.is_err() {*state=backup;}
+    Some(result)
+}
+
+struct PreparedDeconSeam {union:StaticKccWorld,gate:bool,target_scene_id:String,target_sha:String}
+
+// Pair-local preparation is private: it does not expose target actors or grant
+// a crossing.  A client acknowledgment is required before this can own motion.
+struct PreparedBeaconExitSeam {union:StaticKccWorld,beacon:bool,target_scene_id:String,target_sha:String}
+
+struct PreparedHiveRouteSeam {
+    union:StaticKccWorld, east:bool, target_scene_id:String, target_sha:String,
+    width:f32, lo:f32, hi:f32, target_standalone:StaticKccWorld,
+}
+
+/// Prepare only a physical union and selected target identity. This function
+/// grants no visibility, actor information or authority to cross the seam.
+fn prepare_hive_route(state:&RuntimeState,active:&SceneRuntime)->Option<PreparedHiveRouteSeam> {
+    let current=active.current_scene();let p=state.world.player.position_m;
+    let shore=current.world_id=="mist_harbor";
+    let early_cw=current.world_id=="clockworks";
+    if !hive_route_preview_scene(&current.world_id,&current.scene_id) || state.world.world_id!=current.world_id
+        || state.world.scene_id!=current.scene_id || active.world_epoch!=state.world.revision.world_epoch
+        || state.world.player_hp==0 || !state.world.player.grounded || p.y_m!=0.0
+        || state.world.combat_state.active_traversal.is_some() {return None;}
+    let width=if ["gh_entry_maintenance","gh_power_room"].contains(&current.scene_id.as_str()) {20.0} else {24.0};
+    let depth=if width==20.0 {14.0} else {16.0};
+    let east=p.x_m>=width/2.0;
+    let neighbor=if shore {active.mh_shore_neighbor(east)?} else if early_cw {active.cw_early_neighbor(east)?} else {active.hive_route_neighbor(east)?};
+    if neighbor.verified_source_sha256.len()!=64 {return None;}
+    let events=completed_world_events(state,&current.world_id);
+    if shore && !active.mh_shore_connection_verified(&neighbor.scene_id,&events,state.world_persistent_v1.mist_harbor.warden_defeated) || early_cw && !active.cw_early_connection_verified(&neighbor.scene_id,&events,state.world_persistent_v1.clockworks.forged_guard_elite_first_kill) {return None;}
+    if ((current.scene_id=="gh_lockdown" && neighbor.scene_id=="gh_bio_isolation")
+        || (current.scene_id=="gh_bio_isolation" && neighbor.scene_id=="gh_gate_b"))
+        && !events.contains("hive_lockdown") {return None;}
+    if current.scene_id=="gh_sentinel_arena" && neighbor.scene_id=="gh_beacon"
+        && !state.world_persistent_v1.grey_hive.sentinel_first_kill {return None;}
+    let offset=if east {width} else {-width};
+    let mapped=Vec3::new(p.x_m-offset,p.y_m,p.z_m).ok()?;
+    let mut target=if shore {active.mh_shore_candidate(&neighbor.scene_id)?} else if early_cw {active.cw_early_candidate(&neighbor.scene_id)?} else {active.hive_route_candidate(&neighbor.scene_id)?};
+    let mut world=WorldStateV3::new(&current.world_id,state.world.revision.world_epoch,mapped).ok()?;
+    world.revision=state.world.revision;world.server_time_ms=state.world.server_time_ms;
+    world.scene_id=neighbor.scene_id.clone();world.player=state.world.player.clone();world.player.position_m=mapped;
+    world.generic_actors=spawn_generic_actors(neighbor).ok()?;
+    warden_encounter::prepare_world(&mut world,neighbor,state.world_persistent_v1.mist_harbor.warden_defeated).ok()?;
+    world.sentinels=spawn_authored_sentinels(neighbor).ok()?;
+    if neighbor.scene_id=="gh_lockdown" && lockdown_requires_legacy(&target,&world).ok()? {target.select_lockdown_legacy().ok()?;}
+    if ["gh_bio_isolation","gh_deep_decon","gh_beacon"].contains(&neighbor.scene_id.as_str())
+        && utility_requires_legacy(&target,&world,&events,true).ok()? {target.select_utility_legacy().ok()?;}
+    let selected=target.current_scene();let mut preview=state.clone();preview.world=world;
+    let own=scene_kcc_for_state(current,&events,state).ok()?;
+    let other=scene_kcc_for_state(selected,&events,&preview).ok()?;
+    if !preview.world.actors_have_stable_support(&other)
+        || preview.world.generic_actors.iter().filter(|a|a.hp>0).any(|a|!a.validate() || !other.can_occupy(a.position_m,a.body_radius_m())) {return None;}
+    let gear_pair=early_cw && ((current.scene_id=="cw_boiler_chamber" && neighbor.scene_id=="cw_gear_shaft") || (current.scene_id=="cw_gear_shaft" && neighbor.scene_id=="cw_boiler_chamber"));
+    let arena_ingress=early_cw && neighbor.scene_id=="cw_forged_guard_arena" && !state.world_persistent_v1.clockworks.forged_guard_elite_first_kill;
+    let union=if shore {own.join_mh_shore(&other,offset).ok()?}
+        else if gear_pair {
+            let rider=own.support_rider_view(&state.world.player,state.world.server_time_ms,false).ok()?;
+            if rider.mode!=crate::moving_support::SupportRiderMode::Floor || rider.support_id.is_some() {return None;}
+            own.join_cw_gear_ground(&other,offset,current.scene_id=="cw_gear_shaft").ok()?
+        } else if arena_ingress {
+            let (id,poly)=if east {("cw_arena_shutter_west_blocker",vec![[0.5,6.0],[1.0,6.0],[1.0,9.5],[0.5,9.5]])}
+                else {("cw_arena_shutter_east_blocker",vec![[23.0,6.0],[23.5,6.0],[23.5,9.5],[23.0,9.5]])};
+            if selected.collision.iter().filter(|c|c.id==id && c.polygon==poly && c.requires_actor_first_kill.as_deref()==Some("cw_forged_guard_elite") && c.requires_event.is_none()).count()!=1 {return None;}
+            own.join_cw_later_ingress(&other,offset,east).ok()?
+        } else if early_cw {own.join_cw_early(&other,offset).ok()?}
+        else {own.join_hive_route(&other,offset,width,depth).ok()?};
+    if !union.can_player_occupy(p,state.world.player.radius_m) {return None;}
+    let (lo,hi)=if shore || early_cw {(6.0,9.5)} else if width==20.0 {(5.5,8.5)} else {(6.5,9.5)};
+    Some(PreparedHiveRouteSeam{union,east,target_scene_id:neighbor.scene_id.clone(),target_sha:selected.verified_source_sha256.clone(),width,lo,hi,target_standalone:other})
+}
+
+fn hive_route_admission_matches(state:&RuntimeState,active:&SceneRuntime,prepared:&PreparedHiveRouteSeam)->bool {
+    state.hive_route_admission.as_ref().is_some_and(|a|a.source_scene==state.world.scene_id
+        && a.source_sha==active.current_scene().verified_source_sha256 && a.epoch==state.world.revision.world_epoch
+        && a.target_scene==prepared.target_scene_id && a.target_sha==prepared.target_sha
+        && a.events==completed_world_events(state,&state.world.world_id)
+        && a.sentinel_first_kill==state.world_persistent_v1.grey_hive.sentinel_first_kill
+        && a.elite_first_kill==state.world_persistent_v1.clockworks.forged_guard_elite_first_kill)
+}
+fn hive_route_latch(state:&RuntimeState,active:&SceneRuntime,prepared:&PreparedHiveRouteSeam)->HiveRouteLatch {
+    HiveRouteLatch{source_scene:state.world.scene_id.clone(),source_sha:active.current_scene().verified_source_sha256.clone(),
+        target_scene:prepared.target_scene_id.clone(),target_sha:prepared.target_sha.clone(),epoch:state.world.revision.world_epoch,
+        events:completed_world_events(state,&state.world.world_id),sentinel_first_kill:state.world_persistent_v1.grey_hive.sentinel_first_kill,elite_first_kill:state.world_persistent_v1.clockworks.forged_guard_elite_first_kill}
+}
+
+fn prepare_beacon_exit(state:&RuntimeState,active:&SceneRuntime,allow_airborne:bool)->Option<PreparedBeaconExitSeam> {
+    let current=active.current_scene();let neighbor=active.beacon_exit_neighbor()?;
+    let beacon=current.scene_id=="gh_beacon";let p=state.world.player.position_m;
+    if current.world_id!="grey_hive" || state.world.world_id!=current.world_id || state.world.scene_id!=current.scene_id
+        || active.world_epoch!=state.world.revision.world_epoch || state.world.player_hp==0
+        || (!allow_airborne && (!state.world.player.grounded || p.y_m!=0.0)) || (allow_airborne && !(0.0..=3.0).contains(&p.y_m))
+        || state.world.combat_state.active_traversal.is_some() || neighbor.verified_source_sha256.len()!=64
+        || (beacon && p.x_m<12.0) || (!beacon && p.x_m>12.0) {return None;}
+    let (id,target_id)=if beacon {("gh_beacon_to_exit","gh_exit")} else {("gh_exit_to_beacon","gh_beacon")};
+    let (reverse_id,source_id)=if beacon {("gh_exit_to_beacon","gh_beacon")} else {("gh_beacon_to_exit","gh_exit")};
+    if current.transitions.iter().filter(|t|t.id==id && t.to_scene_id==target_id && t.requires_event.is_none()).count()!=1
+        || neighbor.transitions.iter().filter(|t|t.id==reverse_id && t.to_scene_id==source_id && t.requires_event.is_none()).count()!=1 {return None;}
+    let events=completed_world_events(state,"grey_hive");
+    let own=scene_kcc_for_state(current,&events,state).ok()?;
+    let mapped=Vec3::new(p.x_m+if beacon {-24.0} else {24.0},p.y_m,p.z_m).ok()?;
+    let mut target=active.clone();target.scene_id=target_id.into();
+    let mut preview=state.clone();
+    let mut world=WorldStateV3::new("grey_hive",state.world.revision.world_epoch,mapped).ok()?;
+    world.revision=state.world.revision;world.server_time_ms=state.world.server_time_ms;
+    world.scene_id=target_id.into();world.player=state.world.player.clone();world.player.position_m=mapped;
+    world.generic_actors=spawn_generic_actors(neighbor).ok()?;
+    warden_encounter::prepare_world(&mut world,neighbor,state.world_persistent_v1.mist_harbor.warden_defeated).ok()?;
+    world.sentinels=spawn_authored_sentinels(neighbor).ok()?;
+    if utility_requires_legacy(&target,&world,&events,true).ok()? {target.select_utility_legacy().ok()?;}
+    let selected=target.current_scene();preview.world=world;
+    let other=scene_kcc_for_state(selected,&events,&preview).ok()?;
+    if !preview.world.actors_have_stable_support(&other)
+        || preview.world.generic_actors.iter().filter(|a|a.hp>0).any(|a|!a.validate() || !other.can_occupy(a.position_m,a.body_radius_m())) {return None;}
+    let union=own.join_beacon_exit(&other,if beacon {24.0} else {-24.0}).ok()?;
+    if !union.can_player_occupy(p,state.world.player.radius_m) {return None;}
+    Some(PreparedBeaconExitSeam{union,beacon,target_scene_id:target_id.into(),target_sha:selected.verified_source_sha256.clone()})
+}
+
+fn beacon_exit_admission_matches(state:&RuntimeState,active:&SceneRuntime,prepared:&PreparedBeaconExitSeam)->bool {
+    state.beacon_exit_admission.as_ref().is_some_and(|a|a.source_scene==state.world.scene_id
+        && a.source_sha==active.current_scene().verified_source_sha256 && a.epoch==state.world.revision.world_epoch
+        && a.target_sha==prepared.target_sha && a.events==completed_world_events(state,"grey_hive")
+        && a.beacon==state.world_persistent_v1.grey_hive.beacon)
+}
+
+fn beacon_exit_latch(state:&RuntimeState,active:&SceneRuntime,prepared:&PreparedBeaconExitSeam)->BeaconExitLatch {
+    BeaconExitLatch{source_scene:state.world.scene_id.clone(),source_sha:active.current_scene().verified_source_sha256.clone(),target_scene:prepared.target_scene_id.clone(),target_sha:prepared.target_sha.clone(),epoch:state.world.revision.world_epoch,events:completed_world_events(state,"grey_hive"),beacon:state.world_persistent_v1.grey_hive.beacon.clone()}
+}
+
+fn prepare_gate_decon(state:&RuntimeState,active:&SceneRuntime)->Option<PreparedDeconSeam> {
+    let current=active.current_scene();let neighbor=active.gate_decon_neighbor()?;
+    let gate=current.scene_id=="gh_gate_b";let p=state.world.player.position_m;
+    if current.world_id!="grey_hive" || state.world.world_id!=current.world_id || state.world.scene_id!=current.scene_id
+        || active.world_epoch!=state.world.revision.world_epoch || state.world.player_hp==0 || !state.world.player.grounded
+        || p.y_m!=0.0 || state.world.combat_state.active_traversal.is_some() || neighbor.verified_source_sha256.len()!=64
+        || (gate && p.x_m<12.0) || (!gate && p.x_m>12.0) {return None;}
+    let events=completed_world_events(state,"grey_hive");if !events.contains("hive_lockdown") {return None;}
+    let gate_scene=if gate {current} else {neighbor};
+    if gate_scene.transitions.iter().filter(|t|t.id=="gh_gate_b_to_deep_decon" && t.to_scene_id=="gh_deep_decon"
+        && t.requires_event.as_deref()==Some("hive_lockdown")
+        && t.polygon==[[22.0,7.0],[24.0,7.0],[24.0,9.0],[22.0,9.0]]).count()!=1 {return None;}
+    let own=scene_kcc_for_state(current,&events,state).ok()?;
+    let mut preview=state.clone();
+    let mapped=Vec3::new(p.x_m+if gate {-24.0} else {24.0},p.y_m,p.z_m).ok()?;
+    let mut target_scene=active.clone();target_scene.scene_id=neighbor.scene_id.clone();
+    if gate {
+        let mut world=WorldStateV3::new("grey_hive",state.world.revision.world_epoch,mapped).ok()?;
+        world.revision=state.world.revision;world.server_time_ms=state.world.server_time_ms;
+        world.scene_id=neighbor.scene_id.clone();world.player=state.world.player.clone();world.player.position_m=mapped;
+        world.generic_actors=spawn_generic_actors(neighbor).ok()?;
+        world.sentinels=spawn_authored_sentinels(neighbor).ok()?;
+        if utility_requires_legacy(&target_scene,&world,&events,true).ok()? {target_scene.select_utility_legacy().ok()?;}
+        preview.world=world;
+    } else {
+        preview.world.scene_id=neighbor.scene_id.clone();preview.world.player.position_m=mapped;
+    }
+    let selected=if gate {target_scene.current_scene()} else {neighbor};
+    let other=scene_kcc_for_state(selected,&events,&preview).ok()?;
+    if gate && (!preview.world.actors_have_stable_support(&other)
+        || preview.world.generic_actors.iter().filter(|a|a.hp>0).any(|a|!a.validate() || !other.can_occupy(a.position_m,a.body_radius_m()))) {return None;}
+    let union=own.join_gate_decon(&other,if gate {24.0} else {-24.0}).ok()?;
+    if !union.can_player_occupy(p,state.world.player.radius_m) {return None;}
+    Some(PreparedDeconSeam{union,gate,target_scene_id:neighbor.scene_id.clone(),target_sha:selected.verified_source_sha256.clone()})
+}
+
+fn hold_beacon_exit(state:&mut RuntimeState,active:&SceneRuntime,beacon:bool)->Result<(),String> {
+    let saved=state.latest_sample.move_x;
+    state.latest_sample.move_x=if beacon {saved.min(0.0)} else {saved.max(0.0)};
+    let result=advance_owner_step_with_scene(state,Some(active));
+    state.latest_sample.move_x=saved;result
+}
+
+fn hold_hive_route(state:&mut RuntimeState,active:&SceneRuntime,east:bool)->Result<(),String> {
+    let saved=state.latest_sample.move_x;
+    state.latest_sample.move_x=if east {saved.min(0.0)} else {saved.max(0.0)};
+    let result=advance_owner_step_with_scene(state,Some(active));
+    state.latest_sample.move_x=saved;result
+}
+fn advance_hive_route(state:&mut RuntimeState,scene:&mut Option<SceneRuntime>)->Option<Result<(),String>> {
+    if state.paused || state.pending_entry.is_some() || state.pending_exit.is_some() {return None;}
+    let prepared=prepare_hive_route(state,scene.as_ref()?)?;
+    if !hive_route_admission_matches(state,scene.as_ref()?,&prepared) {return None;}
+    let p=state.world.player.position_m;let backup=state.clone();
+    state.hive_route_latch=Some(hive_route_latch(state,scene.as_ref()?,&prepared));
+    state.kcc=prepared.union.clone();
+    if let Err(error)=advance_owner_step_with_scene(state,scene.as_ref()) {*state=backup;return Some(Err(error));}
+    let after=state.world.player.position_m;
+    let crossed=if ["mist_harbor","clockworks"].contains(&state.world.world_id.as_str()) {
+        let mapped_x=after.x_m+if prepared.east {-prepared.width} else {prepared.width};
+        let on_target_side=if prepared.east {after.x_m>prepared.width} else {after.x_m<0.0};
+        on_target_side && Vec3::new(mapped_x,after.y_m,after.z_m).ok().is_some_and(|mapped|prepared.target_standalone.can_player_occupy(mapped,state.world.player.radius_m))
+    } else if prepared.east {p.x_m<=prepared.width && after.x_m>prepared.width} else {p.x_m>=0.0 && after.x_m<0.0};
+    if !crossed {return Some(Ok(()));}
+    let r=state.world.player.radius_m;
+    if !r.is_finite() || r<=0.0 || p.z_m-r<prepared.lo || p.z_m+r>prepared.hi || p.y_m!=0.0 || after.y_m!=0.0 {
+        *state=backup;return Some(hold_hive_route(state,scene.as_ref()?,prepared.east));
+    }
+    let mapped=Vec3::new(after.x_m+if prepared.east {-prepared.width} else {prepared.width},after.y_m,after.z_m);
+    let Ok(mapped)=mapped else {*state=backup;return Some(Err("E_SEAM_POSITION".into()));};
+    let id=format!("hive-route-{}",prepared.target_scene_id);
+    let epoch=state.world.revision.world_epoch;let request=format!("hive-seam-{}-{}",epoch,state.world.server_time_ms);
+    let result=FormalRuntime::transition_scene_locked(state,scene,&id,&request,epoch,Some((p,mapped))).map(|_|());
+    if result.is_err() {*state=backup;return Some(hold_hive_route(state,scene.as_ref()?,prepared.east));}
+    Some(result)
+}
+
+fn advance_beacon_exit(state:&mut RuntimeState,scene:&mut Option<SceneRuntime>)->Option<Result<(),String>> {
+    if state.paused || state.pending_entry.is_some() || state.pending_exit.is_some() {return None;}
+    let prepared=prepare_beacon_exit(state,scene.as_ref()?,false)?;
+    if !beacon_exit_admission_matches(state,scene.as_ref()?,&prepared) {return None;}
+    let beacon=prepared.beacon;let p=state.world.player.position_m;let backup=state.clone();
+    state.beacon_exit_latch=Some(beacon_exit_latch(state,scene.as_ref()?,&prepared));state.kcc=prepared.union;
+    if let Err(error)=advance_owner_step_with_scene(state,scene.as_ref()) {*state=backup;return Some(Err(error));}
+    let after=state.world.player.position_m;
+    let crossed=if beacon {p.x_m<=24.0 && after.x_m>24.0} else {p.x_m>=0.0 && after.x_m<0.0};
+    if !crossed {return Some(Ok(()));}
+    // The authoritative KCC resolves X first, then Z.  The crossing is on
+    // the X segment, so its actual Z is the pre-step Z, not an endpoint lerp.
+    let z=p.z_m;let r=state.world.player.radius_m;
+    if !r.is_finite() || r<=0.0 || z-r<6.5 || z+r>9.5 || p.y_m!=0.0 || after.y_m!=0.0 {
+        *state=backup;return Some(hold_beacon_exit(state,scene.as_ref()?,beacon));
+    }
+    let mapped=Vec3::new(after.x_m+if beacon {-24.0} else {24.0},after.y_m,after.z_m);
+    let Ok(mapped)=mapped else {*state=backup;return Some(Err("E_SEAM_POSITION".into()));};
+    let id=if beacon {"gh_beacon_to_exit"} else {"gh_exit_to_beacon"};
+    let epoch=state.world.revision.world_epoch;let request=format!("beacon-exit-seam-{}-{}",epoch,state.world.server_time_ms);
+    let result=FormalRuntime::transition_scene_locked(state,scene,id,&request,epoch,Some((p,mapped))).map(|_|());
+    if result.is_err() {*state=backup;return Some(hold_beacon_exit(state,scene.as_ref()?,beacon));}
+    Some(result)
+}
+
+fn hold_decon_seam(state:&mut RuntimeState,active:&SceneRuntime,gate:bool)->Result<(),String> {
+    let saved=state.latest_sample.move_x;
+    state.latest_sample.move_x=if gate {saved.min(0.0)} else {saved.max(0.0)};
+    let result=advance_owner_step_with_scene(state,Some(active));
+    state.latest_sample.move_x=saved;result
+}
+
+fn advance_gate_decon(state:&mut RuntimeState,scene:&mut Option<SceneRuntime>)->Option<Result<(),String>> {
+    if state.paused || state.pending_entry.is_some() {return None;}
+    let prepared=prepare_gate_decon(state,scene.as_ref()?)?;let gate=prepared.gate;
+    let id=if gate {"gh_gate_b_to_deep_decon"} else {"gh_deep_decon_walk_to_gate_b"};
+    let p=state.world.player.position_m;let backup=state.clone();state.kcc=prepared.union;
+    if let Err(error)=advance_owner_step_with_scene(state,scene.as_ref()) {*state=backup;return Some(Err(error));}
+    let after=state.world.player.position_m;
+    let crossed=if gate {p.x_m<=24.0 && after.x_m>24.0} else {p.x_m>=0.0 && after.x_m<0.0};
+    if !crossed {return Some(Ok(()));}
+    if p.z_m<7.0 || p.z_m>9.0 || after.z_m<7.0 || after.z_m>9.0 || p.y_m!=0.0 || after.y_m!=0.0 {
+        *state=backup;return Some(hold_decon_seam(state,scene.as_ref()?,gate));
+    }
+    let mapped=Vec3::new(after.x_m+if gate {-24.0} else {24.0},after.y_m,after.z_m);
+    let Ok(mapped)=mapped else {*state=backup;return Some(Err("E_SEAM_POSITION".into()));};
+    let epoch=state.world.revision.world_epoch;let request=format!("decon-seam-{}-{}",epoch,state.world.server_time_ms);
+    let result=FormalRuntime::transition_scene_locked(state,scene,id,&request,epoch,Some((p,mapped))).map(|_|());
+    if result.is_err() {*state=backup;return Some(hold_decon_seam(state,scene.as_ref()?,gate));}
+    Some(result)
+}
+
+struct PreparedLockdownSeam {union:StaticKccWorld,shaft:bool,target_scene_id:String,target_sha:String,shaft_deferred:bool}
+
+fn prepare_shaft_lockdown(state:&RuntimeState,active:&SceneRuntime)->Option<PreparedLockdownSeam> {
+    let current=active.current_scene();let neighbor=active.shaft_lockdown_neighbor()?;
+    let shaft=current.scene_id=="gh_central_shaft";let p=state.world.player.position_m;
+    if current.world_id!="grey_hive" || state.world.world_id!=current.world_id || state.world.scene_id!=current.scene_id
+        || active.world_epoch!=state.world.revision.world_epoch || state.world.player_hp==0 || !state.world.player.grounded
+        || p.y_m!=0.0 || state.world.combat_state.active_traversal.is_some() || neighbor.verified_source_sha256.len()!=64
+        || (shaft && p.x_m<=12.0) || (!shaft && p.x_m>12.0)
+        || (shaft && state.shaft_inactive_history.is_some())
+        || (!shaft && (state.shaft_owner.is_some() || state.shaft_deferred))
+        || (shaft && state.shaft_owner.as_ref().is_some_and(|o|o.clock.world_ms()!=state.world.server_time_ms || o.surface_contact(p,state.world.player.radius_m))) {return None;}
+    let events=completed_world_events(state,"grey_hive");if !events.contains("hive_power") {return None;}
+    let (shaft_scene,lockdown_scene)=if shaft {(current,neighbor)} else {(neighbor,current)};
+    if !shaft_scene.height_allows("gh_shaft_to_lockdown",0.0) || !lockdown_scene.height_allows("gh_lockdown_return_to_shaft",0.0)
+        || shaft_scene.transitions.iter().filter(|t|t.id=="gh_shaft_to_lockdown" && t.to_scene_id=="gh_lockdown"
+        && t.requires_event.as_deref()==Some("hive_power") && t.polygon==[[22.5,7.0],[24.0,7.0],[24.0,9.0],[22.5,9.0]]).count()!=1
+        || lockdown_scene.transitions.iter().filter(|t|t.id=="gh_lockdown_return_to_shaft" && t.to_scene_id=="gh_central_shaft"
+            && t.requires_event.as_deref()==Some("hive_power") && t.polygon==[[0.0,7.0],[1.5,7.0],[1.5,9.0],[0.0,9.0]]).count()!=1 {return None;}
+    let own=scene_kcc_for_state(current,&events,state).ok()?;
+    let mut target_sha=neighbor.verified_source_sha256.clone();
+    let (other,deferred)=if shaft {
+        let mut preview=state.clone();
+        let mapped=Vec3::new(p.x_m-24.0,p.y_m,p.z_m).ok()?;
+        let mut world=WorldStateV3::new("grey_hive",state.world.revision.world_epoch,mapped).ok()?;
+        world.revision=state.world.revision;world.server_time_ms=state.world.server_time_ms;
+        world.scene_id=neighbor.scene_id.clone();world.player=state.world.player.clone();world.player.position_m=mapped;
+        world.generic_actors=spawn_generic_actors(neighbor).ok()?;
+        world.sentinels=spawn_authored_sentinels(neighbor).ok()?;
+        environmental_hazards::prepared_scene(state,neighbor).ok()?;
+        let mut target=active.clone();
+        target.scene_id="gh_lockdown".into();
+        if lockdown_requires_legacy(&target,&world).ok()? {
+            target.select_lockdown_legacy().ok()?;
+        }
+        let selected=target.current_scene();
+        target_sha=selected.verified_source_sha256.clone();
+        preview.world=world;
+        preview.shaft_owner=None;preview.shaft_deferred=false;
+        let kcc=scene_kcc_for_state(selected,&events,&preview).ok()?;
+        if !preview.world.actors_have_stable_support(&kcc)
+            || preview.world.generic_actors.iter().filter(|a|a.hp>0).any(|a|!a.validate() || !kcc.can_occupy(a.position_m,a.body_radius_m())) {return None;}
+        (kcc,state.shaft_deferred)
+    } else {
+        let preview=prepared_shaft_neighbor(state,neighbor,&events).ok()?;
+        (scene_kcc_for_state(neighbor,&events,&preview).ok()?,preview.shaft_deferred)
+    };
+    let dt=(state.stepper.config.dt_s()*1000.0).round() as u64;
+    let next=state.world.server_time_ms.checked_add(dt)?;
+    let union=own.join_shaft_lockdown_upper(&other,shaft,state.world.server_time_ms,next).ok()?;
+    if !union.can_player_occupy(p,state.world.player.radius_m) {return None;}
+    Some(PreparedLockdownSeam{union,shaft,target_scene_id:neighbor.scene_id.clone(),target_sha,shaft_deferred:deferred})
+}
+
+fn hold_lockdown_seam(state:&mut RuntimeState,active:&SceneRuntime,shaft:bool)->Result<(),String> {
+    if !shaft {
+        let dt=(state.stepper.config.dt_s()*1000.0).round() as u64;
+        let next=state.world.server_time_ms.checked_add(dt).ok_or("E_SHAFT_CLOCK")?;
+        state.kcc.retime_lockdown_shaft(state.world.server_time_ms,next).map_err(|_|"E_SEAM_KCC")?;
+    }
+    let saved=state.latest_sample.move_x;
+    state.latest_sample.move_x=if shaft {saved.min(0.0)} else {saved.max(0.0)};
+    let result=advance_owner_step_with_scene(state,Some(active));state.latest_sample.move_x=saved;result
+}
+
+fn advance_shaft_lockdown(state:&mut RuntimeState,scene:&mut Option<SceneRuntime>)->Option<Result<(),String>> {
+    if state.paused || state.pending_entry.is_some() {return None;}
+    let prepared=prepare_shaft_lockdown(state,scene.as_ref()?)?;let shaft=prepared.shaft;
+    let id=if shaft {"gh_shaft_to_lockdown"} else {"gh_lockdown_return_to_shaft"};
+    let p=state.world.player.position_m;let backup=state.clone();state.kcc=prepared.union;
+    if let Err(error)=advance_owner_step_with_scene(state,scene.as_ref()) {*state=backup;return Some(Err(error));}
+    let after=state.world.player.position_m;
+    let crossed=if shaft {p.x_m<=24.0 && after.x_m>24.0} else {p.x_m>=0.0 && after.x_m<0.0};
+    if !crossed {return Some(Ok(()));}
+    if p.z_m<7.0 || p.z_m>9.0 || after.z_m<7.0 || after.z_m>9.0 || p.y_m!=0.0 || after.y_m!=0.0 {
+        *state=backup;return Some(hold_lockdown_seam(state,scene.as_ref()?,shaft));
+    }
+    let mapped=Vec3::new(after.x_m+if shaft {-24.0} else {24.0},after.y_m,after.z_m);
+    let Ok(mapped)=mapped else {*state=backup;return Some(Err("E_SEAM_POSITION".into()));};
+    let epoch=state.world.revision.world_epoch;let request=format!("lockdown-seam-{}-{}",epoch,state.world.server_time_ms);
+    let result=FormalRuntime::transition_scene_locked(state,scene,id,&request,epoch,Some((p,mapped))).map(|_|());
+    if result.is_err() {*state=backup;return Some(hold_lockdown_seam(state,scene.as_ref()?,shaft));}
+    Some(result)
+}
+
+fn advance_owner_step_with_pair_crossing(state: &mut RuntimeState, scene: &mut Option<SceneRuntime>) -> Result<(), String> {
+    if let Some(result)=advance_hive_route(state,scene) {return result;}
+    if let Some(result)=advance_beacon_exit(state,scene) {return result;}
+    if let Some(result)=advance_shaft_lockdown(state,scene) {return result;}
+    if let Some(result)=advance_gate_decon(state,scene) {return result;}
+    if let Some(result)=advance_gate_shaft_upper(state,scene) {return result;}
+    if state.kcc.is_hive_route_union() {
+        if let Some(active)=scene.as_ref() {
+            let current=active.current_scene();
+            let own=scene_kcc_for_state(current,&completed_world_events(state,&current.world_id),state)?;
+            if !own.can_player_occupy(state.world.player.position_m,state.world.player.radius_m) {
+                let east=state.world.player.position_m.x_m>=if current.scene_id=="gh_entry_maintenance" || current.scene_id=="gh_power_room" {10.0} else {12.0};
+                return hold_hive_route(state,active,east);
+            }
+            state.kcc=own;state.hive_route_admission=None;state.hive_route_latch=None;
+        }
+    }
+    if state.kcc.is_beacon_exit_union() {
+        if let Some(active)=scene.as_ref() {
+            let current=active.current_scene();
+            if current.world_id=="grey_hive" && ["gh_beacon","gh_exit"].contains(&current.scene_id.as_str()) {
+                let own=scene_kcc_for_state(current,&completed_world_events(state,"grey_hive"),state)?;
+                if !own.can_player_occupy(state.world.player.position_m,state.world.player.radius_m) {
+                    return hold_beacon_exit(state,active,current.scene_id=="gh_beacon");
+                }
+                state.kcc=own;state.beacon_exit_admission=None;state.beacon_exit_latch=None;
+            }
+        }
+    }
+    if state.kcc.is_shaft_lockdown_union() {
+        if let Some(active)=scene.as_ref() {
+            let current=active.current_scene();
+            if current.world_id=="grey_hive" && ["gh_central_shaft","gh_lockdown"].contains(&current.scene_id.as_str()) {
+                let own=scene_kcc_for_state(current,&completed_world_events(state,"grey_hive"),state)?;
+                if !own.can_player_occupy(state.world.player.position_m,state.world.player.radius_m) {
+                    return hold_lockdown_seam(state,active,current.scene_id=="gh_central_shaft");
+                }
+                state.kcc=own;
+            }
+        }
+    }
+    if state.kcc.is_gate_decon_union() {
+        if let Some(active)=scene.as_ref() {
+            let current=active.current_scene();
+            if current.world_id=="grey_hive" && ["gh_gate_b","gh_deep_decon"].contains(&current.scene_id.as_str()) {
+                let own=scene_kcc_for_state(current,&completed_world_events(state,"grey_hive"),state)?;
+                if !own.can_player_occupy(state.world.player.position_m,state.world.player.radius_m) {
+                    return hold_decon_seam(state,active,current.scene_id=="gh_gate_b");
+                }
+                state.kcc=own;
+            }
+        }
+    }
+    if state.kcc.is_gate_shaft_upper_union() {
+        if let Some(active)=scene.as_ref() {
+            let current=active.current_scene();
+            if current.world_id=="grey_hive" && ["gh_gate_a","gh_central_shaft"].contains(&current.scene_id.as_str()) {
+                let own=scene_kcc_for_state(current,&completed_world_events(state,"grey_hive"),state)?;
+                if !own.can_player_occupy(state.world.player.position_m,state.world.player.radius_m) {
+                    if current.scene_id=="gh_gate_a" {
+                        let dt=(state.stepper.config.dt_s()*1000.0).round() as u64;
+                        let next=state.world.server_time_ms.checked_add(dt).ok_or("E_SHAFT_CLOCK")?;
+                        state.kcc.retime_unloaded_shaft(state.world.server_time_ms,next).map_err(|_|"E_SEAM_KCC")?;
+                    }
+                    let saved_axis=state.latest_sample.move_x;
+                    state.latest_sample.move_x=if current.scene_id=="gh_gate_a" {saved_axis.min(0.0)} else {saved_axis.max(0.0)};
+                    let result=advance_owner_step_with_scene(state,Some(active));
+                    state.latest_sample.move_x=saved_axis;
+                    return result;
+                }
+                if current.scene_id=="gh_central_shaft" {state.kcc=own;}
+            }
+        }
+    }
+    let pair = scene.as_ref().and_then(|active| {
+        let current = active.current_scene();
+        let neighbor = active.same_floor_neighbor()?;
+        if current.world_id != "grey_hive" || neighbor.world_id != "grey_hive"
+            || state.world.world_id != current.world_id || state.world.scene_id != current.scene_id { return None; }
+        let (offset, id, seam_x) = match current.scene_id.as_str() {
+            "gh_power_room" if neighbor.scene_id == "gh_gate_a" => (20.0, "gh_power_to_gate_a", 20.0),
+            "gh_gate_a" if neighbor.scene_id == "gh_power_room" => (-20.0, "gh_gate_a_return_to_power_room", 0.0),
+            _ => return None,
+        };
+        let matches: Vec<_> = current.transitions.iter().filter(|t| t.id == id && t.to_scene_id == neighbor.scene_id && t.requires_event.is_none()).collect();
+        if matches.len()!=1 { return None; }
+        let events = completed_world_events(state, "grey_hive");
+        let own = scene_kcc_for_state(current,&events,state).ok()?;
+        let other = scene_kcc_for_state(neighbor,&events,state).ok()?;
+        let union = own.join_grey_hive_pair(&other,offset).ok()?;
+        Some((offset,id,seam_x,own,union))
+    });
+    let Some((offset,id,seam_x,own,union)) = pair else {
+        return advance_owner_step_with_scene(state,scene.as_ref());
+    };
+    let backup = state.clone();
+    let before = state.world.player.position_m;
+    state.kcc = union;
+    advance_owner_step_with_scene(state,scene.as_ref())?;
+    let after = state.world.player.position_m;
+    let crossed = if offset>0.0 { before.x_m <= seam_x && after.x_m > seam_x } else { before.x_m >= seam_x && after.x_m < seam_x };
+    if !crossed { return Ok(()); }
+    // Existing authoritative trigger and height checks still run in the shared transaction.
+    if before.z_m < 6.0 || before.z_m > 8.0 || after.z_m < 6.0 || after.z_m > 8.0 || before.y_m != after.y_m || state.world.player_hp == 0 || state.paused {
+        *state = backup;
+        state.kcc = own;
+        return advance_owner_step_with_scene(state,scene.as_ref());
+    }
+    let source = before;
+    let mapped = Vec3::new(after.x_m-offset,after.y_m,after.z_m).map_err(|_| "E_SEAM_POSITION")?;
+    let epoch = state.world.revision.world_epoch;
+    let request = format!("seam-{}-{}",epoch,state.world.server_time_ms);
+    FormalRuntime::transition_scene_locked(state,scene,id,&request,epoch,Some((source,mapped))).map(|_| ())
 }
 
 fn advance_owner_step(state: &mut RuntimeState) -> Result<(), String> {
@@ -3767,16 +5074,38 @@ fn advance_owner_step_with_input_age(
     let intents = std::mem::take(&mut state.pending_combat);
     let regulator_combat_proof = clockworks_core::capture_regulator_combat(state, scene);
     let warden_combat_proof = warden_encounter::capture_combat(state, scene);
-    let output = step_world_held_input(
-        &mut state.world,
-        &state.kcc,
-        CwStepInput {
-            sample: &sample,
-            dt_s,
-            combat: &intents,
-        },
-    )
-    .map_err(|error| format!("E_WORLD_STEP: {error:?}"))?;
+    let output = if let Some(before_owner)=state.shaft_owner.clone() {
+        let definition=scene.ok_or("E_SHAFT_SCENE_MISSING")?.current_scene();
+        let next_ms=state.world.server_time_ms.checked_add((dt_s*1000.0).round() as u64).ok_or("E_SHAFT_CLOCK")?;
+        let before_world=state.world.clone();
+        // First use actual current positions as a conservative stationary
+        // interlock, then check the resulting real swept player/actor paths.
+        let mut stationary=before_world.clone();stationary.server_time_ms=next_ms;
+        let mut provisional=before_owner.clone();
+        provisional.advance_from_worlds(&before_world,&stationary).map_err(|e|format!("E_SHAFT_INTERLOCK: {e}"))?;
+        let simulate=|after:&shaft_lift::ShaftOwner| -> Result<(WorldStateV3,StaticKccWorld,_),String> {
+            let kcc=state.kcc.clone().with_shaft_step(definition,before_owner.clone(),after.clone()).map_err(|_|"E_SHAFT_KCC")?;
+            let mut world=before_world.clone();
+            let output=step_world_held_input(&mut world,&kcc,CwStepInput{sample:&sample,dt_s,combat:&intents})
+                .map_err(|error|format!("E_WORLD_STEP: {error:?}"))?;
+            Ok((world,kcc,output))
+        };
+        let (preview_world,preview_kcc,preview_output)=simulate(&provisional)?;
+        let mut final_owner=before_owner.clone();
+        final_owner.advance_from_worlds(&before_world,&preview_world).map_err(|e|format!("E_SHAFT_INTERLOCK: {e}"))?;
+        let (world,kcc,output)=if final_owner==provisional {(preview_world,preview_kcc,preview_output)} else {
+            let result=simulate(&final_owner)?;
+            let mut checked=before_owner.clone();
+            checked.advance_from_worlds(&before_world,&result.0).map_err(|e|format!("E_SHAFT_INTERLOCK: {e}"))?;
+            if checked!=final_owner {return Err("E_SHAFT_INTERLOCK_UNSTABLE".into());}
+            result
+        };
+        state.world=world;state.kcc=kcc;state.shaft_owner=Some(final_owner);
+        output
+    } else {
+        step_world_held_input(&mut state.world,&state.kcc,CwStepInput{sample:&sample,dt_s,combat:&intents})
+            .map_err(|error|format!("E_WORLD_STEP: {error:?}"))?
+    };
     clockworks_core::record_regulator_combat_defeat(
         state,
         scene,
@@ -4026,6 +5355,28 @@ fn advance_owner_step_with_input_age(
         apply_effects_atomically(&mut state.world, &capability_output.effects)
             .map_err(|error: ContinuousWorldError| format!("E_WORLD_EFFECT: {error:?}"))?;
     }
+    }
+    // Only a completed ordinary KCC result can mint this transient proof.
+    // Any failed owner step is rolled back by the caller together with it.
+    state.world.deferred_shaft_floor_proof=scene.and_then(|active| {
+        if output.ordinary_floor_body.as_ref()!=Some(&state.world.player)
+            || output.revision!=state.world.revision || !deferred_shaft_floor_context_valid(state,active) {return None;}
+        Some(crate::world_v3::DeferredShaftFloorProof {
+            scene_sha:active.current_scene().verified_source_sha256.clone(),revision:state.world.revision,
+            server_time_ms:state.world.server_time_ms,body:state.world.player.clone(),
+        })
+    });
+    update_mhcw_contact(state,scene,output.ordinary_contact_body.as_ref(),output.revision)?;
+    update_dense_exploration(state, scene)?;
+    if output.ordinary_contact_body.as_ref()==Some(&state.world.player) && output.revision==state.world.revision {
+        if let Some(active)=scene {
+            let lift=shaft_region_support_view(state,active.current_scene());
+            if shaft_lower_service::observe(state,active,lift.as_ref().map(|(_,support)|support)) {
+                state.capabilities.set_explored_map(state.world.explored.clone()).map_err(|e|format!("E_CAPABILITY_MAP: {e:?}"))?;
+            }
+            let key=floor_route_region_key(state,active,lift.as_ref());
+            gh_map_archive::observe(state,active,key);
+        }
     }
     state.last_received_seq = sample.seq;
     state.last_client_time_ms = state.last_client_time_ms.max(sample.client_time_ms);
@@ -4301,6 +5652,275 @@ fn emit_authored_signal_ping(
     Ok(())
 }
 
+// ExploredMap is a single-world save container. Carry it only within the same
+// world; do not turn a cross-world transition into invented persistent history.
+// Private, nonserialized proof from an actual committed ordinary KCC step.
+#[cfg(test)]
+pub(crate) fn archive_test_initial_state()->Result<RuntimeState,String>{FormalRuntime::initial_state(1)}
+fn mhcw_history_contact<'a>(state:&'a RuntimeState,d:&crate::scene_runtime::SceneDefinition)->Option<&'a MhcwContact> {
+    if state.pending_entry.is_some() || state.pending_exit.is_some() || state.world.player_hp==0
+        || state.world.combat_state.active_traversal.is_some(){return None;}
+    let c=if state.paused {
+        let proof=state.mhcw_paused_history.as_ref()?;
+        if proof.pause_revision!=state.world.revision || proof.paused_body!=state.world.player
+            || proof.original.revision.world_epoch!=state.world.revision.world_epoch {return None;}
+        &proof.original
+    } else {
+        let c=state.mhcw_contact.as_ref()?;
+        if c.revision!=state.world.revision || c.body!=state.world.player {return None;}c
+    };
+    if c.world_id!=state.world.world_id || c.scene_id!=state.world.scene_id
+        || d.world_id!=c.world_id || d.scene_id!=c.scene_id || d.verified_source_sha256!=c.scene_sha
+        || c.server_time_ms!=state.world.server_time_ms {return None;}
+    mhcw_map_region::group(d,c.layer)?;Some(c)
+}
+fn mhcw_for_definition<'a>(state:&'a RuntimeState,d:&crate::scene_runtime::SceneDefinition)->Option<&'a MhcwContact> {
+    if state.paused {return None;}
+    mhcw_history_contact(state,d)
+}
+fn mhcw_current<'a>(state:&'a RuntimeState,scene:&SceneRuntime)->Option<&'a MhcwContact> {
+    if scene.world_epoch!=state.world.revision.world_epoch {return None;}
+    mhcw_for_definition(state,scene.current_scene())
+}
+// The committed static ground frame may show history without minting a visit.
+// Gear has multiple layers and always requires the existing contact proof.
+fn mhcw_history_group(state:&RuntimeState,d:&crate::scene_runtime::SceneDefinition)->Option<&'static serde_json::Value>{
+    if let Some(contact)=mhcw_history_contact(state,d){return mhcw_map_region::group(d,contact.layer);}
+    if state.pending_entry.is_some() || state.pending_exit.is_some() || state.world.player_hp==0
+        || d.world_id!=state.world.world_id || d.scene_id!=state.world.scene_id || d.scene_id=="cw_gear_shaft" {return None;}
+    mhcw_map_region::group(d,"ground_y0")
+}
+fn update_mhcw_contact(state:&mut RuntimeState,scene:Option<&SceneRuntime>,body:Option<&crate::continuous_kcc::KccBody>,revision:crate::world_v3::WorldRevision)->Result<(),String> {
+    state.mhcw_contact=None;state.mhcw_paused_history=None;
+    let Some(active)=scene else{return Ok(());};let d=active.current_scene();
+    if !["mist_harbor","clockworks"].contains(&d.world_id.as_str()) || state.paused || state.pending_entry.is_some() || state.pending_exit.is_some()
+        || state.world.player_hp==0 || state.world.combat_state.active_traversal.is_some()
+        || d.world_id!=state.world.world_id || d.scene_id!=state.world.scene_id || active.world_epoch!=state.world.revision.world_epoch
+        || revision!=state.world.revision || body!=Some(&state.world.player) {return Ok(());}
+    let Ok(rider)=state.kcc.support_rider_view(&state.world.player,state.world.server_time_ms,false) else{return Ok(());};
+    let (layer,support)=match rider.mode {
+        crate::moving_support::SupportRiderMode::Floor if rider.support_id.is_none() =>("ground_y0",None),
+        crate::moving_support::SupportRiderMode::Surface if d.scene_id=="cw_gear_shaft" && ["cw_gear_upper_dock","cw_gear_furnace_landing"].contains(&rider.support_id.as_deref().unwrap_or("")) =>("gear_static_decks_y2",rider.support_id.as_deref()),
+        _=>return Ok(()),
+    };
+    let Some(g)=mhcw_map_region::group(d,layer) else{return Ok(());};
+    let Some(region)=mhcw_map_region::occupied(d,layer,state.world.player.position_m,None,support) else{return Ok(());};
+    if state.world.explored.world_id!=state.world.world_id{return Ok(());}
+    let Some(rows)=mhcw_map_region::rows(g,&region) else{return Ok(());};
+    for expected in &rows {
+        let existing:Vec<_>=state.world.explored.rooms.iter().filter(|r|r.room_id==expected.room_id).collect();
+        if existing.len()>1 || existing.first().is_some_and(|r|*r!=expected){return Ok(());}
+    }
+    for row in rows {if !state.world.explored.rooms.iter().any(|r|r.room_id==row.room_id){state.world.explored.rooms.push(row);}}
+    state.world.explored.player_position_m=state.world.player.position_m;
+    state.capabilities.set_explored_map(state.world.explored.clone()).map_err(|e|format!("E_CAPABILITY_MAP: {e:?}"))?;
+    // At capacity retain the active row; departure's guarded import reports
+    // capacity instead of dropping it or vetoing the successful movement.
+    let mut persistent=state.world_persistent_v1.clone();
+    if mhcw_map_region::archive_parent(&mut persistent,g,&region).is_ok(){state.world_persistent_v1=persistent;}
+    state.mhcw_contact=Some(MhcwContact{scene_id:d.scene_id.clone(),scene_sha:d.verified_source_sha256.clone(),world_id:d.world_id.clone(),revision:state.world.revision,server_time_ms:state.world.server_time_ms,body:state.world.player.clone(),layer,region});
+    Ok(())
+}
+fn preserve_grey_hive_exploration(prior:&WorldStateV3, next:&mut WorldStateV3) {
+    if prior.world_id==next.world_id && ["mist_harbor","clockworks"].contains(&prior.world_id.as_str()) && prior.explored.world_id==prior.world_id {
+        next.explored=prior.explored.clone();next.explored.player_position_m=next.player.position_m;
+    }
+    if prior.world_id == "grey_hive" && next.world_id == "grey_hive"
+        && prior.explored.world_id == "grey_hive" {
+        next.explored = prior.explored.clone();
+        next.explored.player_position_m = next.player.position_m;
+        next.shaft_upper_map_observation = prior.shaft_upper_map_observation.clone();
+        next.lockdown_map_observation = prior.lockdown_map_observation.clone();
+    }
+}
+
+// One read-only projection of the actual support owner. This does not advance
+// the lift clock and intentionally distinguishes an owner from deferred geometry.
+fn shaft_region_support_view(state:&RuntimeState, definition:&crate::scene_runtime::SceneDefinition)
+    -> Option<(shaft_lift::ShaftLiftView, crate::moving_support::SupportSceneView)> {
+    state.shaft_owner.as_ref()?.views(definition,state.world.revision.world_epoch,
+        state.world.revision.server_tick,state.world.revision.authority_revision,state.world.server_time_ms,
+        &state.world.player,state.world.combat_state.active_traversal.is_some(),
+        state.kcc.is_gate_shaft_upper_union() && completed_world_events(state,"grey_hive").contains("hive_power"),
+        state.kcc.is_shaft_lockdown_union() && completed_world_events(state,"grey_hive").contains("hive_power"))
+}
+
+fn shaft_floor_region_eligible(state:&RuntimeState, scene:&SceneRuntime,
+    support:Option<&crate::moving_support::SupportSceneView>,floor_y:f32) -> bool {
+    let definition=scene.current_scene();
+    let Some(support)=support else{return false;};
+    definition.world_id=="grey_hive" && definition.scene_id=="gh_central_shaft"
+        && state.world.world_id==definition.world_id && state.world.scene_id==definition.scene_id
+        && scene.world_epoch==state.world.revision.world_epoch
+        && support.world_id==definition.world_id && support.scene_id==definition.scene_id
+        && support.world_epoch==scene.world_epoch && support.scene_source_sha256==definition.verified_source_sha256
+        && support.rider.position_m==state.world.player.position_m
+        && shaft_floor_contact_flags(state.shaft_owner.is_some(),state.shaft_deferred,support.rider.mode,
+            state.world.player.position_m.y_m,floor_y,state.world.player.grounded,state.world.combat_state.active_traversal.is_some())
+}
+
+fn shaft_floor_contact_flags(owner:bool,deferred:bool,mode:crate::moving_support::SupportRiderMode,
+    y:f32,floor_y:f32,grounded:bool,traversing:bool)->bool {
+    owner && !deferred && mode==crate::moving_support::SupportRiderMode::Floor
+        && y==floor_y && grounded && !traversing
+}
+
+fn shaft_upper_region_eligible(state:&RuntimeState, scene:&SceneRuntime,
+    support:Option<&crate::moving_support::SupportSceneView>) -> bool {
+    shaft_floor_region_eligible(state,scene,support,0.0)
+}
+
+fn deferred_shaft_floor_context_valid(state:&RuntimeState, scene:&SceneRuntime)->bool {
+    let definition=scene.current_scene();
+    if !deferred_information_lifecycle_ready(state.paused,state.pending_entry.is_some(),state.pending_exit.is_some(),state.last_owner_error.is_some(),state.world.player_hp>0)
+        || !state.shaft_deferred || state.shaft_owner.is_some()
+        || state.world.world_id!="grey_hive" || state.world.scene_id!="gh_central_shaft"
+        || definition.world_id!=state.world.world_id || definition.scene_id!=state.world.scene_id
+        || scene.world_epoch!=state.world.revision.world_epoch
+        || state.world.combat_state.active_traversal.is_some()
+        || !state.world.player.grounded || state.world.player.position_m.y_m!=0.0
+        || state.world.player.velocity_mps.y_m!=0.0
+        || floor_route_info::variant(definition,false,Some(false))!=Some("shaft_deferred") {return false;}
+    let events=completed_world_events(state,"grey_hive");
+    let Ok(own)=scene_kcc_for_state(definition,&events,state) else{return false;};
+    !own.has_support_surfaces()
+        && own.can_player_occupy(state.world.player.position_m,state.world.player.radius_m)
+        && state.kcc.can_player_occupy(state.world.player.position_m,state.world.player.radius_m)
+}
+
+fn deferred_information_lifecycle_ready(paused:bool,entry:bool,exit:bool,error:bool,alive:bool)->bool {
+    !paused && !entry && !exit && !error && alive
+}
+
+fn deferred_shaft_floor_proof_valid(state:&RuntimeState, scene:&SceneRuntime)->bool {
+    let Some(proof)=state.world.deferred_shaft_floor_proof.as_ref() else{return false;};
+    deferred_floor_binding_matches(proof,&state.world,&scene.current_scene().verified_source_sha256)
+        && deferred_shaft_floor_context_valid(state,scene)
+}
+
+fn deferred_floor_binding_matches(proof:&crate::world_v3::DeferredShaftFloorProof, world:&WorldStateV3,sha:&str)->bool {
+    proof.scene_sha==sha && proof.revision==world.revision && proof.server_time_ms==world.server_time_ms
+        && proof.body==world.player
+}
+
+#[cfg(test)]
+fn shaft_upper_floor_flags(mode:crate::moving_support::SupportRiderMode,y:f32,grounded:bool,traversing:bool)->bool {
+    mode==crate::moving_support::SupportRiderMode::Floor && y==0.0 && grounded && !traversing
+}
+
+fn floor_route_region_key(state:&RuntimeState, scene:&SceneRuntime,
+    lift:Option<&(shaft_lift::ShaftLiftView,crate::moving_support::SupportSceneView)>) -> Option<&'static str> {
+    let definition=scene.current_scene();
+    if definition.world_id!=state.world.world_id || definition.scene_id!=state.world.scene_id
+        || scene.world_epoch!=state.world.revision.world_epoch {return None;}
+    if definition.scene_id=="gh_central_shaft"
+        && shaft_floor_region_eligible(state,scene,lift.map(|(_,support)|support),-4.0) {
+        return floor_route_info::lower_variant(definition,lift.is_some_and(|(view,_)|view.lower_gate_open));
+    }
+    if definition.scene_id=="gh_central_shaft" && deferred_shaft_floor_proof_valid(state,scene) {
+        return floor_route_info::variant(definition,false,Some(false));
+    }
+    let shaft=if definition.scene_id=="gh_central_shaft" {
+        shaft_upper_region_eligible(state,scene,lift.map(|(_,support)|support)).then_some(true)
+    } else {None};
+    let open=if definition.scene_id=="gh_central_shaft" {lift.is_some_and(|(view,_)|view.upper_gate_open)}
+        else {completed_world_events(state,"grey_hive").contains("hive_lockdown")};
+    floor_route_info::variant(definition,open,shaft)
+}
+
+fn update_dense_exploration(state:&mut RuntimeState, scene:Option<&SceneRuntime>)->Result<(),String> {
+
+    let mut floor_route_key=None;
+    state.dense_region_previous = scene.and_then(|active| {
+        let definition=active.current_scene();
+        if definition.world_id!=state.world.world_id || definition.scene_id!=state.world.scene_id || active.world_epoch!=state.world.revision.world_epoch {return None;}
+        let previous=state.dense_region_previous.as_ref().and_then(|(id,epoch,region)|
+            (id==&definition.scene_id && *epoch==active.world_epoch).then_some(region.as_str()));
+        let gate_open=completed_world_events(state,"grey_hive").contains("hive_power");
+        let lift=shaft_region_support_view(state,definition);
+        floor_route_key=floor_route_region_key(state,active,lift.as_ref());
+        let region = if let Some(key)=floor_route_key {
+            floor_route_info::occupied(key,state.world.player.position_m,previous)
+        } else if bio_info::admitted(definition) {
+            bio_info::occupied(definition,state.world.player.position_m,previous)
+        } else if beacon_exit_info::admitted(definition) {
+            beacon_exit_info::occupied(definition,state.world.player.position_m,previous,
+                completed_world_events(state,"grey_hive").contains("hive_extraction"))
+        } else if decon_info::admitted(definition) {
+            decon_info::occupied(definition,state.world.player.position_m,previous)
+        } else {
+            dense_service_wing::occupied(definition,state.world.player.position_m,previous,gate_open).map(str::to_owned)
+        };
+        region.map(|region|(definition.scene_id.clone(),active.world_epoch,region))
+    });
+    if state.dense_region_previous.is_none() { return Ok(()); }
+    record_dense_exploration(state,floor_route_key);
+    state.capabilities.set_explored_map(state.world.explored.clone())
+        .map_err(|error| format!("E_CAPABILITY_MAP: {error:?}"))?;
+    Ok(())
+}
+
+// Only a successful authoritative occupied result after a simulation step is a
+// visit. Unknown or malformed historical rows never become trusted regions.
+fn record_dense_exploration(state:&mut RuntimeState, floor_route_key:Option<&str>) {
+    let Some((scene_id,epoch,id)) = state.dense_region_previous.as_ref() else { return; };
+    if state.world.world_id != "grey_hive" || state.world.explored.world_id != "grey_hive"
+        || state.world.scene_id != *scene_id || state.world.revision.world_epoch != *epoch { return; }
+    if let Some(key)=floor_route_key {
+        let Some(rows)=floor_route_info::rows(key,id) else{return;};
+        let rooms=&mut state.world.explored.rooms;
+        if !floor_route_info::stored_regions(key,rooms).iter().any(|known|known==id) {
+            for expected in rows {rooms.retain(|room|room.room_id!=expected.room_id);rooms.push(expected);}
+        }
+        // This occurs only after the actual qualified occupied parent was
+        // recorded, including revisits where its rows were already complete.
+        if let Some(observed)=crate::world_v3::ObservedMapVariant::from_floor_route_key(key) {
+            if key.starts_with("shaft_active_") {state.world.shaft_upper_map_observation=Some(observed);}
+            else if key.starts_with("lockdown_") {state.world.lockdown_map_observation=Some(observed);}
+        }
+        state.world.explored.player_position_m=state.world.player.position_m;
+        return;
+    }
+    if scene_id=="gh_bio_isolation" {
+        let Some(rows)=bio_info::rows(id) else{return;};
+        let rooms=&mut state.world.explored.rooms;
+        if !bio_info::stored_regions(rooms).iter().any(|known|known==id) {
+            for expected in rows {rooms.retain(|room|room.room_id!=expected.room_id);rooms.push(expected);}
+        }
+        state.world.explored.player_position_m=state.world.player.position_m;
+        return;
+    }
+    if scene_id=="gh_beacon" || scene_id=="gh_exit" {
+        let Some(rows)=beacon_exit_info::rows(scene_id,id) else{return;};
+        let rooms=&mut state.world.explored.rooms;
+        if !beacon_exit_info::stored_regions(scene_id,true,rooms).iter().any(|known|known==id) {
+            for expected in rows {rooms.retain(|room|room.room_id!=expected.room_id);rooms.push(expected);}
+        }
+        state.world.explored.player_position_m=state.world.player.position_m;
+        return;
+    }
+    if scene_id=="gh_deep_decon" {
+        let Some(rows)=decon_info::rows(id) else{return;};
+        let rooms=&mut state.world.explored.rooms;
+        if !decon_info::stored_regions(rooms).iter().any(|known|known==id) {
+            for expected in rows {
+                rooms.retain(|room|room.room_id!=expected.room_id);
+                rooms.push(expected);
+            }
+        }
+        state.world.explored.player_position_m=state.world.player.position_m;
+        return;
+    }
+    let Some(poly)=dense_service_wing::shared_region_polygon(id) else { return; };
+    let rooms=&mut state.world.explored.rooms;
+    rooms.retain(|room| room.room_id != *id || dense_service_wing::valid_stored_room(room));
+    if !rooms.iter().any(|room| room.room_id == *id) {
+        rooms.push(crate::world_v3::ExploredRoom { room_id:id.clone(),
+            outline_m:poly.iter().map(|p| vec3_from_array([p[0],0.0,p[1]])).collect() });
+    }
+    state.world.explored.player_position_m=state.world.player.position_m;
+}
+
 fn update_mist_harbor_exploration(
     state: &mut RuntimeState,
     scene: &crate::scene_runtime::SceneDefinition,
@@ -4401,7 +6021,7 @@ fn project_view(state: &RuntimeState) -> WorldView {
         state.world.rear_view.clone(),
         &state.effective_rules_v6,
     );
-    live_rules::project_information(state, None, &mut capabilities);
+    live_rules::project_information(state, None, None, None, &mut capabilities);
     if state.world.world_id == "mist_harbor" {
         capabilities.acoustic_mapping_authorized = Some(state.effective_rules_v6.capability_permissions.contains(&CapabilityPermission::AcousticMapping));
     }
@@ -4454,7 +6074,7 @@ fn project_view(state: &RuntimeState) -> WorldView {
             position_m: POWER_CONSOLE_POSITION,
             yaw_rad: 0.0,
         },
-        active: true, members: None, signal_perception: None,
+        active: true, members: None, signal_perception: None, animation_presentation: None, signal_only: false,
     });
     let gate_open = has_progress(state, POWER_EVENT_ID);
     view.doors.push(DoorView {
@@ -4537,12 +6157,280 @@ fn project_enemy_vitals(state: &RuntimeState) -> Vec<EnemyVitals> {
     vitals
 }
 
+fn apply_lower_service_visibility(view:&mut WorldView, occupied:Option<String>) {
+    let classify=|p:Vec3|if p.y_m == -4.0 {shaft_lower_service::region_at(f64::from(p.x_m),f64::from(p.z_m))
+        .map(|id|format!("grey_hive.gh_central_shaft.lower_service_v2.{id}"))}else{None};
+    let mut regions=std::collections::BTreeMap::new();let mut seen=std::collections::BTreeSet::new();let mut duplicates=std::collections::BTreeSet::new();
+    for (id,position) in view.actors.iter().map(|a|(a.entity_id.clone(),a.transform.position_m))
+        .chain(view.interactables.iter().map(|i|(i.entity_id.clone(),i.transform.position_m)))
+        .chain(view.doors.iter().map(|d|(d.door_id.clone(),d.transform.position_m))) {
+        if !seen.insert(id.clone()){duplicates.insert(id);} else if let Some(region)=classify(position){regions.insert(id,region);}
+    }
+    for id in duplicates {regions.remove(&id);}
+    view.actors.retain(|v|occupied.as_ref().is_some_and(|id|regions.get(&v.entity_id)==Some(id)));
+    view.interactables.retain(|v|occupied.as_ref().is_some_and(|id|regions.get(&v.entity_id)==Some(id)));
+    view.doors.retain(|v|occupied.as_ref().is_some_and(|id|regions.get(&v.door_id)==Some(id)));
+    view.capabilities.enemy_vitals.retain(|v|occupied.as_ref().is_some_and(|id|regions.get(&v.entity_id)==Some(id)));
+    regions.retain(|_,region|occupied.as_ref()==Some(region));
+    view.dense_occupied_region=occupied.clone();view.current_visible_regions=Some(occupied.iter().cloned().collect());view.dense_entity_regions=Some(regions);
+}
+
 fn project_scene_view(state: &RuntimeState, scene: Option<&SceneRuntime>) -> WorldView {
     let mut view = project_view(state);
+    let dense_scope=state.world.world_id=="grey_hive" && ["gh_power_room","gh_gate_a"].contains(&state.world.scene_id.as_str());
     let Some(scene) = scene else {
+        if dense_scope {view.capabilities.enemy_vitals.clear(); view.current_visible_regions=Some(Vec::new());}
         return view;
     };
     let definition = scene.current_scene();
+    if definition.scene_id=="gh_central_shaft" && definition.world_id==state.world.world_id
+        && definition.scene_id==state.world.scene_id && scene.world_epoch==state.world.revision.world_epoch
+        && state.shaft_owner.as_ref().is_some_and(|o|o.geometry.service_v2 && shaft_lower_service::candidate_geometry(definition).as_ref()==Some(&o.geometry)) {
+        let identity=crate::moving_support::ShaftLowerRecipeIdentity::for_scene(definition);
+        if identity.as_ref()==state.world_persistent_v1.shaft_recipe_format_v2.as_ref(){view.shaft_lower_service=identity;}
+    }
+    if shaft_lower_service::ADMISSION_READY && state.pending_entry.is_some() && state.pending_exit.is_none() && definition.scene_id=="gh_central_shaft"
+        && scene.world_epoch==state.world.revision.world_epoch {
+        if let Some(old)=state.shaft_owner.as_ref() {
+            if shaft_lower_service::candidate_from_old(definition,old,&state.world).is_some() {
+                let mut candidate=state.clone();candidate.shaft_owner=shaft_lower_service::candidate_from_old(definition,old,&state.world);
+                if scene_kcc_for_state(definition,&completed_world_events(state,"grey_hive"),&candidate)
+                    .is_ok_and(|k|k.can_player_occupy(state.world.player.position_m,state.world.player.radius_m)) {
+                    view.shaft_lower_service_proposal=crate::moving_support::ShaftLowerRecipeIdentity::for_scene(definition);
+                }
+            }
+        }
+    }
+    // Compute once before information classification; the same owned result is
+    // later projected to the client, without moving or resampling the lift.
+    let shaft_support_view = shaft_region_support_view(state,definition);
+    let floor_route_key=floor_route_region_key(state,scene,shaft_support_view.as_ref());
+    if definition.world_id=="grey_hive" && ["gh_bio_isolation","gh_deep_decon","gh_beacon","gh_exit"].contains(&definition.scene_id.as_str())
+        && state.world.world_id==definition.world_id && state.world.scene_id==definition.scene_id
+        && scene.world_epoch==state.world.revision.world_epoch {
+        view.utility_scene_source_sha256=Some(definition.verified_source_sha256.clone());
+    }
+    if definition.world_id=="grey_hive" && definition.scene_id=="gh_lockdown"
+        && state.world.world_id==definition.world_id && state.world.scene_id==definition.scene_id
+        && scene.world_epoch==state.world.revision.world_epoch {
+        view.lockdown_scene_source_sha256=Some(definition.verified_source_sha256.clone());
+    }
+    if let Some(prepared)=prepare_shaft_lockdown(state,scene) {
+        view.shaft_lockdown_neighbor=Some(crate::world_v3::ShaftLockdownNeighborView{
+            source_scene_id:definition.scene_id.clone(),target_scene_id:prepared.target_scene_id,
+            world_epoch:state.world.revision.world_epoch,server_tick:state.world.revision.server_tick,
+            authority_revision:state.world.revision.authority_revision,target_scene_source_sha256:prepared.target_sha,
+            shaft_deferred:prepared.shaft_deferred,
+        });
+    }
+    if let Some(prepared)=prepare_gate_decon(state,scene) {
+        view.gate_decon_neighbor=Some(crate::world_v3::GateDeconNeighborView{
+            source_scene_id:definition.scene_id.clone(),target_scene_id:prepared.target_scene_id,
+            world_epoch:state.world.revision.world_epoch,server_tick:state.world.revision.server_tick,
+            authority_revision:state.world.revision.authority_revision,target_scene_source_sha256:prepared.target_sha,
+        });
+    }
+    if state.pending_exit.is_none() {
+        // A paused current scene has no new preview token; pending-entry
+        // handoff geometry remains available to complete that existing entry.
+        let prepared=if !state.paused || state.pending_entry.is_some() {prepare_hive_route(state,scene)} else {None};
+        let mut handoff_pending=false;
+        if state.pending_entry.is_some() {
+            if let Some(latch)=state.hive_route_latch.as_ref().filter(|l|l.source_scene==definition.scene_id && l.source_sha==definition.verified_source_sha256 && l.epoch==state.world.revision.world_epoch) {
+                handoff_pending=true;
+                view.hive_route_handoff=Some(crate::world_v3::BeaconExitHoldView{source_scene_id:latch.source_scene.clone(),target_scene_id:latch.target_scene.clone(),world_epoch:latch.epoch,source_scene_source_sha256:latch.source_sha.clone(),target_scene_source_sha256:latch.target_sha.clone(),current_preview_matches:true});
+                let matches=prepared.as_ref().is_some_and(|p|p.target_scene_id==latch.target_scene && p.target_sha==latch.target_sha)
+                    && latch.events==completed_world_events(state,&definition.world_id) && latch.sentinel_first_kill==state.world_persistent_v1.grey_hive.sentinel_first_kill && latch.elite_first_kill==state.world_persistent_v1.clockworks.forged_guard_elite_first_kill;
+                view.hive_route_hold=Some(crate::world_v3::BeaconExitHoldView{source_scene_id:latch.source_scene.clone(),target_scene_id:latch.target_scene.clone(),world_epoch:latch.epoch,source_scene_source_sha256:latch.source_sha.clone(),target_scene_source_sha256:latch.target_sha.clone(),current_preview_matches:matches});
+            }
+        }
+        let held=state.kcc.is_hive_route_union() && scene_kcc_for_state(definition,&completed_world_events(state,&definition.world_id),state)
+            .map_or(true,|own|!own.can_player_occupy(state.world.player.position_m,state.world.player.radius_m));
+        let admitted=prepared.as_ref().is_some_and(|p|hive_route_admission_matches(state,scene,p));
+        if definition.world_id==state.world.world_id && definition.scene_id==state.world.scene_id
+            && scene.world_epoch==state.world.revision.world_epoch && state.world.player.position_m.y_m==0.0 {
+            let width=if ["gh_entry_maintenance","gh_power_room"].contains(&definition.scene_id.as_str()) {20.0} else {24.0};
+            let east=state.world.player.position_m.x_m>=width/2.0;
+            if let Some(target)=if definition.world_id=="mist_harbor" {scene.mh_shore_neighbor(east)} else if definition.world_id=="clockworks" {scene.cw_early_neighbor(east)} else {scene.hive_route_neighbor(east)} {
+                view.hive_route_boundary=Some(crate::world_v3::HiveRouteBoundaryView{
+                    source_scene_id:definition.scene_id.clone(),target_scene_id:target.scene_id.clone(),world_epoch:scene.world_epoch,
+                    source_scene_source_sha256:definition.verified_source_sha256.clone(),east,closed:!held && !admitted && !handoff_pending,
+                    prerequisite_blocked:if definition.world_id=="mist_harbor" && matches!((definition.scene_id.as_str(),target.scene_id.as_str()),
+                        ("mh_drowned_quay","mh_breakwater")|("mh_breakwater","mh_drowned_quay")|("mh_breakwater","mh_pump_station")|("mh_pump_station","mh_breakwater")|
+                        ("mh_pump_station","mh_resonance_tower")|("mh_resonance_tower","mh_pump_station")|("mh_resonance_tower","mh_warden_arena")|("mh_warden_arena","mh_resonance_tower")|
+                        ("mh_warden_arena","mh_extraction")|("mh_extraction","mh_warden_arena")) {
+                        let events=completed_world_events(state,"mist_harbor");
+                        Some(match (definition.scene_id.as_str(),target.scene_id.as_str()) {
+                            ("mh_breakwater","mh_pump_station")=>!events.contains("mist_beacon_east"),
+                            ("mh_resonance_tower","mh_warden_arena")=>!events.contains("mist_signal"),
+                            ("mh_warden_arena","mh_extraction")=>!state.world_persistent_v1.mist_harbor.warden_defeated,
+                            _=>false,
+                        })
+                    } else {None},
+                });
+            }
+        }
+        let mut may_project=!held || admitted;
+        if held && !admitted {
+            if let Some(latch)=state.hive_route_latch.as_ref().filter(|l|l.source_scene==definition.scene_id && l.source_sha==definition.verified_source_sha256 && l.epoch==state.world.revision.world_epoch) {
+                let current_matches=prepared.as_ref().is_some_and(|p|p.target_scene_id==latch.target_scene && p.target_sha==latch.target_sha)
+                    && latch.events==completed_world_events(state,&definition.world_id)
+                    && latch.sentinel_first_kill==state.world_persistent_v1.grey_hive.sentinel_first_kill && latch.elite_first_kill==state.world_persistent_v1.clockworks.forged_guard_elite_first_kill;
+                view.hive_route_hold=Some(crate::world_v3::BeaconExitHoldView{source_scene_id:latch.source_scene.clone(),target_scene_id:latch.target_scene.clone(),world_epoch:latch.epoch,source_scene_source_sha256:latch.source_sha.clone(),target_scene_source_sha256:latch.target_sha.clone(),current_preview_matches:current_matches});
+                may_project=current_matches;
+            } else {view.hive_route_hold_missing=Some(true);}
+        }
+        if let Some(prepared)=prepared.filter(|_|may_project) {
+            let admitted=state.hive_route_admission.as_ref().filter(|_|hive_route_admission_matches(state,scene,&prepared));
+            let generation=admitted.map(|a|a.generation).or_else(||state.entry_generation.checked_add(1));
+            if let (Some(generation),Some(epoch))=(generation,state.world.revision.world_epoch.checked_add(1)) {
+                if generation<=build_ui::MAX_SAFE_REVISION && epoch<=build_ui::MAX_SAFE_REVISION {
+                    view.hive_route_neighbor=Some(crate::world_v3::BeaconExitNeighborView{
+                        source_scene_id:definition.scene_id.clone(),target_scene_id:prepared.target_scene_id.clone(),
+                        world_epoch:state.world.revision.world_epoch,server_tick:state.world.revision.server_tick,
+                        authority_revision:state.world.revision.authority_revision,target_scene_source_sha256:prepared.target_sha,
+                        token:crate::world_v3::SceneEntryToken{generation,world_id:definition.world_id.clone(),scene_id:prepared.target_scene_id.clone(),world_epoch:epoch},
+                        ready:admitted.is_some(),straddling:if prepared.east {state.world.player.position_m.x_m+state.world.player.radius_m>prepared.width-if definition.world_id=="mist_harbor" {0.5} else {0.0}} else {state.world.player.position_m.x_m-state.world.player.radius_m<if definition.world_id=="mist_harbor" {0.5} else {0.0}},
+                        gear_support_frame:if definition.world_id=="clockworks" && prepared.target_scene_id=="cw_gear_shaft" {prepared.target_standalone.support_frame(epoch,state.world.server_time_ms).ok()} else {None},
+                        arena_shutters_open:if definition.world_id=="clockworks" && prepared.target_scene_id=="cw_forged_guard_arena" {Some(state.world_persistent_v1.clockworks.forged_guard_elite_first_kill)} else {None},
+                    });
+                }
+            }
+        }
+    }
+    if state.pending_exit.is_none() {
+        let prepared=prepare_beacon_exit(state,scene,true);
+        let held=state.kcc.is_beacon_exit_union() && scene_kcc_for_state(definition,&completed_world_events(state,"grey_hive"),state)
+            .map_or(true,|own|!own.can_player_occupy(state.world.player.position_m,state.world.player.radius_m));
+        let admitted=prepared.as_ref().is_some_and(|p|beacon_exit_admission_matches(state,scene,p));
+        let mut may_project= !held || admitted;
+        if held && !admitted {
+            if let Some(latch)=state.beacon_exit_latch.as_ref().filter(|l|l.source_scene==definition.scene_id && l.source_sha==definition.verified_source_sha256 && l.epoch==state.world.revision.world_epoch) {
+                let current_matches=prepared.as_ref().is_some_and(|p|p.target_scene_id==latch.target_scene && p.target_sha==latch.target_sha)
+                    && latch.events==completed_world_events(state,"grey_hive") && latch.beacon==state.world_persistent_v1.grey_hive.beacon;
+                view.beacon_exit_hold=Some(crate::world_v3::BeaconExitHoldView{source_scene_id:latch.source_scene.clone(),target_scene_id:latch.target_scene.clone(),world_epoch:latch.epoch,source_scene_source_sha256:latch.source_sha.clone(),target_scene_source_sha256:latch.target_sha.clone(),current_preview_matches:current_matches});
+                may_project=current_matches;
+            } else {view.beacon_exit_hold_missing=Some(true);}
+        }
+        if let Some(prepared)=prepared.filter(|_|may_project) {
+            let admitted=state.beacon_exit_admission.as_ref().filter(|_|beacon_exit_admission_matches(state,scene,&prepared));
+            let generation=admitted.map(|a|a.generation).or_else(||state.entry_generation.checked_add(1));
+            if let (Some(generation),Some(epoch))=(generation,state.world.revision.world_epoch.checked_add(1)) {
+                if generation<=build_ui::MAX_SAFE_REVISION && epoch<=build_ui::MAX_SAFE_REVISION {
+                    view.beacon_exit_neighbor=Some(crate::world_v3::BeaconExitNeighborView {
+                        source_scene_id:definition.scene_id.clone(),target_scene_id:prepared.target_scene_id.clone(),
+                        world_epoch:state.world.revision.world_epoch,server_tick:state.world.revision.server_tick,
+                        authority_revision:state.world.revision.authority_revision,target_scene_source_sha256:prepared.target_sha,
+                        token:crate::world_v3::SceneEntryToken{generation,world_id:"grey_hive".into(),scene_id:prepared.target_scene_id,world_epoch:epoch},
+                        ready:admitted.is_some(),straddling:if prepared.beacon {state.world.player.position_m.x_m+state.world.player.radius_m>24.0} else {state.world.player.position_m.x_m-state.world.player.radius_m<0.0},
+
+                        gear_support_frame:None,
+                        arena_shutters_open:None,
+                    });
+                }
+            }
+        }
+    }
+    if let Some(prepared)=prepare_gate_shaft_upper(state,scene) {
+        view.shaft_upper_neighbor=Some(crate::world_v3::ShaftUpperNeighborView {
+            source_scene_id:definition.scene_id.clone(),target_scene_id:prepared.target_scene_id,
+            world_epoch:state.world.revision.world_epoch,server_tick:state.world.revision.server_tick,
+            authority_revision:state.world.revision.authority_revision,
+            target_scene_source_sha256:prepared.target_sha,shaft_deferred:prepared.shaft_deferred,
+        });
+    }
+    if dense_scope { view.current_visible_regions=Some(Vec::new()); }
+    if dense_scope && (definition.world_id!=state.world.world_id || definition.scene_id!=state.world.scene_id || scene.world_epoch!=state.world.revision.world_epoch || !dense_service_wing::admitted(definition)) {view.capabilities.enemy_vitals.clear();}
+    if definition.world_id==state.world.world_id && definition.scene_id==state.world.scene_id
+        && scene.world_epoch==state.world.revision.world_epoch && dense_service_wing::admitted(definition) {
+        view.dense_partition_escape_ids = Some(state.kcc.player_escape_ids());
+        let previous = state.dense_region_previous.as_ref().and_then(|(id,epoch,region)|
+            (id == &definition.scene_id && *epoch == scene.world_epoch).then_some(region.as_str()));
+        let gate_open = completed_world_events(state, "grey_hive").contains("hive_power");
+        view.dense_occupied_region = dense_service_wing::occupied(definition,state.world.player.position_m,previous,gate_open).map(str::to_owned);
+        if let Some(occupied)=view.dense_occupied_region.as_ref() {
+            view.current_visible_regions=Some(vec![occupied.clone()]);
+            let entities = view.actors.iter().map(|a|(a.entity_id.clone(),a.transform.position_m))
+                .chain(view.interactables.iter().map(|i|(i.entity_id.clone(),i.transform.position_m)))
+                .chain(view.doors.iter().map(|d|(d.door_id.clone(),d.transform.position_m)));
+            let mut classified=std::collections::BTreeMap::new();
+            let mut ambiguous=std::collections::BTreeSet::new();
+            for (id,position) in entities {
+                let region=dense_service_wing::occupied(definition,position,None,gate_open).map(str::to_owned);
+                if let Some(existing)=classified.get(&id) {
+                    if existing!=&region { ambiguous.insert(id); }
+                } else { classified.insert(id,region); }
+            }
+            for id in ambiguous { classified.remove(&id); }
+            let regions:std::collections::BTreeMap<String,String>=classified.into_iter()
+                .filter_map(|(id,region)|region.map(|value|(id,value))).collect();
+            view.capabilities.enemy_vitals.retain(|v| regions.get(&v.entity_id)==Some(occupied));
+            view.dense_entity_regions=Some(regions);
+        } else {
+            view.capabilities.enemy_vitals.clear();
+        }
+    }
+    if decon_info::admitted(definition) && (definition.world_id!=state.world.world_id
+        || definition.scene_id!=state.world.scene_id || scene.world_epoch!=state.world.revision.world_epoch) {
+        view.current_visible_regions=Some(Vec::new()); view.capabilities.enemy_vitals.clear();
+    }
+    if decon_info::admitted(definition) && definition.world_id==state.world.world_id
+        && definition.scene_id==state.world.scene_id && scene.world_epoch==state.world.revision.world_epoch {
+        let previous=state.dense_region_previous.as_ref().and_then(|(id,epoch,region)|
+            (id==&definition.scene_id && *epoch==scene.world_epoch).then_some(region.as_str()));
+        let occupied=decon_info::occupied(definition,state.world.player.position_m,previous);
+        view.dense_occupied_region=occupied.clone();
+        view.current_visible_regions=Some(occupied.iter().cloned().collect());
+        let mut regions=std::collections::BTreeMap::new();
+        let mut seen=std::collections::BTreeSet::new();
+        let mut duplicates=std::collections::BTreeSet::new();
+        for (id,position) in view.actors.iter().map(|a|(a.entity_id.clone(),a.transform.position_m))
+            .chain(view.interactables.iter().map(|i|(i.entity_id.clone(),i.transform.position_m)))
+            .chain(view.doors.iter().map(|d|(d.door_id.clone(),d.transform.position_m))) {
+            let region=decon_info::occupied(definition,position,None);
+            if !seen.insert(id.clone()) {duplicates.insert(id);} else if let Some(region)=region {regions.insert(id,region);}
+        }
+        for id in duplicates {regions.remove(&id);}
+        view.capabilities.enemy_vitals.retain(|v|occupied.as_ref().is_some_and(|id|regions.get(&v.entity_id)==Some(id)));
+        view.dense_entity_regions=Some(regions);
+    }
+    if beacon_exit_info::admitted(definition) && (definition.world_id!=state.world.world_id
+        || definition.scene_id!=state.world.scene_id || scene.world_epoch!=state.world.revision.world_epoch) {
+        view.current_visible_regions=Some(Vec::new());view.capabilities.enemy_vitals.clear();
+    }
+    if beacon_exit_info::admitted(definition) && definition.world_id==state.world.world_id
+        && definition.scene_id==state.world.scene_id && scene.world_epoch==state.world.revision.world_epoch {
+        let previous=state.dense_region_previous.as_ref().and_then(|(id,epoch,region)|
+            (id==&definition.scene_id && *epoch==scene.world_epoch).then_some(region.as_str()));
+        let open=completed_world_events(state,"grey_hive").contains("hive_extraction");
+        let occupied=beacon_exit_info::occupied(definition,state.world.player.position_m,previous,open);
+        view.dense_occupied_region=occupied.clone();
+        view.current_visible_regions=Some(occupied.iter().cloned().collect());
+        let mut regions=std::collections::BTreeMap::new();
+        let mut seen=std::collections::BTreeSet::new();
+        let mut duplicates=std::collections::BTreeSet::new();
+        for (id,position) in view.actors.iter().map(|a|(a.entity_id.clone(),a.transform.position_m))
+            .chain(view.interactables.iter().map(|i|(i.entity_id.clone(),i.transform.position_m)))
+            .chain(view.doors.iter().map(|d|(d.door_id.clone(),d.transform.position_m))) {
+            let region=beacon_exit_info::occupied(definition,position,None,open);
+            if !seen.insert(id.clone()){duplicates.insert(id);} else if let Some(region)=region {regions.insert(id,region);}
+        }
+        for id in duplicates {regions.remove(&id);}
+        view.capabilities.enemy_vitals.retain(|v|occupied.as_ref().is_some_and(|id|regions.get(&v.entity_id)==Some(id)));
+        view.dense_entity_regions=Some(regions);
+    }
+    // Render-only projection of the same persistent first-kill truth used by KCC.
+    // A missing or mismatched scene stays absent (unknown), never inferred closed.
+    if definition.world_id == "clockworks"
+        && definition.scene_id == CLOCKWORKS_ELITE_SCENE_ID
+        && state.world.world_id == "clockworks"
+        && state.world.scene_id == CLOCKWORKS_ELITE_SCENE_ID
+        && scene.world_epoch == state.world.revision.world_epoch
+    {
+        view.forged_guard_shutters_open = Some(
+            state.world_persistent_v1.clockworks.forged_guard_elite_first_kill,
+        );
+    }
     baizhi::project(state, scene, &mut view);
     view.grey_hive_beacon = grey_hive_beacon::project(state, scene);
     view.sentinel_encounter = project_sentinel_encounter(state, scene);
@@ -4578,7 +6466,7 @@ fn project_scene_view(state: &RuntimeState, scene: Option<&SceneRuntime>) -> Wor
             }
         }
     }
-    if state.kcc.has_support_surfaces() {
+    if state.kcc.has_support_surfaces() && !(definition.world_id=="clockworks" && definition.scene_id=="cw_boiler_chamber") {
         // Every field comes from the same locked authority state. Invalid
         // projection is omitted, causing support-scene readiness to fail closed.
         view.support_scene=(|| {
@@ -4591,8 +6479,16 @@ fn project_scene_view(state: &RuntimeState, scene: Option<&SceneRuntime>) -> Wor
                 scene_source_sha256:definition.verified_source_sha256.clone(),poses:frame.poses,rider})
         })();
     }
+    if shaft_lift::source_support_valid(definition) && state.shaft_deferred && state.shaft_owner.is_none() {
+        view.shaft_lift_deferred=Some(true);
+    }
+    if let Some((shaft,support))=shaft_support_view {
+            if !state.shaft_deferred {view.shaft_lift_deferred=Some(false);}
+            view.shaft_lift=Some(shaft);
+            view.support_scene=Some(support);
+    }
     view.boss_encounter = warden_encounter::project(state, scene);
-    live_rules::project_information(state, Some(definition), &mut view.capabilities);
+    live_rules::project_information(state, Some(definition), view.dense_occupied_region.as_deref(), None, &mut view.capabilities);
     view.world_id = definition.world_id.clone();
     view.scene_id = definition.scene_id.clone();
     view.checkpoint_id = scene.checkpoint_id.clone();
@@ -4763,6 +6659,8 @@ fn project_scene_view(state: &RuntimeState, scene: Option<&SceneRuntime>) -> Wor
                                 | "rs_save_rest_terminal_marker"
                         ))
                     && !(gh_extraction_complete && item.id == "gh_exit_extraction_console")
+                    && (!scene.is_complete_clockworks_production() || item.id != "gh_exit_extraction_console"
+                        || ["hive_power", "hive_lockdown"].iter().all(|required| completed_events.contains(*required)))
                     && (!scene.is_complete_clockworks_production() || item.id != "gh_exit_extraction_console" || grey_hive_beacon::owned(state)) },
             })
         })
@@ -4831,6 +6729,16 @@ fn project_scene_view(state: &RuntimeState, scene: Option<&SceneRuntime>) -> Wor
         .forged_guard_elite_first_kill;
     view.interactables
         .extend(route_interactables.into_iter().map(|mut item| {
+            if definition.world_id == "grey_hive"
+                && definition.scene_id == SENTINEL_SCENE_ID
+                && state.world.world_id == "grey_hive"
+                && state.world.scene_id == SENTINEL_SCENE_ID
+                && item.entity_id == "gh_sentinel_arena_to_beacon"
+                && !state.world_persistent_v1.grey_hive.sentinel_first_kill
+            {
+                item.active = false;
+            }
+
             if definition.world_id == "mist_harbor" && definition.scene_id == warden_encounter::SCENE_ID
                 && item.entity_id == "mh_warden_arena_to_extraction" && !state.world_persistent_v1.mist_harbor.warden_defeated { item.active = false; }
 
@@ -4912,6 +6820,153 @@ fn project_scene_view(state: &RuntimeState, scene: Option<&SceneRuntime>) -> Wor
         )
         .collect();
     signal_wraith_presentation::project(state, scene, &mut view);
+    if bio_info::admitted(definition) && (definition.world_id!=state.world.world_id
+        || definition.scene_id!=state.world.scene_id || scene.world_epoch!=state.world.revision.world_epoch) {
+        view.current_visible_regions=Some(Vec::new());view.capabilities.enemy_vitals.clear();
+    }
+    if bio_info::admitted(definition) && definition.world_id==state.world.world_id
+        && definition.scene_id==state.world.scene_id && scene.world_epoch==state.world.revision.world_epoch {
+        // Baizhi is a projected NPC, not an ActorRuntime or collision body.
+        // The configured native NPC and authored marker share their real anchor.
+        if let Some(npcs)=view.npcs.as_ref() {
+            let actual:Vec<_>=npcs.iter().filter(|n|n.entity_id==baizhi::ENTITY_ID && n.entity_type==baizhi::ENTITY_TYPE).collect();
+            let markers:Vec<_>=definition.interactions.iter().filter(|i|i.id==baizhi::INTERACTION_ID && i.kind=="npc_dialogue").collect();
+            if actual.len()==1 && markers.len()==1 && actual[0].position==markers[0].position
+                && !view.interactables.iter().any(|i|i.entity_id==baizhi::INTERACTION_ID) {
+                view.interactables.push(crate::world_v3::InteractableView {
+                    entity_id:baizhi::INTERACTION_ID.into(),kind:"npc_dialogue".into(),
+                    transform:Transform{position_m:vec3_from_array(actual[0].position),yaw_rad:actual[0].yaw_rad as f32},
+                    active:actual[0].interactable,
+                });
+            }
+        }
+        let previous=state.dense_region_previous.as_ref().and_then(|(id,epoch,region)|
+            (id==&definition.scene_id && *epoch==scene.world_epoch).then_some(region.as_str()));
+        let occupied=bio_info::occupied(definition,state.world.player.position_m,previous);
+        view.dense_occupied_region=occupied.clone();
+        view.current_visible_regions=Some(occupied.iter().cloned().collect());
+        let mut regions=std::collections::BTreeMap::new();
+        let mut seen=std::collections::BTreeSet::new();
+        let mut duplicates=std::collections::BTreeSet::new();
+        let npcs=view.npcs.as_deref().unwrap_or(&[]);
+        for (id,position) in view.actors.iter().map(|a|(a.entity_id.clone(),a.transform.position_m))
+            .chain(view.interactables.iter().map(|i|(i.entity_id.clone(),i.transform.position_m)))
+            .chain(view.doors.iter().map(|d|(d.door_id.clone(),d.transform.position_m)))
+            .chain(npcs.iter().map(|n|(n.entity_id.clone(),vec3_from_array(n.position)))) {
+            let region=bio_info::occupied(definition,position,None);
+            if !seen.insert(id.clone()){duplicates.insert(id);} else if let Some(region)=region {regions.insert(id,region);}
+        }
+        for id in duplicates {regions.remove(&id);}
+        view.capabilities.enemy_vitals.retain(|v|occupied.as_ref().is_some_and(|id|regions.get(&v.entity_id)==Some(id)));
+        view.dense_entity_regions=Some(regions);
+        live_rules::project_information(state,Some(definition),view.dense_occupied_region.as_deref(),None,&mut view.capabilities);
+    }
+    if let Some(key)=floor_route_key {
+        let previous=state.dense_region_previous.as_ref().and_then(|(id,epoch,region)|
+            (id==&definition.scene_id && *epoch==scene.world_epoch).then_some(region.as_str()));
+        let occupied=floor_route_info::occupied(key,state.world.player.position_m,previous);
+        view.dense_occupied_region=occupied.clone();
+        view.current_visible_regions=Some(occupied.iter().cloned().collect());
+        let mut regions=std::collections::BTreeMap::new();
+        let mut seen=std::collections::BTreeSet::new();
+        let mut duplicates=std::collections::BTreeSet::new();
+        for (id,position) in view.actors.iter().map(|a|(a.entity_id.clone(),a.transform.position_m))
+            .chain(view.interactables.iter().map(|i|(i.entity_id.clone(),i.transform.position_m)))
+            .chain(view.doors.iter().map(|d|(d.door_id.clone(),d.transform.position_m))) {
+            let mut region=floor_route_info::occupied(key,position,None);
+            if key=="gate_b_closed" && ["gh_gate_b_panel","gh_gate_b"].contains(&id.as_str())
+                && position.x_m==12.0 && position.y_m==0.0 && position.z_m==8.0
+                && occupied.as_deref().is_some_and(|r|r.ends_with(".west_approach")||r.ends_with(".east_approach")) {
+                region=occupied.clone();
+            }
+            if !seen.insert(id.clone()){duplicates.insert(id);} else if let Some(region)=region {regions.insert(id,region);}
+        }
+        for id in duplicates {regions.remove(&id);}
+        view.capabilities.enemy_vitals.retain(|v|occupied.as_ref().is_some_and(|id|regions.get(&v.entity_id)==Some(id)));
+        view.dense_entity_regions=Some(regions);
+        live_rules::project_information(state,Some(definition),occupied.as_deref(),Some(key),&mut view.capabilities);
+    }
+    // A selected service recipe has its own lower-local information scope.
+    // Only the previous successful ordinary floor step may name a current
+    // parent; a boundary, pause or mismatch reveals no entity information.
+    let service_ready=shaft_lower_service::history_ready(state,definition,floor_route_key);
+    let p=state.world.player.position_m;
+    let service_here=shaft_lower_service::region_at(f64::from(p.x_m),f64::from(p.z_m));
+    let service_previous=state.dense_region_previous.as_ref().and_then(|(id,epoch,region)|
+        (id==&definition.scene_id && *epoch==scene.world_epoch && region.starts_with("grey_hive.gh_central_shaft.lower_service_v2.")).then_some(region.clone()));
+    if shaft_lower_service::selected(state,definition) && (service_here.is_some() || service_previous.is_some()) {
+        let occupied=if state.paused || !service_ready {None} else {service_previous.filter(|id|
+            service_here.is_some_and(|short|id==&format!("grey_hive.gh_central_shaft.lower_service_v2.{short}")))};
+        apply_lower_service_visibility(&mut view,occupied.clone());
+        if service_ready {live_rules::project_information(state,Some(definition),occupied.as_deref(),floor_route_key,&mut view.capabilities);}
+        else {
+            view.capabilities.map_topology_authorized=Some(false);view.capabilities.map_knowledge=None;
+            view.capabilities.map_current_room_ids=None;view.capabilities.map_explored_room_ids=None;view.capabilities.map_known_junctions=None;
+            view.capabilities.explored_map.rooms.clear();view.capabilities.explored_map.connections.clear();view.capabilities.explored_map.objectives.clear();
+        }
+    }    if let Some(contact)=mhcw_current(state,scene) {
+        let support=if contact.layer=="gear_static_decks_y2" {contact.region.rsplit(':').next()} else {None};
+        let classify=|p:Vec3|mhcw_map_region::occupied(definition,contact.layer,p,None,support);
+        let mut regions=std::collections::BTreeMap::new();let mut duplicates=std::collections::BTreeSet::new();let mut seen=std::collections::BTreeSet::new();
+        for (id,position) in view.actors.iter().map(|a| {
+            let position = if a.entity_type == signal_wraith_roster::WRAITH {
+                let mut matches = state.world.generic_actors.iter().filter(|native| native.entity_id == a.entity_id && native.entity_type == signal_wraith_roster::WRAITH);
+                let first = matches.next();
+                if matches.next().is_some() { None } else { first.map(|native| native.position_m) }
+            } else { Some(a.transform.position_m) };
+            (a.entity_id.clone(),position)
+        }).chain(view.interactables.iter().map(|i|(i.entity_id.clone(),Some(i.transform.position_m))))
+            .chain(view.doors.iter().map(|d|(d.door_id.clone(),Some(d.transform.position_m)))) {
+            if !seen.insert(id.clone()) {duplicates.insert(id);} else if let Some(region)=position.and_then(&classify) {regions.insert(id,region);}
+        }
+        for interaction in &view.interactables {
+            if !interaction.active || !["beacon","pump_control","terminal","valve_control","environment_control","coolant_valve","world_exit"].contains(&interaction.kind.as_str()) || duplicates.contains(&interaction.entity_id) {continue;}
+            let matches:Vec<_>=definition.interactions.iter().filter(|i|i.id==interaction.entity_id && i.kind==interaction.kind).collect();
+            if matches.len()!=1 {continue;}let item=matches[0];let p=state.world.player.position_m;
+            let distance=((p.x_m-item.position[0]).powi(2)+(p.y_m-item.position[1]).powi(2)+(p.z_m-item.position[2]).powi(2)).sqrt();
+            if scene.current_scene().height_allows(&item.id,p.y_m) && distance<=item.range_m.unwrap_or(2.5) {
+                regions.insert(interaction.entity_id.clone(),contact.region.clone());
+            }
+        }
+        for id in &duplicates {regions.remove(id);}
+        // The pre-existing echo is independent of map selection and body visibility.
+        view.actors.retain_mut(|a| {
+            if regions.get(&a.entity_id)==Some(&contact.region) {return true;}
+            if a.active && a.entity_type==signal_wraith_roster::WRAITH && !duplicates.contains(&a.entity_id) && a.signal_perception.is_some() {
+                a.signal_only=true; a.animation_presentation=None; a.members=None; return true;
+            }
+            false
+        });
+        view.interactables.retain(|i|regions.get(&i.entity_id)==Some(&contact.region));
+        view.doors.retain(|d|regions.get(&d.door_id)==Some(&contact.region));
+        view.capabilities.enemy_vitals.retain(|v|regions.get(&v.entity_id)==Some(&contact.region));
+        if let Some(npcs)=view.npcs.as_mut() {npcs.retain(|n|classify(vec3_from_array(n.position)).as_ref()==Some(&contact.region));}
+        view.current_visible_regions=Some(vec![contact.region.clone()]);
+        view.dense_occupied_region=Some(contact.region.clone());view.dense_entity_regions=Some(regions);
+        live_rules::project_information(state,Some(definition),Some(&contact.region),None,&mut view.capabilities);
+        // A map marker is only a representation of an already-authorized signal;
+        // it never creates region history or grants the actor's body visibility.
+        if view.capabilities.map_topology_authorized==Some(true)
+            && state.effective_rules_v6.capability_permissions.contains(&CapabilityPermission::AcousticMapping) {
+            if let (Some(group),Some(map))=(mhcw_map_region::group(definition,contact.layer),view.capabilities.map_knowledge.as_mut()) {
+                if let (Some(x),Some(z))=(group["origin_xz"][0].as_f64(),group["origin_xz"][1].as_f64()) {
+                    for actor in view.actors.iter().filter(|a|a.active && a.entity_type==signal_wraith_roster::WRAITH && !duplicates.contains(&a.entity_id)) {
+                        if let Some(signal)=&actor.signal_perception {
+                            for p in &signal.positions_m {
+                                map.features.push(crate::effects::ProjectedMapFeature{id:None,channel:crate::player_rules::KnowledgeChannel::Enemies,
+                                    position:crate::effects::MapPoint{x:f64::from(p.x_m)+x,y:f64::from(p.z_m)+z},knowledge:crate::player_rules::KnowledgeLevel::DetectedOnly,
+                                    terrain:None,hazard:None,obstacle:None,boundary:None});
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if let Some(group)=mhcw_history_group(state,definition) {known_route_map::project(state,scene,group,&mut view.capabilities);}
+    known_route_map::project_height_reference(state,scene,&mut view.capabilities);
+    gh_known_route_map::project(state,scene,floor_route_key,&mut view.capabilities);
+    gh_known_route_map::project_vertical(state,scene,floor_route_key,&mut view.capabilities);
     view
 }
 
@@ -5292,13 +7347,15 @@ fn scene_kcc(
     scene: &crate::scene_runtime::SceneDefinition,
     completed_events: &std::collections::BTreeSet<String>,
 ) -> Result<StaticKccWorld, String> {
-    scene_kcc_with_first_kill(scene, completed_events, false)
+    scene_kcc_with_first_kill(scene, completed_events, false, None, false)
 }
 
 fn scene_kcc_with_first_kill(
     scene: &crate::scene_runtime::SceneDefinition,
     completed_events: &std::collections::BTreeSet<String>,
     forged_guard_elite_first_kill: bool,
+    shaft_owner:Option<&shaft_lift::ShaftOwner>,
+    shaft_deferred:bool,
 ) -> Result<StaticKccWorld, String> {
     let bounds = &scene.bounds_m;
     let outer = crate::continuous_kcc::Aabb::new(
@@ -5391,12 +7448,154 @@ fn scene_kcc_with_first_kill(
             });
         }
     }
-    StaticKccWorld::new(outer, walls)
+    let shaft=shaft_lift::source_support_valid(scene);
+    if shaft && (shaft_owner.is_some()==shaft_deferred) {return Err("E_SHAFT_OWNER_MISSING".into());}
+    let supports=if shaft {Vec::new()} else {scene.moving_supports.clone()};
+    let mut kcc=StaticKccWorld::new(outer, walls)
         .with_walkable_polygons(walkable)
         .with_terrain_regions(terrain_regions)
-        .with_moving_supports(scene.moving_supports.clone())
+        .with_moving_supports(supports)
         .and_then(|kcc|kcc.with_standing_decks(scene.standing_decks.clone()))
-        .map_err(|error|format!("E_SCENE_SUPPORT: {error:?}"))
+        .map_err(|error|format!("E_SCENE_SUPPORT: {error:?}"))?;
+    if shaft && !shaft_deferred {
+        let owner=shaft_owner.ok_or("E_SHAFT_OWNER_MISSING")?;
+        kcc=kcc.with_shaft_step(scene,owner.clone(),owner.clone()).map_err(|_|"E_SHAFT_KCC")?;
+    }
+    Ok(kcc)
+}
+
+/// An old-floor entry is evaluated once for the whole scene epoch. No new
+/// geometry is admitted when any actual live disc overlaps the proposal.
+fn shaft_reentry(scene:&crate::scene_runtime::SceneDefinition,world:&WorldStateV3,
+    events:&std::collections::BTreeSet<String>,history:&mut Option<crate::save_v5::ShaftInactiveHistory>,
+    seam_footprint:bool)
+    ->Result<(Option<shaft_lift::ShaftOwner>,bool),String> {
+    let Some(saved)=history.as_ref() else {return shaft_old_floor_entry_inner(scene,world,events,seam_footprint);};
+    if saved.scene_source_sha256!=scene.verified_source_sha256 || saved.deferred==saved.frame.is_some() {
+        return Err("E_SHAFT_HISTORY_CONTEXT".into());
+    }
+    let result=if saved.deferred {
+        shaft_old_floor_entry_inner(scene,world,events,seam_footprint)?
+    } else {
+        let frame=saved.frame.as_ref().ok_or("E_SHAFT_HISTORY_CONTEXT")?;
+        let mut owner=shaft_lift::ShaftOwner::restore_frame(scene,frame,frame.world_epoch,frame.server_time_ms)
+            .map_err(|e|format!("E_SHAFT_HISTORY: {e}"))?;
+        owner.clock.rebase_world_time(world.server_time_ms).map_err(|e|format!("E_SHAFT_HISTORY: {e}"))?;
+        if !owner.clear_at_entry(world).map_err(|e|format!("E_SHAFT_HISTORY: {e}"))? {
+            return Err("E_SHAFT_HISTORY_OCCUPIED".into());
+        }
+        let kcc=scene_kcc_with_first_kill(scene,events,false,Some(&owner),false)?;
+        if (!seam_footprint && !kcc.can_player_occupy(world.player.position_m,world.player.radius_m))
+            || !world.actors_have_stable_support(&kcc)
+            || world.generic_actors.iter().filter(|a|a.hp>0).any(|a|!a.validate() || !kcc.can_occupy(a.position_m,a.body_radius_m())) {
+            return Err("E_SHAFT_HISTORY_CONTACT".into());
+        }
+        (Some(owner),false)
+    };
+    *history=None;
+    Ok(result)
+}
+
+fn shaft_old_floor_entry(scene:&crate::scene_runtime::SceneDefinition,world:&WorldStateV3,
+    events:&std::collections::BTreeSet<String>)->Result<(Option<shaft_lift::ShaftOwner>,bool),String> {
+    shaft_old_floor_entry_inner(scene,world,events,false)
+}
+
+// Match the actual KCC's radius-expanded AABB rule, but inspect only the
+// newly authored walls.  The entry transaction separately validates the old
+// room and the seam union, including occupants near the room edge.
+fn lockdown_requires_legacy(scene:&SceneRuntime, world:&WorldStateV3)->Result<bool,String> {
+    let canonical=scene.current_scene();
+    if canonical.scene_id!="gh_lockdown" || canonical.verified_source_sha256!="23e5d5d9f37f6f44b1f8b9105aab656424778ef5edf0e775bbc364143fe1b30c" {
+        return Err("E_LOCKDOWN_VARIANT_SOURCE".into());
+    }
+    let legacy=scene.lockdown_legacy_definition().map_err(|_|"E_LOCKDOWN_VARIANT_SOURCE")?;
+    if legacy.collision.len()!=7 || canonical.collision.len()!=27 {return Err("E_LOCKDOWN_VARIANT_COLLISION".into());}
+    for old in &legacy.collision {
+        let matches:Vec<_>=canonical.collision.iter().filter(|c|c.id==old.id).collect();
+        if matches.len()!=1 || matches[0].polygon!=old.polygon || matches[0].requires_event!=old.requires_event
+            || matches[0].requires_actor_first_kill!=old.requires_actor_first_kill {return Err("E_LOCKDOWN_VARIANT_COLLISION".into());}
+    }
+    if !world.sentinels.is_empty() {return Err("E_LOCKDOWN_VARIANT_ACTORS".into());}
+    let mut occupants=vec![(world.player.position_m,world.player.radius_m)];
+    for actor in world.generic_actors.iter().filter(|a|a.hp>0) {
+        if !actor.validate() {return Err("E_LOCKDOWN_VARIANT_ACTORS".into());}
+        occupants.push((actor.position_m,actor.body_radius_m()));
+    }
+    if occupants.iter().any(|(p,r)| !p.x_m.is_finite() || !p.y_m.is_finite() || !p.z_m.is_finite() || !r.is_finite() || *r<=0.0) {
+        return Err("E_LOCKDOWN_VARIANT_OCCUPANT".into());
+    }
+    for wall in canonical.collision.iter().filter(|c|!legacy.collision.iter().any(|old|old.id==c.id)) {
+        if wall.polygon.len()!=4 || wall.requires_event.is_some() || wall.requires_actor_first_kill.is_some() {
+            return Err("E_LOCKDOWN_VARIANT_COLLISION".into());
+        }
+        let min_x=wall.polygon.iter().map(|p|p[0]).fold(f32::INFINITY,f32::min);
+        let max_x=wall.polygon.iter().map(|p|p[0]).fold(f32::NEG_INFINITY,f32::max);
+        let min_z=wall.polygon.iter().map(|p|p[1]).fold(f32::INFINITY,f32::min);
+        let max_z=wall.polygon.iter().map(|p|p[1]).fold(f32::NEG_INFINITY,f32::max);
+        crate::continuous_kcc::Aabb::new(min_x,max_x,min_z,max_z).map_err(|_|"E_LOCKDOWN_VARIANT_COLLISION")?;
+        if occupants.iter().any(|(p,r)|p.x_m+*r>min_x && p.x_m-*r<max_x && p.z_m+*r>min_z && p.z_m-*r<max_z) {return Ok(true);}
+    }
+    Ok(false)
+}
+
+// Select the whole physical/visual scene at a real entry, using the KCC's
+// radius-expanded wall rule. Baizhi is a dialogue projection, not a body.
+fn utility_requires_legacy(scene:&SceneRuntime, world:&WorldStateV3, events:&BTreeSet<String>, seam_footprint:bool)->Result<bool,String> {
+    let canonical=scene.current_scene();
+    let (expected,old_count,new_count)=match canonical.scene_id.as_str() {
+        "gh_bio_isolation" => ("bf531fd9d49ee875653a8048130dd0c6e1d9b2170c1848ad48c49f2cb35ce0db",6,24),
+        "gh_deep_decon" => ("a53fd5c62a4540a375b51f7286798c7bab1a5c73aa37e98d3f4d6bad7b24f1c0",8,25),
+        "gh_beacon" => ("e6434c598904d7fe36f4f48ebc67559e6d484eb535393a7b447bc99cbf86c766",6,13),
+        "gh_exit" => ("b32ad8d1204e9eaf45512b0e2d5ea22e08f5bd09ec0b5e31980e41336c45ee09",7,17),
+        _ => return Err("E_UTILITY_VARIANT_SOURCE".into()),
+    };
+    if canonical.world_id!="grey_hive" || canonical.verified_source_sha256!=expected {return Err("E_UTILITY_VARIANT_SOURCE".into());}
+    let legacy=scene.utility_legacy_definition().map_err(|_|"E_UTILITY_VARIANT_SOURCE")?;
+    if legacy.collision.len()!=old_count || canonical.collision.len()!=new_count {return Err("E_UTILITY_VARIANT_COLLISION".into());}
+    for old in &legacy.collision {
+        let matches:Vec<_>=canonical.collision.iter().filter(|c|c.id==old.id).collect();
+        if matches.len()!=1 || matches[0].polygon!=old.polygon || matches[0].requires_event!=old.requires_event
+            || matches[0].requires_actor_first_kill!=old.requires_actor_first_kill {return Err("E_UTILITY_VARIANT_COLLISION".into());}
+    }
+    if !world.sentinels.is_empty() {return Err("E_UTILITY_VARIANT_ACTORS".into());}
+    let old_kcc=scene_kcc_with_first_kill(&legacy,events,false,None,false)?;
+    if (!seam_footprint && !old_kcc.can_player_occupy(world.player.position_m,world.player.radius_m)) || !world.actors_have_stable_support(&old_kcc)
+        || world.generic_actors.iter().filter(|a|a.hp>0).any(|a|!a.validate() || !old_kcc.can_occupy(a.position_m,a.body_radius_m())) {
+        return Err("E_UTILITY_LEGACY_CONTACT".into());
+    }
+    let mut occupants=vec![(world.player.position_m,world.player.radius_m)];
+    for actor in world.generic_actors.iter().filter(|a|a.hp>0) {
+        if !actor.validate() {return Err("E_UTILITY_VARIANT_ACTORS".into());}
+        occupants.push((actor.position_m,actor.body_radius_m()));
+    }
+    if occupants.iter().any(|(p,r)|!p.x_m.is_finite() || !p.y_m.is_finite() || !p.z_m.is_finite() || !r.is_finite() || *r<=0.0) {return Err("E_UTILITY_VARIANT_OCCUPANT".into());}
+    for wall in canonical.collision.iter().filter(|c|!legacy.collision.iter().any(|old|old.id==c.id)) {
+        if wall.polygon.len()!=4 || wall.requires_event.is_some() || wall.requires_actor_first_kill.is_some() {return Err("E_UTILITY_VARIANT_COLLISION".into());}
+        let min_x=wall.polygon.iter().map(|p|p[0]).fold(f32::INFINITY,f32::min);
+        let max_x=wall.polygon.iter().map(|p|p[0]).fold(f32::NEG_INFINITY,f32::max);
+        let min_z=wall.polygon.iter().map(|p|p[1]).fold(f32::INFINITY,f32::min);
+        let max_z=wall.polygon.iter().map(|p|p[1]).fold(f32::NEG_INFINITY,f32::max);
+        crate::continuous_kcc::Aabb::new(min_x,max_x,min_z,max_z).map_err(|_|"E_UTILITY_VARIANT_COLLISION")?;
+        if occupants.iter().any(|(p,r)|p.x_m+*r>min_x && p.x_m-*r<max_x && p.z_m+*r>min_z && p.z_m-*r<max_z) {return Ok(true);}
+    }
+    Ok(false)
+}
+
+/// `seam_footprint` is admitted only by the caller's combined KCC check.
+fn shaft_old_floor_entry_inner(scene:&crate::scene_runtime::SceneDefinition,world:&WorldStateV3,
+    events:&std::collections::BTreeSet<String>,seam_footprint:bool)->Result<(Option<shaft_lift::ShaftOwner>,bool),String> {
+    let owner=shaft_lift::ShaftOwner::new_at_upper(scene,world.server_time_ms).ok_or("E_SHAFT_OWNER_SCENE")?;
+    let legacy=scene_kcc_with_first_kill(scene,events,false,None,true)?;
+    if (!seam_footprint && !legacy.can_player_occupy(world.player.position_m,world.player.radius_m)) || !world.actors_have_stable_support(&legacy) {
+        return Err("E_SHAFT_LEGACY_CONTACT".into());
+    }
+    if world.generic_actors.iter().filter(|actor|actor.hp>0)
+        .any(|actor|!actor.validate() || !legacy.can_occupy(actor.position_m,actor.body_radius_m())) {
+        return Err("E_SHAFT_LEGACY_ACTOR_CONTACT".into());
+    }
+    if owner.clear_at_entry(world).map_err(|e|format!("E_SHAFT_ENTRY: {e}"))? {Ok((Some(owner),false))}
+    else {Ok((None,true))}
 }
 
 fn scene_kcc_for_state(
@@ -5413,6 +7612,8 @@ fn scene_kcc_for_state(
                 .world_persistent_v1
                 .clockworks
                 .forged_guard_elite_first_kill,
+        if shaft_lift::source_support_valid(scene) {state.shaft_owner.as_ref()} else {None},
+        shaft_lift::source_support_valid(scene) && state.shaft_deferred,
     )?
     .with_movement_rules(
         state.effective_rules_v6.clone(),
@@ -5423,6 +7624,10 @@ fn scene_kcc_for_state(
             .world_persistent_v1
             .resolve_terrain_tag(&scene.world_id, region_id, authored_tag)
     });
+    let player = if state.world.world_id==scene.world_id && state.world.scene_id==scene.scene_id {
+        Some((state.world.player.position_m,state.world.player.radius_m))
+    } else { None };
+    dense_service_wing::install(&mut kcc,scene,player);
     Ok(kcc)
 }
 
@@ -5800,10 +8005,35 @@ fn completed_world_events(
     route_completed_events(&state.route, world_id)
 }
 
+fn hive_route_straddling(state:&RuntimeState,scene:&SceneRuntime)->bool {
+    let p=state.world.player.position_m;let r=state.world.player.radius_m;
+    if !r.is_finite() || r<=0.0 || p.y_m!=0.0 {return false;}
+    let id=scene.current_scene().scene_id.as_str();
+    let width=if ["gh_entry_maintenance","gh_power_room"].contains(&id) {20.0} else {24.0};
+    let neighbor=|east| if scene.current_scene().world_id=="mist_harbor" {scene.mh_shore_neighbor(east)} else if scene.current_scene().world_id=="clockworks" {scene.cw_early_neighbor(east)} else {scene.hive_route_neighbor(east)};
+    let inset=if scene.current_scene().world_id=="mist_harbor" {0.5} else {0.0};
+    (p.x_m-r<inset && neighbor(false).is_some()) || (p.x_m+r>width-inset && neighbor(true).is_some())
+}
+fn pair_kcc_for_state(state: &RuntimeState, scene: &SceneRuntime) -> Result<StaticKccWorld, String> {
+    if hive_route_straddling(state,scene) {
+        return prepare_hive_route(state,scene).map(|p|p.union).ok_or_else(||"E_SEAM_RESTORE_PREPARATION".into());
+    }
+    if let Some(prepared)=prepare_beacon_exit(state,scene,true) {return Ok(prepared.union);}
+    if let Some(prepared)=prepare_shaft_lockdown(state,scene) {return Ok(prepared.union);}
+    if let Some(prepared)=prepare_gate_decon(state,scene) {return Ok(prepared.union);}
+    if let Some(prepared)=prepare_gate_shaft_upper(state,scene) {return Ok(prepared.union);}
+    let current = scene.current_scene();
+    let events = completed_world_events(state, &current.world_id);
+    let own = scene_kcc_for_state(current,&events,state)?;
+    let Some(neighbor) = scene.same_floor_neighbor() else { return Ok(own); };
+    if neighbor.world_id != "grey_hive" { return Err("E_SEAM_NEIGHBOR".into()); }
+    let offset = match current.scene_id.as_str() { "gh_power_room" => 20.0, "gh_gate_a" => -20.0, _ => return Ok(own) };
+    let other = scene_kcc_for_state(neighbor,&events,state)?;
+    own.join_grey_hive_pair(&other,offset).map_err(|_| "E_SEAM_KCC".into())
+}
+
 fn refresh_scene_kcc(state: &mut RuntimeState, scene: &SceneRuntime) -> Result<(), String> {
-    let definition = scene.current_scene();
-    let events = completed_world_events(state, &definition.world_id);
-    state.kcc = scene_kcc_for_state(definition, &events, state)?;
+    state.kcc = pair_kcc_for_state(state, scene)?;
     Ok(())
 }
 
@@ -5852,6 +8082,127 @@ fn interaction_rejected(
             view.clone(),
         ),
         view,
+    }
+}
+
+#[cfg(test)]
+mod observed_map_variant_tests {
+    use super::*;
+    use crate::world_v3::ObservedMapVariant;
+
+    #[test]
+    fn lower_visit_records_one_parent_without_touching_upper_observation() {
+        let mut state=FormalRuntime::initial_state(1).unwrap();
+        let upper=ObservedMapVariant::from_floor_route_key("shaft_active_open").unwrap();
+        state.world.shaft_upper_map_observation=Some(upper.clone());
+        let upper_rows=floor_route_info::rows("shaft_active_open","grey_hive.gh_central_shaft.upper_active_info_v1.cross_transit").unwrap();
+        state.world.explored.rooms.extend(upper_rows.clone());
+        state.world.scene_id="gh_central_shaft".into();
+        let position=Vec3{x_m:10.5,y_m:-4.0,z_m:10.0};state.world.player.position_m=position;
+        let id=floor_route_info::occupied("shaft_lower_closed",position,None).unwrap();
+        state.dense_region_previous=Some(("gh_central_shaft".into(),state.world.revision.world_epoch,id.clone()));
+        record_dense_exploration(&mut state,Some("shaft_lower_closed"));
+        assert_eq!(state.world.shaft_upper_map_observation,Some(upper));
+        for row in &upper_rows {assert!(state.world.explored.rooms.contains(row));}
+        assert_eq!(floor_route_info::stored_regions("shaft_lower_closed",&state.world.explored.rooms),vec![id]);
+        assert_eq!(floor_route_info::stored_regions("shaft_lower_open",&state.world.explored.rooms).len(),1);
+    }
+
+    #[test]
+    fn save_shapes_unknown_tags_and_legacy_profile_are_preserved() {
+        let mut state=FormalRuntime::initial_state(1).unwrap();
+        assert!(state.world.shaft_upper_map_observation.is_none() && state.world.lockdown_map_observation.is_none());
+        state.world.explored.rooms.push(crate::world_v3::ExploredRoom {room_id:"power_nw".into(),
+            outline_m:dense_service_wing::shared_region_polygon("power_nw").unwrap().iter()
+                .map(|p|Vec3{x_m:p[0],y_m:0.0,z_m:p[1]}).collect()});
+        let mut save=crate::save_v5::SaveV5::capture(&state,None).unwrap();
+        let old=serde_json::to_value(&save).unwrap();
+        assert!(old.get("shaftUpperMapObservation").is_none() && old.get("lockdownMapObservation").is_none());
+        let old_decoded:crate::save_v5::SaveV5=serde_json::from_value(old.clone()).unwrap();
+        assert!(old_decoded.shaft_upper_map_observation.is_none());
+        assert!(crate::save_v5::same_schema_shape(&old,&serde_json::to_value(&old_decoded).unwrap()));
+        let mut null=old.clone();null["shaftUpperMapObservation"]=serde_json::Value::Null;
+        let null_decoded:crate::save_v5::SaveV5=serde_json::from_value(null.clone()).unwrap();
+        assert!(!crate::save_v5::same_schema_shape(&null,&serde_json::to_value(&null_decoded).unwrap()));
+        let mut malformed=old.clone();malformed["shaftUpperMapObservation"]=serde_json::json!({"sceneId":1,"sceneSourceSha256":"x","providerFamily":"y","floorYM":0});
+        assert!(serde_json::from_value::<crate::save_v5::SaveV5>(malformed).is_err());
+        save.shaft_upper_map_observation=ObservedMapVariant::from_floor_route_key("shaft_active_open");
+        save.lockdown_map_observation=ObservedMapVariant::from_floor_route_key("lockdown_legacy_open");
+        let v5_json=serde_json::to_value(&save).unwrap();
+        let decoded_v5:crate::save_v5::SaveV5=serde_json::from_value(v5_json.clone()).unwrap();
+        assert!(crate::save_v5::same_schema_shape(&v5_json,&serde_json::to_value(&decoded_v5).unwrap()));
+        assert_eq!(decoded_v5.restore_state().unwrap().world.shaft_upper_map_observation,save.shaft_upper_map_observation);
+        let v6=crate::save_v6::SaveV6::from_v5(save.clone()).unwrap();
+        let current=serde_json::to_value(&v6).unwrap();
+        let mut null_v6=current.clone();null_v6["save"]["shaftUpperMapObservation"]=serde_json::Value::Null;
+        assert_eq!(crate::save_v6::decode_value(null_v6).unwrap_err(),"E_SAVE_SCHEMA_INVALID");
+        let (decoded,_)=crate::save_v6::decode_value(current.clone()).unwrap();
+        let restored=decoded.restore_state().unwrap();
+        assert_eq!(restored.world.shaft_upper_map_observation,save.shaft_upper_map_observation);
+        assert_eq!(restored.world.lockdown_map_observation,save.lockdown_map_observation);
+        assert_eq!(restored.world.explored,save.explored);
+        for (field,value) in [("sceneId",serde_json::json!("future.scene")),("sceneSourceSha256",serde_json::json!("future.sha")),("providerFamily",serde_json::json!("future.family")),("floorYM",serde_json::json!(-4.0))] {
+            let mut unknown=current.clone();unknown["save"]["shaftUpperMapObservation"][field]=value;
+            let (decoded,_)=crate::save_v6::decode_value(unknown.clone()).unwrap();
+            assert_eq!(decoded.save.shaft_upper_map_observation.as_ref().unwrap().trusted_family(),None);
+            assert_eq!(serde_json::to_value(&decoded).unwrap()["save"]["shaftUpperMapObservation"],unknown["save"]["shaftUpperMapObservation"]);
+        }
+        let mut legacy=current;legacy.as_object_mut().unwrap().remove("effectSourcesVersion");
+        assert_eq!(crate::save_v6::decode_value(legacy).unwrap_err(),"E_SAVE_SCHEMA_INVALID");
+    }
+
+    #[test]
+    fn observed_history_carries_only_same_world_and_real_revisit_refreshes_tag() {
+        let mut state=FormalRuntime::initial_state(1).unwrap();
+        let id="grey_hive.gh_lockdown.dense_info_v1.west_transit";
+        let rows=floor_route_info::rows("lockdown_closed",id).unwrap();
+        let a=rows[0].outline_m[0];let c=rows[0].outline_m[2];
+        let position=Vec3{x_m:(a.x_m+c.x_m)*0.5,y_m:0.0,z_m:(a.z_m+c.z_m)*0.5};
+        assert_eq!(floor_route_info::occupied("lockdown_closed",position,None).as_deref(),Some(id));
+        state.world.scene_id="gh_lockdown".into();state.world.player.position_m=position;
+        state.world.explored.rooms.extend(rows.clone());
+        state.world.lockdown_map_observation=ObservedMapVariant::from_floor_route_key("lockdown_legacy_closed");
+        state.dense_region_previous=Some(("gh_lockdown".into(),state.world.revision.world_epoch,id.into()));
+        record_dense_exploration(&mut state,Some("lockdown_closed"));
+        assert_eq!(state.world.explored.rooms,rows);
+        assert_eq!(state.world.lockdown_map_observation.as_ref().unwrap().trusted_family(),Some("lockdown"));
+        let observed=state.world.lockdown_map_observation.clone();
+        record_dense_exploration(&mut state,None);
+        assert_eq!(state.world.lockdown_map_observation,observed);
+        let mut same=WorldStateV3::new("grey_hive",2,position).unwrap();
+        preserve_grey_hive_exploration(&state.world,&mut same);
+        assert_eq!(same.lockdown_map_observation,state.world.lockdown_map_observation);
+        let mut other=WorldStateV3::new("mist_harbor",2,position).unwrap();
+        preserve_grey_hive_exploration(&state.world,&mut other);
+        assert!(other.lockdown_map_observation.is_none() && other.explored.rooms.is_empty());
+    }
+}
+
+#[cfg(test)]
+mod deferred_shaft_proof_tests {
+    use super::*;
+    #[test]
+    fn proof_binding_and_lifecycle_fail_closed_on_stale_state() {
+        let mut world=WorldStateV3::new("grey_hive",1,Vec3{x_m:10.0,y_m:0.0,z_m:7.0}).unwrap();
+        world.scene_id="gh_central_shaft".into();
+        assert!(world.deferred_shaft_floor_proof.is_none());
+        let proof=crate::world_v3::DeferredShaftFloorProof{scene_sha:"bound".into(),revision:world.revision,
+            server_time_ms:world.server_time_ms,body:world.player.clone()};
+        assert!(deferred_floor_binding_matches(&proof,&world,"bound"));
+        assert!(!deferred_floor_binding_matches(&proof,&world,"other"));
+        let prior=world.clone();world.player.radius_m+=0.01;
+        assert!(!deferred_floor_binding_matches(&proof,&world,"bound"));
+        world=prior.clone();world.revision.authority_revision+=1;
+        assert!(!deferred_floor_binding_matches(&proof,&world,"bound"));
+        world=prior.clone();world.server_time_ms+=1;
+        assert!(!deferred_floor_binding_matches(&proof,&world,"bound"));
+        // Rolling back restores the prior state, not a new contact proof.
+        world=prior;assert!(deferred_floor_binding_matches(&proof,&world,"bound"));
+        assert!(deferred_information_lifecycle_ready(false,false,false,false,true));
+        for (paused,entry,exit,error,alive) in [(true,false,false,false,true),(false,true,false,false,true),
+            (false,false,true,false,true),(false,false,false,true,true),(false,false,false,false,false)] {
+            assert!(!deferred_information_lifecycle_ready(paused,entry,exit,error,alive));
+        }
     }
 }
 
@@ -8097,13 +10448,8 @@ mod tests {
 
         kill_registered_sentinel_for_beacon_test(&runtime);
         set_test_player_position(&runtime, beacon_position);
-        let entered = runtime
-            .transition_scene(
-                "gh_sentinel_arena_to_beacon",
-                "beacon-gate-retry-after-kill",
-                epoch,
-            ).map(|view| crate::formal_runtime::entry_test_support::acknowledge_ready(&runtime, view))
-            .unwrap();
+        assert_eq!(runtime.transition_scene("gh_sentinel_arena_to_beacon","beacon-gate-retry-after-kill",epoch).unwrap_err(),"E_SEAM_WALK_PREPARING");
+        let entered = walk_hive_test(&runtime,"gh_beacon",true,24.0,8.0);
         assert_eq!(entered.scene_id, "gh_beacon");
         assert_eq!(entered.world_epoch, epoch + 1);
     }
@@ -8111,34 +10457,15 @@ mod tests {
     #[test]
     fn sentinel_beacon_gate_allows_return_continue_and_revisit_after_real_first_kill() {
         let runtime = runtime_for_sentinel_beacon_gate();
-        let return_position = Vec3::new(1.0, 0.0, 8.0).unwrap();
-        let arena_entry_position = Vec3::new(23.0, 0.0, 8.0).unwrap();
-        let beacon_position = Vec3::new(23.0, 0.0, 8.0).unwrap();
         let route_before = runtime.state.lock().unwrap().route.clone();
 
-        set_test_player_position(&runtime, return_position);
-        let epoch = runtime.state.lock().unwrap().world.revision.world_epoch;
-        runtime
-            .transition_scene(
-                "gh_sentinel_arena_return_to_deep_decon",
-                "prekill-arena-return",
-                epoch,
-            ).map(|view| crate::formal_runtime::entry_test_support::acknowledge_ready(&runtime, view))
-            .unwrap();
+        walk_hive_test(&runtime,"gh_deep_decon",false,24.0,8.0);
         assert_eq!(
             runtime.state.lock().unwrap().world.scene_id,
             "gh_deep_decon"
         );
 
-        set_test_player_position(&runtime, arena_entry_position);
-        let epoch = runtime.state.lock().unwrap().world.revision.world_epoch;
-        runtime
-            .transition_scene(
-                "gh_deep_decon_to_sentinel_arena",
-                "prekill-arena-revisit",
-                epoch,
-            ).map(|view| crate::formal_runtime::entry_test_support::acknowledge_ready(&runtime, view))
-            .unwrap();
+        walk_hive_test(&runtime,"gh_sentinel_arena",true,24.0,8.0);
         assert_eq!(
             runtime.state.lock().unwrap().world.scene_id,
             SENTINEL_SCENE_ID
@@ -8159,24 +10486,8 @@ mod tests {
                 .sentinel_first_kill
         );
 
-        set_test_player_position(&runtime, return_position);
-        let epoch = runtime.state.lock().unwrap().world.revision.world_epoch;
-        runtime
-            .transition_scene(
-                "gh_sentinel_arena_return_to_deep_decon",
-                "postkill-arena-return",
-                epoch,
-            ).map(|view| crate::formal_runtime::entry_test_support::acknowledge_ready(&runtime, view))
-            .unwrap();
-        set_test_player_position(&runtime, arena_entry_position);
-        let epoch = runtime.state.lock().unwrap().world.revision.world_epoch;
-        runtime
-            .transition_scene(
-                "gh_deep_decon_to_sentinel_arena",
-                "postkill-arena-revisit",
-                epoch,
-            ).map(|view| crate::formal_runtime::entry_test_support::acknowledge_ready(&runtime, view))
-            .unwrap();
+        walk_hive_test(&runtime,"gh_deep_decon",false,24.0,8.0);
+        walk_hive_test(&runtime,"gh_sentinel_arena",true,24.0,8.0);
         assert!(
             runtime
                 .state
@@ -8188,17 +10499,1412 @@ mod tests {
         );
         assert_eq!(runtime.state.lock().unwrap().route, route_before);
 
-        set_test_player_position(&runtime, beacon_position);
-        let epoch = runtime.state.lock().unwrap().world.revision.world_epoch;
-        let entered = runtime
-            .transition_scene(
-                "gh_sentinel_arena_to_beacon",
-                "postkill-beacon-after-revisit",
-                epoch,
-            ).map(|view| crate::formal_runtime::entry_test_support::acknowledge_ready(&runtime, view))
-            .unwrap();
+        let entered = walk_hive_test(&runtime,"gh_beacon",true,24.0,8.0);
         assert_eq!(entered.scene_id, "gh_beacon");
         assert_eq!(runtime.state.lock().unwrap().route, route_before);
+    }
+
+    fn walk_hive_test(runtime:&FormalRuntime,target:&str,east:bool,width:f32,z:f32)->WorldView {
+        {
+            let mut state=runtime.state.lock().unwrap();
+            state.world.player.position_m=Vec3::new(if east {width-0.4} else {0.4},0.0,z).unwrap();
+            state.world.player.grounded=true;
+        }
+        let before=runtime.snapshot().unwrap();let route=before.hive_route_neighbor.clone().expect("prepared route");
+        assert_eq!(route.target_scene_id,target);
+        let source_sha=runtime.scene_runtime.lock().unwrap().as_ref().unwrap().current_scene().verified_source_sha256.clone();
+        let proof=serde_json::json!({"hiveRoute":true,"sourceSha":source_sha,"progression":before.progression});
+        runtime.scene_ready_with_exit_proof(&route.token,false,Some(&route.target_scene_source_sha256),Some(&proof)).unwrap();
+        let view={
+            let mut state=runtime.state.lock().unwrap();let epoch=state.world.revision.world_epoch;
+            state.latest_sample=InputSample::new(epoch,state.world.last_input_seq+1,state.world.last_client_time_ms+1,if east {1.0} else {-1.0},0.0).unwrap();state.latest_input_received_at=Instant::now();
+            let mut scene=runtime.scene_runtime.lock().unwrap();
+            for _ in 0..8 {advance_owner_step_with_pair_crossing(&mut state,&mut scene).unwrap();if state.world.scene_id==target {break;}}
+            assert_eq!(state.world.scene_id,target);
+            project_scene_view(&state,scene.as_ref())
+        };
+        crate::formal_runtime::entry_test_support::acknowledge_ready(runtime,view)
+    }
+
+    #[test]
+    fn hive_route_sentinel_requires_preview_ack_then_carries_actual_motion() {
+        let runtime=runtime_for_sentinel_beacon_gate();
+        {
+            let mut state=runtime.state.lock().unwrap();
+            state.world.player.position_m=Vec3::new(23.6,0.0,8.0).unwrap();
+            state.world.player.grounded=true;
+            state.world_persistent_v1.grey_hive.sentinel_first_kill=false;
+        }
+        let closed=runtime.snapshot().unwrap();
+        assert!(closed.hive_route_neighbor.is_none());
+        assert_eq!(closed.hive_route_boundary.as_ref().map(|b|b.closed),Some(true));
+        {
+            let mut state=runtime.state.lock().unwrap();
+            state.world_persistent_v1.grey_hive.sentinel_first_kill=true;
+        }
+        let before=runtime.snapshot().unwrap();
+        let neighbor=before.hive_route_neighbor.clone().expect("prepared target");
+        assert!(!neighbor.ready);
+        assert!(runtime.transition_scene("gh_sentinel_arena_to_beacon","route-no-teleport",before.world_epoch).is_err());
+        let source_sha=runtime.scene_runtime.lock().unwrap().as_ref().unwrap().current_scene().verified_source_sha256.clone();
+        let proof=serde_json::json!({"hiveRoute":true,"sourceSha":source_sha,"progression":before.progression});
+        let mut stale=neighbor.token.clone();stale.generation+=1;
+        assert!(runtime.scene_ready_with_exit_proof(&stale,false,Some(&neighbor.target_scene_source_sha256),Some(&proof)).is_err());
+        assert!(runtime.scene_ready_with_exit_proof(&neighbor.token,false,Some(&"0".repeat(64)),Some(&proof)).is_err());
+        assert!(!runtime.state.lock().unwrap().kcc.is_hive_route_union());
+        let acknowledged=runtime.scene_ready_with_exit_proof(&neighbor.token,false,Some(&neighbor.target_scene_source_sha256),Some(&proof)).unwrap();
+        assert_eq!(acknowledged.hive_route_neighbor.as_ref().map(|v|v.ready),Some(true));
+        assert_eq!(acknowledged.hive_route_boundary.as_ref().map(|v|v.closed),Some(false));
+        {
+            let mut state=runtime.state.lock().unwrap();
+            let epoch=state.world.revision.world_epoch;
+            state.latest_sample=InputSample::new(epoch,1,0,1.0,0.0).unwrap();
+            state.latest_input_received_at=Instant::now();
+            let mut scene=runtime.scene_runtime.lock().unwrap();
+            for _ in 0..8 {
+                advance_owner_step_with_pair_crossing(&mut state,&mut scene).unwrap();
+                if state.world.scene_id=="gh_beacon" {break;}
+            }
+            assert_eq!(state.world.scene_id,"gh_beacon");
+            assert!(state.world.player.position_m.x_m>=0.0 && state.world.player.position_m.x_m<1.0);
+            assert!(state.world.player.velocity_mps.x_m>0.0);
+            assert!(state.pending_entry.is_some());
+            assert!(project_scene_view(&state,scene.as_ref()).hive_route_handoff.is_some());
+        }
+    }
+
+    #[test]
+    fn cw_later_gear_collar_rejects_unbound_save_frames() {
+        let runtime=runtime_for_clockworks_elite_gate();stop_regulator_test_owner(&runtime);
+        let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();runtime.install_scene_registry(registry,"cw_gear_shaft").unwrap();
+        {let mut state=runtime.state.lock().unwrap();state.paused=false;state.route.current_world_id="clockworks".into();
+         state.world.player.position_m=Vec3::new(0.6,0.0,8.0).unwrap();state.world.player.grounded=true;}
+        let view=runtime.snapshot().unwrap();let route=view.hive_route_neighbor.clone().expect("Gear ground preview");
+        let sha=runtime.scene_runtime.lock().unwrap().as_ref().unwrap().current_scene().verified_source_sha256.clone();
+        let proof=serde_json::json!({"hiveRoute":true,"sourceSha":sha,"progression":view.progression});
+        runtime.scene_ready_with_exit_proof(&route.token,false,Some(&route.target_scene_source_sha256),Some(&proof)).unwrap();
+        let save={let mut state=runtime.state.lock().unwrap();state.world.player.position_m=Vec3::new(-0.1,0.0,8.0).unwrap();
+            let scene=runtime.scene_runtime.lock().unwrap();crate::save_v6::SaveV6::capture(&state,scene.as_ref()).unwrap()};
+        assert!(save.validate().is_ok());
+        {let state=runtime.state.lock().unwrap();let (restored,_)=runtime.prepare_default_save(&save,&state).unwrap();assert!(restored.kcc.is_hive_route_union());}
+        let mut bad=save.clone();bad.save.moving_support_frame.as_mut().unwrap().catalog_sha256="0".repeat(64);assert!(bad.validate().is_err());
+        let mut bad=save.clone();bad.save.moving_support_frame.as_mut().unwrap().server_time_ms+=1;assert!(bad.validate().is_err());
+        let mut bad=save.clone();bad.save.player.position_m.z_m=5.8;assert!(bad.validate().is_err());
+        let mut bad=save.clone();bad.save.player.position_m.y_m=2.0;assert!(bad.validate().is_err());
+    }
+    #[test]
+    fn cw_later_arena_prekill_ingress_is_private_and_restorable() {
+        for (source,east,expected) in [("cw_furnace_heart",true,"cw_arena_shutter_west_blocker"),("cw_regulator_core",false,"cw_arena_shutter_east_blocker")] {
+            let runtime=runtime_for_clockworks_elite_gate();stop_regulator_test_owner(&runtime);
+            let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();runtime.install_scene_registry(registry,source).unwrap();
+            {let mut state=runtime.state.lock().unwrap();state.paused=false;state.route.current_world_id="clockworks".into();
+             state.world.player.position_m=Vec3::new(if east {23.4} else {0.6},0.0,8.0).unwrap();state.world.player.grounded=true;
+             assert!(!state.world_persistent_v1.clockworks.forged_guard_elite_first_kill);}
+            let initial=runtime.snapshot().unwrap();let route=initial.hive_route_neighbor.clone().expect("Arena prekill preview");
+            assert_eq!(route.target_scene_id,"cw_forged_guard_arena");assert_eq!(route.arena_shutters_open,Some(false));
+            let sha=runtime.scene_runtime.lock().unwrap().as_ref().unwrap().current_scene().verified_source_sha256.clone();
+            let proof=serde_json::json!({"hiveRoute":true,"sourceSha":sha,"progression":initial.progression,"arenaShuttersOpen":false});
+            {let mut state=runtime.state.lock().unwrap();state.world.server_time_ms+=1000;}
+            let timed=runtime.snapshot().unwrap();assert_eq!(timed.hive_route_neighbor.as_ref().unwrap().token,route.token);
+            {let mut state=runtime.state.lock().unwrap();state.world_persistent_v1.clockworks.forged_guard_elite_first_kill=true;}
+            assert!(runtime.scene_ready_with_exit_proof(&route.token,false,Some(&route.target_scene_source_sha256),Some(&proof)).is_err());
+            {let mut state=runtime.state.lock().unwrap();state.world_persistent_v1.clockworks.forged_guard_elite_first_kill=false;}
+            let view=runtime.snapshot().unwrap();let fresh=view.hive_route_neighbor.clone().unwrap();
+            let proof=serde_json::json!({"hiveRoute":true,"sourceSha":sha,"progression":view.progression,"arenaShuttersOpen":false});
+            runtime.scene_ready_with_exit_proof(&fresh.token,false,Some(&fresh.target_scene_source_sha256),Some(&proof)).unwrap();
+            let mut saved=None;
+            {let mut state=runtime.state.lock().unwrap();
+             assert_eq!(state.kcc.player_escape_ids(),vec![expected.to_string()]);
+             let active=runtime.scene_runtime.lock().unwrap();let prepared=prepare_hive_route(&state,active.as_ref().unwrap()).unwrap();
+             let near=Vec3::new(if east {0.75} else {23.25},0.0,8.0).unwrap();
+             assert!(!prepared.target_standalone.can_player_occupy(near,state.world.player.radius_m));
+             assert!(!prepared.target_standalone.can_occupy(near,state.world.player.radius_m));drop(active);
+             let epoch=state.world.revision.world_epoch;state.latest_sample=InputSample::new(epoch,1,0,if east {1.0} else {-1.0},0.0).unwrap();state.latest_input_received_at=Instant::now();
+             let mut scene=runtime.scene_runtime.lock().unwrap();
+             for _ in 0..180 {advance_owner_step_with_pair_crossing(&mut state,&mut scene).unwrap();if state.world.scene_id!=source {break;}
+                 let x=state.world.player.position_m.x_m;if saved.is_none() && (if east {x>24.0} else {x<0.0}) {saved=Some(crate::save_v6::SaveV6::capture(&state,scene.as_ref()).unwrap());}}
+             assert_eq!(state.world.scene_id,"cw_forged_guard_arena");let x=state.world.player.position_m.x_m;let radius=state.world.player.radius_m;
+             assert!(if east {x-radius>1.0} else {x+radius<23.0});
+             let active=scene.as_ref().unwrap();let events=completed_world_events(&state,"clockworks");
+             assert!(!active.cw_early_connection_verified("cw_furnace_heart",&events,false));assert!(!active.cw_early_connection_verified("cw_regulator_core",&events,false));}
+            let decoded:crate::save_v6::SaveV6=serde_json::from_slice(&serde_json::to_vec(&saved.expect("lease collar save")).unwrap()).unwrap();
+            let state=runtime.state.lock().unwrap();let (mut restored,restored_scene)=runtime.prepare_default_save(&decoded,&state).unwrap();
+            assert_eq!(restored.world.scene_id,source);assert_eq!(restored.kcc.player_escape_ids(),vec![expected.to_string()]);
+            let x=restored.world.player.position_m.x_m;let epoch=restored.world.revision.world_epoch;restored.paused=false;
+            restored.latest_sample=InputSample::new(epoch,2,0,if east {-1.0} else {1.0},0.0).unwrap();restored.latest_input_received_at=Instant::now();
+            hold_hive_route(&mut restored,restored_scene.as_ref().unwrap(),east).unwrap();
+            assert!(if east {restored.world.player.position_m.x_m<x} else {restored.world.player.position_m.x_m>x});
+        }
+    }
+    #[test]
+    fn cw_later_edges_ack_walk_and_restore_partial_support() {
+        let routes=[("cw_boiler_chamber","cw_gear_shaft",true),("cw_gear_shaft","cw_boiler_chamber",false),
+            ("cw_furnace_heart","cw_forged_guard_arena",true),("cw_forged_guard_arena","cw_furnace_heart",false),
+            ("cw_forged_guard_arena","cw_regulator_core",true),("cw_regulator_core","cw_forged_guard_arena",false),
+            ("cw_regulator_core","cw_shutdown_exit",true),("cw_shutdown_exit","cw_regulator_core",false)];
+        for (source,target,east) in routes {
+            let runtime=runtime_for_clockworks_elite_gate();stop_regulator_test_owner(&runtime);
+            let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();
+            runtime.install_scene_registry(registry,source).unwrap();
+            {let mut s=runtime.state.lock().unwrap();s.paused=false;s.route.current_world_id="clockworks".into();s.world.player.position_m=Vec3::new(if east {23.4} else {0.6},0.0,8.0).unwrap();s.world.player.grounded=true;
+                s.world_persistent_v1.clockworks.forged_guard_elite_first_kill=true;
+                if source=="cw_forged_guard_arena" {for actor in &mut s.world.generic_actors {if actor.entity_id==CLOCKWORKS_ELITE_SPAWN_ID {actor.take_damage(u32::MAX);}}}
+                let progress=s.route.progress.iter_mut().find(|p|p.world_id=="clockworks").unwrap();
+                if !progress.completed_events.iter().any(|e|e=="clockworks_core") {progress.completed_events.push("clockworks_core".into());}
+            }
+            let (before_hp,before_environment)={let s=runtime.state.lock().unwrap();(s.world.player_hp,serde_json::to_value(&s.world_persistent_v1.environment).unwrap())};
+            let initial=runtime.snapshot().unwrap();
+            if target=="cw_boiler_chamber" {
+                let s=runtime.state.lock().unwrap();assert_eq!(s.world.player_hp,before_hp);
+                assert_eq!(serde_json::to_value(&s.world_persistent_v1.environment).unwrap(),before_environment);
+            }
+            if source=="cw_pressure_hall" && target=="cw_conveyor_bridge" {
+                assert!(initial.hive_route_neighbor.is_none());
+                seed_clockworks_prerequisites(&runtime,&["clockworks_valves"]);
+            } else if source=="cw_conveyor_bridge" && target=="cw_pressure_hall" {
+                assert!(initial.hive_route_neighbor.is_some(),"reverse is not gated by the target portal");
+            }
+            let initial=runtime.snapshot().unwrap();let stale=initial.hive_route_neighbor.clone().expect("CW preview");
+            assert_eq!(stale.target_scene_id,target);
+            let sha=runtime.scene_runtime.lock().unwrap().as_ref().unwrap().current_scene().verified_source_sha256.clone();
+            let old_proof=serde_json::json!({"hiveRoute":true,"sourceSha":sha,"progression":initial.progression});
+            runtime.pause().unwrap();runtime.resume().unwrap();
+            assert!(runtime.scene_ready_with_exit_proof(&stale.token,false,Some(&stale.target_scene_source_sha256),Some(&old_proof)).is_err());
+            let mut view=runtime.snapshot().unwrap();let mut route=view.hive_route_neighbor.clone().expect("fresh CW preview");
+            if target=="cw_gear_shaft" {
+                let old=route.gear_support_frame.clone().expect("Gear frame");
+                {let mut state=runtime.state.lock().unwrap();state.world.server_time_ms+=2500;}
+                view=runtime.snapshot().unwrap();let next=view.hive_route_neighbor.clone().expect("later Gear frame");
+                assert_eq!(route.token,next.token);assert_ne!(old.poses,next.gear_support_frame.as_ref().unwrap().poses);
+                route=next;
+            }
+            let mut proof=serde_json::json!({"hiveRoute":true,"sourceSha":sha,"progression":view.progression}); if target=="cw_forged_guard_arena" {proof["arenaShuttersOpen"]=serde_json::json!(true);}
+            runtime.scene_ready_with_exit_proof(&route.token,false,Some(&route.target_scene_source_sha256),Some(&proof)).unwrap();
+            let mut saved=None;
+            {let mut state=runtime.state.lock().unwrap();let epoch=state.world.revision.world_epoch;
+                state.latest_sample=InputSample::new(epoch,1,0,if east {1.0} else {-1.0},0.0).unwrap();state.latest_input_received_at=Instant::now();
+                let mut scene=runtime.scene_runtime.lock().unwrap();
+                for _ in 0..150 {
+                    advance_owner_step_with_pair_crossing(&mut state,&mut scene).unwrap();
+                    if state.world.scene_id!=source {break;}
+                    let x=state.world.player.position_m.x_m;
+                    if saved.is_none() && (if east {x>24.0} else {x<0.0}) {
+                        assert!(state.kcc.is_hive_route_union());
+                        saved=Some(crate::save_v6::SaveV6::capture(&state,scene.as_ref()).unwrap());
+                    }
+                }
+                if state.world.scene_id!=target {
+                    let p=Vec3::new(if east {24.6} else {-0.6},0.0,8.0).unwrap();let mapped=Vec3::new(p.x_m+if east {-24.0} else {24.0},p.y_m,p.z_m).unwrap();
+                    let mut candidate=state.clone();candidate.world.player.position_m=p;let mut target_scene=scene.clone();let epoch=candidate.world.revision.world_epoch;
+                    let error=FormalRuntime::transition_scene_locked(&mut candidate,&mut target_scene,&format!("hive-route-{target}"),"diagnostic-seam",epoch,Some((p,mapped))).err();
+                    panic!("{source}->{target} position={p:?} transition={error:?}");
+                }
+                assert!(if east {state.world.player.velocity_mps.x_m>0.0} else {state.world.player.velocity_mps.x_m<0.0});
+                if source=="cw_gear_shaft" {assert_eq!(state.world_persistent_v1.clockworks.gear_shaft_support_version,1);}
+                let own=scene_kcc_for_state(scene.as_ref().unwrap().current_scene(),&completed_world_events(&state,"clockworks"),&state).unwrap();
+                assert!(own.can_player_occupy(state.world.player.position_m,state.world.player.radius_m));
+            }
+            let bytes=serde_json::to_vec(&saved.expect("actual partial-disc save")).unwrap();
+            let decoded:crate::save_v6::SaveV6=serde_json::from_slice(&bytes).unwrap();
+            let state=runtime.state.lock().unwrap();let (mut restored,restored_scene)=runtime.prepare_default_save(&decoded,&state).unwrap();
+            assert_eq!(restored.world.scene_id,source);assert!(restored.kcc.is_hive_route_union());assert!(restored.hive_route_latch.is_some());
+            let before=restored.world.player.position_m.x_m;let epoch=restored.world.revision.world_epoch;
+            restored.paused=false;restored.latest_sample=InputSample::new(epoch,2,0,if east {-1.0} else {1.0},0.0).unwrap();restored.latest_input_received_at=Instant::now();
+            hold_hive_route(&mut restored,restored_scene.as_ref().unwrap(),east).unwrap();
+            assert!(if east {restored.world.player.position_m.x_m<before} else {restored.world.player.position_m.x_m>before});
+        }
+    }
+
+
+    #[test]
+    fn cw_early_edges_gate_ack_walk_and_restore_partial_support() {
+        let routes=[("cw_entry_foundry","cw_pressure_hall",true),("cw_pressure_hall","cw_entry_foundry",false),
+            ("cw_pressure_hall","cw_conveyor_bridge",true),("cw_conveyor_bridge","cw_pressure_hall",false),
+            ("cw_conveyor_bridge","cw_boiler_chamber",true),("cw_boiler_chamber","cw_conveyor_bridge",false)];
+        for (source,target,east) in routes {
+            let runtime=runtime_for_clockworks_elite_gate();stop_regulator_test_owner(&runtime);
+            let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();
+            runtime.install_scene_registry(registry,source).unwrap();
+            {let mut s=runtime.state.lock().unwrap();s.paused=false;s.route.current_world_id="clockworks".into();s.world.player.position_m=Vec3::new(if east {23.4} else {0.6},0.0,8.0).unwrap();s.world.player.grounded=true;}
+            let (before_hp,before_environment)={let s=runtime.state.lock().unwrap();(s.world.player_hp,serde_json::to_value(&s.world_persistent_v1.environment).unwrap())};
+            let initial=runtime.snapshot().unwrap();
+            if target=="cw_boiler_chamber" {
+                let s=runtime.state.lock().unwrap();assert_eq!(s.world.player_hp,before_hp);
+                assert_eq!(serde_json::to_value(&s.world_persistent_v1.environment).unwrap(),before_environment);
+            }
+            if source=="cw_pressure_hall" && target=="cw_conveyor_bridge" {
+                assert!(initial.hive_route_neighbor.is_none());
+                seed_clockworks_prerequisites(&runtime,&["clockworks_valves"]);
+            } else if source=="cw_conveyor_bridge" && target=="cw_pressure_hall" {
+                assert!(initial.hive_route_neighbor.is_some(),"reverse is not gated by the target portal");
+            }
+            let initial=runtime.snapshot().unwrap();let stale=initial.hive_route_neighbor.clone().expect("CW preview");
+            assert_eq!(stale.target_scene_id,target);
+            let sha=runtime.scene_runtime.lock().unwrap().as_ref().unwrap().current_scene().verified_source_sha256.clone();
+            let old_proof=serde_json::json!({"hiveRoute":true,"sourceSha":sha,"progression":initial.progression});
+            runtime.pause().unwrap();runtime.resume().unwrap();
+            assert!(runtime.scene_ready_with_exit_proof(&stale.token,false,Some(&stale.target_scene_source_sha256),Some(&old_proof)).is_err());
+            let view=runtime.snapshot().unwrap();let route=view.hive_route_neighbor.clone().expect("fresh CW preview");
+            let proof=serde_json::json!({"hiveRoute":true,"sourceSha":sha,"progression":view.progression});
+            runtime.scene_ready_with_exit_proof(&route.token,false,Some(&route.target_scene_source_sha256),Some(&proof)).unwrap();
+            let mut saved=None;
+            {let mut state=runtime.state.lock().unwrap();let epoch=state.world.revision.world_epoch;
+                state.latest_sample=InputSample::new(epoch,1,0,if east {1.0} else {-1.0},0.0).unwrap();state.latest_input_received_at=Instant::now();
+                let mut scene=runtime.scene_runtime.lock().unwrap();
+                for _ in 0..150 {
+                    advance_owner_step_with_pair_crossing(&mut state,&mut scene).unwrap();
+                    if state.world.scene_id!=source {break;}
+                    let x=state.world.player.position_m.x_m;
+                    if saved.is_none() && (if east {x>24.0} else {x<0.0}) {
+                        assert!(state.kcc.is_hive_route_union());
+                        saved=Some(crate::save_v6::SaveV6::capture(&state,scene.as_ref()).unwrap());
+                    }
+                }
+                assert_eq!(state.world.scene_id,target,"{source} -> {target}");
+                assert!(if east {state.world.player.velocity_mps.x_m>0.0} else {state.world.player.velocity_mps.x_m<0.0});
+                let own=scene_kcc_for_state(scene.as_ref().unwrap().current_scene(),&completed_world_events(&state,"clockworks"),&state).unwrap();
+                assert!(own.can_player_occupy(state.world.player.position_m,state.world.player.radius_m));
+            }
+            let bytes=serde_json::to_vec(&saved.expect("actual partial-disc save")).unwrap();
+            let decoded:crate::save_v6::SaveV6=serde_json::from_slice(&bytes).unwrap();
+            let state=runtime.state.lock().unwrap();let (mut restored,restored_scene)=runtime.prepare_default_save(&decoded,&state).unwrap();
+            assert_eq!(restored.world.scene_id,source);assert!(restored.kcc.is_hive_route_union());assert!(restored.hive_route_latch.is_some());
+            let before=restored.world.player.position_m.x_m;let epoch=restored.world.revision.world_epoch;
+            restored.paused=false;restored.latest_sample=InputSample::new(epoch,2,0,if east {-1.0} else {1.0},0.0).unwrap();restored.latest_input_received_at=Instant::now();
+            hold_hive_route(&mut restored,restored_scene.as_ref().unwrap(),east).unwrap();
+            assert!(if east {restored.world.player.position_m.x_m<before} else {restored.world.player.position_m.x_m>before});
+        }
+    }
+
+    #[test]
+    fn cw_early_edges_require_directional_valves_and_preserve_collar() {
+        let routes=[("cw_entry_foundry","cw_pressure_hall",true),("cw_pressure_hall","cw_entry_foundry",false),
+            ("cw_pressure_hall","cw_conveyor_bridge",true),("cw_conveyor_bridge","cw_pressure_hall",false),
+            ("cw_conveyor_bridge","cw_boiler_chamber",true),("cw_boiler_chamber","cw_conveyor_bridge",false)];
+        for (source,target,east) in routes {
+            let runtime=runtime_for_clockworks_elite_gate();stop_regulator_test_owner(&runtime);
+            let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();runtime.install_scene_registry(registry,source).unwrap();
+            {let mut s=runtime.state.lock().unwrap();s.paused=false;s.route.current_world_id="clockworks".into();s.world.player.position_m=Vec3::new(if east {23.4} else {0.6},0.0,8.0).unwrap();s.world.player.grounded=true;}
+            let initial=runtime.snapshot().unwrap();
+            if source=="cw_pressure_hall" && target=="cw_conveyor_bridge" {
+                assert!(initial.hive_route_neighbor.is_none());
+                for (index,id) in crate::world_persistent_v1::CLOCKWORKS_PRESSURE_VALVE_IDS.iter().enumerate() {
+                    let pos=runtime.scene_runtime.lock().unwrap().as_ref().unwrap().current_scene().interactions.iter().find(|i|i.id==*id).unwrap().position;
+                    runtime.state.lock().unwrap().world.player.position_m=vec3_from_array(pos);
+                    let epoch=runtime.snapshot().unwrap().world_epoch;
+                    runtime.activate_scene_interaction(id,&format!("shore-valve-{index}"),epoch).unwrap();
+                    let state=runtime.state.lock().unwrap();
+                    assert_eq!(state.world_persistent_v1.clockworks.pressure_valve_ids.len(),index+1);
+                    assert_eq!(completed_world_events(&state,"clockworks").contains("clockworks_valves"),index==2);
+                }
+                runtime.state.lock().unwrap().world.player.position_m=Vec3::new(23.4,0.0,8.0).unwrap();
+            } else if source=="cw_conveyor_bridge" && target=="cw_pressure_hall" {
+                assert!(initial.hive_route_neighbor.is_some(),"reverse does not inherit the target's forward gate");
+            }
+            let initial=runtime.snapshot().unwrap();let stale=initial.hive_route_neighbor.clone().expect("CW preview");assert_eq!(stale.target_scene_id,target);
+            let sha=runtime.scene_runtime.lock().unwrap().as_ref().unwrap().current_scene().verified_source_sha256.clone();
+            let old_proof=serde_json::json!({"hiveRoute":true,"sourceSha":sha,"progression":initial.progression});
+            runtime.pause().unwrap();runtime.resume().unwrap();
+            assert!(runtime.scene_ready_with_exit_proof(&stale.token,false,Some(&stale.target_scene_source_sha256),Some(&old_proof)).is_err());
+            let view=runtime.snapshot().unwrap();let route=view.hive_route_neighbor.clone().expect("fresh CW preview");
+            let proof=serde_json::json!({"hiveRoute":true,"sourceSha":sha,"progression":view.progression});
+            runtime.scene_ready_with_exit_proof(&route.token,false,Some(&route.target_scene_source_sha256),Some(&proof)).unwrap();
+            let mut saved=None;
+            {let mut state=runtime.state.lock().unwrap();let epoch=state.world.revision.world_epoch;
+                state.latest_sample=InputSample::new(epoch,1,0,if east {1.0} else {-1.0},0.0).unwrap();state.latest_input_received_at=Instant::now();
+                let mut scene=runtime.scene_runtime.lock().unwrap();
+                for _ in 0..100 {
+                    advance_owner_step_with_pair_crossing(&mut state,&mut scene).unwrap();
+                    if state.world.scene_id!=source {break;}
+                    let x=state.world.player.position_m.x_m;
+                    if saved.is_none() && (if east {x>24.0} else {x<0.0}) {
+                        assert!(state.kcc.is_hive_route_union());saved=Some(crate::save_v6::SaveV6::capture(&state,scene.as_ref()).unwrap());
+                    }
+                }
+                assert_eq!(state.world.scene_id,target,"{source} -> {target}");
+                assert!(if east {state.world.player.velocity_mps.x_m>0.0} else {state.world.player.velocity_mps.x_m<0.0});
+                let own=scene_kcc_for_state(scene.as_ref().unwrap().current_scene(),&completed_world_events(&state,"clockworks"),&state).unwrap();
+                assert!(own.can_player_occupy(state.world.player.position_m,state.world.player.radius_m));
+            }
+            let bytes=serde_json::to_vec(&saved.expect("actual partial-disc save")).unwrap();
+            let decoded:crate::save_v6::SaveV6=serde_json::from_slice(&bytes).unwrap();
+            let state=runtime.state.lock().unwrap();let (mut restored,restored_scene)=runtime.prepare_default_save(&decoded,&state).unwrap();
+            assert_eq!(restored.world.scene_id,source);assert!(restored.kcc.is_hive_route_union());assert!(restored.hive_route_latch.is_some());
+            let before=restored.world.player.position_m.x_m;let epoch=restored.world.revision.world_epoch;
+            restored.paused=false;restored.latest_sample=InputSample::new(epoch,2,0,if east {-1.0} else {1.0},0.0).unwrap();restored.latest_input_received_at=Instant::now();
+            hold_hive_route(&mut restored,restored_scene.as_ref().unwrap(),east).unwrap();
+            assert!(if east {restored.world.player.position_m.x_m<before} else {restored.world.player.position_m.x_m>before});
+        }
+    }
+
+    #[test]
+    fn mh_remaining_shore_pump_projection_matches_terrain() {
+        let mut state=FormalRuntime::initial_state(1).unwrap();
+        state.world=WorldStateV3::new("mist_harbor",1,Vec3::zero()).unwrap();
+        state.capabilities.world_id="mist_harbor".into();
+        for (status,name,expected) in [
+            (crate::world_persistent_v1::PumpStatus::Ready,"ready",crate::effects::TerrainTag::WaterDeep),
+            (crate::world_persistent_v1::PumpStatus::Draining,"draining",crate::effects::TerrainTag::WaterDeep),
+            (crate::world_persistent_v1::PumpStatus::Drained,"drained",crate::effects::TerrainTag::WetFloor),
+        ] {
+            state.world_persistent_v1.mist_harbor.pump.state=status;
+            let snapshot=crate::world_v3::WorldSnapshot::from_view(project_view(&state));
+            assert_eq!(serde_json::to_value(snapshot).unwrap()["mistHarborPump"]["state"],name);
+            assert_eq!(state.world_persistent_v1.resolve_terrain_tag("mist_harbor","mh_pump_east_channel_water",crate::effects::TerrainTag::WaterDeep),expected);
+        }
+    }
+    #[test]
+    fn mh_remaining_shore_reverse_ingress_rearms_after_clearance() {
+        let (runtime,_root)=acoustic_fixture("reverse_cap");
+        runtime.pause().unwrap();runtime.stop_owner.store(true,Ordering::SeqCst);
+        if let Some(handle)=runtime.owner_handle.lock().unwrap().take(){handle.join().unwrap();}
+        let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();
+        runtime.install_scene_registry(registry,"mh_pump_station").unwrap();
+        {let mut state=runtime.state.lock().unwrap();state.paused=false;state.world.player.position_m=Vec3::new(1.0,0.0,8.0).unwrap();state.world.player.grounded=true;
+         state.world_persistent_v1.mist_harbor.pump.state=crate::world_persistent_v1::PumpStatus::Drained;
+         state.world_persistent_v1.mist_harbor.pump.drain_complete_at_world_time_ms=Some(0);}
+        let before=runtime.snapshot().unwrap();let route=before.hive_route_neighbor.clone().expect("ungated reverse");
+        let sha=runtime.scene_runtime.lock().unwrap().as_ref().unwrap().current_scene().verified_source_sha256.clone();
+        let proof=serde_json::json!({"hiveRoute":true,"sourceSha":sha,"progression":before.progression});
+        runtime.scene_ready_with_exit_proof(&route.token,false,Some(&route.target_scene_source_sha256),Some(&proof)).unwrap();
+        {let mut state=runtime.state.lock().unwrap();let epoch=state.world.revision.world_epoch;
+         state.latest_sample=InputSample::new(epoch,1,0,-1.0,0.0).unwrap();state.latest_input_received_at=Instant::now();
+         let mut scene=runtime.scene_runtime.lock().unwrap();
+         for _ in 0..150 {advance_owner_step_with_pair_crossing(&mut state,&mut scene).unwrap();if state.world.scene_id!="mh_pump_station" {break;}}
+         assert_eq!(state.world.scene_id,"mh_breakwater");
+         assert!(state.world.player.position_m.x_m+state.world.player.radius_m<=23.5+0.0001);}
+        let handoff=runtime.snapshot().unwrap();let boundary=handoff.hive_route_boundary.as_ref().unwrap();
+        assert_eq!(boundary.prerequisite_blocked,Some(true));assert!(!boundary.closed);
+        let token=handoff.entry_token.clone().unwrap();
+        let ready=runtime.scene_ready_with_exit_proof(&token,false,None,None).unwrap();
+        let boundary=ready.hive_route_boundary.unwrap();assert_eq!(boundary.prerequisite_blocked,Some(true));assert!(boundary.closed);
+    }
+    #[test]
+    fn mhcw_wraith_echo_does_not_grant_hidden_body_or_depend_on_map() {
+        let (runtime,_root)=acoustic_fixture("mhcw_wraith_region");
+        runtime.pause().unwrap();runtime.stop_owner.store(true,Ordering::SeqCst);
+        if let Some(handle)=runtime.owner_handle.lock().unwrap().take(){handle.join().unwrap();}
+        let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();
+        runtime.install_scene_registry(registry,"mh_signal_yard").unwrap();
+        let mut state=runtime.state.lock().unwrap();let scene=runtime.scene_runtime.lock().unwrap();let scene=scene.as_ref().unwrap();
+        state.paused=false;state.pending_entry=None;state.world.player.position_m=Vec3::new(11.0,0.0,6.0).unwrap();state.world.player.grounded=true;
+        advance_owner_step_with_scene(&mut state,Some(scene)).unwrap();
+        assert!(mhcw_current(&state,scene).is_some());
+        let rev=state.world.revision;
+        crate::capability_v1::apply_command_at_revision(&mut state.capabilities,crate::capability_v1::CapabilityCommand::Grant{capability_id:crate::capability_v1::CAP_LOCAL_MAP.into()},rev).unwrap();
+        for map_selected in [false,true] {
+            let rev=state.world.revision;
+            crate::capability_v1::apply_command_at_revision(&mut state.capabilities,crate::capability_v1::CapabilityCommand::Select{capability_ids:if map_selected {vec![crate::capability_v1::CAP_LOCAL_MAP.into()]} else {vec![]}},rev).unwrap();
+            let build=state.progression_v6.clone();state.install_build(build).unwrap();
+            assert!(mhcw_current(&state,scene).is_some());
+            state.world.generic_actors.iter_mut().find(|a|a.entity_id=="mh_signal_yard_signal_wraith_01").unwrap().position_m=Vec3::new(14.0,0.0,6.0).unwrap();
+            for mapping in [false,true] {
+                if mapping {state.effective_rules_v6.capability_permissions.insert(CapabilityPermission::AcousticMapping);} else {state.effective_rules_v6.capability_permissions.remove(&CapabilityPermission::AcousticMapping);}
+                let view=project_scene_view(&state,Some(scene));
+                assert_eq!(view.capabilities.map_topology_authorized,Some(map_selected));
+                let row=view.actors.iter().find(|a|a.entity_id=="mh_signal_yard_signal_wraith_01").unwrap();
+                assert!(row.signal_only);assert!(row.signal_perception.is_some());assert!(row.animation_presentation.is_none());
+                assert!(!view.capabilities.enemy_vitals.iter().any(|v|v.entity_id==row.entity_id));
+                let p=row.signal_perception.as_ref().unwrap().positions_m[0];
+                let features=&view.capabilities.map_knowledge.as_ref().unwrap().features;
+                let found=features.iter().any(|f|f.id.is_none() && f.channel==crate::player_rules::KnowledgeChannel::Enemies
+                    && f.knowledge==crate::player_rules::KnowledgeLevel::DetectedOnly && f.position.x==f64::from(p.x_m)+48.0 && f.position.y==f64::from(p.z_m));
+                assert_eq!(found,map_selected && mapping);
+            }
+        }
+        state.world.generic_actors.iter_mut().find(|a|a.entity_id=="mh_signal_yard_signal_wraith_01").unwrap().position_m=Vec3::new(12.9,0.0,6.0).unwrap();
+        state.effective_rules_v6.capability_permissions.remove(&CapabilityPermission::AcousticMapping);
+        let view=project_scene_view(&state,Some(scene));
+        let row=view.actors.iter().find(|a|a.entity_id=="mh_signal_yard_signal_wraith_01").unwrap();
+        assert!(!row.signal_only);
+        assert!(row.signal_perception.is_some());
+    }
+    #[test]
+    fn known_route_map_covers_qualified_flat_frames_only() {
+        for (scene_id,world,expected) in [("mh_fog_pier","mist_harbor",8),("cw_entry_foundry","clockworks",4),("cw_furnace_heart","clockworks",3)] {
+            let (runtime,_root)=acoustic_fixture("known_route_frames");runtime.pause().unwrap();runtime.stop_owner.store(true,Ordering::SeqCst);
+            if let Some(handle)=runtime.owner_handle.lock().unwrap().take(){handle.join().unwrap();}
+            let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();runtime.install_scene_registry(registry,scene_id).unwrap();
+            let mut state=runtime.state.lock().unwrap();let scene=runtime.scene_runtime.lock().unwrap();let scene=scene.as_ref().unwrap();
+            state.paused=false;state.pending_entry=None;state.world.player.position_m=Vec3::new(4.0,0.0,8.0).unwrap();state.world.player.grounded=true;
+            advance_owner_step_with_scene(&mut state,Some(scene)).unwrap();assert!(mhcw_current(&state,scene).is_some());
+            for group in mhcw_map_region::groups().unwrap().iter().filter(|g|g["world_id"]==world && g["layer_id"]=="ground_y0") {
+                for parent in group["parents"].as_array().unwrap(){let id=parent["parent_id"].as_str().unwrap();for row in mhcw_map_region::rows(group,id).unwrap(){if !state.world.explored.rooms.iter().any(|r|r.room_id==row.room_id){state.world.explored.rooms.push(row);}}}
+            }
+            let rev=state.world.revision;crate::capability_v1::apply_command_at_revision(&mut state.capabilities,crate::capability_v1::CapabilityCommand::Grant{capability_id:crate::capability_v1::CAP_LOCAL_MAP.into()},rev).unwrap();
+            crate::capability_v1::apply_command_at_revision(&mut state.capabilities,crate::capability_v1::CapabilityCommand::Select{capability_ids:vec![crate::capability_v1::CAP_LOCAL_MAP.into()]},rev).unwrap();
+            let build=state.progression_v6.clone();state.install_build(build).unwrap();
+            let saved=state.world.explored.clone();let view=project_scene_view(&state,Some(scene));
+            assert_eq!(view.capabilities.map_known_junctions.as_ref().map_or(0,Vec::len),expected,"{scene_id}");assert_eq!(state.world.explored,saved);
+        }
+    }
+    #[test]
+    fn gh_archive_staged_exit_preview_has_no_map_or_visit() {
+        let (runtime,_root)=acoustic_fixture("gh_archive_preview");runtime.pause().unwrap();runtime.stop_owner.store(true,Ordering::SeqCst);
+        if let Some(handle)=runtime.owner_handle.lock().unwrap().take(){handle.join().unwrap();}
+        let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();runtime.install_scene_registry(registry.clone(),"gh_power_room").unwrap();
+        let mut live=runtime.state.lock().unwrap();let active=runtime.scene_runtime.lock().unwrap();let epoch=live.world.revision.world_epoch+1;
+        let id="grey_hive.beacon_exit.info_v1.gh_exit.north_services";
+        let rec=crate::world_persistent_v1::GhMapKnowledgeRecord{world_id:"grey_hive".into(),scene_id:"gh_exit".into(),scene_source_sha256:"b32ad8d1204e9eaf45512b0e2d5ea22e08f5bd09ec0b5e31980e41336c45ee09".into(),provider_family:"grey_hive.beacon_exit.info_v1".into(),layer_id:"upper_y0".into(),frame_id:"gh_beacon_exit_pair_v1".into(),parent_id:id.into(),rows:beacon_exit_info::rows("gh_exit",id).unwrap()};
+        live.world_persistent_v1.map_knowledge_archive_v2=Some(crate::world_persistent_v1::GhMapKnowledgeArchiveV2{schema_version:2,records:vec![rec],shaft_upper_observation:None,lockdown_observation:None});
+        let before=live.world_persistent_v1.clone();let rooms=live.world.explored.rooms.clone();
+        let mut candidate=live.clone();candidate.world.scene_id="gh_exit".into();candidate.world.revision.world_epoch=epoch;candidate.paused=false;candidate.pending_entry=None;
+        FormalRuntime::prepare_entry(&mut candidate,live.entry_generation).unwrap();
+        let target=SceneRuntime::new(registry,"gh_exit",epoch).unwrap();
+        let preview=FormalRuntime::stage_exit(&mut live,&active,candidate,target,ExitCommitIntent::Transition).unwrap();
+        assert_eq!(preview.exit_entry_preview,Some(true));assert_eq!(preview.capabilities.map_topology_authorized,Some(false));
+        assert!(preview.capabilities.map_knowledge.is_none()&&preview.capabilities.explored_map.rooms.is_empty());
+        assert!(preview.capabilities.map_current_room_ids.is_none()&&preview.capabilities.map_explored_room_ids.is_none()&&preview.capabilities.map_known_junctions.is_none());
+        let stage=live.pending_exit.as_mut().unwrap();stage.candidate.paused=true;
+        let paused_preview=FormalRuntime::pending_exit_view(stage);
+        assert!(paused_preview.capabilities.map_knowledge.is_none()&&paused_preview.capabilities.explored_map.rooms.is_empty()&&paused_preview.capabilities.map_known_junctions.is_none());
+        assert_eq!(live.world_persistent_v1,before);assert_eq!(live.world.explored.rooms,rooms);
+    }
+    #[test]
+    fn lower_service_invalid_entry_proof_cannot_install_candidate() {
+        let (runtime,_root)=acoustic_fixture("lower_service_unready");runtime.pause().unwrap();runtime.stop_owner.store(true,Ordering::SeqCst);
+        if let Some(handle)=runtime.owner_handle.lock().unwrap().take(){handle.join().unwrap();}
+        let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();runtime.install_scene_registry(registry,"gh_central_shaft").unwrap();
+        let token={let mut state=runtime.state.lock().unwrap();state.pending_entry=None;state.pending_exit=None;let generation=state.entry_generation;
+            FormalRuntime::prepare_entry(&mut state,generation).unwrap();state.pending_entry.clone().unwrap()};
+        let before=runtime.state.lock().unwrap().world_persistent_v1.clone();
+        let proof=serde_json::json!({"shaftLowerService":{"recipeVersion":2,"sceneSourceSha256":"incorrect"}});
+        assert_eq!(runtime.scene_ready_with_exit_proof(&token,false,None,Some(&proof)).unwrap_err(),"E_SHAFT_SERVICE_PROOF");
+        {let state=runtime.state.lock().unwrap();assert_eq!(state.world_persistent_v1,before);assert_eq!(state.pending_entry.as_ref(),Some(&token));}
+        let old=runtime.scene_ready_with_exit_proof(&token,false,None,None).unwrap();assert!(old.shaft_lower_service.is_none());assert!(old.shaft_lower_service_proposal.is_none());
+    }
+    #[test]
+    fn lower_service_matching_entry_proof_selects_one_complete_recipe() {
+        let (runtime,_root)=acoustic_fixture("lower_service_entry");runtime.pause().unwrap();runtime.stop_owner.store(true,Ordering::SeqCst);
+        if let Some(handle)=runtime.owner_handle.lock().unwrap().take(){handle.join().unwrap();}
+        let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();runtime.install_scene_registry(registry,"gh_central_shaft").unwrap();
+        let (token,identity)={let mut state=runtime.state.lock().unwrap();state.pending_entry=None;state.pending_exit=None;
+            state.world.player.position_m=Vec3::new(10.,0.,4.).unwrap();state.world.player.grounded=true;
+            let generation=state.entry_generation;FormalRuntime::prepare_entry(&mut state,generation).unwrap();
+            let scene=runtime.scene_runtime.lock().unwrap();let d=scene.as_ref().unwrap().current_scene();
+            (state.pending_entry.clone().unwrap(),crate::moving_support::ShaftLowerRecipeIdentity::for_scene(d).unwrap())};
+        let view=runtime.scene_ready_with_exit_proof(&token,false,None,Some(&serde_json::json!({"shaftLowerService":identity}))).unwrap();
+        assert_eq!(view.shaft_lower_service.as_ref().map(|v|v.recipe_version),Some(2));assert!(view.entry_token.is_none());
+        let state=runtime.state.lock().unwrap();assert!(state.shaft_owner.as_ref().unwrap().geometry.service_v2);
+        assert!(state.world_persistent_v1.lower_service_map_v1.is_none());assert_eq!(state.world.player.position_m,Vec3::new(10.,0.,4.).unwrap());
+    }
+    #[test]
+    fn lower_service_saved_pose_stages_until_exact_client_proof() {
+        let (runtime,_root)=acoustic_fixture("lower_service_staged");runtime.pause().unwrap();runtime.stop_owner.store(true,Ordering::SeqCst);
+        if let Some(handle)=runtime.owner_handle.lock().unwrap().take(){handle.join().unwrap();}
+        let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();runtime.install_scene_registry(registry.clone(),"gh_power_room").unwrap();
+        let (token,identity,hash,before)={
+            let mut live=runtime.state.lock().unwrap();let active=runtime.scene_runtime.lock().unwrap();
+            live.pending_entry=None;live.pending_exit=None;
+            let before=live.world_persistent_v1.clone();let epoch=live.world.revision.world_epoch+1;
+            let target=SceneRuntime::new(registry,"gh_central_shaft",epoch).unwrap();let d=target.current_scene();
+            let identity=crate::moving_support::ShaftLowerRecipeIdentity::for_scene(d).unwrap();let hash=d.verified_source_sha256.clone();
+            let mut candidate=live.clone();candidate.world.scene_id="gh_central_shaft".into();candidate.world.revision.world_epoch=epoch;
+            candidate.world.player.position_m=Vec3::new(30.,-4.,4.).unwrap();candidate.world.player.grounded=true;candidate.shaft_deferred=false;
+            candidate.shaft_owner=Some(shaft_lift::ShaftOwner{geometry:shaft_lower_service::candidate_geometry(d).unwrap(),clock:shaft_lift::ShaftClock::at_upper(candidate.world.server_time_ms)});
+            candidate.world_persistent_v1.shaft_recipe_format_v2=Some(identity.clone());candidate.pending_entry=None;candidate.pending_exit=None;
+            candidate.kcc=scene_kcc_for_state(d,&completed_world_events(&candidate,"grey_hive"),&candidate).unwrap();
+            assert!(candidate.kcc.can_player_occupy(candidate.world.player.position_m,candidate.world.player.radius_m));
+            FormalRuntime::prepare_entry(&mut candidate,live.entry_generation).unwrap();let token=candidate.pending_entry.clone().unwrap();
+            let preview=FormalRuntime::stage_exit(&mut live,&active,candidate,target,ExitCommitIntent::Transition).unwrap();
+            assert_eq!(preview.shaft_service_entry_preview,Some(true));assert_eq!(preview.shaft_lower_service,Some(identity.clone()));
+            assert!(preview.actors.is_empty()&&preview.interactables.is_empty()&&preview.capabilities.map_knowledge.is_none()&&preview.capabilities.explored_map.rooms.is_empty());
+            assert_eq!(live.world_persistent_v1,before);(token,identity,hash,before)
+        };
+        assert!(runtime.scene_ready_with_exit_proof(&token,false,Some(&hash),None).is_err());
+        assert!(runtime.scene_ready_with_exit_proof(&token,false,Some("wrong"),Some(&serde_json::json!({"shaftLowerService":identity}))).is_err());
+        assert_eq!(runtime.state.lock().unwrap().world_persistent_v1,before);
+        let ready=runtime.scene_ready_with_exit_proof(&token,false,Some(&hash),Some(&serde_json::json!({"shaftLowerService":identity}))).unwrap();
+        assert_eq!(ready.shaft_service_entry_resume_after_frame,Some(true));assert!(ready.shaft_service_entry_preview.is_none());
+        assert_eq!(ready.player.transform.position_m,Vec3::new(30.,-4.,4.).unwrap());
+        let state=runtime.state.lock().unwrap();assert!(state.paused);assert!(state.pending_exit.is_none());assert_eq!(state.world.player.position_m,Vec3::new(30.,-4.,4.).unwrap());
+    }
+    #[test]
+    fn lower_service_actual_save_continue_stays_staged_until_matching_proof() {
+        let (runtime,root)=acoustic_fixture("lower_service_saved_continue");runtime.pause().unwrap();runtime.stop_owner.store(true,Ordering::SeqCst);
+        if let Some(handle)=runtime.owner_handle.lock().unwrap().take(){handle.join().unwrap();}
+        let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();runtime.install_scene_registry(registry,"gh_central_shaft").unwrap();
+        {
+            let mut state=runtime.state.lock().unwrap();let guard=runtime.scene_runtime.lock().unwrap();let scene=guard.as_ref().unwrap();let d=scene.current_scene();
+            state.pending_entry=None;state.pending_exit=None;state.shaft_deferred=false;state.route.current_world_id="grey_hive".into();state.world.player.position_m=Vec3::new(30.,-4.,4.).unwrap();state.world.player.grounded=true;
+            state.shaft_owner=Some(shaft_lift::ShaftOwner{geometry:shaft_lower_service::candidate_geometry(d).unwrap(),clock:shaft_lift::ShaftClock::at_upper(state.world.server_time_ms)});
+            state.world_persistent_v1.shaft_recipe_format_v2=crate::moving_support::ShaftLowerRecipeIdentity::for_scene(d);
+            state.kcc=scene_kcc_for_state(d,&completed_world_events(&state,"grey_hive"),&state).unwrap();
+        }
+        runtime.save().unwrap();
+        let fresh=FormalRuntime::new_with_save_dir(root).unwrap();fresh.stop_owner.store(true,Ordering::SeqCst);if let Some(handle)=fresh.owner_handle.lock().unwrap().take(){handle.join().unwrap();}
+        crate::production_scene_bootstrap::install(&fresh).unwrap();
+        let before={let state=fresh.state.lock().unwrap();(state.world.world_id.clone(),state.world.scene_id.clone(),state.world.player.position_m)};
+        let preview=fresh.continue_saved().unwrap();assert_eq!(preview.shaft_service_entry_preview,Some(true));
+        assert_eq!(preview.player.transform.position_m,Vec3::new(30.,-4.,4.).unwrap());assert!(preview.actors.is_empty()&&preview.capabilities.map_knowledge.is_none());
+        let token=preview.entry_token.clone().unwrap();let identity=preview.shaft_lower_service.clone().unwrap();let hash=identity.scene_source_sha256.clone();
+        assert!(fresh.scene_ready_with_exit_proof(&token,false,Some(&hash),None).is_err());
+        {let state=fresh.state.lock().unwrap();assert_eq!((state.world.world_id.clone(),state.world.scene_id.clone(),state.world.player.position_m),before);assert!(state.pending_exit.is_some());}
+        let base=preview.shaft_service_entry_base.unwrap();let sequence=preview.shaft_service_entry_lifecycle_sequence.unwrap()+1;
+        fresh.pause_context_ordered(&base,sequence).unwrap();assert!(fresh.scene_ready_with_exit_proof(&token,false,Some(&hash),Some(&serde_json::json!({"shaftLowerService":identity}))).is_err());
+        let preview=fresh.continue_saved().unwrap();let next=preview.entry_token.unwrap();assert!(next.generation>token.generation);
+        let committed=fresh.scene_ready_with_exit_proof(&next,false,Some(&hash),Some(&serde_json::json!({"shaftLowerService":identity}))).unwrap();
+        assert_eq!(committed.player.transform.position_m,Vec3::new(30.,-4.,4.).unwrap());assert_eq!(committed.shaft_service_entry_resume_after_frame,Some(true));
+    }
+    #[test]
+    fn known_vertical_link_requires_both_history_and_real_floor() {
+        let (runtime,_root)=acoustic_fixture("known_vertical_link");runtime.pause().unwrap();runtime.stop_owner.store(true,Ordering::SeqCst);
+        if let Some(handle)=runtime.owner_handle.lock().unwrap().take(){handle.join().unwrap();}
+        let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();runtime.install_scene_registry(registry,"gh_central_shaft").unwrap();
+        let mut state=runtime.state.lock().unwrap();let guard=runtime.scene_runtime.lock().unwrap();let scene=guard.as_ref().unwrap();let d=scene.current_scene();
+        state.paused=false;state.pending_entry=None;state.pending_exit=None;state.shaft_deferred=false;state.world.player.grounded=true;
+        state.world.player.position_m=Vec3::new(3.5,0.,6.).unwrap();
+        state.shaft_owner=Some(shaft_lift::ShaftOwner{geometry:shaft_lift::ShaftGeometry::from_scene(d).unwrap(),clock:shaft_lift::ShaftClock::at_upper(state.world.server_time_ms)});
+        let upper=gh_map_archive::catalog().iter().find(|r|r.parent_id=="grey_hive.gh_central_shaft.upper_active_info_v1.north_service").unwrap().clone();
+        let lower=gh_map_archive::catalog().iter().find(|r|r.parent_id=="grey_hive.gh_central_shaft.lower_info_v1.front_landing_corridor").unwrap().clone();
+        let tag=crate::world_v3::ObservedMapVariant::from_floor_route_key("shaft_active_open").unwrap();
+        state.world.shaft_upper_map_observation=Some(tag.clone());
+        state.world_persistent_v1.map_knowledge_archive_v2=Some(crate::world_persistent_v1::GhMapKnowledgeArchiveV2{schema_version:2,records:vec![upper.clone(),lower.clone()],shaft_upper_observation:Some(tag),lockdown_observation:None});
+        let before=state.world_persistent_v1.clone();let rooms=state.world.explored.rooms.clone();
+        assert!(project_scene_view(&state,Some(scene)).capabilities.map_known_vertical_links.is_none());
+        let rev=state.world.revision;crate::capability_v1::apply_command_at_revision(&mut state.capabilities,crate::capability_v1::CapabilityCommand::Grant{capability_id:crate::capability_v1::CAP_LOCAL_MAP.into()},rev).unwrap();
+        crate::capability_v1::apply_command_at_revision(&mut state.capabilities,crate::capability_v1::CapabilityCommand::Select{capability_ids:vec![crate::capability_v1::CAP_LOCAL_MAP.into()]},rev).unwrap();let build=state.progression_v6.clone();state.install_build(build).unwrap();
+        let up=project_scene_view(&state,Some(scene));let link=up.capabilities.map_known_vertical_links.as_ref().unwrap();assert_eq!(link.len(),1);assert_eq!(link[0].current_layer_id,"upper_y0");assert_eq!(link[0].x,43.5);assert!((link[0].z-4.15).abs()<0.00001);
+        let map_rules=state.effective_rules_v6.map.clone();state.effective_rules_v6.map.connections=crate::player_rules::KnowledgeLevel::None;state.effective_rules_v6.map.granted.remove(&crate::effects::MapKnowledgeTag::Connections);
+        assert!(project_scene_view(&state,Some(scene)).capabilities.map_known_vertical_links.is_none());state.effective_rules_v6.map.connections=crate::player_rules::KnowledgeLevel::DetectedOnly;assert!(project_scene_view(&state,Some(scene)).capabilities.map_known_vertical_links.is_none());state.effective_rules_v6.map=map_rules;
+        let lower_pose=crate::moving_support::SupportPose{support_id:"gh_shaft_two_stop_lift".into(),phase:crate::moving_support::SupportPhase::LowerHold,height_m:-4.,velocity_mps:0.,phase_elapsed_ms:0};
+        state.shaft_owner.as_mut().unwrap().clock=shaft_lift::ShaftClock::restore(state.world.server_time_ms,&lower_pose).unwrap();
+        let closed=project_scene_view(&state,Some(scene));assert!(closed.capabilities.map_known_vertical_links.as_ref().unwrap()[0].current_room_id.ends_with(":part6"));
+        state.shaft_owner.as_mut().unwrap().clock=shaft_lift::ShaftClock::at_upper(state.world.server_time_ms);
+        state.paused=true;assert!(project_scene_view(&state,Some(scene)).capabilities.map_known_vertical_links.is_some());assert_eq!(state.world_persistent_v1,before);assert_eq!(state.world.explored.rooms,rooms);
+        state.paused=false;state.world.player.position_m=Vec3::new(3.5,-4.,5.8).unwrap();let down=project_scene_view(&state,Some(scene));let link=down.capabilities.map_known_vertical_links.as_ref().unwrap();assert_eq!(link[0].current_layer_id,"lower_y_minus4");assert_eq!(link[0].x,3.5);assert!((link[0].z-5.15).abs()<0.00001);
+        state.shaft_owner.as_mut().unwrap().clock=shaft_lift::ShaftClock::restore(state.world.server_time_ms,&lower_pose).unwrap();let open=project_scene_view(&state,Some(scene));assert!(open.capabilities.map_known_vertical_links.as_ref().unwrap()[0].current_room_id.ends_with(":part0"));state.shaft_owner.as_mut().unwrap().clock=shaft_lift::ShaftClock::at_upper(state.world.server_time_ms);
+        let mut partial=lower.rows[0].clone();partial.outline_m[0].x_m+=0.5;state.world.explored.rooms.push(partial);assert!(project_scene_view(&state,Some(scene)).capabilities.map_known_vertical_links.is_none());state.world.explored.rooms.clear();
+        state.world_persistent_v1.map_knowledge_archive_v2.as_mut().unwrap().records.retain(|r|r.parent_id!=lower.parent_id);assert!(project_scene_view(&state,Some(scene)).capabilities.map_known_vertical_links.is_none());
+        state.world_persistent_v1.map_knowledge_archive_v2=Some(crate::world_persistent_v1::GhMapKnowledgeArchiveV2{schema_version:2,records:vec![upper,lower],shaft_upper_observation:state.world.shaft_upper_map_observation.clone(),lockdown_observation:None});
+        let duplicate=state.world_persistent_v1.map_knowledge_archive_v2.as_ref().unwrap().records[0].clone();state.world_persistent_v1.map_knowledge_archive_v2.as_mut().unwrap().records.push(duplicate);assert!(project_scene_view(&state,Some(scene)).capabilities.map_known_vertical_links.is_none());state.world_persistent_v1.map_knowledge_archive_v2.as_mut().unwrap().records.pop();
+        state.world_persistent_v1.map_knowledge_archive_v2.as_mut().unwrap().records[0].scene_source_sha256="0".repeat(64);assert!(project_scene_view(&state,Some(scene)).capabilities.map_known_vertical_links.is_none());state.world_persistent_v1.map_knowledge_archive_v2.as_mut().unwrap().records[0]=gh_map_archive::catalog().iter().find(|r|r.parent_id=="grey_hive.gh_central_shaft.upper_active_info_v1.north_service").unwrap().clone();
+        state.world.shaft_upper_map_observation.as_mut().unwrap().scene_source_sha256="0".repeat(64);assert!(project_scene_view(&state,Some(scene)).capabilities.map_known_vertical_links.is_none());
+        state.world.shaft_upper_map_observation=state.world_persistent_v1.map_knowledge_archive_v2.as_ref().unwrap().shaft_upper_observation.clone();
+        state.shaft_owner.as_mut().unwrap().geometry=shaft_lower_service::candidate_geometry(d).unwrap();state.world_persistent_v1.shaft_recipe_format_v2=crate::moving_support::ShaftLowerRecipeIdentity::for_scene(d);
+        assert!(project_scene_view(&state,Some(scene)).capabilities.map_known_vertical_links.is_some());
+        state.world.player.grounded=false;assert!(project_scene_view(&state,Some(scene)).capabilities.map_known_vertical_links.is_none());
+        state.world.player.grounded=true;state.world.combat_state.active_traversal=Some(crate::continuous_combat::ActiveTraversal{marker_index:0,request_id:1,start_position:state.world.player.position_m,elapsed_ms:0});assert!(project_scene_view(&state,Some(scene)).capabilities.map_known_vertical_links.is_none());state.world.combat_state.active_traversal=None;
+        let pose=crate::moving_support::SupportPose{support_id:"gh_shaft_two_stop_lift".into(),phase:crate::moving_support::SupportPhase::LowerHold,height_m:-4.,velocity_mps:0.,phase_elapsed_ms:0};
+        state.shaft_owner.as_mut().unwrap().clock=shaft_lift::ShaftClock::restore(state.world.server_time_ms,&pose).unwrap();state.world.player.position_m=Vec3::new(3.5,-4.,3.).unwrap();
+        assert!(project_scene_view(&state,Some(scene)).capabilities.map_known_vertical_links.is_none());
+        state.world.player.position_m=Vec3::new(3.5,-4.,5.8).unwrap();let generation=state.entry_generation;FormalRuntime::prepare_entry(&mut state,generation).unwrap();assert!(project_scene_view(&state,Some(scene)).capabilities.map_known_vertical_links.is_none());
+    }
+    #[test]
+    fn lower_service_stale_parent_never_grants_nonfloor_entity_rights() {
+        use crate::moving_support::{SupportPhase,SupportPose,SupportRiderMode};
+        let (runtime,_root)=acoustic_fixture("lower_service_entity_rights");runtime.pause().unwrap();runtime.stop_owner.store(true,Ordering::SeqCst);
+        if let Some(handle)=runtime.owner_handle.lock().unwrap().take(){handle.join().unwrap();}
+        let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();runtime.install_scene_registry(registry,"gh_central_shaft").unwrap();
+        let mut state=runtime.state.lock().unwrap();let guard=runtime.scene_runtime.lock().unwrap();let scene=guard.as_ref().unwrap();let d=scene.current_scene();
+        state.paused=false;state.pending_entry=None;state.pending_exit=None;state.shaft_deferred=false;
+        state.world.player.position_m=Vec3::new(30.,-4.,4.).unwrap();state.world.player.grounded=true;
+        state.shaft_owner=Some(shaft_lift::ShaftOwner{geometry:shaft_lower_service::candidate_geometry(d).unwrap(),clock:shaft_lift::ShaftClock::at_upper(state.world.server_time_ms)});
+        state.world_persistent_v1.shaft_recipe_format_v2=crate::moving_support::ShaftLowerRecipeIdentity::for_scene(d);
+        state.kcc=scene_kcc_for_state(d,&completed_world_events(&state,"grey_hive"),&state).unwrap();
+        advance_owner_step_with_scene(&mut state,Some(scene)).unwrap();
+        let remembered=state.dense_region_previous.clone().unwrap();let parent=remembered.2.clone();
+        state.world.generic_actors.push(crate::world_v3::ActorRuntime::spawn("fixture-worker","grey_hive.infected_maintenance_worker",Vec3::new(30.,-4.,4.).unwrap()).unwrap());
+        let actor=project_view(&state).actors.into_iter().find(|a|a.entity_id=="fixture-worker").unwrap();
+        let interaction=crate::world_v3::InteractableView{entity_id:"fixture-control".into(),kind:"terminal".into(),transform:Transform{position_m:Vec3::new(30.,-4.,4.).unwrap(),yaw_rad:0.},active:true};
+        let vital=crate::world_v3::EnemyVitalProjection{entity_id:"fixture-worker".into(),tier:crate::world_v3::VitalTier::Healthy};
+        let inject=|mut v:WorldView,occupied:Option<String>|{v.actors=vec![actor.clone()];v.interactables=vec![interaction.clone()];v.capabilities.enemy_vitals=vec![vital.clone()];apply_lower_service_visibility(&mut v,occupied);v};
+        let baseline=project_scene_view(&state,Some(scene));assert_eq!(baseline.dense_occupied_region.as_deref(),Some(parent.as_str()));
+        let allowed=inject(project_view(&state),baseline.dense_occupied_region.clone());assert_eq!(allowed.actors.len(),1);assert_eq!(allowed.interactables.len(),1);assert_eq!(allowed.capabilities.enemy_vitals.len(),1);
+        for mode in ["airborne","traversal","surface"] {
+            state.dense_region_previous=Some(remembered.clone());state.world.player.position_m=Vec3::new(30.,-4.,4.).unwrap();state.world.player.grounded=true;state.world.combat_state.active_traversal=None;
+            match mode {
+                "airborne"=>state.world.player.grounded=false,
+                "traversal"=>state.world.combat_state.active_traversal=Some(crate::continuous_combat::ActiveTraversal{marker_index:0,request_id:1,start_position:state.world.player.position_m,elapsed_ms:0}),
+                _=>{state.world.player.position_m=Vec3::new(3.5,-4.,3.).unwrap();let pose=SupportPose{support_id:"gh_shaft_two_stop_lift".into(),phase:SupportPhase::LowerHold,height_m:-4.,velocity_mps:0.,phase_elapsed_ms:0};state.shaft_owner.as_mut().unwrap().clock=shaft_lift::ShaftClock::restore(state.world.server_time_ms,&pose).unwrap();}
+            }
+            let support=shaft_region_support_view(&state,d).unwrap();
+            assert_eq!(support.1.rider.mode,match mode {"airborne"=>SupportRiderMode::Airborne,"traversal"=>SupportRiderMode::Traversal,_=>SupportRiderMode::Surface});
+            let projected=project_scene_view(&state,Some(scene));assert!(projected.dense_occupied_region.is_none(),"{mode}");assert_eq!(projected.current_visible_regions,Some(vec![]),"{mode}");
+            let filtered=inject(project_view(&state),projected.dense_occupied_region.clone());assert!(filtered.actors.is_empty()&&filtered.interactables.is_empty()&&filtered.capabilities.enemy_vitals.is_empty(),"{mode}");assert!(filtered.dense_entity_regions.unwrap().is_empty(),"{mode}");
+        }
+    }
+    #[test]
+    fn lower_service_candidate_records_only_real_committed_floor_step() {
+        let (runtime,_root)=acoustic_fixture("lower_service_observe");runtime.pause().unwrap();runtime.stop_owner.store(true,Ordering::SeqCst);
+        if let Some(handle)=runtime.owner_handle.lock().unwrap().take(){handle.join().unwrap();}
+        let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();runtime.install_scene_registry(registry,"gh_central_shaft").unwrap();
+        let mut state=runtime.state.lock().unwrap();let guard=runtime.scene_runtime.lock().unwrap();let scene=guard.as_ref().unwrap();let d=scene.current_scene();
+        let geometry=shaft_lower_service::candidate_geometry(d).unwrap();
+        state.world.player.position_m=Vec3::new(30.,-4.,4.).unwrap();state.world.player.grounded=true;state.paused=false;state.pending_entry=None;state.pending_exit=None;state.shaft_deferred=false;
+        state.shaft_owner=Some(shaft_lift::ShaftOwner{geometry,clock:shaft_lift::ShaftClock::at_upper(state.world.server_time_ms)});
+        state.world_persistent_v1.shaft_recipe_format_v2=crate::moving_support::ShaftLowerRecipeIdentity::for_scene(d);
+        state.kcc=scene_kcc_for_state(d,&completed_world_events(&state,"grey_hive"),&state).unwrap();
+        assert!(state.world_persistent_v1.lower_service_map_v1.is_none());
+        let forged=shaft_lower_service::candidate_rows("grey_hive.gh_central_shaft.lower_service_v2.pipe_fittings").unwrap();
+        state.world.explored.rooms.extend(forged);assert!(shaft_lower_service::history_rows(&state).is_empty());state.world.explored.rooms.clear();
+        advance_owner_step_with_scene(&mut state,Some(scene)).unwrap();
+        let archive=state.world_persistent_v1.lower_service_map_v1.as_ref().unwrap();assert_eq!(archive.records.len(),1);assert!(archive.records[0].parent_id.ends_with(".pipe_fittings"));
+        let rev=state.world.revision;
+        crate::capability_v1::apply_command_at_revision(&mut state.capabilities,crate::capability_v1::CapabilityCommand::Grant{capability_id:crate::capability_v1::CAP_LOCAL_MAP.into()},rev).unwrap();
+        crate::capability_v1::apply_command_at_revision(&mut state.capabilities,crate::capability_v1::CapabilityCommand::Select{capability_ids:vec![crate::capability_v1::CAP_LOCAL_MAP.into()]},rev).unwrap();
+        let build=state.progression_v6.clone();state.install_build(build).unwrap();
+        let current=project_scene_view(&state,Some(scene));assert_eq!(current.current_visible_regions.as_ref().map(Vec::len),Some(1));
+        assert_eq!(current.shaft_lower_service.as_ref().map(|i|i.recipe_version),Some(2));
+        assert_eq!(current.capabilities.map_topology_authorized,Some(true));assert_eq!(current.capabilities.map_current_room_ids.as_ref().map(Vec::len),Some(2));
+        assert!(current.capabilities.explored_map.rooms.iter().all(|r|r.outline_m.iter().all(|p|p.y_m == -4.0)));
+        let history=state.world_persistent_v1.clone();let rooms=state.world.explored.rooms.clone();
+        state.world.explored.rooms.retain(|r|!r.room_id.starts_with("grey_hive.gh_central_shaft.lower_service_v2."));state.dense_region_previous=None;
+        let archived=project_scene_view(&state,Some(scene));assert_eq!(archived.capabilities.map_current_room_ids,Some(vec![]));
+        assert_eq!(archived.capabilities.map_explored_room_ids.as_ref().map(Vec::len),Some(2));
+        state.world.explored.rooms=rooms.clone();
+        state.paused=true;let lift=shaft_region_support_view(&state,d);assert!(!shaft_lower_service::observe(&mut state,scene,lift.as_ref().map(|(_,s)|s)));
+        let paused=project_scene_view(&state,Some(scene));assert_eq!(paused.capabilities.map_topology_authorized,Some(true));
+        assert_eq!(paused.capabilities.map_current_room_ids,Some(vec![]));assert!(!paused.capabilities.explored_map.rooms.is_empty());
+        assert_eq!(state.world_persistent_v1,history);assert_eq!(state.world.explored.rooms,rooms);
+        state.paused=false;state.world.player.grounded=false;let airborne=project_scene_view(&state,Some(scene));
+        assert_eq!(airborne.capabilities.map_topology_authorized,Some(false));assert!(airborne.capabilities.explored_map.rooms.is_empty());
+    }
+    #[test]
+    fn gh_archive_lower_floor_step_preserves_upper_observation() {
+        let (runtime,_root)=acoustic_fixture("gh_archive_lower");runtime.pause().unwrap();runtime.stop_owner.store(true,Ordering::SeqCst);
+        if let Some(handle)=runtime.owner_handle.lock().unwrap().take(){handle.join().unwrap();}
+        let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();runtime.install_scene_registry(registry,"gh_central_shaft").unwrap();
+        let mut state=runtime.state.lock().unwrap();let active=runtime.scene_runtime.lock().unwrap();let scene=active.as_ref().unwrap();
+        let mut old=crate::world_v3::ObservedMapVariant::from_floor_route_key("shaft_active_open").unwrap();old.scene_source_sha256="0".repeat(64);
+        state.world_persistent_v1.map_knowledge_archive_v2=Some(crate::world_persistent_v1::GhMapKnowledgeArchiveV2{schema_version:2,records:vec![],shaft_upper_observation:Some(old.clone()),lockdown_observation:None});
+        state.world.shaft_upper_map_observation=Some(crate::world_v3::ObservedMapVariant::from_floor_route_key("shaft_active_open").unwrap());
+        state.paused=false;state.pending_entry=None;state.world.player.position_m=Vec3::new(10.5,-4.0,10.0).unwrap();state.world.player.grounded=true;
+        advance_owner_step_with_scene(&mut state,Some(scene)).unwrap();
+        let archive=state.world_persistent_v1.map_knowledge_archive_v2.as_ref().unwrap();assert_eq!(archive.shaft_upper_observation,Some(old));
+        assert_eq!(archive.records.len(),1);assert_eq!(archive.records[0].layer_id,"lower_y_minus4");assert!(archive.records[0].rows.iter().all(|r|r.outline_m.iter().all(|p|p.y_m == -4.0)));
+    }
+    #[test]
+    fn gh_archive_committed_step_records_only_actual_power_parent() {
+        let (runtime,root)=acoustic_fixture("gh_archive_step");runtime.pause().unwrap();runtime.stop_owner.store(true,Ordering::SeqCst);
+        if let Some(handle)=runtime.owner_handle.lock().unwrap().take(){handle.join().unwrap();}
+        let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();runtime.install_scene_registry(registry.clone(),"gh_power_room").unwrap();
+        let mut state=runtime.state.lock().unwrap();let active=runtime.scene_runtime.lock().unwrap();let scene=active.as_ref().unwrap();
+        state.paused=false;state.pending_entry=None;state.world.player.position_m=Vec3::new(4.0,0.0,7.0).unwrap();state.world.player.grounded=true;
+        assert!(state.world_persistent_v1.map_knowledge_archive_v2.is_none());
+        let before=project_scene_view(&state,Some(scene));assert!(state.world_persistent_v1.map_knowledge_archive_v2.is_none());drop(before);
+        advance_owner_step_with_scene(&mut state,Some(scene)).unwrap();
+        let archive=state.world_persistent_v1.map_knowledge_archive_v2.as_ref().unwrap();assert_eq!(archive.records.len(),1);
+        assert_eq!(archive.records[0].scene_id,"gh_power_room");assert_eq!(archive.records[0].parent_id,"corr_power_w");
+        assert!(archive.shaft_upper_observation.is_none()&&archive.lockdown_observation.is_none());
+        let expected=state.world_persistent_v1.map_knowledge_archive_v2.clone();state.route.current_world_id="grey_hive".into();
+        let rev=state.world.revision;crate::capability_v1::apply_command_at_revision(&mut state.capabilities,crate::capability_v1::CapabilityCommand::Grant{capability_id:crate::capability_v1::CAP_LOCAL_MAP.into()},rev).unwrap();
+        crate::capability_v1::apply_command_at_revision(&mut state.capabilities,crate::capability_v1::CapabilityCommand::Select{capability_ids:vec![crate::capability_v1::CAP_LOCAL_MAP.into()]},rev).unwrap();let build=state.progression_v6.clone();state.install_build(build).unwrap();
+        drop(active);drop(state);let returned=runtime.return_to_hub().unwrap();assert_eq!(returned.world_id,"return_station");
+        let fresh=FormalRuntime::new_with_save_dir(root).unwrap();fresh.stop_owner.store(true,Ordering::SeqCst);if let Some(handle)=fresh.owner_handle.lock().unwrap().take(){handle.join().unwrap();}
+        crate::production_scene_bootstrap::install(&fresh).unwrap();let loaded=fresh.continue_saved().unwrap();if loaded.entry_token.is_some(){entry_test_support::acknowledge_ready(&fresh,loaded);}fresh.resume().unwrap();
+        let marker={let active=fresh.scene_runtime.lock().unwrap();active.as_ref().unwrap().current_scene().interactions.iter().find(|i|i.id=="rs_world_gate_marker"&&i.kind=="world_gate_marker").unwrap().position};
+        let epoch={let mut live=fresh.state.lock().unwrap();live.world.player.position_m=vec3_from_array(marker);live.world.revision.world_epoch};
+        let entered=fresh.use_world_gate("rs_world_gate_to_gh","gh-archive-reentry",epoch).unwrap();if entered.entry_token.is_some(){entry_test_support::acknowledge_ready(&fresh,entered);}let view=fresh.resume().unwrap();
+        assert_eq!(view.world_id,"grey_hive");assert!(view.capabilities.explored_map.rooms.iter().any(|r|r.room_id=="corr_power_w"));
+        assert_eq!(fresh.state.lock().unwrap().world_persistent_v1.map_knowledge_archive_v2,expected);
+    }
+    #[test]
+    fn map_archive_actual_step_supersedes_same_owner_at_capacity() {
+        let (runtime,_root)=acoustic_fixture("archive_capacity_step");runtime.pause().unwrap();runtime.stop_owner.store(true,Ordering::SeqCst);
+        if let Some(handle)=runtime.owner_handle.lock().unwrap().take(){handle.join().unwrap();}
+        let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();runtime.install_scene_registry(registry,"mh_fog_pier").unwrap();
+        let mut state=runtime.state.lock().unwrap();let active=runtime.scene_runtime.lock().unwrap();let scene=active.as_ref().unwrap();
+        for g in mhcw_map_region::groups().unwrap(){for p in g["parents"].as_array().unwrap(){mhcw_map_region::archive_parent(&mut state.world_persistent_v1,g,p["parent_id"].as_str().unwrap()).unwrap();}}
+        for r in &mut state.world_persistent_v1.map_knowledge_archive_v1.as_mut().unwrap().records {r.scene_source_sha256="0".repeat(64);}
+        state.paused=false;state.pending_entry=None;state.world.player.position_m=Vec3::new(4.0,0.0,8.0).unwrap();state.world.player.grounded=true;
+        advance_owner_step_with_scene(&mut state,Some(scene)).unwrap();
+        let records=&state.world_persistent_v1.map_knowledge_archive_v1.as_ref().unwrap().records;
+        assert_eq!(records.len(),38);assert_eq!(records.iter().filter(|r|r.scene_source_sha256!="0".repeat(64)).count(),1);
+        assert!(records.iter().any(|r|r.parent_id.ends_with("mh_fp_entry_berth") && r.scene_source_sha256==scene.current_scene().verified_source_sha256));
+    }
+    #[test]
+    fn map_archive_neighbor_prepare_is_geometry_only() {
+        let (runtime,_root)=acoustic_fixture("archive_neighbor_preview");runtime.pause().unwrap();runtime.stop_owner.store(true,Ordering::SeqCst);
+        if let Some(handle)=runtime.owner_handle.lock().unwrap().take(){handle.join().unwrap();}
+        let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();runtime.install_scene_registry(registry,"mh_fog_pier").unwrap();
+        let mut state=runtime.state.lock().unwrap();let active=runtime.scene_runtime.lock().unwrap();let scene=active.as_ref().unwrap();
+        state.paused=false;state.pending_entry=None;state.world.player.position_m=Vec3::new(23.0,0.0,8.0).unwrap();state.world.player.grounded=true;
+        let target=mhcw_map_region::groups().unwrap().iter().find(|g|g["scene_id"]=="mh_tidal_warehouse").unwrap();
+        let id=target["parents"][0]["parent_id"].as_str().unwrap();mhcw_map_region::archive_parent(&mut state.world_persistent_v1,target,id).unwrap();
+        let before=state.world_persistent_v1.clone();let rooms=state.world.explored.rooms.clone();
+        let prepared=prepare_hive_route(&state,scene).expect("real registered neighbor preparation");assert_eq!(prepared.target_scene_id,"mh_tidal_warehouse");
+        let view=project_scene_view(&state,Some(scene));let wire=serde_json::to_value(view.hive_route_neighbor.expect("neighbor preview")).unwrap();
+        for forbidden in ["actors","capabilities","mapKnowledge","exploredMap","currentVisibleRegions"] {assert!(wire.get(forbidden).is_none());}
+        assert_eq!(state.world_persistent_v1,before);assert_eq!(state.world.explored.rooms,rooms);assert!(state.mhcw_contact.is_none());
+    }
+    #[test]
+    fn map_archive_v6_upgrade_retains_old_bytes_and_return_history() {
+        let (runtime,root)=acoustic_fixture("map_archive_upgrade");runtime.pause().unwrap();runtime.stop_owner.store(true,Ordering::SeqCst);
+        if let Some(handle)=runtime.owner_handle.lock().unwrap().take(){handle.join().unwrap();}
+        let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();runtime.install_scene_registry(registry.clone(),"mh_fog_pier").unwrap();
+        let mut state=runtime.state.lock().unwrap();let active=runtime.scene_runtime.lock().unwrap();let scene=active.as_ref().unwrap();
+        state.paused=false;state.pending_entry=None;state.world.player.position_m=Vec3::new(4.0,0.0,8.0).unwrap();state.world.player.grounded=true;
+        let rev=state.world.revision;
+        crate::capability_v1::apply_command_at_revision(&mut state.capabilities,crate::capability_v1::CapabilityCommand::Grant{capability_id:crate::capability_v1::CAP_LOCAL_MAP.into()},rev).unwrap();
+        crate::capability_v1::apply_command_at_revision(&mut state.capabilities,crate::capability_v1::CapabilityCommand::Select{capability_ids:vec![crate::capability_v1::CAP_LOCAL_MAP.into()]},rev).unwrap();
+        let build=state.progression_v6.clone();state.install_build(build).unwrap();
+        let old=crate::save_v6::SaveV6::capture(&state,Some(scene)).unwrap();assert!(old.world_persistent_v1.map_knowledge_archive_v1.is_none());
+        crate::save_v6::write_save(&root,&old).unwrap();let old_bytes=std::fs::read(crate::save_v6::save_path(&root)).unwrap();
+        let mut discarded=state.clone();advance_owner_step_with_scene(&mut discarded,Some(scene)).unwrap();
+        assert!(discarded.world_persistent_v1.map_knowledge_archive_v1.is_some());
+        assert!(state.world_persistent_v1.map_knowledge_archive_v1.is_none());
+        advance_owner_step_with_scene(&mut state,Some(scene)).unwrap();
+        let archive=state.world_persistent_v1.map_knowledge_archive_v1.as_ref().unwrap();assert_eq!(archive.records.len(),1);
+        let upgraded=crate::save_v6::SaveV6::capture(&state,Some(scene)).unwrap();crate::save_v6::write_save(&root,&upgraded).unwrap();
+        assert_eq!(std::fs::read(root.join("formal-save-v6.json.pre-map-archive-v1.bak")).unwrap(),old_bytes);
+        let loaded=crate::save_v6::read_save(&root).unwrap();assert_eq!(loaded.world_persistent_v1.map_knowledge_archive_v1,upgraded.world_persistent_v1.map_knowledge_archive_v1);
+        let (returned,rs)=FormalRuntime::prepare_return_station_candidate(&state,scene,&registry).unwrap();
+        assert_eq!(returned.world.world_id,"return_station");assert_eq!(returned.world_persistent_v1.map_knowledge_archive_v1,upgraded.world_persistent_v1.map_knowledge_archive_v1);
+        let saved_rs=crate::save_v6::SaveV6::capture(&returned,Some(&rs)).unwrap();
+        let restored=saved_rs.restore_state().unwrap();assert_eq!(restored.world_persistent_v1.map_knowledge_archive_v1,upgraded.world_persistent_v1.map_knowledge_archive_v1);
+        crate::save_v6::write_save(&root,&saved_rs).unwrap();drop(active);drop(state);
+        let fresh=FormalRuntime::new_with_save_dir(root.clone()).unwrap();fresh.stop_owner.store(true,Ordering::SeqCst);
+        if let Some(handle)=fresh.owner_handle.lock().unwrap().take(){handle.join().unwrap();}
+        crate::production_scene_bootstrap::install(&fresh).unwrap();
+        let loaded=fresh.continue_saved().unwrap();if loaded.entry_token.is_some(){entry_test_support::acknowledge_ready(&fresh,loaded);}
+        fresh.resume().unwrap();
+        let marker={let active=fresh.scene_runtime.lock().unwrap();let s=active.as_ref().unwrap();s.current_scene().interactions.iter().find(|i|i.id=="rs_mh_world_gate_marker" && i.kind=="world_gate_marker").unwrap().position};
+        let epoch={let mut live=fresh.state.lock().unwrap();live.world.player.position_m=vec3_from_array(marker);live.world.revision.world_epoch};
+        let entering=fresh.use_world_gate("rs_world_gate_to_mh","archive-reentry",epoch).unwrap();
+        let entered=if entering.entry_token.is_some(){entry_test_support::acknowledge_ready(&fresh,entering)}else{entering};
+        assert_eq!(entered.world_id,"mist_harbor");assert!(entered.current_visible_regions.is_none());
+        let resumed=fresh.resume().unwrap();assert!(resumed.current_visible_regions.is_none());
+        assert_eq!(resumed.capabilities.map_topology_authorized,Some(true));assert_eq!(resumed.capabilities.explored_map.rooms.len(),1);
+        assert_eq!(resumed.capabilities.map_current_room_ids,Some(vec![]));
+        let live=fresh.state.lock().unwrap();assert!(live.mhcw_contact.is_none());
+        assert!(live.world.explored.rooms.iter().all(|r|!r.room_id.starts_with("mhcw_v1:")));
+        assert_eq!(live.world_persistent_v1.map_knowledge_archive_v1,upgraded.world_persistent_v1.map_knowledge_archive_v1);
+    }
+    #[test]
+    fn gh_known_route_all_candidates_actual_projection_matrix() {
+        let (runtime,_root)=acoustic_fixture("gh_known_route_matrix");
+        runtime.pause().unwrap();runtime.stop_owner.store(true,Ordering::SeqCst);
+        if let Some(handle)=runtime.owner_handle.lock().unwrap().take(){handle.join().unwrap();}
+        let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();runtime.install_scene_registry(registry,"gh_power_room").unwrap();
+        let mut state=runtime.state.lock().unwrap();let guard=runtime.scene_runtime.lock().unwrap();let scene=guard.as_ref().unwrap();
+        state.paused=false;state.pending_entry=None;state.pending_exit=None;
+        state.world.shaft_upper_map_observation=crate::world_v3::ObservedMapVariant::from_floor_route_key("shaft_active_open");
+        state.world.lockdown_map_observation=crate::world_v3::ObservedMapVariant::from_floor_route_key("lockdown_open");
+        for r in gh_map_archive::catalog().iter().filter(|r|r.layer_id=="upper_y0"&&!r.provider_family.contains("upper_deferred")&&!r.provider_family.contains("lockdown.legacy")) {
+            for row in &r.rows {if !state.world.explored.rooms.iter().any(|x|x.room_id==row.room_id){state.world.explored.rooms.push(row.clone());}}
+        }
+        let rev=state.world.revision;
+        crate::capability_v1::apply_command_at_revision(&mut state.capabilities,crate::capability_v1::CapabilityCommand::Grant{capability_id:crate::capability_v1::CAP_LOCAL_MAP.into()},rev).unwrap();
+        crate::capability_v1::apply_command_at_revision(&mut state.capabilities,crate::capability_v1::CapabilityCommand::Select{capability_ids:vec![crate::capability_v1::CAP_LOCAL_MAP.into()]},rev).unwrap();
+        let build=state.progression_v6.clone();state.install_build(build).unwrap();
+        let out=project_scene_view(&state,Some(scene)).capabilities;
+        let junctions=out.map_known_junctions.unwrap_or_default();
+        let expected=[0.,20.,40.,64.,88.,112.,136.,160.,184.,208.];
+        assert_eq!(junctions.len(),expected.len());
+        for (j,x) in junctions.iter().zip(expected) {assert_eq!((j.x,j.z),(x,7.));println!("MATRIX {} -> {} @ {},{}",j.from_room_id,j.to_room_id,j.x,j.z);}
+    }
+    #[test]
+    fn gh_known_route_requires_complete_qualified_history_and_permission() {
+        let (runtime,_root)=acoustic_fixture("gh_known_route");
+        runtime.pause().unwrap();runtime.stop_owner.store(true,Ordering::SeqCst);
+        if let Some(handle)=runtime.owner_handle.lock().unwrap().take(){handle.join().unwrap();}
+        let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();runtime.install_scene_registry(registry,"gh_power_room").unwrap();
+        let mut state=runtime.state.lock().unwrap();let guard=runtime.scene_runtime.lock().unwrap();let scene=guard.as_ref().unwrap();
+        state.paused=false;state.pending_entry=None;state.pending_exit=None;
+        let records=gh_map_archive::catalog();
+        for id in ["grey_hive.gh_entry_maintenance.info_v1.entry_transit","corr_power_w","corr_power_e","corr_gate_w"] {let r=records.iter().find(|r|r.parent_id==id).unwrap();state.world.explored.rooms.extend(r.rows.clone());}
+        for id in ["gh_power_to_gate_a","gh_gate_a_return_to_power_room","unrelated_link"] {
+            state.world.explored.connections.push(crate::world_v3::KnownConnection{connection_id:id.into(),from_room_id:"corr_power_e".into(),to_room_id:"corr_gate_w".into()});
+        }
+        let saved=state.world.explored.clone();
+        assert!(project_scene_view(&state,Some(scene)).capabilities.map_known_junctions.is_none());
+        let rev=state.world.revision;
+        crate::capability_v1::apply_command_at_revision(&mut state.capabilities,crate::capability_v1::CapabilityCommand::Grant{capability_id:crate::capability_v1::CAP_LOCAL_MAP.into()},rev).unwrap();
+        crate::capability_v1::apply_command_at_revision(&mut state.capabilities,crate::capability_v1::CapabilityCommand::Select{capability_ids:vec![crate::capability_v1::CAP_LOCAL_MAP.into()]},rev).unwrap();
+        let build=state.progression_v6.clone();state.install_build(build).unwrap();
+        let view=project_scene_view(&state,Some(scene));let junctions=view.capabilities.map_known_junctions.unwrap();
+        let pg=junctions.iter().find(|j|j.from_room_id=="corr_power_e"&&j.to_room_id=="corr_gate_w"&&j.x==20.0&&j.z==7.0).unwrap();
+        assert_eq!(pg.replaced_connection_ids,vec!["gh_power_to_gate_a","gh_gate_a_return_to_power_room"]);
+        assert!(junctions.iter().any(|j|j.to_room_id=="corr_power_w"&&j.x==0.0&&j.z==7.0));
+        assert_eq!(state.world.explored,saved);
+        let duplicate=state.world.explored.rooms.iter().find(|r|r.room_id=="corr_gate_w").unwrap().clone();state.world.explored.rooms.push(duplicate);
+        assert!(!project_scene_view(&state,Some(scene)).capabilities.map_known_junctions.unwrap_or_default().iter().any(|j|j.to_room_id=="corr_gate_w"));
+        state.world.explored.rooms=saved.rooms.clone();
+        state.paused=true;let persistent=state.world_persistent_v1.clone();let explored=state.world.explored.clone();
+        state.dense_region_previous=Some((state.world.scene_id.clone(),scene.world_epoch,"corr_power_e".into()));
+        gh_map_archive::observe(&mut state,scene,None);
+        let paused=project_scene_view(&state,Some(scene));
+        assert!(paused.capabilities.map_known_junctions.as_ref().unwrap().iter().any(|j|j.to_room_id=="corr_gate_w"));
+        assert_eq!(state.world_persistent_v1,persistent);assert_eq!(state.world.explored,explored);state.paused=false;
+        state.world.explored.rooms.retain(|r|r.room_id!="corr_gate_w");
+        assert!(!project_scene_view(&state,Some(scene)).capabilities.map_known_junctions.unwrap_or_default().iter().any(|j|j.to_room_id=="corr_gate_w"));
+    }
+    #[test]
+    fn known_route_map_requires_two_stored_endpoints_and_permission() {
+        let (runtime,_root)=acoustic_fixture("known_route_map");
+        runtime.pause().unwrap();runtime.stop_owner.store(true,Ordering::SeqCst);
+        if let Some(handle)=runtime.owner_handle.lock().unwrap().take(){handle.join().unwrap();}
+        let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();runtime.install_scene_registry(registry,"mh_fog_pier").unwrap();
+        let mut state=runtime.state.lock().unwrap();let scene=runtime.scene_runtime.lock().unwrap();let scene=scene.as_ref().unwrap();
+        state.paused=false;state.pending_entry=None;state.world.player.position_m=Vec3::new(4.0,0.0,8.0).unwrap();state.world.player.grounded=true;
+        advance_owner_step_with_scene(&mut state,Some(scene)).unwrap();
+        let all=mhcw_map_region::groups().unwrap();
+        let source=all.iter().find(|g|g["scene_id"]=="mh_fog_pier").unwrap();let target=all.iter().find(|g|g["scene_id"]=="mh_tidal_warehouse").unwrap();
+        let src=source["parents"].as_array().unwrap().iter().find(|p|p["source_region_id"]=="mh_fp_warehouse_approach").unwrap()["parent_id"].as_str().unwrap();
+        let dst=target["parents"].as_array().unwrap().iter().find(|p|p["source_region_id"]=="mh_tw_west_loading").unwrap()["parent_id"].as_str().unwrap();
+        let a=mhcw_map_region::rows(source,src).unwrap().remove(0);let b=mhcw_map_region::rows(target,dst).unwrap().remove(0);
+        state.world.explored.rooms.push(a.clone());state.world.explored.rooms.push(b.clone());
+        state.world.explored.connections.push(crate::world_v3::KnownConnection{connection_id:"mh_to_tidal_warehouse".into(),from_room_id:a.room_id.clone(),to_room_id:b.room_id.clone()});
+        let before=state.world.explored.clone();
+        assert!(project_scene_view(&state,Some(scene)).capabilities.map_known_junctions.is_none());
+        let rev=state.world.revision;
+        crate::capability_v1::apply_command_at_revision(&mut state.capabilities,crate::capability_v1::CapabilityCommand::Grant{capability_id:crate::capability_v1::CAP_LOCAL_MAP.into()},rev).unwrap();
+        crate::capability_v1::apply_command_at_revision(&mut state.capabilities,crate::capability_v1::CapabilityCommand::Select{capability_ids:vec![crate::capability_v1::CAP_LOCAL_MAP.into()]},rev).unwrap();
+        let build=state.progression_v6.clone();state.install_build(build).unwrap();
+        let output=project_scene_view(&state,Some(scene)).capabilities;
+        let j=output.map_known_junctions.unwrap();assert_eq!(j.len(),1);assert_eq!((j[0].x,j[0].z),(24.0,8.0));
+        assert_eq!((&j[0].from_room_id,&j[0].to_room_id),(&a.room_id,&b.room_id));
+        assert_eq!(j[0].replaced_connection_ids,vec!["mh_to_tidal_warehouse"]);
+        assert!(output.explored_map.connections.iter().any(|c|c.connection_id=="mh_to_tidal_warehouse"));
+        assert_eq!(state.world.explored,before);
+        state.world.explored.rooms.push(b.clone());
+        assert!(project_scene_view(&state,Some(scene)).capabilities.map_known_junctions.is_none());
+        state.world.explored.rooms.retain(|r|r.room_id!=b.room_id);
+        assert!(project_scene_view(&state,Some(scene)).capabilities.map_known_junctions.is_none());
+        mhcw_map_region::archive_parent(&mut state.world_persistent_v1,source,src).unwrap();
+        mhcw_map_region::archive_parent(&mut state.world_persistent_v1,target,dst).unwrap();
+        state.world.explored.rooms.clear();state.mhcw_contact=None;
+        let history=project_scene_view(&state,Some(scene));
+        assert_eq!(history.capabilities.map_known_junctions.as_ref().map(Vec::len),Some(1));
+        assert!(history.current_visible_regions.is_none() && state.world.explored.rooms.is_empty());
+        let saved_persistent=state.world_persistent_v1.clone();state.paused=true;
+        let paused=project_scene_view(&state,Some(scene));assert_eq!(paused.capabilities.map_known_junctions.as_ref().map(Vec::len),Some(1));
+        assert!(paused.current_visible_regions.is_none());let body=state.world.player.clone();let revision=state.world.revision;
+        update_mhcw_contact(&mut state,Some(scene),Some(&body),revision).unwrap();
+        assert_eq!(state.world_persistent_v1,saved_persistent);assert!(state.world.explored.rooms.is_empty());assert!(state.mhcw_contact.is_none());
+    }
+    #[test]
+    fn mhcw_map_contact_records_one_parent_and_carries_same_world() {
+        let (runtime,_root)=acoustic_fixture("mhcw_actual_contact");
+        runtime.pause().unwrap();runtime.stop_owner.store(true,Ordering::SeqCst);
+        if let Some(handle)=runtime.owner_handle.lock().unwrap().take(){handle.join().unwrap();}
+        let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();runtime.install_scene_registry(registry,"mh_fog_pier").unwrap();
+        let mut state=runtime.state.lock().unwrap();let scene=runtime.scene_runtime.lock().unwrap();let scene=scene.as_ref().unwrap();
+        state.paused=false;state.pending_entry=None;state.world.player.position_m=Vec3::new(4.0,0.0,8.0).unwrap();state.world.player.grounded=true;
+        assert!(mhcw_current(&state,scene).is_none());assert!(state.world.explored.rooms.iter().all(|r|!r.room_id.starts_with("mhcw_v1:")));
+        advance_owner_step_with_scene(&mut state,Some(scene)).unwrap();
+        let contact=mhcw_current(&state,scene).expect("real step contact");assert!(contact.region.ends_with("mh_fp_entry_berth"));
+        let rows:Vec<_>=state.world.explored.rooms.iter().filter(|r|r.room_id.starts_with("mhcw_v1:")).collect();assert_eq!(rows.len(),1);
+        assert!(rows[0].room_id.ends_with("mh_fp_entry_berth:part0"));
+        let view=project_scene_view(&state,Some(scene));assert_eq!(view.current_visible_regions.as_ref().map(Vec::len),Some(1));
+        let mut next=WorldStateV3::new("mist_harbor",state.world.revision.world_epoch+1,Vec3::zero()).unwrap();
+        preserve_grey_hive_exploration(&state.world,&mut next);assert_eq!(next.explored.rooms,state.world.explored.rooms);
+        let mut other=WorldStateV3::new("clockworks",state.world.revision.world_epoch+1,Vec3::zero()).unwrap();
+        preserve_grey_hive_exploration(&state.world,&mut other);assert!(other.explored.rooms.is_empty());
+        state.world.player.position_m.x_m+=0.1;assert!(mhcw_current(&state,scene).is_none());
+        state.world.player.grounded=false;let prior=state.world.explored.rooms.clone();
+        let revision=state.world.revision;update_mhcw_contact(&mut state,Some(scene),None,revision).unwrap();assert_eq!(state.world.explored.rooms,prior);assert!(state.mhcw_contact.is_none());
+    }
+    #[test]
+    fn cw_height_references_require_directional_history_and_actual_contact() {
+        let (gear_runtime,_root)=acoustic_fixture("cw_height_forward");gear_runtime.pause().unwrap();gear_runtime.stop_owner.store(true,Ordering::SeqCst);
+        if let Some(handle)=gear_runtime.owner_handle.lock().unwrap().take(){handle.join().unwrap();}
+        let registry=gear_runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();gear_runtime.install_scene_registry(registry.clone(),"cw_gear_shaft").unwrap();
+        {
+            let mut state=gear_runtime.state.lock().unwrap();let guard=gear_runtime.scene_runtime.lock().unwrap();let scene=guard.as_ref().unwrap();
+            state.paused=false;state.pending_entry=None;state.world.player.position_m=Vec3::new(21.,2.,8.).unwrap();state.world.player.grounded=true;
+            advance_owner_step_with_scene(&mut state,Some(scene)).unwrap();assert!(mhcw_current(&state,scene).unwrap().region.ends_with("cw_gear_furnace_landing"));
+            let furnace=scene.cw_height_map_scene("cw_furnace_heart").unwrap();let fg=mhcw_map_region::group(furnace,"ground_y0").unwrap();
+            let fid="mhcw_v1:clockworks:cw_furnace_heart:ground:facility_floor";
+            mhcw_map_region::archive_parent(&mut state.world_persistent_v1,fg,fid).unwrap();
+            assert!(project_scene_view(&state,Some(scene)).capabilities.map_known_height_references.is_none());
+            let rev=state.world.revision;crate::capability_v1::apply_command_at_revision(&mut state.capabilities,crate::capability_v1::CapabilityCommand::Grant{capability_id:crate::capability_v1::CAP_LOCAL_MAP.into()},rev).unwrap();
+            crate::capability_v1::apply_command_at_revision(&mut state.capabilities,crate::capability_v1::CapabilityCommand::Select{capability_ids:vec![crate::capability_v1::CAP_LOCAL_MAP.into()]},rev).unwrap();let build=state.progression_v6.clone();state.install_build(build).unwrap();
+            let view=project_scene_view(&state,Some(scene));let reference=&view.capabilities.map_known_height_references.as_ref().unwrap()[0];assert_eq!(reference.kind,"gear_to_furnace");assert_eq!((reference.x,reference.z),(119.,8.));
+
+            let mut other=state.clone();other.world.player.position_m=Vec3::new(16.,2.,8.).unwrap();advance_owner_step_with_scene(&mut other,Some(scene)).unwrap();assert!(mhcw_current(&other,scene).unwrap().region.ends_with("cw_gear_upper_dock"));assert!(project_scene_view(&other,Some(scene)).capabilities.map_known_height_references.is_none());
+            let mut moving=state.clone();moving.world.player.position_m=Vec3::new(12.5,0.,8.).unwrap();advance_owner_step_with_scene(&mut moving,Some(scene)).unwrap();let rider=moving.kcc.support_rider_view(&moving.world.player,moving.world.server_time_ms,false).unwrap();assert_eq!(rider.mode,crate::moving_support::SupportRiderMode::Surface);assert_eq!(rider.support_id.as_deref(),Some("cw_gear_main_lift"));assert!(project_scene_view(&moving,Some(scene)).capabilities.map_known_height_references.is_none());
+            let saved=state.world_persistent_v1.clone();state.world_persistent_v1.map_knowledge_archive_v1.as_mut().unwrap().records[0].scene_source_sha256="0".repeat(64);assert!(project_scene_view(&state,Some(scene)).capabilities.map_known_height_references.is_none());state.world_persistent_v1=saved;
+            let saved=state.world_persistent_v1.clone();let duplicate=saved.map_knowledge_archive_v1.as_ref().unwrap().records[0].clone();state.world_persistent_v1.map_knowledge_archive_v1.as_mut().unwrap().records.push(duplicate);assert!(project_scene_view(&state,Some(scene)).capabilities.map_known_height_references.is_none());state.world_persistent_v1=saved;
+            let original=state.world_persistent_v1.clone();let mut bad=original.clone();bad.map_knowledge_archive_v1.as_mut().unwrap().records[0].rows[0].outline_m[0].x_m+=0.5;state.world_persistent_v1=bad;assert!(project_scene_view(&state,Some(scene)).capabilities.map_known_height_references.is_none());state.world_persistent_v1=original;
+            let original=state.effective_rules_v6.map.clone();state.effective_rules_v6.map.connections=crate::player_rules::KnowledgeLevel::DetectedOnly;state.effective_rules_v6.map.granted.remove(&crate::effects::MapKnowledgeTag::Connections);assert!(project_scene_view(&state,Some(scene)).capabilities.map_known_height_references.is_none());state.effective_rules_v6.map=original;
+        }
+        let paused=gear_runtime.pause().unwrap();assert!(paused.capabilities.map_known_height_references.is_some());
+        {let mut state=gear_runtime.state.lock().unwrap();let guard=gear_runtime.scene_runtime.lock().unwrap();let scene=guard.as_ref().unwrap();state.world.player.grounded=false;assert!(project_scene_view(&state,Some(scene)).capabilities.map_known_height_references.is_none());}
+        let (furnace_runtime,_root)=acoustic_fixture("cw_height_reverse");furnace_runtime.pause().unwrap();furnace_runtime.stop_owner.store(true,Ordering::SeqCst);if let Some(handle)=furnace_runtime.owner_handle.lock().unwrap().take(){handle.join().unwrap();}
+        furnace_runtime.install_scene_registry(registry,"cw_furnace_heart").unwrap();
+        let mut state=furnace_runtime.state.lock().unwrap();let guard=furnace_runtime.scene_runtime.lock().unwrap();let scene=guard.as_ref().unwrap();
+        state.paused=false;state.pending_entry=None;state.world.player.position_m=Vec3::new(3.,0.,8.).unwrap();state.world.player.grounded=true;advance_owner_step_with_scene(&mut state,Some(scene)).unwrap();
+        let gear=scene.cw_height_map_scene("cw_gear_shaft").unwrap();let upper=mhcw_map_region::group(gear,"gear_static_decks_y2").unwrap();let ground=mhcw_map_region::group(gear,"ground_y0").unwrap();
+        mhcw_map_region::archive_parent(&mut state.world_persistent_v1,upper,"mhcw_v1:clockworks:cw_gear_shaft:upper_static:cw_gear_furnace_landing").unwrap();
+        let rev=state.world.revision;crate::capability_v1::apply_command_at_revision(&mut state.capabilities,crate::capability_v1::CapabilityCommand::Grant{capability_id:crate::capability_v1::CAP_LOCAL_MAP.into()},rev).unwrap();
+        crate::capability_v1::apply_command_at_revision(&mut state.capabilities,crate::capability_v1::CapabilityCommand::Select{capability_ids:vec![crate::capability_v1::CAP_LOCAL_MAP.into()]},rev).unwrap();let build=state.progression_v6.clone();state.install_build(build).unwrap();
+        assert!(project_scene_view(&state,Some(scene)).capabilities.map_known_height_references.is_none());
+        mhcw_map_region::archive_parent(&mut state.world_persistent_v1,ground,"mhcw_v1:clockworks:cw_gear_shaft:ground:facility_floor").unwrap();
+        let view=project_scene_view(&state,Some(scene));let reference=&view.capabilities.map_known_height_references.as_ref().unwrap()[0];assert_eq!(reference.kind,"furnace_return_to_gear_ground");assert_eq!((reference.x,reference.z),(1.5,8.));
+
+        let before=state.world_persistent_v1.clone();let rows=state.world.explored.rooms.clone();drop(guard);drop(state);
+        let paused=furnace_runtime.pause().unwrap();assert!(paused.capabilities.map_known_height_references.is_some());
+        let mut state=furnace_runtime.state.lock().unwrap();let guard=furnace_runtime.scene_runtime.lock().unwrap();let scene=guard.as_ref().unwrap();
+        assert_eq!(state.world_persistent_v1,before);assert_eq!(state.world.explored.rooms,rows);let generation=state.entry_generation;FormalRuntime::prepare_entry(&mut state,generation).unwrap();assert!(project_scene_view(&state,Some(scene)).capabilities.map_known_height_references.is_none());assert_eq!(state.world_persistent_v1,before);assert_eq!(state.world.explored.rooms,rows);
+    }
+    #[test]
+    fn mhcw_gear_real_deck_step_survives_pause_as_history_only() {
+        let (runtime,_root)=acoustic_fixture("mhcw_gear_pause");runtime.pause().unwrap();runtime.stop_owner.store(true,Ordering::SeqCst);
+        if let Some(handle)=runtime.owner_handle.lock().unwrap().take(){handle.join().unwrap();}
+        let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();runtime.install_scene_registry(registry,"cw_gear_shaft").unwrap();
+        {
+            let mut state=runtime.state.lock().unwrap();let guard=runtime.scene_runtime.lock().unwrap();let scene=guard.as_ref().unwrap();
+            state.paused=false;state.pending_entry=None;state.world.player.position_m=Vec3::new(16.0,2.0,8.0).unwrap();state.world.player.grounded=true;
+            advance_owner_step_with_scene(&mut state,Some(scene)).unwrap();assert_eq!(mhcw_current(&state,scene).unwrap().layer,"gear_static_decks_y2");
+            let rev=state.world.revision;
+            crate::capability_v1::apply_command_at_revision(&mut state.capabilities,crate::capability_v1::CapabilityCommand::Grant{capability_id:crate::capability_v1::CAP_LOCAL_MAP.into()},rev).unwrap();
+            crate::capability_v1::apply_command_at_revision(&mut state.capabilities,crate::capability_v1::CapabilityCommand::Select{capability_ids:vec![crate::capability_v1::CAP_LOCAL_MAP.into()]},rev).unwrap();
+            let build=state.progression_v6.clone();state.install_build(build).unwrap();
+        }
+        let before=runtime.state.lock().unwrap().world.explored.clone();let view=runtime.pause().unwrap();
+        assert_eq!(view.capabilities.map_topology_authorized,Some(true));assert!(!view.capabilities.explored_map.rooms.is_empty());
+        assert!(view.capabilities.explored_map.rooms.iter().all(|r|r.outline_m.iter().all(|p|p.y_m==2.0)));
+        assert!(view.capabilities.map_current_room_ids.as_ref().is_some_and(Vec::is_empty));
+        let mut state=runtime.state.lock().unwrap();assert_eq!(state.world.explored,before);
+        let guard=runtime.scene_runtime.lock().unwrap();let scene=guard.as_ref().unwrap();assert!(mhcw_current(&state,scene).is_none());
+        let proof=state.mhcw_paused_history.as_ref().unwrap();assert_eq!(proof.original.revision,state.mhcw_contact.as_ref().unwrap().revision);
+        assert_ne!(proof.original.revision,proof.pause_revision);
+        assert_eq!(mhcw_history_contact(&state,scene.current_scene()).unwrap().layer,"gear_static_decks_y2");
+        let mut preview=state.clone();preview.world.scene_id="cw_furnace_heart".into();assert!(mhcw_history_group(&preview,scene.current_scene()).is_none());
+        state.world.player.grounded=false;assert!(mhcw_history_group(&state,scene.current_scene()).is_none());
+    }
+    #[test]
+    fn mhcw_gear_static_deck_requires_real_supported_step() {
+        let (runtime,_root)=acoustic_fixture("mhcw_gear_contact");
+        runtime.pause().unwrap();runtime.stop_owner.store(true,Ordering::SeqCst);
+        if let Some(handle)=runtime.owner_handle.lock().unwrap().take(){handle.join().unwrap();}
+        let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();
+        runtime.install_scene_registry(registry,"cw_gear_shaft").unwrap();
+        let mut state=runtime.state.lock().unwrap();let scene=runtime.scene_runtime.lock().unwrap();let scene=scene.as_ref().unwrap();
+        state.paused=false;state.pending_entry=None;state.world.player.position_m=Vec3::new(16.0,2.0,8.0).unwrap();state.world.player.grounded=true;
+        assert!(mhcw_current(&state,scene).is_none());
+        advance_owner_step_with_scene(&mut state,Some(scene)).unwrap();
+        let contact=mhcw_current(&state,scene).expect("real supported deck step");
+        assert_eq!(contact.layer,"gear_static_decks_y2");assert!(contact.region.ends_with("cw_gear_upper_dock"));
+        let rows:Vec<_>=state.world.explored.rooms.iter().filter(|r|r.room_id.starts_with("mhcw_v1:")).collect();assert_eq!(rows.len(),1);
+        let old=state.world.explored.rooms.clone();state.world.player.grounded=false;
+        let revision=state.world.revision;update_mhcw_contact(&mut state,Some(scene),None,revision).unwrap();
+        assert!(mhcw_current(&state,scene).is_none());assert_eq!(state.world.explored.rooms,old);
+    }
+    #[test]
+    fn mh_remaining_shore_warden_preview_is_geometry_only() {
+        let (runtime,_root)=acoustic_fixture("warden_preview_private");
+        runtime.pause().unwrap();runtime.stop_owner.store(true,Ordering::SeqCst);
+        if let Some(handle)=runtime.owner_handle.lock().unwrap().take(){handle.join().unwrap();}
+        let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();
+        runtime.install_scene_registry(registry,"mh_resonance_tower").unwrap();
+        {let mut state=runtime.state.lock().unwrap();state.paused=false;state.world.player.position_m=Vec3::new(23.0,0.0,8.0).unwrap();state.world.player.grounded=true;
+         let progress=state.route.progress.iter_mut().find(|p|p.world_id=="mist_harbor").unwrap();progress.completed_events.push("mist_signal".into());}
+        let view=runtime.snapshot().unwrap();
+        assert_eq!(view.hive_route_neighbor.as_ref().unwrap().target_scene_id,"mh_warden_arena");
+        assert!(view.actors.iter().all(|actor|actor.entity_id!=warden_encounter::ACTOR_ID));
+        let state=runtime.state.lock().unwrap();
+        assert_eq!(state.world.scene_id,"mh_resonance_tower");
+        assert!(state.world.generic_actors.iter().all(|actor|actor.entity_id!=warden_encounter::ACTOR_ID));
+    }
+    #[test]
+    fn mh_remaining_shore_gate_reason_and_deep_water() {
+        let (runtime,_root)=acoustic_fixture("remaining_gate_water");
+        runtime.pause().unwrap();runtime.stop_owner.store(true,Ordering::SeqCst);
+        if let Some(handle)=runtime.owner_handle.lock().unwrap().take(){handle.join().unwrap();}
+        let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();
+        runtime.install_scene_registry(registry.clone(),"mh_breakwater").unwrap();
+        {let mut state=runtime.state.lock().unwrap();state.paused=false;state.world.player.position_m=Vec3::new(23.0,0.0,8.0).unwrap();state.world.player.grounded=true;}
+        let locked=runtime.snapshot().unwrap().hive_route_boundary.unwrap();
+        assert!(locked.closed);assert_eq!(locked.prerequisite_blocked,Some(true));
+        {let mut state=runtime.state.lock().unwrap();let progress=state.route.progress.iter_mut().find(|p|p.world_id=="mist_harbor").unwrap();progress.completed_events.push("mist_beacon_east".into());}
+        let preparing=runtime.snapshot().unwrap().hive_route_boundary.unwrap();
+        assert!(preparing.closed);assert_eq!(preparing.prerequisite_blocked,Some(false));
+        runtime.install_scene_registry(registry,"mh_pump_station").unwrap();
+        let mut state=runtime.state.lock().unwrap();let scene=runtime.scene_runtime.lock().unwrap();
+        let definition=scene.as_ref().unwrap().current_scene();let events=completed_world_events(&state,"mist_harbor");
+        let position=Vec3::new(23.0,0.0,8.0).unwrap();let radius=state.world.player.radius_m;
+        state.world_persistent_v1.mist_harbor.pump.state=crate::world_persistent_v1::PumpStatus::Ready;
+        let wet=scene_kcc_for_state(definition,&events,&state).unwrap();
+        assert!(!wet.can_player_occupy(position,radius));
+        state.effective_rules_v6.terrain.passable.insert(crate::effects::TerrainTag::WaterDeep);
+        let qualified=scene_kcc_for_state(definition,&events,&state).unwrap();
+        assert!(qualified.can_player_occupy(position,radius));
+        state.effective_rules_v6.terrain.passable.remove(&crate::effects::TerrainTag::WaterDeep);
+        state.world_persistent_v1.mist_harbor.pump.state=crate::world_persistent_v1::PumpStatus::Drained;
+        let dry=scene_kcc_for_state(definition,&events,&state).unwrap();
+        assert!(dry.can_player_occupy(position,radius));
+    }
+    #[test]
+    fn mh_remaining_shore_directional_prerequisites() {
+        let rows=[("mh_drowned_quay","mh_breakwater",None),("mh_breakwater","mh_drowned_quay",None),
+            ("mh_breakwater","mh_pump_station",Some("mist_beacon_east")),("mh_pump_station","mh_breakwater",None),
+            ("mh_pump_station","mh_resonance_tower",None),("mh_resonance_tower","mh_pump_station",None),
+            ("mh_resonance_tower","mh_warden_arena",Some("mist_signal")),("mh_warden_arena","mh_resonance_tower",None),
+            ("mh_warden_arena","mh_extraction",Some("warden_defeated")),("mh_extraction","mh_warden_arena",None)];
+        for (source,target,required) in rows {
+            let (runtime,_root)=acoustic_fixture("remaining_shore");
+            runtime.pause().unwrap();runtime.stop_owner.store(true,Ordering::SeqCst);
+            if let Some(handle)=runtime.owner_handle.lock().unwrap().take(){handle.join().unwrap();}
+            let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();
+            runtime.install_scene_registry(registry,source).unwrap();
+            let active=runtime.scene_runtime.lock().unwrap();let scene=active.as_ref().unwrap();
+            let mut events=std::collections::BTreeSet::new();
+            assert_eq!(scene.mh_shore_connection_verified(target,&events,false),required.is_none(),"{source}->{target}");
+            events.insert("mist_beacon_east".to_string());events.insert("mist_signal".to_string());
+            assert!(scene.mh_shore_connection_verified(target,&events,true),"{source}->{target}");
+        }
+    }
+    #[test]
+    fn mh_remaining_shore_walk_save_and_retreat() {
+        let routes=[("mh_drowned_quay","mh_breakwater",true),("mh_breakwater","mh_drowned_quay",false),
+            ("mh_breakwater","mh_pump_station",true),("mh_pump_station","mh_breakwater",false),
+            ("mh_pump_station","mh_resonance_tower",true),("mh_resonance_tower","mh_pump_station",false),
+            ("mh_resonance_tower","mh_warden_arena",true),("mh_warden_arena","mh_resonance_tower",false),
+            ("mh_warden_arena","mh_extraction",true),("mh_extraction","mh_warden_arena",false)];
+        for (source,target,east) in routes {
+            let (runtime,_root)=acoustic_fixture("remaining_walk");
+            runtime.pause().unwrap();runtime.stop_owner.store(true,Ordering::SeqCst);
+            if let Some(handle)=runtime.owner_handle.lock().unwrap().take(){handle.join().unwrap();}
+            let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();
+            runtime.install_scene_registry(registry,source).unwrap();
+            {let mut s=runtime.state.lock().unwrap();s.paused=false;s.world.player.position_m=Vec3::new(if east {23.0} else {1.0},0.0,8.0).unwrap();s.world.player.grounded=true;
+                s.world_persistent_v1.mist_harbor.warden_defeated=true;
+                if source=="mh_warden_arena" {for actor in &mut s.world.generic_actors {if actor.entity_id==warden_encounter::ACTOR_ID {actor.take_damage(u32::MAX);}}}
+                s.world_persistent_v1.mist_harbor.pump.state=crate::world_persistent_v1::PumpStatus::Drained;
+                s.world_persistent_v1.mist_harbor.pump.drain_complete_at_world_time_ms=Some(0);
+                let progress=s.route.progress.iter_mut().find(|p|p.world_id=="mist_harbor").unwrap();
+                for event in ["mist_beacon_east","mist_signal"] {if !progress.completed_events.iter().any(|e|e==event) {progress.completed_events.push(event.into());}}
+            }
+            let initial=runtime.snapshot().unwrap();let stale=initial.hive_route_neighbor.clone().expect("shore preview");
+            let sha=runtime.scene_runtime.lock().unwrap().as_ref().unwrap().current_scene().verified_source_sha256.clone();
+            let old_proof=serde_json::json!({"hiveRoute":true,"sourceSha":sha,"progression":initial.progression});
+            runtime.pause().unwrap();runtime.resume().unwrap();
+            assert!(runtime.scene_ready_with_exit_proof(&stale.token,false,Some(&stale.target_scene_source_sha256),Some(&old_proof)).is_err());
+            let view=runtime.snapshot().unwrap();let route=view.hive_route_neighbor.clone().expect("fresh shore preview");assert_eq!(route.target_scene_id,target);
+            let proof=serde_json::json!({"hiveRoute":true,"sourceSha":sha,"progression":view.progression});
+            runtime.scene_ready_with_exit_proof(&route.token,false,Some(&route.target_scene_source_sha256),Some(&proof)).unwrap();
+            let mut saved=None;
+            {let mut state=runtime.state.lock().unwrap();let epoch=state.world.revision.world_epoch;
+                state.latest_sample=InputSample::new(epoch,1,0,if east {1.0} else {-1.0},0.0).unwrap();state.latest_input_received_at=Instant::now();
+                let mut scene=runtime.scene_runtime.lock().unwrap();
+                for _ in 0..150 {
+                    advance_owner_step_with_pair_crossing(&mut state,&mut scene).unwrap();
+                    if state.world.scene_id!=source {break;}
+                    let x=state.world.player.position_m.x_m;
+                    if saved.is_none() && (if east {x>24.0} else {x<0.0}) {
+                        assert!(state.kcc.is_hive_route_union());
+                        saved=Some(crate::save_v6::SaveV6::capture(&state,scene.as_ref()).unwrap());
+                    }
+                }
+                assert_eq!(state.world.scene_id,target,"{source} -> {target}");
+                assert!(if east {state.world.player.velocity_mps.x_m>0.0} else {state.world.player.velocity_mps.x_m<0.0});
+                let own=scene_kcc_for_state(scene.as_ref().unwrap().current_scene(),&completed_world_events(&state,"mist_harbor"),&state).unwrap();
+                assert!(own.can_player_occupy(state.world.player.position_m,state.world.player.radius_m));
+            }
+            let save=saved.expect("actual partial-disc save");let bytes=serde_json::to_vec(&save).unwrap();
+            let decoded:crate::save_v6::SaveV6=serde_json::from_slice(&bytes).unwrap();
+            let state=runtime.state.lock().unwrap();let (mut restored,restored_scene)=runtime.prepare_default_save(&decoded,&state).unwrap();
+            assert_eq!(restored.world.scene_id,source);assert!(restored.kcc.is_hive_route_union());assert!(restored.hive_route_latch.is_some());
+            let before=restored.world.player.position_m.x_m;let epoch=restored.world.revision.world_epoch;
+            restored.paused=false;restored.latest_sample=InputSample::new(epoch,2,0,if east {-1.0} else {1.0},0.0).unwrap();restored.latest_input_received_at=Instant::now();
+            hold_hive_route(&mut restored,restored_scene.as_ref().unwrap(),east).unwrap();
+            assert!(if east {restored.world.player.position_m.x_m<before} else {restored.world.player.position_m.x_m>before});
+        }
+    }
+
+
+    #[test]
+    fn mh_shore_edges_ack_walk_and_restore_partial_support() {
+        let routes=[("mh_fog_pier","mh_tidal_warehouse",true),("mh_tidal_warehouse","mh_fog_pier",false),
+            ("mh_tidal_warehouse","mh_signal_yard",true),("mh_signal_yard","mh_tidal_warehouse",false),
+            ("mh_signal_yard","mh_drowned_quay",true),("mh_drowned_quay","mh_signal_yard",false)];
+        for (source,target,east) in routes {
+            let (runtime,_root)=acoustic_fixture("shore");
+            runtime.pause().unwrap();runtime.stop_owner.store(true,Ordering::SeqCst);
+            if let Some(handle)=runtime.owner_handle.lock().unwrap().take(){handle.join().unwrap();}
+            let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();
+            runtime.install_scene_registry(registry,source).unwrap();
+            {let mut s=runtime.state.lock().unwrap();s.paused=false;s.world.player.position_m=Vec3::new(if east {23.0} else {1.0},0.0,8.0).unwrap();s.world.player.grounded=true;}
+            let initial=runtime.snapshot().unwrap();let stale=initial.hive_route_neighbor.clone().expect("shore preview");
+            let sha=runtime.scene_runtime.lock().unwrap().as_ref().unwrap().current_scene().verified_source_sha256.clone();
+            let old_proof=serde_json::json!({"hiveRoute":true,"sourceSha":sha,"progression":initial.progression});
+            runtime.pause().unwrap();runtime.resume().unwrap();
+            assert!(runtime.scene_ready_with_exit_proof(&stale.token,false,Some(&stale.target_scene_source_sha256),Some(&old_proof)).is_err());
+            let view=runtime.snapshot().unwrap();let route=view.hive_route_neighbor.clone().expect("fresh shore preview");assert_eq!(route.target_scene_id,target);
+            let proof=serde_json::json!({"hiveRoute":true,"sourceSha":sha,"progression":view.progression});
+            runtime.scene_ready_with_exit_proof(&route.token,false,Some(&route.target_scene_source_sha256),Some(&proof)).unwrap();
+            let mut saved=None;
+            {let mut state=runtime.state.lock().unwrap();let epoch=state.world.revision.world_epoch;
+                state.latest_sample=InputSample::new(epoch,1,0,if east {1.0} else {-1.0},0.0).unwrap();state.latest_input_received_at=Instant::now();
+                let mut scene=runtime.scene_runtime.lock().unwrap();
+                for _ in 0..150 {
+                    advance_owner_step_with_pair_crossing(&mut state,&mut scene).unwrap();
+                    if state.world.scene_id!=source {break;}
+                    let x=state.world.player.position_m.x_m;
+                    if saved.is_none() && (if east {x>24.0} else {x<0.0}) {
+                        assert!(state.kcc.is_hive_route_union());
+                        saved=Some(crate::save_v6::SaveV6::capture(&state,scene.as_ref()).unwrap());
+                    }
+                }
+                assert_eq!(state.world.scene_id,target,"{source} -> {target}");
+                assert!(if east {state.world.player.velocity_mps.x_m>0.0} else {state.world.player.velocity_mps.x_m<0.0});
+                let own=scene_kcc_for_state(scene.as_ref().unwrap().current_scene(),&completed_world_events(&state,"mist_harbor"),&state).unwrap();
+                assert!(own.can_player_occupy(state.world.player.position_m,state.world.player.radius_m));
+            }
+            let save=saved.expect("actual partial-disc save");let bytes=serde_json::to_vec(&save).unwrap();
+            let decoded:crate::save_v6::SaveV6=serde_json::from_slice(&bytes).unwrap();
+            let state=runtime.state.lock().unwrap();let (mut restored,restored_scene)=runtime.prepare_default_save(&decoded,&state).unwrap();
+            assert_eq!(restored.world.scene_id,source);assert!(restored.kcc.is_hive_route_union());assert!(restored.hive_route_latch.is_some());
+            let before=restored.world.player.position_m.x_m;let epoch=restored.world.revision.world_epoch;
+            restored.paused=false;restored.latest_sample=InputSample::new(epoch,2,0,if east {-1.0} else {1.0},0.0).unwrap();restored.latest_input_received_at=Instant::now();
+            hold_hive_route(&mut restored,restored_scene.as_ref().unwrap(),east).unwrap();
+            assert!(if east {restored.world.player.position_m.x_m<before} else {restored.world.player.position_m.x_m>before});
+        }
+    }
+
+    #[test]
+    fn hive_route_all_edges_ack_and_cross_with_actual_collision() {
+        let routes=[
+            ("gh_entry_maintenance","gh_power_room",20.0,true,7.0),
+            ("gh_power_room","gh_entry_maintenance",20.0,false,7.0),
+            ("gh_lockdown","gh_bio_isolation",24.0,true,8.0),
+            ("gh_bio_isolation","gh_lockdown",24.0,false,8.0),
+            ("gh_bio_isolation","gh_gate_b",24.0,true,8.0),
+            ("gh_gate_b","gh_bio_isolation",24.0,false,8.0),
+            ("gh_deep_decon","gh_sentinel_arena",24.0,true,8.0),
+            ("gh_sentinel_arena","gh_deep_decon",24.0,false,8.0),
+            ("gh_sentinel_arena","gh_beacon",24.0,true,8.0),
+            ("gh_beacon","gh_sentinel_arena",24.0,false,8.0),
+        ];
+        for (source,target,width,east,z) in routes {
+            let runtime=runtime_for_sentinel_beacon_gate();
+            let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();
+            runtime.install_scene_registry(registry,source).unwrap();
+            {
+                let mut state=runtime.state.lock().unwrap();
+                state.paused=false;
+                state.world.player.position_m=Vec3::new(if east {width-0.4} else {0.4},0.0,z).unwrap();
+                state.world.player.grounded=true;
+                state.world_persistent_v1.grey_hive.sentinel_first_kill=true;
+                let gh=state.route.progress.iter_mut().find(|p|p.world_id=="grey_hive").unwrap();
+                if !gh.completed_events.iter().any(|e|e=="hive_lockdown") {gh.completed_events.push("hive_lockdown".into());}
+            }
+            let before=runtime.snapshot().unwrap();
+            let neighbor=before.hive_route_neighbor.clone().unwrap_or_else(||panic!("missing prepared route {source} -> {target}"));
+            assert_eq!(neighbor.target_scene_id,target);
+            let source_sha=runtime.scene_runtime.lock().unwrap().as_ref().unwrap().current_scene().verified_source_sha256.clone();
+            let proof=serde_json::json!({"hiveRoute":true,"sourceSha":source_sha,"progression":before.progression});
+            runtime.scene_ready_with_exit_proof(&neighbor.token,false,Some(&neighbor.target_scene_source_sha256),Some(&proof)).unwrap();
+            let mut state=runtime.state.lock().unwrap();
+            let epoch=state.world.revision.world_epoch;
+            state.latest_sample=InputSample::new(epoch,1,0,if east {1.0} else {-1.0},0.0).unwrap();
+            state.latest_input_received_at=Instant::now();
+            let mut scene=runtime.scene_runtime.lock().unwrap();
+            for _ in 0..8 {
+                advance_owner_step_with_pair_crossing(&mut state,&mut scene).unwrap();
+                if state.world.scene_id==target {break;}
+            }
+            assert_eq!(state.world.scene_id,target,"route {source} -> {target}");
+            assert!(if east {state.world.player.position_m.x_m>=0.0 && state.world.player.position_m.x_m<1.0} else {state.world.player.position_m.x_m<=width && state.world.player.position_m.x_m>width-1.0});
+            assert!(if east {state.world.player.velocity_mps.x_m>0.0} else {state.world.player.velocity_mps.x_m<0.0});
+            assert!(state.pending_entry.is_some());
+        }
+    }
+
+    #[test]
+    fn hive_route_straddling_save_reconstructs_the_same_union() {
+        let runtime=runtime_for_sentinel_beacon_gate();
+        {
+            let mut state=runtime.state.lock().unwrap();
+            state.world.player.position_m=Vec3::new(23.6,0.0,8.0).unwrap();
+            state.world.player.grounded=true;
+            state.world_persistent_v1.grey_hive.sentinel_first_kill=true;
+        }
+        let view=runtime.snapshot().unwrap();
+        let route=view.hive_route_neighbor.clone().expect("prepared target");
+        let source_sha=runtime.scene_runtime.lock().unwrap().as_ref().unwrap().current_scene().verified_source_sha256.clone();
+        let proof=serde_json::json!({"hiveRoute":true,"sourceSha":source_sha,"progression":view.progression});
+        runtime.scene_ready_with_exit_proof(&route.token,false,Some(&route.target_scene_source_sha256),Some(&proof)).unwrap();
+        let save={
+            let mut state=runtime.state.lock().unwrap();
+            state.world.player.position_m=Vec3::new(23.8,0.0,8.0).unwrap();
+            assert!(state.kcc.is_hive_route_union());
+            assert!(state.kcc.can_player_occupy(state.world.player.position_m,state.world.player.radius_m));
+            let scene=runtime.scene_runtime.lock().unwrap();
+            crate::save_v6::SaveV6::capture(&state,scene.as_ref()).unwrap()
+        };
+        let bytes=serde_json::to_vec(&save).unwrap();
+        let decoded:crate::save_v6::SaveV6=serde_json::from_slice(&bytes).unwrap();
+        let state=runtime.state.lock().unwrap();
+        let (restored,scene)=runtime.prepare_default_save(&decoded,&state).unwrap();
+        assert_eq!(restored.world.scene_id,"gh_sentinel_arena");
+        assert_eq!(restored.world.player.position_m,Vec3::new(23.8,0.0,8.0).unwrap());
+        assert!(restored.kcc.is_hive_route_union());
+        assert!(restored.hive_route_latch.is_some());
+        assert!(scene.is_some());
+    }
+
+    #[test]
+    fn hive_route_straddling_continue_covers_all_source_sides() {
+        let routes=[
+            ("gh_entry_maintenance",20.0,true,7.0), ("gh_power_room",20.0,false,7.0),
+            ("gh_lockdown",24.0,true,8.0), ("gh_bio_isolation",24.0,false,8.0),
+            ("gh_bio_isolation",24.0,true,8.0), ("gh_gate_b",24.0,false,8.0),
+            ("gh_deep_decon",24.0,true,8.0), ("gh_sentinel_arena",24.0,false,8.0),
+            ("gh_sentinel_arena",24.0,true,8.0), ("gh_beacon",24.0,false,8.0),
+        ];
+        for (source,width,east,z) in routes {
+            let runtime=runtime_for_sentinel_beacon_gate();
+            let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();
+            runtime.install_scene_registry(registry,source).unwrap();
+            {
+                let mut state=runtime.state.lock().unwrap();state.paused=false;
+                state.world.player.position_m=Vec3::new(if east {width-0.4} else {0.4},0.0,z).unwrap();
+                state.world.player.grounded=true;state.world_persistent_v1.grey_hive.sentinel_first_kill=true;
+                let gh=state.route.progress.iter_mut().find(|p|p.world_id=="grey_hive").unwrap();
+                if !gh.completed_events.iter().any(|e|e=="hive_lockdown") {gh.completed_events.push("hive_lockdown".into());}
+            }
+            let view=runtime.snapshot().unwrap();let route=view.hive_route_neighbor.clone().unwrap_or_else(||panic!("missing route {source}"));
+            let source_sha=runtime.scene_runtime.lock().unwrap().as_ref().unwrap().current_scene().verified_source_sha256.clone();
+            let proof=serde_json::json!({"hiveRoute":true,"sourceSha":source_sha,"progression":view.progression});
+            runtime.scene_ready_with_exit_proof(&route.token,false,Some(&route.target_scene_source_sha256),Some(&proof)).unwrap();
+            let save={
+                let mut state=runtime.state.lock().unwrap();
+                state.world.player.position_m=Vec3::new(if east {width-0.2} else {0.2},0.0,z).unwrap();
+                assert!(state.kcc.can_player_occupy(state.world.player.position_m,state.world.player.radius_m),"source {source}");
+                let scene=runtime.scene_runtime.lock().unwrap();
+                crate::save_v6::SaveV6::capture(&state,scene.as_ref()).unwrap()
+            };
+            let bytes=serde_json::to_vec(&save).unwrap();let decoded:crate::save_v6::SaveV6=serde_json::from_slice(&bytes).unwrap();
+            let state=runtime.state.lock().unwrap();
+            let (restored,_)=runtime.prepare_default_save(&decoded,&state).unwrap_or_else(|e|panic!("restore {source}: {e}"));
+            assert_eq!(restored.world.scene_id,source);
+            assert!(restored.kcc.is_hive_route_union(),"restore {source}");
+            assert!(restored.hive_route_latch.is_some());
+        }
+    }
+
+    #[test]
+    fn hive_route_decon_keeps_the_real_off_center_partition_collision() {
+        let runtime=runtime_for_sentinel_beacon_gate();
+        let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();
+        runtime.install_scene_registry(registry,"gh_deep_decon").unwrap();
+        let state=runtime.state.lock().unwrap();
+        let scene=runtime.scene_runtime.lock().unwrap();
+        let target=scene.as_ref().unwrap().hive_route_candidate("gh_sentinel_arena").unwrap();
+        let canonical=target.hive_route_candidate("gh_deep_decon").unwrap();
+        assert!(canonical.current_scene().collision.iter().any(|c|c.id=="north_east_front_s4"));
+        let events=completed_world_events(&state,"grey_hive");
+        let own=scene_kcc_for_state(canonical.current_scene(),&events,&state).unwrap();
+        let other=scene_kcc_for_state(target.current_scene(),&events,&state).unwrap();
+        let union=own.join_hive_route(&other,24.0,24.0,16.0).unwrap();
+        let mut body=state.world.player.clone();
+        body.position_m=Vec3::new(21.6,0.0,6.9).unwrap();
+        body.grounded=true;
+        for _ in 0..20 {crate::continuous_kcc::step_kcc(&mut body,&union,(1.0,0.0),0.05).unwrap();}
+        assert!(body.position_m.x_m+body.radius_m<=22.0,
+            "x={} radius={}",body.position_m.x_m,body.radius_m);
+    }
+
+    #[test]
+    fn hive_route_locked_boundary_blocks_walk_and_ordinary_transition() {
+        let runtime=runtime_for_sentinel_beacon_gate();
+        let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();
+        runtime.install_scene_registry(registry,"gh_lockdown").unwrap();
+        {
+            let mut state=runtime.state.lock().unwrap();
+            state.paused=false;
+            state.world.player.position_m=Vec3::new(23.6,0.0,8.0).unwrap();
+            state.world.player.grounded=true;
+            state.route.progress.iter_mut().find(|p|p.world_id=="grey_hive").unwrap().completed_events.retain(|e|e!="hive_lockdown");
+        }
+        let before=runtime.snapshot().unwrap();
+        assert!(before.hive_route_neighbor.is_none());
+        assert_eq!(before.hive_route_boundary.as_ref().map(|v|v.closed),Some(true));
+        assert!(runtime.transition_scene("gh_lockdown_to_bio_isolation","locked-route",before.world_epoch).is_err());
+        let mut state=runtime.state.lock().unwrap();
+        let epoch=state.world.revision.world_epoch;
+        state.latest_sample=InputSample::new(epoch,1,0,1.0,0.0).unwrap();
+        state.latest_input_received_at=Instant::now();
+        let mut scene=runtime.scene_runtime.lock().unwrap();
+        for _ in 0..8 {advance_owner_step_with_pair_crossing(&mut state,&mut scene).unwrap();}
+        assert_eq!(state.world.scene_id,"gh_lockdown");
+        assert!(state.world.player.position_m.x_m+state.world.player.radius_m<=24.0);
+    }
+
+    #[test]
+    fn hive_route_stale_straddling_admission_allows_retreat_not_crossing() {
+        let runtime=runtime_for_sentinel_beacon_gate();
+        {
+            let mut state=runtime.state.lock().unwrap();
+            state.world.player.position_m=Vec3::new(23.6,0.0,8.0).unwrap();
+            state.world.player.grounded=true;
+            state.world_persistent_v1.grey_hive.sentinel_first_kill=true;
+        }
+        let before=runtime.snapshot().unwrap();let route=before.hive_route_neighbor.clone().unwrap();
+        let source_sha=runtime.scene_runtime.lock().unwrap().as_ref().unwrap().current_scene().verified_source_sha256.clone();
+        let proof=serde_json::json!({"hiveRoute":true,"sourceSha":source_sha,"progression":before.progression});
+        runtime.scene_ready_with_exit_proof(&route.token,false,Some(&route.target_scene_source_sha256),Some(&proof)).unwrap();
+        {
+            let mut state=runtime.state.lock().unwrap();
+            state.world.player.position_m=Vec3::new(23.8,0.0,8.0).unwrap();
+            state.world_persistent_v1.grey_hive.sentinel_first_kill=false;
+        }
+        let held=runtime.snapshot().unwrap();
+        assert!(held.hive_route_neighbor.is_none());
+        assert_eq!(held.hive_route_hold.as_ref().map(|v|v.current_preview_matches),Some(false));
+        let mut state=runtime.state.lock().unwrap();let epoch=state.world.revision.world_epoch;
+        let mut scene=runtime.scene_runtime.lock().unwrap();
+        state.latest_sample=InputSample::new(epoch,1,0,1.0,0.0).unwrap();state.latest_input_received_at=Instant::now();
+        advance_owner_step_with_pair_crossing(&mut state,&mut scene).unwrap();
+        assert!(state.world.player.position_m.x_m<=23.8);
+        state.latest_sample=InputSample::new(epoch,2,0,-1.0,0.0).unwrap();state.latest_input_received_at=Instant::now();
+        advance_owner_step_with_pair_crossing(&mut state,&mut scene).unwrap();
+        assert_eq!(state.world.scene_id,"gh_sentinel_arena");
+        assert!(state.world.player.position_m.x_m<23.8);
+    }
+
+    #[test]
+    fn hive_route_preack_tokens_do_not_survive_cancel_or_pause_resume() {
+        let cases=[
+            ("gh_entry_maintenance",19.6,7.0), ("gh_power_room",0.4,7.0),
+            ("gh_lockdown",23.6,8.0), ("gh_bio_isolation",23.6,8.0),
+            ("gh_gate_b",0.4,8.0), ("gh_deep_decon",23.6,8.0),
+            ("gh_sentinel_arena",23.6,8.0), ("gh_beacon",0.4,8.0),
+        ];
+        for (source,x,z) in cases {
+            let runtime=runtime_for_sentinel_beacon_gate();
+            let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();
+            runtime.install_scene_registry(registry,source).unwrap();
+            {
+                let mut state=runtime.state.lock().unwrap();state.paused=false;
+                state.world.player.position_m=Vec3::new(x,0.0,z).unwrap();state.world.player.grounded=true;
+                state.world_persistent_v1.grey_hive.sentinel_first_kill=true;
+                let gh=state.route.progress.iter_mut().find(|p|p.world_id=="grey_hive").unwrap();
+                if !gh.completed_events.iter().any(|e|e=="hive_lockdown") {gh.completed_events.push("hive_lockdown".into());}
+            }
+            let initial=runtime.snapshot().unwrap();let old=initial.hive_route_neighbor.clone().unwrap_or_else(||panic!("missing route {source}"));
+            let source_sha=runtime.scene_runtime.lock().unwrap().as_ref().unwrap().current_scene().verified_source_sha256.clone();
+            let proof=serde_json::json!({"hiveRoute":true,"sourceSha":source_sha.clone(),"progression":initial.progression});
+            assert!(!runtime.cancel_exit_preview().unwrap());
+            assert!(runtime.scene_ready_with_exit_proof(&old.token,false,Some(&old.target_scene_source_sha256),Some(&proof)).is_err(),"cancel {source}");
+            let after_cancel=runtime.snapshot().unwrap();let before_pause=after_cancel.hive_route_neighbor.clone().unwrap();
+            assert!(before_pause.token.generation>old.token.generation);
+            let paused=runtime.pause().unwrap();assert!(paused.hive_route_neighbor.is_none(),"paused {source}");
+            let resumed=runtime.resume().unwrap();let fresh=resumed.hive_route_neighbor.clone().unwrap();
+            assert!(fresh.token.generation>before_pause.token.generation);
+            assert!(runtime.scene_ready_with_exit_proof(&before_pause.token,false,Some(&before_pause.target_scene_source_sha256),Some(&proof)).is_err(),"pause {source}");
+            let fresh_proof=serde_json::json!({"hiveRoute":true,"sourceSha":source_sha,"progression":resumed.progression});
+            assert_eq!(runtime.scene_ready_with_exit_proof(&fresh.token,false,Some(&fresh.target_scene_source_sha256),Some(&fresh_proof)).unwrap().hive_route_neighbor.as_ref().map(|v|v.ready),Some(true));
+        }
+        let runtime=runtime_for_sentinel_beacon_gate();
+        {
+            let mut state=runtime.state.lock().unwrap();
+            state.world.player.position_m=Vec3::new(23.6,0.0,8.0).unwrap();state.world.player.grounded=true;
+            state.world_persistent_v1.grey_hive.sentinel_first_kill=true;
+        }
+        let initial=runtime.snapshot().unwrap();let old=initial.hive_route_neighbor.clone().unwrap();
+        let source_sha=runtime.scene_runtime.lock().unwrap().as_ref().unwrap().current_scene().verified_source_sha256.clone();
+        let proof=serde_json::json!({"hiveRoute":true,"sourceSha":source_sha,"progression":initial.progression});
+        runtime.scene_ready_with_exit_proof(&old.token,false,Some(&old.target_scene_source_sha256),Some(&proof)).unwrap();
+        runtime.state.lock().unwrap().world.player.position_m=Vec3::new(23.8,0.0,8.0).unwrap();
+        let paused=runtime.pause().unwrap();assert!(paused.hive_route_hold.is_some());
+        let resumed=runtime.resume().unwrap();assert!(resumed.hive_route_hold.is_some());
+        assert!(runtime.state.lock().unwrap().kcc.is_hive_route_union());
+        assert!(runtime.scene_ready_with_exit_proof(&old.token,false,Some(&old.target_scene_source_sha256),Some(&proof)).is_err());
     }
 
     #[test]

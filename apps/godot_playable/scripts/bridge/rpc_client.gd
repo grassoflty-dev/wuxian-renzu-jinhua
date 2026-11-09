@@ -96,7 +96,7 @@ func _terminal(code: String) -> void:
 		terminal_code = code
 		terminal_started = Time.get_ticks_msec()
 func _process(_delta: float) -> void:
-	if transport_stopped:
+	if transport_stopped or (connect_started==0 and not hello_sent and not authenticated):
 		return
 	peer.poll()
 	var state = peer.get_status()
@@ -128,8 +128,10 @@ func _process(_delta: float) -> void:
 			work += sent[1]
 			if item.offset==item.bytes.size():
 				queue.pop_front()
-	# The API may still expose bytes at EOF. Never infer bytes it does not expose.
-	var available = peer.get_available_bytes()
+	# Drain only bytes exposed by a connected peer; preserve already buffered lines at EOF.
+	var available = 0
+	if peer.get_status()==StreamPeerTCP.STATUS_CONNECTED:
+		available = peer.get_available_bytes()
 	if available>0:
 		var got = peer.get_partial_data(mini(available,65536))
 		incoming.append_array(got[1])
@@ -162,7 +164,7 @@ func _process(_delta: float) -> void:
 	if not terminal_code.is_empty():
 		if Time.get_ticks_msec()-terminal_started>15000:
 			_drop('E_RESPONSE_TIMEOUT')
-		elif incoming.find(10)>=0 or peer.get_available_bytes()>0:
+		elif incoming.find(10)>=0 or (peer.get_status()==StreamPeerTCP.STATUS_CONNECTED and peer.get_available_bytes()>0):
 			return
 		else:
 			_drop(terminal_code if incoming.is_empty() else 'E_RESPONSE_TRUNCATED')
@@ -183,11 +185,11 @@ func _handle(v) -> void:
 	if item.generation!=connection_generation or item.method=='session_close' and queue.any(func(row): return row.id==id):
 		_drop('E_RESPONSE_PROTOCOL')
 		return
-	pending.erase(id)
 	if not v.ok:
 		if not v.error is Dictionary or typeof(v.error.get('code'))!=TYPE_STRING or v.error.code.length()>128:
 			_drop('E_RESPONSE_PROTOCOL')
 			return
+		pending.erase(id)
 		if item.method=='hello':
 			_drop('E_HANDSHAKE_REJECTED')
 			return
@@ -199,6 +201,7 @@ func _handle(v) -> void:
 	if v.error!=null:
 		_drop('E_RESPONSE_PROTOCOL')
 		return
+	pending.erase(id)
 	if item.method=='hello':
 		if not v.result is Dictionary or not P.counter(v.result.get('protocolVersion'),1,1) or v.result.get('service')!='wuxian-v1-formal' or not P.counter(v.result.get('snapshotProtocolVersion'),3,3):
 			_drop('E_HANDSHAKE_VERSION')

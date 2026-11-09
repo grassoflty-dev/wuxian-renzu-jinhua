@@ -40,6 +40,21 @@ fn windows_associated_variant(entry: &str, name: &str) -> bool {
         .is_some_and(|suffix| suffix.split('.').any(|part| matches!(part, "bak" | "tmp")))
 }
 
+// Only our exact, retained format-upgrade names are outside the transaction
+// protocol. Similar-looking or malformed residues remain suspicious.
+fn retained_upgrade_backup(entry:&str,name:&str)->bool {
+    if ["pre-map-archive-v1","pre-map-archive-v2"].iter().any(|tag|same_filename(entry,&format!("{name}.{tag}.bak"))) {return true;}
+    #[cfg(windows)] let (entry,name)=(entry.to_ascii_lowercase(),name.to_ascii_lowercase());
+    #[cfg(not(windows))] let (entry,name)=(entry.to_owned(),name.to_owned());
+    for tag in ["pre-shaft-recipe-v2","pre-lower-service-map-v1"] {
+        let stem=format!("{name}.{tag}");
+        if entry==format!("{stem}.bak"){return true;}
+        if let Some(number)=entry.strip_prefix(&format!("{stem}.")).and_then(|s|s.strip_suffix(".bak")) {
+            if let Ok(n)=number.parse::<u32>() {if n>0 && n.to_string()==number{return true;}}
+        }
+    }
+    false
+}
 fn transaction_suffix<'a>(entry: &'a str, name: &str) -> Option<&'a str> {
     entry.strip_prefix(&format!(".{name}."))
 }
@@ -68,6 +83,16 @@ pub(crate) fn backup(target: &Path, prefix: &str) -> Result<Option<Backup>, Stri
         let file_name = entry.file_name(); let entry_name = file_name.to_string_lossy();
         // These separately retained migration backups never belong to this protocol.
         if same_filename(&entry_name, &format!("{name}.bak")) || same_filename(&entry_name, &format!("{name}.legacy-effect-sources-v1.bak")) { continue; }
+        if retained_upgrade_backup(&entry_name,name) {
+            let path=entry.path();reject_links(&path,prefix)?;
+            let bytes=read_bounded(&path,prefix,"E_SAVE_MIGRATION_BACKUP_MISSING")?;
+            let valid=if prefix=="E_SAVE" {super::decode_bytes(&bytes).is_ok()}
+                else if prefix=="E_SLOT" {parent.file_name().and_then(|s|s.to_str())
+                    .is_some_and(|id|crate::save_slots::valid_retained_slot_backup(&bytes,id))}
+                else {false};
+            if !valid {return Err(format!("{prefix}_MIGRATION_BACKUP_INVALID"));}
+            continue;
+        }
         if let Some(suffix) = transaction_suffix(&entry_name, name) {
             if strict(suffix, ".bak") { backups.push(entry.path()); }
             else if strict(suffix, ".tmp") { temporary = true; }

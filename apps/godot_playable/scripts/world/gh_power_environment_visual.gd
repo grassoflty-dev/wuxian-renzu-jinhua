@@ -2,9 +2,13 @@ extends RefCounted
 
 const P = preload('res://scripts/bridge/protocol.gd')
 const PROJECTION_SCRIPT = preload('res://scripts/world/projection.gd')
+const GHPalette = preload('res://scripts/world/gh_palette.gd')
 const RELIEF_PIXELS = 12.0
 const MAX_PACKETS = 160
 const PIPE_PROP = 'power_room_pipes'
+const NORTH_IMAGE_PATH = 'res://assets/props/return_station/bulkhead_tiles.png'
+var north_image_attempted := false
+var north_image: Texture2D
 const WALLS = [
 	{'id':'gh_power_wall_north','polygon':[[0.0,0.0],[20.0,0.0],[20.0,0.5],[0.0,0.5]],'inner':[[0.0,0.5],[20.0,0.5]],'seams':4,'footprint':[0.0,0.0,20.0,0.5]},
 	{'id':'gh_power_wall_south','polygon':[[0.0,13.5],[20.0,13.5],[20.0,14.0],[0.0,14.0]],'inner':[[0.0,13.5],[20.0,13.5]],'seams':4,'footprint':[0.0,13.5,20.0,0.5]},
@@ -51,6 +55,8 @@ func build_packets(scene_data: Dictionary, snapshot: Dictionary, current_key: St
 	if not _add_contact_shadow(packets,projection):
 		return []
 	if light_state=='on' and not _add_task_light(packets,projection):
+		return []
+	if light_state=='off' and not _add_off_emergency_light(packets,projection):
 		return []
 	return packets if packets.size()<=MAX_PACKETS else []
 
@@ -122,6 +128,109 @@ func _projection_valid(projection) -> bool:
 	var sample: Vector2 = projection.project(Vector3.ZERO)
 	return is_finite(sample.x) and is_finite(sample.y)
 
+func _low_face_texture() -> Texture2D:
+	if not north_image_attempted:
+		north_image_attempted = true
+		if ResourceLoader.exists(NORTH_IMAGE_PATH):
+			var loaded = load(NORTH_IMAGE_PATH)
+			if loaded is Texture2D:
+				north_image = loaded
+		if not is_instance_valid(north_image):
+			var image = Image.new()
+			if image.load(NORTH_IMAGE_PATH)==OK and image.get_width()==1418 and image.get_height()==1028:
+				north_image = ImageTexture.create_from_image(image)
+	if not is_instance_valid(north_image) or north_image.get_width()!=1418 or north_image.get_height()!=1028:
+		return null
+	return north_image
+
+func draw_north_image(canvas: CanvasItem, scene_data: Dictionary, snapshot: Dictionary, current_key: String, projection) -> bool:
+	if canvas==null or not _ensure_layout(scene_data,snapshot,current_key) or not _projection_valid(projection):
+		return false
+	if not is_instance_valid(_low_face_texture()):
+		return false
+	var placements: Array[Dictionary] = []
+	var foot_a := Vector2(50,322)
+	var foot_b := Vector2(300,460)
+	var source_axis := foot_b-foot_a
+	for i in range(20):
+		var a: Vector2 = projection.project(Vector3(i,0,0.25))
+		var b: Vector2 = projection.project(Vector3(i+1,0,0.25))
+		if not is_finite(a.x) or not is_finite(a.y) or not is_finite(b.x) or not is_finite(b.y):
+			return false
+		var delta := b-a
+		var scale := delta.length()/source_axis.length()
+		var angle := delta.angle()-source_axis.angle()
+		var origin := a-foot_a.rotated(angle)*scale
+		if not is_finite(scale) or scale<=0.0 or not is_finite(angle) or not is_finite(origin.x) or not is_finite(origin.y) or (origin+foot_b.rotated(angle)*scale).distance_to(b)>0.01:
+			return false
+		placements.append({'origin':origin,'angle':angle,'scale':scale})
+	if placements.size()!=20:
+		return false
+	for placement in placements:
+		canvas.draw_set_transform(placement.origin,placement.angle,Vector2.ONE*placement.scale)
+		canvas.draw_texture_rect_region(north_image,Rect2(0,0,355,480),Rect2(0,0,355,480))
+	canvas.draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
+	return true
+
+# Preflight both actually emitted south faces as one group. Preserve the
+# original packets until all cells and the native atlas are valid.
+func stage_south_low_faces(canvas: CanvasItem, packets: Array) -> Dictionary:
+	if canvas == null or canvas.material != null or canvas.use_parent_material:
+		return {}
+	var faces: Dictionary = {}
+	var decoration_ids: Array[String] = []
+	for i: int in range(1,5):
+		decoration_ids.append('gh_power_wall_south:seam:'+str(i))
+		decoration_ids.append('gh_power_wall_south:fastener:'+str(i))
+	var seen: Dictionary = {}
+	for packet: Variant in packets:
+		if not packet is Dictionary or packet.get('wall_id') != 'gh_power_wall_south':
+			continue
+		var id: Variant = packet.get('id')
+		if id in ['gh_power_wall_south:face','gh_power_wall_south:exterior_face']:
+			if faces.has(id) or packet.get('role') != 'wall_face' or packet.get('filled') != true or not packet.get('points') is PackedVector2Array or packet.points.size() != 4:
+				return {}
+			faces[id] = packet.points
+		elif id in decoration_ids:
+			if seen.has(id):
+				return {}
+			seen[id] = true
+	if not faces.has('gh_power_wall_south:face') or seen.size() != 8:
+		return {}
+	var texture: Texture2D = _low_face_texture()
+	if not is_instance_valid(texture):
+		return {}
+	var groups: Dictionary = {}
+	var uv: PackedVector2Array = PackedVector2Array([Vector2(50,322),Vector2(300,460),Vector2(302.6,396.2),Vector2(52.6,258.2)])
+	for id: Variant in faces:
+		var corners: PackedVector2Array = faces[id]
+		var axis: Vector2 = (corners[1]-corners[0])/20.0
+		var source_axis: Vector2 = Vector2(250,138)
+		var scale: float = axis.length()/source_axis.length()
+		var angle: float = axis.angle()-source_axis.angle()
+		var up: Vector2 = Vector2(2.6,-63.8).rotated(angle)*scale
+		if not is_finite(scale) or scale <= 0.0 or not is_finite(angle) or not is_finite(up.x) or not is_finite(up.y):
+			return {}
+		# A different screen-relief registration would require stretching.
+		if not is_finite(corners[2].x) or not is_finite(corners[2].y) or not is_finite(corners[3].x) or not is_finite(corners[3].y) or (corners[0]+up).distance_to(corners[3]) > 0.001 or (corners[1]+up).distance_to(corners[2]) > 0.001:
+			return {}
+		var pieces: Array = []
+		for i: int in range(20):
+			var a: Vector2 = corners[0]+axis*float(i)
+			var b: Vector2 = corners[0]+axis*float(i+1)
+			var top_a: Vector2 = corners[3].lerp(corners[2],float(i)/20.0)
+			var top_b: Vector2 = corners[3].lerp(corners[2],float(i+1)/20.0)
+			var pts: PackedVector2Array = PackedVector2Array([a,b,top_b,top_a])
+			var cross: float = (b-a).cross(up)
+			if not is_finite(a.x) or not is_finite(a.y) or not is_finite(b.x) or not is_finite(b.y) or not is_finite(cross) or cross == 0.0:
+				return {}
+			var normalized: PackedVector2Array = PackedVector2Array()
+			for pixel: Vector2 in uv:
+				normalized.append(pixel/Vector2(1418,1028))
+			pieces.append({'points':pts,'uv':normalized})
+		groups[id] = pieces
+	return {'texture':texture,'groups':groups,'decorations':decoration_ids}
+
 func _add_wall(packets: Array, wall: Dictionary, projection) -> bool:
 	var edge: Array = wall.inner
 	var a = Vector2(float(edge[0][0]),float(edge[0][1]))
@@ -134,12 +243,12 @@ func _add_wall(packets: Array, wall: Dictionary, projection) -> bool:
 	var top_b: Vector2 = ground_b-Vector2(0.0,relief)
 	var footprint = _footprint(wall.footprint)
 	var face = PackedVector2Array([ground_a,ground_b,top_b,top_a])
-	if not _push_polygon(packets,wall.id+':face','wall_face',face,Color(0.18,0.25,0.29,1.0),true,wall.id,footprint):
+	if not _push_polygon(packets,wall.id+':face','wall_face',face,GHPalette.FACE,true,wall.id,footprint):
 		return false
 	var cap_points = _project_polygon(wall.polygon,projection,RELIEF_PIXELS)
-	if cap_points.is_empty() or not _push_polygon(packets,wall.id+':cap','wall_cap',cap_points,Color(0.29,0.39,0.43,1.0),true,wall.id,footprint):
+	if cap_points.is_empty() or not _push_polygon(packets,wall.id+':cap','wall_cap',cap_points,GHPalette.CAP,true,wall.id,footprint):
 		return false
-	if not _push_polygon(packets,wall.id+':cap-edge','cap_edge',cap_points,Color(0.53,0.66,0.68,0.8),false,wall.id,footprint,1.2*scale):
+	if not _push_polygon(packets,wall.id+':cap-edge','cap_edge',cap_points,GHPalette.EDGE,false,wall.id,footprint,1.2*scale):
 		return false
 	var seam_count: int = int(wall.seams)
 	for index in range(1,seam_count+1):
@@ -188,6 +297,9 @@ func _add_contact_shadow(packets: Array, projection) -> bool:
 
 func _add_task_light(packets: Array, projection) -> bool:
 	return _add_ground_ellipse(packets,'gh_power_console:task-light','powered_task_light',Vector3(4.75,0.0,6.45),0.72,0.48,Color(0.47,0.78,0.82,0.12),projection,'power_console_off_on')
+
+func _add_off_emergency_light(packets: Array, projection) -> bool:
+	return _add_ground_ellipse(packets,'gh_power_console:off-emergency-light','off_emergency_light',Vector3(4.75,0.0,6.45),0.72,0.48,Color(0.55,0.18,0.16,0.06),projection,'power_console_off_on')
 
 func _add_ground_ellipse(packets: Array, packet_id: String, role: String, center: Vector3, radius_x: float, radius_z: float, color: Color, projection, source_id: String) -> bool:
 	var points = PackedVector2Array()
@@ -273,6 +385,6 @@ func _build_outer_wall_packet(scene_data: Dictionary, snapshot: Dictionary, curr
 	if twice_area==0.0:
 		return null
 	var staged_packets: Array = []
-	if not _push_polygon(staged_packets,str(wall_id)+':exterior_face','wall_face',points,Color(0.18,0.25,0.29,1.0),true,str(wall_id),_footprint(wall.footprint)) or staged_packets.size()!=1:
+	if not _push_polygon(staged_packets,str(wall_id)+':exterior_face','wall_face',points,GHPalette.FACE,true,str(wall_id),_footprint(wall.footprint)) or staged_packets.size()!=1: # Color(0.18,0.25,0.29,1.0)
 		return false
 	return staged_packets[0]

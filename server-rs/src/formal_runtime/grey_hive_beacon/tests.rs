@@ -89,3 +89,136 @@ fn forged_trigger_mixed_receipt_and_complete_request_collision_roll_back_extract
     assert!(serde_json::to_value(&r.state.lock().unwrap().route).unwrap()["processedRequestIds"].as_array().unwrap().iter().any(|id|id.as_str()==Some("scene-complete-collision")));
     let before=fingerprint(&r);let result=activate(&r,EXTRACT_ID,"collision");assert!(!result.applied);assert!(result.error_code.as_ref().is_some_and(|e|e.contains("DUPLICATE")));assert_eq!(fingerprint(&r),before);
 }
+
+fn projection_mask_view(r: &FormalRuntime) -> crate::world_v3::WorldView {
+    let before = fingerprint(r);
+    let view = {
+        let s = r.state.lock().unwrap();
+        let guard = r.scene_runtime.lock().unwrap();
+        let scene = guard.as_ref().unwrap();
+        assert_eq!(s.route.current_world_id, scene.current_scene().world_id);
+        assert_eq!(s.world.scene_id, scene.current_scene().scene_id);
+        assert_eq!(s.world.world_id, scene.current_scene().world_id);
+        assert_eq!(s.world.revision.world_epoch, scene.world_epoch);
+        assert!(s.world.player_hp > 0);
+        project_scene_view(&s, Some(scene))
+    };
+    assert_eq!(fingerprint(r), before);
+    view
+}
+fn projection_mask_row(rows: &[crate::world_v3::InteractableView], id: &str) -> crate::world_v3::InteractableView {
+    let matches: Vec<_> = rows.iter().filter(|row| row.entity_id == id).collect();
+    assert_eq!(matches.len(), 1, "{id}");
+    matches[0].clone()
+}
+fn projection_mask_events(r: &FormalRuntime, power: bool, lockdown: bool) {
+    let mut s = r.state.lock().unwrap();
+    let progress = s.route.progress.iter_mut().find(|p| p.world_id == "grey_hive").unwrap();
+    progress.completed_events.retain(|e| e != "hive_power" && e != "hive_lockdown");
+    for (present, event) in [(power, "hive_power"), (lockdown, "hive_lockdown")] {
+        if present { progress.completed_events.push(event.into()); }
+    }
+}
+fn projection_mask_route_row(r: &FormalRuntime, id: &str) -> crate::world_v3::InteractableView {
+    let s = r.state.lock().unwrap();
+    let guard = r.scene_runtime.lock().unwrap();
+    let scene = guard.as_ref().unwrap();
+    projection_mask_row(&scene.route_interactables(s.world.player.position_m,
+        &completed_world_events(&s, &scene.current_scene().world_id), !s.paused), id)
+}
+#[test]
+fn sentinel_exit_active_projection_matches_first_kill_and_preserves_other_exit() {
+    let r = fixture("gh_sentinel_arena");
+    let exit = "gh_sentinel_arena_to_beacon";
+    // Arranged projection flags, not combat-earned completion.
+    for killed in [false, true] {
+        r.state.lock().unwrap().world_persistent_v1.grey_hive.sentinel_first_kill = killed;
+        position(&r, p(23., 8.));
+        let mut baseline = projection_mask_route_row(&r, exit);
+        assert!(baseline.active);
+        baseline.active = killed;
+        assert_eq!(projection_mask_row(&projection_mask_view(&r).interactables, exit), baseline);
+        position(&r, p(1., 8.));
+        let back = "gh_sentinel_arena_return_to_deep_decon";
+        let baseline = projection_mask_route_row(&r, back);
+        assert!(baseline.active);
+        assert_eq!(projection_mask_row(&projection_mask_view(&r).interactables, back), baseline);
+    }
+    for paused in [true, false] {
+        r.state.lock().unwrap().paused = paused;
+        position(&r, if paused { p(23., 8.) } else { p(10., 10.) });
+        let baseline = projection_mask_route_row(&r, exit);
+        assert!(!baseline.active);
+        assert_eq!(projection_mask_row(&projection_mask_view(&r).interactables, exit), baseline);
+    }
+}
+#[test]
+fn strict_extraction_active_projection_requires_both_events_and_owned_beacon() {
+    let r = fixture("gh_beacon");
+    assert!(activate(&r, COLLECT_ID, "projection-collect").applied);
+    install(&r, "gh_exit");
+    r.state.lock().unwrap().paused = false;
+    position(&r, p(8., 8.));
+    assert!(r.scene_runtime.lock().unwrap().as_ref().unwrap().is_complete_clockworks_production());
+    assert!(!r.scene_runtime.lock().unwrap().as_ref().unwrap().object_activated(EXTRACT_ID));
+    assert!(owned(&r.state.lock().unwrap()));
+    assert!(!completed(&r.state.lock().unwrap().route));
+    // Each pair is an arranged projection state, not a player journey.
+    for (power, lockdown) in [(false, false), (true, false), (false, true), (true, true)] {
+        projection_mask_events(&r, power, lockdown);
+        assert_eq!(projection_mask_row(&projection_mask_view(&r).interactables, EXTRACT_ID).active,
+            power && lockdown);
+    }
+    let carried = r.state.lock().unwrap().world_persistent_v1.grey_hive.beacon.clone();
+    r.state.lock().unwrap().world_persistent_v1.grey_hive.beacon = None;
+    assert!(!projection_mask_row(&projection_mask_view(&r).interactables, EXTRACT_ID).active);
+    r.state.lock().unwrap().world_persistent_v1.grey_hive.beacon = carried;
+    {
+        let mut s = r.state.lock().unwrap();
+        let progress = s.route.progress.iter_mut().find(|p| p.world_id == "grey_hive").unwrap();
+        progress.completed = true;
+        progress.first_completion = true;
+        progress.completed_events.push(EXTRACT_EVENT.into());
+    }
+    assert!(owned(&r.state.lock().unwrap()));
+    assert!(!projection_mask_row(&projection_mask_view(&r).interactables, EXTRACT_ID).active);
+}
+#[test]
+fn generic_extraction_active_projection_preserves_non_strict_availability() {
+    let mut gh: serde_json::Value = serde_json::from_str(include_str!("../../../tests/fixtures/scene-runtime-v1/grey_hive.json")).unwrap();
+    gh["interactions"].as_array_mut().unwrap().push(serde_json::json!({
+        "id": "gh_exit_extraction_console", "kind": "console", "event": null, "position": [1, 0, 1]
+    }));
+    let gh = serde_json::to_string(&gh).unwrap();
+    let root = std::env::temp_dir().join(format!("projection-generic-{}-{}", std::process::id(),
+        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+    let r = FormalRuntime::new_with_save_dir(root).unwrap();
+    r.pause().unwrap();
+    r.stop_owner.store(true, Ordering::SeqCst);
+    r.owner_handle.lock().unwrap().take().unwrap().join().unwrap();
+    r.load_scene_registry([
+        include_str!("../../../tests/fixtures/scene-runtime-v1/return_station.json"), gh.as_str(),
+        include_str!("../../../tests/fixtures/scene-runtime-v1/mist_harbor.json"),
+        include_str!("../../../tests/fixtures/scene-runtime-v1/clockworks.json"),
+    ], "gh_test_power", &std::collections::BTreeSet::new(), &std::collections::BTreeSet::new()).unwrap();
+    {
+        let mut s = r.state.lock().unwrap();
+        s.route.current_world_id = "grey_hive".into();
+        s.route.progress.iter_mut().find(|p| p.world_id == "grey_hive").unwrap().visit_id = 1;
+        s.paused = false;
+    }
+    position(&r, p(1., 1.));
+    assert!(!r.scene_runtime.lock().unwrap().as_ref().unwrap().is_complete_clockworks_production());
+    assert!(!owned(&r.state.lock().unwrap()));
+    projection_mask_events(&r, false, false);
+    let initial = projection_mask_view(&r);
+    for (power, lockdown) in [(false, false), (true, false), (false, true), (true, true)] {
+        projection_mask_events(&r, power, lockdown);
+        let view = projection_mask_view(&r);
+        assert!(projection_mask_row(&view.interactables, EXTRACT_ID).active);
+        for id in ["gh_power_console_test", "gh_lockdown_test", "gh_extract_test"] {
+            assert_eq!(projection_mask_row(&view.interactables, id),
+                projection_mask_row(&initial.interactables, id));
+        }
+    }
+}

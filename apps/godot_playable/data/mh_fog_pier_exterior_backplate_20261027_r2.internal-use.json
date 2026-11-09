@@ -1,0 +1,42 @@
+{
+  "schema": "wuxian.mh-fog-pier-exterior-r2-backplate.internal-use/v1",
+  "resourceId": "ART-MH-FOG-PIER-EXTERIOR-BACKPLATE-20261027-001",
+  "revision": "r2",
+  "approval": "ACCEPT_LIMITED_STATIC_MH_FOG_PIER_R2_BACKGROUND_USE",
+  "GodotDisplay": "NOT_RUN",
+  "publicRelease": "NOT_ESTABLISHED",
+  "fallback": "EXISTING_MH_R1_BACKPLATE_THEN_CLEAR_AND_FLOOR",
+  "limitations": "UNREGISTERED_NONINTERACTIVE_RUNTIME_NOT_RUN",
+  "asset": {
+    "path": "res://assets/props/mist_harbor/mh_fog_pier_exterior_backplate_20261027_r2.png",
+    "bytes": 2069499,
+    "sha256": "ae21e5372b8f236865d13de5f0b2eee81adc32d9ee3328f434e59959ecf5cb2c",
+    "width": 1536,
+    "height": 1024,
+    "format": "RGB8"
+  },
+  "composition": {
+    "space": "SCREEN_SPACE_BACKGROUND_ONLY",
+    "fit": "CENTERED_COVER_FULL_VIEWPORT",
+    "uv": "FULL_ONCE",
+    "filter": "LINEAR",
+    "repeat": "DISABLED",
+    "tint": "WHITE_OPAQUE"
+  },
+  "installation": {
+    "worldId": "mist_harbor",
+    "sceneId": "mh_fog_pier",
+    "sceneSchemaVersion": 1,
+    "boundsM": [
+      0,
+      0,
+      24,
+      16
+    ],
+    "canonicalScenePath": "res://data/scenes/mh_fog_pier.json",
+    "canonicalSceneBytes": 7671,
+    "sceneSha256": "1f12ceae6565dcfb8f3b9f497840f8027748e6109208e788ea6d7579fff00946",
+    "nonInteractive": true,
+    "unregistered": true
+  }
+}

@@ -757,8 +757,34 @@ func draw_ground(cv: Variant, sv: Variant, dv: Variant, kv: Variant, camera: Var
 	var canvas: CanvasItem = cv
 	var texture: Texture2D = _textures["stone"]
 	for i: int in range(polygons.size()):
-		canvas.draw_polygon(polygons[i],PackedColorArray([STONE_COLOR,STONE_COLOR,STONE_COLOR,STONE_COLOR]),uvs[i],texture)
+		canvas.draw_polygon(polygons[i],PackedColorArray([Color.WHITE,Color.WHITE,Color.WHITE,Color.WHITE]),uvs[i],texture)
 	return polygons.size() == 24
+
+func _stone_cap_pieces(polygon: Array, camera: Variant) -> Array:
+	if not _textures.get('stone') is Texture2D or polygon.size()!=4:
+		return []
+	var x0 = float(polygon[0][0]); var z0 = float(polygon[0][1])
+	var x1 = float(polygon[2][0]); var z1 = float(polygon[2][1])
+	if not is_finite(x0) or not is_finite(z0) or not is_finite(x1) or not is_finite(z1) or x0>=x1 or z0>=z1:
+		return []
+	var pieces: Array = []
+	var x = x0
+	while x<x1:
+		var cx = 0.5+floorf((x-0.5)/4.0)*4.0
+		var xe = minf(x1,cx+4.0)
+		if xe<=x: return []
+		var z = z0
+		while z<z1:
+			var cz = 0.5+floorf((z-0.5)/4.0)*4.0
+			var ze = minf(z1,cz+4.0)
+			if ze<=z: return []
+			var points = _poly(camera,[Vector3(x,0.35,z),Vector3(xe,0.35,z),Vector3(xe,0.35,ze),Vector3(x,0.35,ze)])
+			if points.is_empty(): return []
+			var u0=(x-cx)/4.0; var u1=(xe-cx)/4.0; var v0=(z-cz)/4.0; var v1=(ze-cz)/4.0
+			pieces.append({'points':points,'uv':PackedVector2Array([_uv(u0,v0),_uv(u1,v0),_uv(u1,v1),_uv(u0,v1)])})
+			z=ze
+		x=xe
+	return pieces
 
 func draw_wall(cv: Variant, wallv: Variant, sv: Variant, dv: Variant, kv: Variant, camera: Variant, viewport: Variant) -> bool:
 	if not matches_context(cv,sv,dv,kv,camera,viewport) or not wallv is Dictionary:
@@ -792,8 +818,13 @@ func draw_wall(cv: Variant, wallv: Variant, sv: Variant, dv: Variant, kv: Varian
 		if p.is_empty():
 			return false
 	var canvas: CanvasItem = cv
+	var cap_pieces = _stone_cap_pieces(polygon,camera)
 	for i: int in range(plan.size()):
-		canvas.draw_colored_polygon(plan[i],colors[i])
+		if i==plan.size()-1 and not cap_pieces.is_empty():
+			for piece in cap_pieces:
+				canvas.draw_polygon(piece.points,PackedColorArray([Color.WHITE]),piece.uv,_textures['stone'])
+		else:
+			canvas.draw_colored_polygon(plan[i],colors[i])
 	return true
 
 func _bank_rect(row: Dictionary, camera: Variant) -> Rect2:

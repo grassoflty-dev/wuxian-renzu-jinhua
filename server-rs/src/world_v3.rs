@@ -133,7 +133,19 @@ pub struct ActorMemberView {
 }
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ActorAnimationPresentation {
+    pub state: String,
+    pub remaining_ms: u64,
+    pub attack_serial: u64,
+    pub current_attack: Option<String>,
+}
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ActorView {
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub signal_only: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub animation_presentation: Option<ActorAnimationPresentation>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub signal_perception: Option<crate::signal_perception::SignalPositionProjection>,
     pub entity_id: String,
@@ -180,6 +192,34 @@ pub struct ExploredMap {
     pub rooms: Vec<ExploredRoom>,
     pub connections: Vec<KnownConnection>,
     pub objectives: Vec<KnownObjective>,
+}
+
+/// Last actually observed information variant; unknown values are retained but
+/// never authorize projection. These fields do not describe current physics.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ObservedMapVariant {
+    pub scene_id: String,
+    pub scene_source_sha256: String,
+    pub provider_family: String,
+    pub floor_y_m: f32,
+}
+impl ObservedMapVariant {
+    pub(crate) fn from_floor_route_key(key:&str)->Option<Self> {
+        let (scene,sha,family)=match key {
+            "shaft_active_open"|"shaft_active_closed"=>("gh_central_shaft","6880bdf8dbab71a8bf74e38b8c614ad751e564cf87e8a2936ee801e52b72a832","grey_hive.gh_central_shaft.upper_active_info_v1"),
+            "lockdown_open"|"lockdown_closed"=>("gh_lockdown","23e5d5d9f37f6f44b1f8b9105aab656424778ef5edf0e775bbc364143fe1b30c","grey_hive.gh_lockdown.dense_info_v1"),
+            "lockdown_legacy_open"|"lockdown_legacy_closed"=>("gh_lockdown","718489a1ea4ec4622ccdcefc8459a1dc1bd4f66ccf26abc813b6a06519197850","grey_hive.gh_lockdown.legacy_info_v1"),
+            _=>return None,
+        };
+        Some(Self{scene_id:scene.into(),scene_source_sha256:sha.into(),provider_family:family.into(),floor_y_m:0.0})
+    }
+    pub(crate) fn trusted_family(&self)->Option<&'static str> {
+        for (key,family) in [("shaft_active_closed","shaft_active"),("lockdown_closed","lockdown"),("lockdown_legacy_closed","lockdown_legacy")] {
+            if Self::from_floor_route_key(key).as_ref()==Some(self){return Some(family);}
+        }
+        None
+    }
 }
 impl ExploredMap {
     pub fn new(
@@ -305,6 +345,17 @@ pub struct CapabilityProjection {
     /// Resolved authorization, independent of permanent capability acquisition.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub map_topology_authorized: Option<bool>,
+    /// Presentation-only IDs, intersected with this projection's authorized rooms.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub map_current_room_ids: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub map_explored_room_ids: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub map_known_junctions: Option<Vec<KnownMapJunction>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub map_known_vertical_links: Option<Vec<KnownVerticalMapLink>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub map_known_height_references: Option<Vec<KnownHeightMapReference>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub acoustic_mapping_authorized: Option<bool>,
     /// Rust-filtered current-scene knowledge. Never contains exploration history writes.
@@ -326,12 +377,49 @@ impl CapabilityProjection {
             items,
             explored_map,
             map_topology_authorized: None,
+            map_current_room_ids: None,
+            map_explored_room_ids: None,
+            map_known_junctions: None,
+            map_known_vertical_links: None,
+            map_known_height_references: None,
             acoustic_mapping_authorized: None,
             map_knowledge: None,
             enemy_vitals,
             rear_view,
         }
     }
+}
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct KnownMapJunction {
+    pub from_room_id: String,
+    pub to_room_id: String,
+    pub x: f64,
+    pub z: f64,
+    pub replaced_connection_ids: Vec<String>,
+}
+/// A current-frame map reference, with a closed direction-specific meaning.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct KnownHeightMapReference {
+    pub kind: String,
+    pub scene_source_sha256: String,
+    pub frame_id: String,
+    pub current_room_id: String,
+    pub x: f64,
+    pub z: f64,
+}
+/// Read-only known lift relationship; never movement or visit authority.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct KnownVerticalMapLink {
+    pub support_id: String,
+    pub scene_source_sha256: String,
+    pub current_layer_id: String,
+    pub current_room_id: String,
+    pub other_room_id: String,
+    pub x: f64,
+    pub z: f64,
 }
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -385,6 +473,67 @@ pub struct SceneEntryToken {
     pub world_epoch: u64,
 }
 
+/// Prepared selected upper portal; never a replacement for the current scene.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all="camelCase",deny_unknown_fields)]
+pub(crate) struct ShaftUpperNeighborView {
+    pub source_scene_id:String,
+    pub target_scene_id:String,
+    pub world_epoch:u64,
+    pub server_tick:u64,
+    pub authority_revision:u64,
+    pub target_scene_source_sha256:String,
+    pub shaft_deferred:Option<bool>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all="camelCase",deny_unknown_fields)]
+pub(crate) struct GateDeconNeighborView {
+    pub source_scene_id:String,pub target_scene_id:String,pub world_epoch:u64,
+    pub server_tick:u64,pub authority_revision:u64,pub target_scene_source_sha256:String,
+}
+
+/// Geometry-only preview. It grants no target actors, interactions or state.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all="camelCase",deny_unknown_fields)]
+pub(crate) struct BeaconExitNeighborView {
+    pub source_scene_id:String,pub target_scene_id:String,pub world_epoch:u64,
+    pub server_tick:u64,pub authority_revision:u64,pub target_scene_source_sha256:String,
+    pub token:SceneEntryToken,pub ready:bool,pub straddling:bool,
+    #[serde(default, skip_serializing_if="Option::is_none")]
+    pub gear_support_frame:Option<crate::moving_support::SupportFrame>,
+    #[serde(default, skip_serializing_if="Option::is_none")]
+    pub arena_shutters_open:Option<bool>,
+}
+
+/// A previously admitted union remains physical until the player is wholly
+/// back in one scene. This contains geometry identity only, never actors.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all="camelCase",deny_unknown_fields)]
+pub(crate) struct BeaconExitHoldView {
+    pub source_scene_id:String,pub target_scene_id:String,pub world_epoch:u64,
+    pub source_scene_source_sha256:String,pub target_scene_source_sha256:String,
+    pub current_preview_matches:bool,
+}
+
+/// Whether the currently selected physical route boundary is held closed.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all="camelCase",deny_unknown_fields)]
+pub(crate) struct HiveRouteBoundaryView {
+    pub source_scene_id:String,pub target_scene_id:String,pub world_epoch:u64,
+    pub source_scene_source_sha256:String,pub east:bool,pub closed:bool,
+    #[serde(default, skip_serializing_if="Option::is_none")]
+    pub prerequisite_blocked:Option<bool>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all="camelCase",deny_unknown_fields)]
+pub(crate) struct ShaftLockdownNeighborView {
+    pub source_scene_id:String,pub target_scene_id:String,pub world_epoch:u64,
+    pub server_tick:u64,pub authority_revision:u64,pub target_scene_source_sha256:String,
+    pub shaft_deferred:bool,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WorldView {
@@ -430,6 +579,69 @@ pub struct WorldView {
     pub entry_token: Option<SceneEntryToken>,
     #[serde(default,skip_serializing_if="Option::is_none")]
     pub support_scene: Option<crate::moving_support::SupportSceneView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub forged_guard_shutters_open: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dense_partition_escape_ids: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dense_occupied_region: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub current_visible_regions: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dense_entity_regions: Option<std::collections::BTreeMap<String,String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) shaft_lift: Option<crate::formal_runtime::shaft_lift::ShaftLiftView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) shaft_lift_deferred: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) shaft_upper_neighbor: Option<ShaftUpperNeighborView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) gate_decon_neighbor: Option<GateDeconNeighborView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) beacon_exit_neighbor: Option<BeaconExitNeighborView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) beacon_exit_hold: Option<BeaconExitHoldView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) beacon_exit_hold_missing: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) hive_route_neighbor: Option<BeaconExitNeighborView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) hive_route_hold: Option<BeaconExitHoldView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) hive_route_hold_missing: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) hive_route_boundary: Option<HiveRouteBoundaryView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) hive_route_handoff: Option<BeaconExitHoldView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) shaft_lockdown_neighbor: Option<ShaftLockdownNeighborView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) lockdown_scene_source_sha256: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) utility_scene_source_sha256: Option<String>,
+    /// New transient target-only presentation metadata; never Save authority.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) shaft_lower_service: Option<crate::moving_support::ShaftLowerRecipeIdentity>,
+    /// New uncommitted entry-only candidate; does not authorize collision.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) shaft_lower_service_proposal: Option<crate::moving_support::ShaftLowerRecipeIdentity>,
+    /// New Shaft-only uncommitted Continue staging metadata.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) shaft_service_entry_preview: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) shaft_service_entry_base: Option<crate::formal_runtime::SessionContext>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) shaft_service_entry_lifecycle_sequence: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) shaft_service_entry_resume_after_frame: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) exit_entry_preview: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) exit_entry_base: Option<crate::formal_runtime::SessionContext>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) exit_entry_lifecycle_sequence: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) exit_entry_resume_after_frame: Option<bool>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -482,6 +694,8 @@ pub struct WorldSnapshot {
     pub server_tick: u64,
     pub authority_revision: u64,
     pub ack_seq: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub server_time_ms: Option<u64>,
     pub player: PlayerView,
     pub actors: Vec<ActorView>,
     pub doors: Vec<DoorView>,
@@ -508,6 +722,69 @@ pub struct WorldSnapshot {
     pub entry_token: Option<SceneEntryToken>,
     #[serde(default,skip_serializing_if="Option::is_none")]
     pub support_scene: Option<crate::moving_support::SupportSceneView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub forged_guard_shutters_open: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dense_partition_escape_ids: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dense_occupied_region: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub current_visible_regions: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dense_entity_regions: Option<std::collections::BTreeMap<String,String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) shaft_lift: Option<crate::formal_runtime::shaft_lift::ShaftLiftView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) shaft_lift_deferred: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) shaft_upper_neighbor: Option<ShaftUpperNeighborView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) gate_decon_neighbor: Option<GateDeconNeighborView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) beacon_exit_neighbor: Option<BeaconExitNeighborView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) beacon_exit_hold: Option<BeaconExitHoldView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) beacon_exit_hold_missing: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) hive_route_neighbor: Option<BeaconExitNeighborView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) hive_route_hold: Option<BeaconExitHoldView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) hive_route_hold_missing: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) hive_route_boundary: Option<HiveRouteBoundaryView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) hive_route_handoff: Option<BeaconExitHoldView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) shaft_lockdown_neighbor: Option<ShaftLockdownNeighborView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) lockdown_scene_source_sha256: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) utility_scene_source_sha256: Option<String>,
+    /// New transient target-only presentation metadata; never Save authority.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) shaft_lower_service: Option<crate::moving_support::ShaftLowerRecipeIdentity>,
+    /// New uncommitted entry-only candidate; does not authorize collision.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) shaft_lower_service_proposal: Option<crate::moving_support::ShaftLowerRecipeIdentity>,
+    /// New Shaft-only uncommitted Continue staging metadata.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) shaft_service_entry_preview: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) shaft_service_entry_base: Option<crate::formal_runtime::SessionContext>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) shaft_service_entry_lifecycle_sequence: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) shaft_service_entry_resume_after_frame: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) exit_entry_preview: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) exit_entry_base: Option<crate::formal_runtime::SessionContext>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) exit_entry_lifecycle_sequence: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) exit_entry_resume_after_frame: Option<bool>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -565,6 +842,7 @@ impl WorldSnapshot {
             server_tick: view.server_tick,
             authority_revision: view.authority_revision,
             ack_seq: view.ack_seq,
+            server_time_ms: Some(view.server_time_ms),
             player: view.player,
             actors: view.actors,
             doors: view.doors,
@@ -582,6 +860,36 @@ impl WorldSnapshot {
             npcs: view.npcs,
             entry_token: view.entry_token,
             support_scene: view.support_scene,
+            forged_guard_shutters_open: view.forged_guard_shutters_open,
+            dense_partition_escape_ids: view.dense_partition_escape_ids,
+            dense_occupied_region: view.dense_occupied_region,
+            current_visible_regions: view.current_visible_regions,
+            dense_entity_regions: view.dense_entity_regions,
+            shaft_lift: view.shaft_lift,
+            shaft_lift_deferred: view.shaft_lift_deferred,
+            shaft_upper_neighbor: view.shaft_upper_neighbor,
+            gate_decon_neighbor: view.gate_decon_neighbor,
+            beacon_exit_neighbor: view.beacon_exit_neighbor,
+            beacon_exit_hold: view.beacon_exit_hold,
+            beacon_exit_hold_missing: view.beacon_exit_hold_missing,
+            hive_route_neighbor: view.hive_route_neighbor,
+            hive_route_hold: view.hive_route_hold,
+            hive_route_hold_missing: view.hive_route_hold_missing,
+            hive_route_boundary: view.hive_route_boundary,
+            hive_route_handoff: view.hive_route_handoff,
+            shaft_lockdown_neighbor: view.shaft_lockdown_neighbor,
+            lockdown_scene_source_sha256: view.lockdown_scene_source_sha256,
+            utility_scene_source_sha256: view.utility_scene_source_sha256,
+            shaft_lower_service: view.shaft_lower_service,
+            shaft_lower_service_proposal: view.shaft_lower_service_proposal,
+            shaft_service_entry_preview: view.shaft_service_entry_preview,
+            shaft_service_entry_base: view.shaft_service_entry_base,
+            shaft_service_entry_lifecycle_sequence: view.shaft_service_entry_lifecycle_sequence,
+            shaft_service_entry_resume_after_frame: view.shaft_service_entry_resume_after_frame,
+            exit_entry_preview: view.exit_entry_preview,
+            exit_entry_base: view.exit_entry_base,
+            exit_entry_lifecycle_sequence: view.exit_entry_lifecycle_sequence,
+            exit_entry_resume_after_frame: view.exit_entry_resume_after_frame,
         }
     }
 }
@@ -710,9 +1018,21 @@ pub struct WorldStateV3 {
     pub generic_actors: Vec<ActorRuntime>,
     pub combat_state: CombatState,
     pub explored: ExploredMap,
+    pub shaft_upper_map_observation: Option<ObservedMapVariant>,
+    pub lockdown_map_observation: Option<ObservedMapVariant>,
+    /// Transient evidence; never serialized into a save or wire projection.
+    pub(crate) deferred_shaft_floor_proof: Option<DeferredShaftFloorProof>,
     pub rear_view: RearViewAuthorization,
     pub last_input_seq: u64,
     pub last_client_time_ms: u64,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct DeferredShaftFloorProof {
+    pub scene_sha: String,
+    pub revision: WorldRevision,
+    pub server_time_ms: u64,
+    pub body: KccBody,
 }
 impl WorldStateV3 {
     pub fn new(
@@ -740,6 +1060,9 @@ impl WorldStateV3 {
             generic_actors: vec![],
             combat_state: CombatState::default(),
             explored: ExploredMap::new(id, player_position_m, vec![], vec![], vec![])?,
+            shaft_upper_map_observation: None,
+            lockdown_map_observation: None,
+            deferred_shaft_floor_proof: None,
             rear_view: RearViewAuthorization::denied(),
             last_input_seq: 0,
             last_client_time_ms: 0,
@@ -827,7 +1150,7 @@ impl WorldStateV3 {
                         position_m: s.position_m,
                         yaw_rad: 0.0,
                     },
-                    active: s.active, members: None, signal_perception: None,
+                    active: s.active, members: None, signal_perception: None, animation_presentation: None, signal_only: false,
                 })
                 .chain(
                     self.generic_actors
@@ -851,6 +1174,36 @@ impl WorldStateV3 {
             npcs: None,
             entry_token: None,
             support_scene: None,
+            forged_guard_shutters_open: None,
+            dense_partition_escape_ids: None,
+            dense_occupied_region: None,
+            current_visible_regions: None,
+            dense_entity_regions: None,
+            shaft_lift: None,
+            shaft_lift_deferred: None,
+            shaft_upper_neighbor: None,
+            gate_decon_neighbor: None,
+            beacon_exit_neighbor: None,
+            beacon_exit_hold: None,
+            beacon_exit_hold_missing: None,
+            hive_route_neighbor: None,
+            hive_route_hold: None,
+            hive_route_hold_missing: None,
+            hive_route_boundary: None,
+            hive_route_handoff: None,
+            shaft_lockdown_neighbor: None,
+            lockdown_scene_source_sha256: None,
+            utility_scene_source_sha256: None,
+            shaft_lower_service: None,
+            shaft_lower_service_proposal: None,
+            shaft_service_entry_preview: None,
+            shaft_service_entry_base: None,
+            shaft_service_entry_lifecycle_sequence: None,
+            shaft_service_entry_resume_after_frame: None,
+            exit_entry_preview: None,
+            exit_entry_base: None,
+            exit_entry_lifecycle_sequence: None,
+            exit_entry_resume_after_frame: None,
         }
     }
 }
@@ -866,6 +1219,31 @@ pub struct CwStepOutput {
     pub combat: Vec<CombatEvent>,
     pub sentinel: Vec<SentinelEvent>,
     pub actor_runtime: Vec<ActorRuntimeEvent>,
+    /// Captured only from the actual ordinary KCC result, before later effects.
+    pub(crate) ordinary_floor_body: Option<KccBody>,
+    pub(crate) ordinary_contact_body: Option<KccBody>,
+}
+
+#[cfg(test)]
+mod deferred_floor_evidence_tests {
+    use super::*;
+    #[test]
+    fn only_actual_ordinary_floor_step_emits_evidence() {
+        let mut state=WorldStateV3::new("grey_hive",1,Vec3{x_m:10.0,y_m:0.0,z_m:7.0}).unwrap();
+        state.scene_id="gh_central_shaft".into();
+        assert!(state.deferred_shaft_floor_proof.is_none());
+        let kcc=crate::continuous_kcc::StaticKccWorld::new(crate::continuous_kcc::Aabb::new(0.0,24.0,0.0,16.0).unwrap(),vec![]);
+        let sample=crate::continuous_input::InputSample::new(1,1,0,0.0,0.0).unwrap();
+        let output=step_world_held_input(&mut state,&kcc,CwStepInput{sample:&sample,dt_s:1.0/60.0,combat:&[]}).unwrap();
+        assert_eq!(output.ordinary_floor_body.as_ref(),Some(&state.player));
+        state.combat_state.active_traversal=Some(crate::continuous_combat::ActiveTraversal{
+            marker_index:usize::MAX,request_id:1,start_position:state.player.position_m,elapsed_ms:0});
+        let output=step_world_held_input(&mut state,&kcc,CwStepInput{sample:&sample,dt_s:1.0/60.0,combat:&[]}).unwrap();
+        // An invalid marker ends traversal during this step, but did not turn
+        // the already-running traversal into an ordinary KCC observation.
+        assert!(state.combat_state.active_traversal.is_none());
+        assert!(output.ordinary_floor_body.is_none());
+    }
 }
 pub enum WorldEffect {
     HealPlayer {
@@ -929,6 +1307,7 @@ fn step_world_internal(
     if state.sentinels.iter().any(|s|!s.validate()) {return Err(ContinuousWorldError::InvalidDelta);}
     let backup = state.clone();
     let result = (|| {
+        state.deferred_shaft_floor_proof=None;
         let mut axes = input.sample.normalized_axes();
         let dt_ms = (input.dt_s * 1000.0).round() as u64;
         state.combat_state.tick_timers(dt_ms);
@@ -956,6 +1335,11 @@ fn step_world_internal(
         let collisions = crate::continuous_kcc::step_kcc_at_world_time(
             &mut state.player, kcc, axes, input.dt_s, !traversing_this_step, state.server_time_ms)
             .map_err(|_| ContinuousWorldError::InvalidDelta)?;
+        let ordinary_floor_body=(state.world_id=="grey_hive" && state.scene_id=="gh_central_shaft"
+            && !traversing_this_step && !kcc.has_support_surfaces()
+            && state.player.grounded && state.player.position_m.y_m==0.0 && state.player.velocity_mps.y_m==0.0
+            && kcc.can_player_occupy(state.player.position_m,state.player.radius_m)).then(||state.player.clone());
+        let ordinary_contact_body=(!traversing_this_step && state.player.grounded && kcc.can_player_occupy(state.player.position_m,state.player.radius_m)).then(||state.player.clone());
         let mut sentinel_events = vec![];
         let combat_data = combat_v1();
         let guard_spec = &combat_data.actions["guard"];
@@ -1112,6 +1496,8 @@ fn step_world_internal(
             combat: combat_events,
             sentinel: sentinel_events,
             actor_runtime: actor_runtime_events,
+            ordinary_floor_body,
+            ordinary_contact_body,
         })
     })();
     if result.is_err() {
@@ -1468,7 +1854,7 @@ fn advance_context_traversal(
             y_m: previous.y_m + (candidate.y_m - previous.y_m) * fraction,
             z_m: previous.z_m + (candidate.z_m - previous.z_m) * fraction,
         };
-        if !kcc.can_occupy(sample, state.player.radius_m) {
+        if !kcc.can_player_occupy(sample, state.player.radius_m) {
             blocked = true;
             break;
         }

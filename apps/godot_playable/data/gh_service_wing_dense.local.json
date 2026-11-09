@@ -1,0 +1,781 @@
+{
+  "schema": "gh-service-wing-dense/v1",
+  "worldId": "grey_hive",
+  "floorId": "gh_service_wing_y0",
+  "note": "Authored design coordinates; visibility is not specified.",
+  "offsets": {
+    "gh_power_room": [
+      0,
+      0
+    ],
+    "gh_gate_a": [
+      20,
+      0
+    ]
+  },
+  "heightM": 0.25,
+  "nominalPlayerRadiusM": 0.35,
+  "walls": [
+    {
+      "id": "dense_power_north_0",
+      "sceneId": "gh_power_room",
+      "rect": [
+        0.5,
+        5,
+        3,
+        5.5
+      ]
+    },
+    {
+      "id": "dense_power_north_1",
+      "sceneId": "gh_power_room",
+      "rect": [
+        5,
+        5,
+        10,
+        5.5
+      ]
+    },
+    {
+      "id": "dense_power_north_2",
+      "sceneId": "gh_power_room",
+      "rect": [
+        12,
+        5,
+        16,
+        5.5
+      ]
+    },
+    {
+      "id": "dense_power_north_3",
+      "sceneId": "gh_power_room",
+      "rect": [
+        18,
+        5,
+        19.5,
+        5.5
+      ]
+    },
+    {
+      "id": "dense_gate_north_0",
+      "sceneId": "gh_gate_a",
+      "rect": [
+        0.5,
+        5,
+        4,
+        5.5
+      ]
+    },
+    {
+      "id": "dense_gate_north_1",
+      "sceneId": "gh_gate_a",
+      "rect": [
+        6,
+        5,
+        9.5,
+        5.5
+      ]
+    },
+    {
+      "id": "dense_gate_north_2",
+      "sceneId": "gh_gate_a",
+      "rect": [
+        10.5,
+        5,
+        14,
+        5.5
+      ]
+    },
+    {
+      "id": "dense_gate_north_3",
+      "sceneId": "gh_gate_a",
+      "rect": [
+        16,
+        5,
+        19.5,
+        5.5
+      ]
+    },
+    {
+      "id": "dense_power_south_0",
+      "sceneId": "gh_power_room",
+      "rect": [
+        0.5,
+        8.5,
+        3,
+        9
+      ]
+    },
+    {
+      "id": "dense_power_south_1",
+      "sceneId": "gh_power_room",
+      "rect": [
+        5,
+        8.5,
+        10,
+        9
+      ]
+    },
+    {
+      "id": "dense_power_south_2",
+      "sceneId": "gh_power_room",
+      "rect": [
+        12,
+        8.5,
+        16,
+        9
+      ]
+    },
+    {
+      "id": "dense_power_south_3",
+      "sceneId": "gh_power_room",
+      "rect": [
+        18,
+        8.5,
+        19.5,
+        9
+      ]
+    },
+    {
+      "id": "dense_gate_south_0",
+      "sceneId": "gh_gate_a",
+      "rect": [
+        0.5,
+        8.5,
+        4,
+        9
+      ]
+    },
+    {
+      "id": "dense_gate_south_1",
+      "sceneId": "gh_gate_a",
+      "rect": [
+        6,
+        8.5,
+        9.5,
+        9
+      ]
+    },
+    {
+      "id": "dense_gate_south_2",
+      "sceneId": "gh_gate_a",
+      "rect": [
+        10.5,
+        8.5,
+        14,
+        9
+      ]
+    },
+    {
+      "id": "dense_gate_south_3",
+      "sceneId": "gh_gate_a",
+      "rect": [
+        16,
+        8.5,
+        19.5,
+        9
+      ]
+    },
+    {
+      "id": "dense_power_ncross_8_a",
+      "sceneId": "gh_power_room",
+      "rect": [
+        7.75,
+        0.5,
+        8.25,
+        2
+      ]
+    },
+    {
+      "id": "dense_power_ncross_8_b",
+      "sceneId": "gh_power_room",
+      "rect": [
+        7.75,
+        4.7,
+        8.25,
+        5
+      ]
+    },
+    {
+      "id": "dense_power_scross_8_a",
+      "sceneId": "gh_power_room",
+      "rect": [
+        7.75,
+        8.5,
+        8.25,
+        9
+      ]
+    },
+    {
+      "id": "dense_power_scross_8_b",
+      "sceneId": "gh_power_room",
+      "rect": [
+        7.75,
+        12.5,
+        8.25,
+        13.5
+      ]
+    },
+    {
+      "id": "dense_power_ncross_14_a",
+      "sceneId": "gh_power_room",
+      "rect": [
+        13.75,
+        0.5,
+        14.25,
+        2
+      ]
+    },
+    {
+      "id": "dense_power_ncross_14_b",
+      "sceneId": "gh_power_room",
+      "rect": [
+        13.75,
+        4.7,
+        14.25,
+        5
+      ]
+    },
+    {
+      "id": "dense_power_scross_14_a",
+      "sceneId": "gh_power_room",
+      "rect": [
+        13.75,
+        8.5,
+        14.25,
+        9
+      ]
+    },
+    {
+      "id": "dense_power_scross_14_b",
+      "sceneId": "gh_power_room",
+      "rect": [
+        13.75,
+        12.5,
+        14.25,
+        13.5
+      ]
+    }
+  ],
+  "regions": [
+    {
+      "id": "power_nw",
+      "name": "管线检修间",
+      "kind": "functional_bay",
+      "sceneId": "gh_power_room",
+      "polygon": [
+        [
+          0.5,
+          0.5
+        ],
+        [
+          8,
+          0.5
+        ],
+        [
+          8,
+          5.5
+        ],
+        [
+          0.5,
+          5.5
+        ]
+      ]
+    },
+    {
+      "id": "power_nm",
+      "name": "配电检查间",
+      "kind": "functional_bay",
+      "sceneId": "gh_power_room",
+      "polygon": [
+        [
+          8,
+          0.5
+        ],
+        [
+          14,
+          0.5
+        ],
+        [
+          14,
+          5.5
+        ],
+        [
+          8,
+          5.5
+        ]
+      ]
+    },
+    {
+      "id": "power_ne",
+      "name": "分配维护间",
+      "kind": "functional_bay",
+      "sceneId": "gh_power_room",
+      "polygon": [
+        [
+          14,
+          0.5
+        ],
+        [
+          19.5,
+          0.5
+        ],
+        [
+          19.5,
+          5.5
+        ],
+        [
+          14,
+          5.5
+        ]
+      ]
+    },
+    {
+      "id": "power_sw",
+      "name": "值守休整间",
+      "kind": "functional_bay",
+      "sceneId": "gh_power_room",
+      "polygon": [
+        [
+          0.5,
+          8.5
+        ],
+        [
+          8,
+          8.5
+        ],
+        [
+          8,
+          13.5
+        ],
+        [
+          0.5,
+          13.5
+        ]
+      ]
+    },
+    {
+      "id": "power_sm",
+      "name": "器材整备间",
+      "kind": "functional_bay",
+      "sceneId": "gh_power_room",
+      "polygon": [
+        [
+          8,
+          8.5
+        ],
+        [
+          14,
+          8.5
+        ],
+        [
+          14,
+          13.5
+        ],
+        [
+          8,
+          13.5
+        ]
+      ]
+    },
+    {
+      "id": "power_se",
+      "name": "维护储物间",
+      "kind": "functional_bay",
+      "sceneId": "gh_power_room",
+      "polygon": [
+        [
+          14,
+          8.5
+        ],
+        [
+          19.5,
+          8.5
+        ],
+        [
+          19.5,
+          13.5
+        ],
+        [
+          14,
+          13.5
+        ]
+      ]
+    },
+    {
+      "id": "gate_nw",
+      "name": "闸前线缆间",
+      "kind": "functional_bay",
+      "sceneId": "gh_gate_a",
+      "polygon": [
+        [
+          20.5,
+          0.5
+        ],
+        [
+          29.5,
+          0.5
+        ],
+        [
+          29.5,
+          5.5
+        ],
+        [
+          20.5,
+          5.5
+        ]
+      ]
+    },
+    {
+      "id": "gate_sw",
+      "name": "闸前检查间",
+      "kind": "functional_bay",
+      "sceneId": "gh_gate_a",
+      "polygon": [
+        [
+          20.5,
+          8.5
+        ],
+        [
+          29.5,
+          8.5
+        ],
+        [
+          29.5,
+          13.5
+        ],
+        [
+          20.5,
+          13.5
+        ]
+      ]
+    },
+    {
+      "id": "gate_ne",
+      "name": "闸后维护间",
+      "kind": "functional_bay",
+      "sceneId": "gh_gate_a",
+      "polygon": [
+        [
+          30.5,
+          0.5
+        ],
+        [
+          39.5,
+          0.5
+        ],
+        [
+          39.5,
+          5.5
+        ],
+        [
+          30.5,
+          5.5
+        ]
+      ]
+    },
+    {
+      "id": "gate_se",
+      "name": "闸后物资间",
+      "kind": "functional_bay",
+      "sceneId": "gh_gate_a",
+      "polygon": [
+        [
+          30.5,
+          8.5
+        ],
+        [
+          39.5,
+          8.5
+        ],
+        [
+          39.5,
+          13.5
+        ],
+        [
+          30.5,
+          13.5
+        ]
+      ]
+    },
+    {
+      "id": "corr_power_w",
+      "name": "供电西段走廊",
+      "kind": "corridor_section",
+      "sceneId": "gh_power_room",
+      "polygon": [
+        [
+          0,
+          5.5
+        ],
+        [
+          8,
+          5.5
+        ],
+        [
+          8,
+          8.5
+        ],
+        [
+          0,
+          8.5
+        ]
+      ]
+    },
+    {
+      "id": "corr_power_m",
+      "name": "供电中段走廊",
+      "kind": "corridor_section",
+      "sceneId": "gh_power_room",
+      "polygon": [
+        [
+          8,
+          5.5
+        ],
+        [
+          14,
+          5.5
+        ],
+        [
+          14,
+          8.5
+        ],
+        [
+          8,
+          8.5
+        ]
+      ]
+    },
+    {
+      "id": "corr_power_e",
+      "name": "供电东段走廊",
+      "kind": "corridor_section",
+      "sceneId": "gh_power_room",
+      "polygon": [
+        [
+          14,
+          5.5
+        ],
+        [
+          20,
+          5.5
+        ],
+        [
+          20,
+          8.5
+        ],
+        [
+          14,
+          8.5
+        ]
+      ]
+    },
+    {
+      "id": "corr_gate_w",
+      "name": "闸前主走廊",
+      "kind": "corridor_section",
+      "sceneId": "gh_gate_a",
+      "polygon": [
+        [
+          20,
+          5.5
+        ],
+        [
+          29.5,
+          5.5
+        ],
+        [
+          29.5,
+          8.5
+        ],
+        [
+          20,
+          8.5
+        ]
+      ]
+    },
+    {
+      "id": "corr_gate_threshold",
+      "name": "受控闸口",
+      "kind": "existing_controlled_threshold",
+      "sceneId": "gh_gate_a",
+      "polygon": [
+        [
+          29.5,
+          5.5
+        ],
+        [
+          30.5,
+          5.5
+        ],
+        [
+          30.5,
+          8.5
+        ],
+        [
+          29.5,
+          8.5
+        ]
+      ]
+    },
+    {
+      "id": "corr_gate_e",
+      "name": "闸后主走廊",
+      "kind": "corridor_section",
+      "sceneId": "gh_gate_a",
+      "polygon": [
+        [
+          30.5,
+          5.5
+        ],
+        [
+          40,
+          5.5
+        ],
+        [
+          40,
+          8.5
+        ],
+        [
+          30.5,
+          8.5
+        ]
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "main_0",
+      "from": "corr_power_w",
+      "to": "corr_power_m",
+      "bidirectional": true,
+      "requiresEvent": null
+    },
+    {
+      "id": "main_1",
+      "from": "corr_power_m",
+      "to": "corr_power_e",
+      "bidirectional": true,
+      "requiresEvent": null
+    },
+    {
+      "id": "main_2",
+      "from": "corr_power_e",
+      "to": "corr_gate_w",
+      "bidirectional": true,
+      "requiresEvent": null
+    },
+    {
+      "id": "main_3",
+      "from": "corr_gate_w",
+      "to": "corr_gate_threshold",
+      "bidirectional": true,
+      "requiresEvent": "hive_power"
+    },
+    {
+      "id": "main_4",
+      "from": "corr_gate_threshold",
+      "to": "corr_gate_e",
+      "bidirectional": true,
+      "requiresEvent": "hive_power"
+    },
+    {
+      "id": "access_power_nw",
+      "from": "corr_power_w",
+      "to": "power_nw",
+      "bidirectional": true,
+      "requiresEvent": null
+    },
+    {
+      "id": "access_power_nm",
+      "from": "corr_power_m",
+      "to": "power_nm",
+      "bidirectional": true,
+      "requiresEvent": null
+    },
+    {
+      "id": "access_power_ne",
+      "from": "corr_power_e",
+      "to": "power_ne",
+      "bidirectional": true,
+      "requiresEvent": null
+    },
+    {
+      "id": "access_power_sw",
+      "from": "corr_power_w",
+      "to": "power_sw",
+      "bidirectional": true,
+      "requiresEvent": null
+    },
+    {
+      "id": "access_power_sm",
+      "from": "corr_power_m",
+      "to": "power_sm",
+      "bidirectional": true,
+      "requiresEvent": null
+    },
+    {
+      "id": "access_power_se",
+      "from": "corr_power_e",
+      "to": "power_se",
+      "bidirectional": true,
+      "requiresEvent": null
+    },
+    {
+      "id": "access_gate_nw",
+      "from": "corr_gate_w",
+      "to": "gate_nw",
+      "bidirectional": true,
+      "requiresEvent": null
+    },
+    {
+      "id": "access_gate_sw",
+      "from": "corr_gate_w",
+      "to": "gate_sw",
+      "bidirectional": true,
+      "requiresEvent": null
+    },
+    {
+      "id": "access_gate_ne",
+      "from": "corr_gate_e",
+      "to": "gate_ne",
+      "bidirectional": true,
+      "requiresEvent": null
+    },
+    {
+      "id": "access_gate_se",
+      "from": "corr_gate_e",
+      "to": "gate_se",
+      "bidirectional": true,
+      "requiresEvent": null
+    },
+    {
+      "id": "loop_north_0",
+      "from": "power_nw",
+      "to": "power_nm",
+      "bidirectional": true,
+      "requiresEvent": null
+    },
+    {
+      "id": "loop_north_1",
+      "from": "power_nm",
+      "to": "power_ne",
+      "bidirectional": true,
+      "requiresEvent": null
+    },
+    {
+      "id": "loop_south_0",
+      "from": "power_sw",
+      "to": "power_sm",
+      "bidirectional": true,
+      "requiresEvent": null
+    },
+    {
+      "id": "loop_south_1",
+      "from": "power_sm",
+      "to": "power_se",
+      "bidirectional": true,
+      "requiresEvent": null
+    }
+  ]
+}

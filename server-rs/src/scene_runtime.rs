@@ -751,10 +751,12 @@ impl SceneDefinition {
         for region in &self.exploration_regions {
             check_valid_region_polygon(&region.polygon, b)?;
         }
-        crate::moving_support::validate_support_catalog(&self.moving_supports,&self.standing_decks,
-            crate::continuous_kcc::Aabb::new(b.x,b.x+b.width,b.z,b.z+b.depth)
-                .map_err(|_|SceneRuntimeError::InvalidBounds)?)
-            .map_err(|_|SceneRuntimeError::InvalidPolygon)?;
+        if !crate::formal_runtime::shaft_lift::source_support_valid(self) {
+            crate::moving_support::validate_support_catalog(&self.moving_supports,&self.standing_decks,
+                crate::continuous_kcc::Aabb::new(b.x,b.x+b.width,b.z,b.z+b.depth)
+                    .map_err(|_|SceneRuntimeError::InvalidBounds)?)
+                .map_err(|_|SceneRuntimeError::InvalidPolygon)?;
+        }
         // New raised-deck scenes must author every actionable height interval.
         // Existing flat and moving-only content keeps its prior default contract.
         let validate_height=|range:Option<crate::moving_support::HeightRange>,anchor:Option<[f32;3]>|->Result<(),SceneRuntimeError> {
@@ -1104,6 +1106,9 @@ pub enum SceneEvent {
 #[derive(Clone, Debug)]
 pub struct SceneRuntime {
     registry: WorldRegistry,
+    // A whole-entry legacy variant, never a second canonical registry entry.
+    lockdown_legacy: Option<SceneDefinition>,
+    utility_legacy: Option<SceneDefinition>,
     pub scene_id: String,
     pub checkpoint_id: Option<String>,
     pub world_epoch: u64,
@@ -1132,6 +1137,8 @@ impl SceneRuntime {
         }
         Ok(Self {
             registry,
+            lockdown_legacy: None,
+            utility_legacy: None,
             scene_id: scene_id.into(),
             checkpoint_id: None,
             world_epoch,
@@ -1141,10 +1148,364 @@ impl SceneRuntime {
             processed: BTreeSet::new(),
         })
     }
+    /// Read-only definitions for qualified map geometry; this does not prepare a transition.
+    pub(crate) fn gh_map_scene(&self, id: &str) -> Option<&SceneDefinition> {
+        let scene = if id == self.scene_id { self.current_scene() } else { self.registry.scene(id)? };
+        (scene.world_id == "grey_hive").then_some(scene)
+    }
+    /// Immutable definitions for the two maintained Clockworks map endpoints.
+    pub(crate) fn cw_height_map_scene(&self,id:&str)->Option<&SceneDefinition> {
+        if !["cw_gear_shaft","cw_furnace_heart"].contains(&id) {return None;}
+        let scene=if id==self.scene_id {self.current_scene()} else {self.registry.scene(id)?};
+        (scene.world_id=="clockworks").then_some(scene)
+    }
     pub fn current_scene(&self) -> &SceneDefinition {
+        if let Some(scene) = &self.utility_legacy {
+            if scene.scene_id == self.scene_id { return scene; }
+        }
+        if self.scene_id == "gh_lockdown" {
+            if let Some(scene) = &self.lockdown_legacy { return scene; }
+        }
         self.registry
             .scene(&self.scene_id)
             .expect("scene remains registered")
+    }
+    pub(crate) fn select_lockdown_legacy(&mut self) -> Result<(), SceneRuntimeError> {
+        if self.scene_id != "gh_lockdown" || self.registry.scene("gh_lockdown")
+            .map_or(true, |s| s.world_id != "grey_hive" || s.verified_source_sha256 != "23e5d5d9f37f6f44b1f8b9105aab656424778ef5edf0e775bbc364143fe1b30c") {
+            return Err(SceneRuntimeError::MalformedSceneDefinition);
+        }
+        let raw = include_str!("../../support/legacy/gh_lockdown.json");
+        let mut scene: SceneDefinition = serde_json::from_str(raw)
+            .map_err(|_| SceneRuntimeError::MalformedSceneDefinition)?;
+        if scene.scene_id != "gh_lockdown" || scene.world_id != "grey_hive" {
+            return Err(SceneRuntimeError::MalformedSceneDefinition);
+        }
+        use sha2::Digest;
+        scene.verified_source_sha256 = format!("{:x}", sha2::Sha256::digest(raw.as_bytes()));
+        if scene.verified_source_sha256 != "718489a1ea4ec4622ccdcefc8459a1dc1bd4f66ccf26abc813b6a06519197850" {
+            return Err(SceneRuntimeError::MalformedSceneDefinition);
+        }
+        self.lockdown_legacy = Some(scene);
+        Ok(())
+    }
+    pub(crate) fn lockdown_legacy_definition(&self) -> Result<SceneDefinition, SceneRuntimeError> {
+        let mut copy = self.clone();
+        copy.select_lockdown_legacy()?;
+        copy.lockdown_legacy.ok_or(SceneRuntimeError::MalformedSceneDefinition)
+    }
+    pub(crate) fn select_utility_legacy(&mut self) -> Result<(), SceneRuntimeError> {
+        let (canonical,old,raw)=match self.scene_id.as_str() {
+            "gh_bio_isolation" => ("bf531fd9d49ee875653a8048130dd0c6e1d9b2170c1848ad48c49f2cb35ce0db","a3d629f04dc955cf0f8e644b54a4a64d054411a7d59a9fb15da5c9d9ea953aff",include_str!("../../support/legacy/gh_bio_isolation.json")),
+            "gh_deep_decon" => ("a53fd5c62a4540a375b51f7286798c7bab1a5c73aa37e98d3f4d6bad7b24f1c0","65e0cbf11183fe114259d680b0cd84a23a7f8619a25e628f4b30a7a84ce870a8",include_str!("../../support/legacy/gh_deep_decon.json")),
+            "gh_beacon" => ("e6434c598904d7fe36f4f48ebc67559e6d484eb535393a7b447bc99cbf86c766","3cab424771d10799ee82a453a72117affb0ebca09dd814f25308be70310da9ee",include_str!("../../support/legacy/gh_beacon.json")),
+            "gh_exit" => ("b32ad8d1204e9eaf45512b0e2d5ea22e08f5bd09ec0b5e31980e41336c45ee09","6ab262467e1992feac94f27d8bf571dcf77ddbc8c1693a79c57b3aeebff0c54c",include_str!("../../support/legacy/gh_exit.json")),
+            _ => return Err(SceneRuntimeError::MalformedSceneDefinition),
+        };
+        if self.registry.scene(&self.scene_id).map_or(true,|s|s.world_id!="grey_hive" || s.verified_source_sha256!=canonical) {return Err(SceneRuntimeError::MalformedSceneDefinition);}
+        let mut scene:SceneDefinition=serde_json::from_str(raw).map_err(|_|SceneRuntimeError::MalformedSceneDefinition)?;
+        use sha2::Digest;
+        scene.verified_source_sha256=format!("{:x}",sha2::Sha256::digest(raw.as_bytes()));
+        if scene.scene_id!=self.scene_id || scene.world_id!="grey_hive" || scene.verified_source_sha256!=old {return Err(SceneRuntimeError::MalformedSceneDefinition);}
+        self.utility_legacy=Some(scene);
+        Ok(())
+    }
+    pub(crate) fn utility_legacy_definition(&self)->Result<SceneDefinition,SceneRuntimeError> {
+        let mut copy=self.clone();copy.select_utility_legacy()?;
+        copy.utility_legacy.ok_or(SceneRuntimeError::MalformedSceneDefinition)
+    }
+    pub(crate) fn same_floor_neighbor(&self) -> Option<&SceneDefinition> {
+        if self.current_scene().world_id != "grey_hive" { return None; }
+        let id = match self.scene_id.as_str() {
+            "gh_power_room" => "gh_gate_a",
+            "gh_gate_a" => "gh_power_room",
+            _ => return None,
+        };
+        self.registry.scene(id)
+    }
+    pub(crate) fn shaft_definition(&self) -> Option<&SceneDefinition> {
+        let shaft=self.registry.scene("gh_central_shaft")?;
+        (shaft.world_id=="grey_hive").then_some(shaft)
+    }
+    /// The east Shaft portal is separate from Gate A's existing west neighbor.
+    pub(crate) fn gate_shaft_upper_neighbor(&self) -> Option<&SceneDefinition> {
+        if self.current_scene().world_id!="grey_hive" {return None;}
+        let id=match self.scene_id.as_str() {
+            "gh_gate_a"=>"gh_central_shaft",
+            "gh_central_shaft"=>"gh_gate_a",
+            _=>return None,
+        };
+        let neighbor=self.registry.scene(id)?;
+        (neighbor.world_id=="grey_hive").then_some(neighbor)
+    }
+    pub(crate) fn gate_decon_neighbor(&self)->Option<&SceneDefinition> {
+        if self.current_scene().world_id!="grey_hive" {return None;}
+        let id=match self.scene_id.as_str(){"gh_gate_b"=>"gh_deep_decon","gh_deep_decon"=>"gh_gate_b",_=>return None};
+        let neighbor=self.registry.scene(id)?;
+        (neighbor.world_id=="grey_hive").then_some(neighbor)
+    }
+    /// Pair-local Beacon/Exit adjacency; the authored ordinary portals remain
+    /// unchanged and continue to own their legacy spawn behavior.
+    pub(crate) fn beacon_exit_neighbor(&self)->Option<&SceneDefinition> {
+        if self.current_scene().world_id!="grey_hive" {return None;}
+        let id=match self.scene_id.as_str(){"gh_beacon"=>"gh_exit","gh_exit"=>"gh_beacon",_=>return None};
+        let neighbor=self.registry.scene(id)?;
+        (neighbor.world_id=="grey_hive").then_some(neighbor)
+    }
+    /// Transaction for a swept, already-authorized physical seam crossing.
+    /// The ordinary portal's interior trigger remains unchanged for fallback.
+    pub(crate) fn beacon_exit_walk(&mut self,id:&str,request_id:&str,epoch:u64,position:Vec3)
+        ->Result<TransitionResult,SceneRuntimeError> {
+        self.begin_request(request_id,epoch)?;
+        let (source,target_id,reverse,spawn_id)=match (self.scene_id.as_str(),id) {
+            ("gh_beacon","gh_beacon_to_exit")=>("gh_beacon","gh_exit","gh_exit_to_beacon","gh_exit_spawn"),
+            ("gh_exit","gh_exit_to_beacon")=>("gh_exit","gh_beacon","gh_beacon_to_exit","gh_beacon_spawn"),
+            _=>return Err(SceneRuntimeError::UnsafeTransition),
+        };
+        if self.current_scene().world_id!="grey_hive" || !position.x_m.is_finite() || position.y_m!=0.0 || !position.z_m.is_finite() {return Err(SceneRuntimeError::OutOfRange);}
+        let source_scene=self.current_scene();let target=self.registry.scene(target_id).ok_or_else(||SceneRuntimeError::UnknownTransitionTarget(target_id.into()))?;
+        if target.world_id!="grey_hive" || source_scene.transitions.iter().filter(|t|t.id==id && t.to_scene_id==target_id && t.requires_event.is_none()).count()!=1
+            || target.transitions.iter().filter(|t|t.id==reverse && t.to_scene_id==source && t.requires_event.is_none()).count()!=1 {return Err(SceneRuntimeError::UnsafeTransition);}
+        let spawn=target.spawns.iter().find(|s|s.id==spawn_id).ok_or_else(||SceneRuntimeError::UnknownTransitionSpawn(spawn_id.into()))?;
+        let spawn_position=vec3(spawn.position);let spawn_id=spawn.id.clone();
+        let next_epoch=self.world_epoch.checked_add(1).ok_or(SceneRuntimeError::StaleEpoch)?;
+        self.scene_id=target_id.into();self.world_epoch=next_epoch;self.checkpoint_id=None;
+        self.emitted.clear();self.completed_objectives.clear();self.activated.clear();
+        Ok(TransitionResult{target_world_id:"grey_hive".into(),target_scene_id:self.scene_id.clone(),spawn_id:spawn_id.clone(),position:spawn_position,next_epoch,
+            event:SceneEvent::Transition{from_scene_id:source.into(),to_scene_id:self.scene_id.clone(),spawn_id,world_epoch:next_epoch}})
+    }
+
+    /// The first three same-floor Clockworks pairs only (not the Gear lift).
+    pub(crate) fn cw_early_neighbor(&self,east:bool)->Option<&SceneDefinition> {
+        if self.current_scene().world_id!="clockworks" {return None;}
+        let target=match (self.scene_id.as_str(),east) {
+            ("cw_entry_foundry",true)=>"cw_pressure_hall",("cw_pressure_hall",false)=>"cw_entry_foundry",
+            ("cw_pressure_hall",true)=>"cw_conveyor_bridge",("cw_conveyor_bridge",false)=>"cw_pressure_hall",
+            ("cw_conveyor_bridge",true)=>"cw_boiler_chamber",("cw_boiler_chamber",false)=>"cw_conveyor_bridge",
+            ("cw_boiler_chamber",true)=>"cw_gear_shaft",("cw_gear_shaft",false)=>"cw_boiler_chamber",
+            ("cw_furnace_heart",true)=>"cw_forged_guard_arena",("cw_forged_guard_arena",false)=>"cw_furnace_heart",
+            ("cw_forged_guard_arena",true)=>"cw_regulator_core",("cw_regulator_core",false)=>"cw_forged_guard_arena",
+            ("cw_regulator_core",true)=>"cw_shutdown_exit",("cw_shutdown_exit",false)=>"cw_regulator_core",
+            _=>return None,
+        };
+        self.registry.scene(target).filter(|scene|scene.world_id=="clockworks")
+    }
+    pub(crate) fn cw_early_candidate(&self,target:&str)->Option<Self> {
+        if ![false,true].into_iter().any(|east|self.cw_early_neighbor(east).is_some_and(|s|s.scene_id==target)) {return None;}
+        let mut candidate=self.clone();candidate.scene_id=target.into();Some(candidate)
+    }
+    pub(crate) fn cw_early_connection_verified(&self,target_id:&str,events:&BTreeSet<String>,elite_first_kill:bool)->bool {
+        let source=self.scene_id.as_str();
+        let (east,forward,reverse,fg,rg)=match (source,target_id) {
+            ("cw_entry_foundry","cw_pressure_hall")=>(true,"cw_to_pressure_hall","cw_return_to_entry_foundry",None,None),
+            ("cw_pressure_hall","cw_entry_foundry")=>(false,"cw_return_to_entry_foundry","cw_to_pressure_hall",None,None),
+            ("cw_pressure_hall","cw_conveyor_bridge")=>(true,"cw_to_conveyor_bridge","cw_bridge_to_pressure_hall",Some("clockworks_valves"),None),
+            ("cw_conveyor_bridge","cw_pressure_hall")=>(false,"cw_bridge_to_pressure_hall","cw_to_conveyor_bridge",None,Some("clockworks_valves")),
+            ("cw_conveyor_bridge","cw_boiler_chamber")=>(true,"cw_bridge_to_boiler_chamber","cw_boiler_return_to_conveyor_bridge",None,None),
+            ("cw_boiler_chamber","cw_conveyor_bridge")=>(false,"cw_boiler_return_to_conveyor_bridge","cw_bridge_to_boiler_chamber",None,None),
+            ("cw_boiler_chamber","cw_gear_shaft")=>(true,"cw_boiler_to_gear_shaft","cw_gear_return_to_boiler",None,None),
+            ("cw_gear_shaft","cw_boiler_chamber")=>(false,"cw_gear_return_to_boiler","cw_boiler_to_gear_shaft",None,None),
+            ("cw_furnace_heart","cw_forged_guard_arena")=>(true,"cw_furnace_heart_to_arena","cw_arena_return_to_furnace_heart",None,None),
+            ("cw_forged_guard_arena","cw_furnace_heart")=>(false,"cw_arena_return_to_furnace_heart","cw_furnace_heart_to_arena",None,None),
+            ("cw_forged_guard_arena","cw_regulator_core")=>(true,"cw_arena_to_regulator_core","cw_regulator_core_return_to_arena",None,None),
+            ("cw_regulator_core","cw_forged_guard_arena")=>(false,"cw_regulator_core_return_to_arena","cw_arena_to_regulator_core",None,None),
+            ("cw_regulator_core","cw_shutdown_exit")=>(true,"cw_regulator_core_to_shutdown_exit","cw_shutdown_exit_return_to_regulator_core",Some("clockworks_core"),None),
+            ("cw_shutdown_exit","cw_regulator_core")=>(false,"cw_shutdown_exit_return_to_regulator_core","cw_regulator_core_to_shutdown_exit",None,Some("clockworks_core")),
+            _=>return false,
+        };
+        if fg.is_some_and(|event|!events.contains(event)) || source=="cw_forged_guard_arena" && !elite_first_kill {return false;}
+        let Some(target)=self.cw_early_neighbor(east).filter(|v|v.scene_id==target_id) else {return false;};
+        let west=[[0.5,6.5],[2.5,6.5],[2.5,9.5],[0.5,9.5]];
+        let east_rect=[[22.0,6.5],[24.0,6.5],[24.0,9.5],[22.0,9.5]];
+        let fheight=if source=="cw_gear_shaft" {Some(crate::moving_support::HeightRange([0.0,0.1]))} else {None};
+        let rheight=if target_id=="cw_gear_shaft" {Some(crate::moving_support::HeightRange([0.0,0.1]))} else {None};
+        self.current_scene().transitions.iter().filter(|t|t.id==forward && t.to_scene_id==target_id && t.requires_event.as_deref()==fg && t.height_range_m==fheight && t.polygon==if east {east_rect} else {west}).count()==1
+            && target.transitions.iter().filter(|t|t.id==reverse && t.to_scene_id==source && t.requires_event.as_deref()==rg && t.height_range_m==rheight && t.polygon==if east {west} else {east_rect}).count()==1
+    }
+    pub(crate) fn cw_early_walk(&mut self,target_id:&str,request_id:&str,epoch:u64,position:Vec3,events:&BTreeSet<String>,elite_first_kill:bool)->Result<TransitionResult,SceneRuntimeError> {
+        self.begin_request(request_id,epoch)?;
+        let source=self.scene_id.clone();
+        if !self.cw_early_connection_verified(target_id,events,elite_first_kill) || !position.x_m.is_finite() || position.y_m!=0.0 || !position.z_m.is_finite() || !(6.0..=9.5).contains(&position.z_m) {return Err(SceneRuntimeError::UnsafeTransition);}
+        let target=self.registry.scene(target_id).ok_or_else(||SceneRuntimeError::UnknownTransitionTarget(target_id.into()))?;
+        let spawn_id=match target_id {"cw_entry_foundry"=>"cw_entry_spawn","cw_pressure_hall"=>"cw_pressure_hall_spawn","cw_conveyor_bridge"=>"cw_conveyor_bridge_spawn","cw_boiler_chamber"=>"cw_boiler_chamber_spawn","cw_gear_shaft"=>"cw_gear_shaft_spawn","cw_furnace_heart"=>"cw_furnace_heart_spawn","cw_forged_guard_arena"=>"cw_forged_guard_arena_spawn","cw_regulator_core"=>"cw_regulator_core_spawn","cw_shutdown_exit"=>"cw_shutdown_exit_spawn",_=>return Err(SceneRuntimeError::UnsafeTransition)};
+        let spawn=target.spawns.iter().find(|s|s.id==spawn_id).ok_or_else(||SceneRuntimeError::UnknownTransitionSpawn(spawn_id.into()))?;
+        let spawn_position=vec3(spawn.position);let spawn_id=spawn.id.clone();
+        let next_epoch=self.world_epoch.checked_add(1).ok_or(SceneRuntimeError::StaleEpoch)?;
+        self.scene_id=target_id.into();self.world_epoch=next_epoch;self.checkpoint_id=None;
+        self.emitted.clear();self.completed_objectives.clear();self.activated.clear();
+        Ok(TransitionResult{target_world_id:"clockworks".into(),target_scene_id:self.scene_id.clone(),spawn_id:spawn_id.clone(),position:spawn_position,next_epoch,event:SceneEvent::Transition{from_scene_id:source,to_scene_id:self.scene_id.clone(),spawn_id,world_epoch:next_epoch}})
+    }
+
+    /// Three paired Mist Harbor shore doors, without granting preview rights.
+    pub(crate) fn mh_shore_neighbor(&self,east:bool)->Option<&SceneDefinition> {
+        if self.current_scene().world_id!="mist_harbor" {return None;}
+        let target=match (self.scene_id.as_str(),east) {
+            ("mh_fog_pier",true)=>"mh_tidal_warehouse",
+            ("mh_tidal_warehouse",false)=>"mh_fog_pier",
+            ("mh_tidal_warehouse",true)=>"mh_signal_yard",
+            ("mh_signal_yard",false)=>"mh_tidal_warehouse",
+            ("mh_signal_yard",true)=>"mh_drowned_quay",
+            ("mh_drowned_quay",false)=>"mh_signal_yard",
+            ("mh_drowned_quay",true)=>"mh_breakwater",
+            ("mh_breakwater",false)=>"mh_drowned_quay",
+            ("mh_breakwater",true)=>"mh_pump_station",
+            ("mh_pump_station",false)=>"mh_breakwater",
+            ("mh_pump_station",true)=>"mh_resonance_tower",
+            ("mh_resonance_tower",false)=>"mh_pump_station",
+            ("mh_resonance_tower",true)=>"mh_warden_arena",
+            ("mh_warden_arena",false)=>"mh_resonance_tower",
+            ("mh_warden_arena",true)=>"mh_extraction",
+            ("mh_extraction",false)=>"mh_warden_arena",
+            _=>return None,
+        };
+        self.registry.scene(target).filter(|scene|scene.world_id=="mist_harbor")
+    }
+    pub(crate) fn mh_shore_candidate(&self,target:&str)->Option<Self> {
+        if ![false,true].into_iter().any(|east|self.mh_shore_neighbor(east).is_some_and(|s|s.scene_id==target)) {return None;}
+        let mut candidate=self.clone();candidate.scene_id=target.into();Some(candidate)
+    }
+    pub(crate) fn mh_shore_connection_verified(&self,target_id:&str,events:&BTreeSet<String>,warden_defeated:bool)->bool {
+        let source=self.scene_id.as_str();
+        let (east,forward,reverse,fg,rg)=match (source,target_id) {
+            ("mh_fog_pier","mh_tidal_warehouse")=>(true,"mh_to_tidal_warehouse","mh_warehouse_to_fog_pier",None,None),
+            ("mh_tidal_warehouse","mh_fog_pier")=>(false,"mh_warehouse_to_fog_pier","mh_to_tidal_warehouse",None,None),
+            ("mh_tidal_warehouse","mh_signal_yard")=>(true,"mh_warehouse_to_signal_yard","mh_signal_yard_to_warehouse",None,None),
+            ("mh_signal_yard","mh_tidal_warehouse")=>(false,"mh_signal_yard_to_warehouse","mh_warehouse_to_signal_yard",None,None),
+            ("mh_signal_yard","mh_drowned_quay")=>(true,"mh_signal_yard_to_quay","mh_drowned_quay_to_signal_yard",None,None),
+            ("mh_drowned_quay","mh_signal_yard")=>(false,"mh_drowned_quay_to_signal_yard","mh_signal_yard_to_quay",None,None),
+            ("mh_drowned_quay","mh_breakwater")=>(true,"mh_drowned_quay_to_breakwater","mh_breakwater_to_drowned_quay",None,None),
+            ("mh_breakwater","mh_drowned_quay")=>(false,"mh_breakwater_to_drowned_quay","mh_drowned_quay_to_breakwater",None,None),
+            ("mh_breakwater","mh_pump_station")=>(true,"mh_breakwater_to_pump_station","mh_pump_station_to_breakwater",Some("mist_beacon_east"),None),
+            ("mh_pump_station","mh_breakwater")=>(false,"mh_pump_station_to_breakwater","mh_breakwater_to_pump_station",None,Some("mist_beacon_east")),
+            ("mh_pump_station","mh_resonance_tower")=>(true,"mh_pump_station_to_tower","mh_tower_to_pump_station",None,None),
+            ("mh_resonance_tower","mh_pump_station")=>(false,"mh_tower_to_pump_station","mh_pump_station_to_tower",None,None),
+            ("mh_resonance_tower","mh_warden_arena")=>(true,"mh_tower_to_warden_arena","mh_warden_arena_to_tower",Some("mist_signal"),None),
+            ("mh_warden_arena","mh_resonance_tower")=>(false,"mh_warden_arena_to_tower","mh_tower_to_warden_arena",None,Some("mist_signal")),
+            ("mh_warden_arena","mh_extraction")=>(true,"mh_warden_arena_to_extraction","mh_extraction_to_warden_arena",None,None),
+            ("mh_extraction","mh_warden_arena")=>(false,"mh_extraction_to_warden_arena","mh_warden_arena_to_extraction",None,None),
+            _=>return false,
+        };
+        if fg.is_some_and(|event|!events.contains(event)) || source=="mh_warden_arena" && target_id=="mh_extraction" && !warden_defeated {return false;}
+        let Some(target)=self.mh_shore_neighbor(east).filter(|v|v.scene_id==target_id) else {return false;};
+        let west=[[0.0,6.5],[2.0,6.5],[2.0,9.5],[0.0,9.5]];
+        let east_rect=[[22.0,6.5],[24.0,6.5],[24.0,9.5],[22.0,9.5]];
+        self.current_scene().transitions.iter().filter(|t|t.id==forward && t.to_scene_id==target_id && t.requires_event.as_deref()==fg && t.polygon==if east {east_rect} else {west}).count()==1
+            && target.transitions.iter().filter(|t|t.id==reverse && t.to_scene_id==source && t.requires_event.as_deref()==rg && t.polygon==if east {west} else {east_rect}).count()==1
+    }
+    pub(crate) fn mh_shore_walk(&mut self,target_id:&str,request_id:&str,epoch:u64,position:Vec3,events:&BTreeSet<String>,warden_defeated:bool)
+        ->Result<TransitionResult,SceneRuntimeError> {
+        self.begin_request(request_id,epoch)?;
+        let source=self.scene_id.clone();
+        if !self.mh_shore_connection_verified(target_id,events,warden_defeated) || !position.x_m.is_finite() || position.y_m!=0.0 || !position.z_m.is_finite() || !(6.0..=9.5).contains(&position.z_m) {return Err(SceneRuntimeError::UnsafeTransition);}
+        let target=self.registry.scene(target_id).ok_or_else(||SceneRuntimeError::UnknownTransitionTarget(target_id.into()))?;
+        let spawn_id=match target_id {
+            "mh_fog_pier"=>"mh_fog_pier_spawn", "mh_tidal_warehouse"=>"mh_warehouse_spawn", "mh_signal_yard"=>"mh_signal_yard_spawn", "mh_drowned_quay"=>"mh_drowned_quay_spawn", "mh_breakwater"=>"mh_breakwater_spawn", "mh_pump_station"=>"mh_pump_station_spawn", "mh_resonance_tower"=>"mh_resonance_tower_spawn", "mh_warden_arena"=>"mh_warden_arena_spawn", "mh_extraction"=>"mh_extraction_spawn", _=>return Err(SceneRuntimeError::UnsafeTransition),
+        };
+        let spawn=target.spawns.iter().find(|s|s.id==spawn_id).ok_or_else(||SceneRuntimeError::UnknownTransitionSpawn(spawn_id.into()))?;
+        let spawn_position=vec3(spawn.position);let spawn_id=spawn.id.clone();
+        let next_epoch=self.world_epoch.checked_add(1).ok_or(SceneRuntimeError::StaleEpoch)?;
+        self.scene_id=target_id.into();self.world_epoch=next_epoch;self.checkpoint_id=None;
+        self.emitted.clear();self.completed_objectives.clear();self.activated.clear();
+        Ok(TransitionResult{target_world_id:"mist_harbor".into(),target_scene_id:self.scene_id.clone(),spawn_id:spawn_id.clone(),position:spawn_position,next_epoch,event:SceneEvent::Transition{from_scene_id:source,to_scene_id:self.scene_id.clone(),spawn_id,world_epoch:next_epoch}})
+    }
+    pub(crate) fn hive_route_neighbor(&self,east:bool)->Option<&SceneDefinition> {
+        if self.current_scene().world_id!="grey_hive" {return None;}
+        let target=match (self.scene_id.as_str(),east) {
+            ("gh_entry_maintenance",true)=>"gh_power_room",
+            ("gh_power_room",false)=>"gh_entry_maintenance",
+            ("gh_lockdown",true)=>"gh_bio_isolation",
+            ("gh_bio_isolation",false)=>"gh_lockdown",
+            ("gh_bio_isolation",true)=>"gh_gate_b",
+            ("gh_gate_b",false)=>"gh_bio_isolation",
+            ("gh_deep_decon",true)=>"gh_sentinel_arena",
+            ("gh_sentinel_arena",false)=>"gh_deep_decon",
+            ("gh_sentinel_arena",true)=>"gh_beacon",
+            ("gh_beacon",false)=>"gh_sentinel_arena",
+            _=>return None,
+        };
+        self.registry.scene(target).filter(|scene|scene.world_id=="grey_hive")
+    }
+    pub(crate) fn hive_route_candidate(&self,target:&str)->Option<Self> {
+        if ![false,true].into_iter().any(|east|self.hive_route_neighbor(east).is_some_and(|s|s.scene_id==target)) {return None;}
+        let mut candidate=self.clone();
+        candidate.scene_id=target.into();
+        candidate.lockdown_legacy=None;
+        candidate.utility_legacy=None;
+        Some(candidate)
+    }
+
+    /// Commit a pre-authorized swept crossing on the selected first-floor route.
+    /// Callers own the collision union, real-radius crossing and visual proof.
+    pub(crate) fn hive_route_walk(&mut self,target_id:&str,request_id:&str,epoch:u64,
+        position:Vec3,events:&BTreeSet<String>,sentinel_first_kill:bool)
+        ->Result<TransitionResult,SceneRuntimeError> {
+        self.begin_request(request_id,epoch)?;
+        let source=self.scene_id.clone();
+        let (forward_id, forward_source, spawn_id, required, lo, hi)=match (source.as_str(),target_id) {
+            ("gh_entry_maintenance","gh_power_room")=>("gh_entry_to_power_room",true,"gh_power_spawn",None,5.5,8.5),
+            ("gh_power_room","gh_entry_maintenance")=>("gh_power_return_to_entry",true,"gh_entry_spawn",None,5.5,8.5),
+            ("gh_lockdown","gh_bio_isolation")=>("gh_lockdown_to_bio_isolation",true,"gh_bio_isolation_spawn",Some("hive_lockdown"),6.5,9.5),
+            ("gh_bio_isolation","gh_lockdown")=>("gh_lockdown_to_bio_isolation",false,"gh_lockdown_spawn",None,6.5,9.5),
+            ("gh_bio_isolation","gh_gate_b")=>("gh_bio_to_gate_b",true,"gh_gate_b_spawn",Some("hive_lockdown"),6.5,9.5),
+            ("gh_gate_b","gh_bio_isolation")=>("gh_bio_to_gate_b",false,"gh_bio_isolation_spawn",None,6.5,9.5),
+            ("gh_deep_decon","gh_sentinel_arena")=>("gh_deep_decon_to_sentinel_arena",true,"gh_sentinel_arena_spawn",None,6.5,9.5),
+            ("gh_sentinel_arena","gh_deep_decon")=>("gh_sentinel_arena_return_to_deep_decon",true,"gh_deep_decon_spawn",None,6.5,9.5),
+            ("gh_sentinel_arena","gh_beacon")=>("gh_sentinel_arena_to_beacon",true,"gh_beacon_spawn",None,6.5,9.5),
+            ("gh_beacon","gh_sentinel_arena")=>("gh_sentinel_arena_to_beacon",false,"gh_sentinel_arena_spawn",None,6.5,9.5),
+            _=>return Err(SceneRuntimeError::UnsafeTransition),
+        };
+        if self.current_scene().world_id!="grey_hive" || !position.x_m.is_finite()
+            || position.y_m!=0.0 || !position.z_m.is_finite() || !(lo..=hi).contains(&position.z_m)
+            || required.is_some_and(|e|!events.contains(e))
+            || (source=="gh_sentinel_arena" && target_id=="gh_beacon" && !sentinel_first_kill) {
+            return Err(SceneRuntimeError::UnsafeTransition);
+        }
+        let target=self.registry.scene(target_id).ok_or_else(||SceneRuntimeError::UnknownTransitionTarget(target_id.into()))?;
+        let owner=if forward_source {self.current_scene()} else {target};
+        let expected_target=if forward_source {target_id} else {source.as_str()};
+        if target.world_id!="grey_hive" || owner.transitions.iter().filter(|t|t.id==forward_id && t.to_scene_id==expected_target).count()!=1 {
+            return Err(SceneRuntimeError::UnsafeTransition);
+        }
+        let spawn=target.spawns.iter().find(|s|s.id==spawn_id).ok_or_else(||SceneRuntimeError::UnknownTransitionSpawn(spawn_id.into()))?;
+        let spawn_position=vec3(spawn.position);let spawn_id=spawn.id.clone();
+        let next_epoch=self.world_epoch.checked_add(1).ok_or(SceneRuntimeError::StaleEpoch)?;
+        self.scene_id=target_id.into();self.world_epoch=next_epoch;self.checkpoint_id=None;
+        self.lockdown_legacy=None;self.utility_legacy=None;
+        self.emitted.clear();self.completed_objectives.clear();self.activated.clear();
+        Ok(TransitionResult{target_world_id:"grey_hive".into(),target_scene_id:self.scene_id.clone(),spawn_id:spawn_id.clone(),position:spawn_position,next_epoch,
+            event:SceneEvent::Transition{from_scene_id:source,to_scene_id:self.scene_id.clone(),spawn_id,world_epoch:next_epoch}})
+    }
+    /// The Shaft east edge is distinct from its Gate A west edge.
+    pub(crate) fn shaft_lockdown_neighbor(&self)->Option<&SceneDefinition> {
+        if self.current_scene().world_id!="grey_hive" {return None;}
+        let id=match self.scene_id.as_str(){"gh_central_shaft"=>"gh_lockdown","gh_lockdown"=>"gh_central_shaft",_=>return None};
+        let neighbor=self.registry.scene(id)?;
+        (neighbor.world_id=="grey_hive").then_some(neighbor)
+    }
+
+    /// Explicit new walking edge only. Ordinary scene transitions continue to
+    /// use the authored list and its spawn rules.
+    pub(crate) fn decon_reverse_walk(&mut self,request_id:&str,epoch:u64,position:Vec3,
+        events:&BTreeSet<String>)->Result<TransitionResult,SceneRuntimeError> {
+        self.begin_request(request_id,epoch)?;
+        if self.current_scene().world_id!="grey_hive" || self.scene_id!="gh_deep_decon"
+            || !position.x_m.is_finite() || !position.y_m.is_finite() || !position.z_m.is_finite()
+            || position.y_m!=0.0 || !(0.0..=2.0).contains(&position.x_m)
+            || !(7.0..=9.0).contains(&position.z_m) {return Err(SceneRuntimeError::OutOfRange);}
+        if !events.contains("hive_lockdown") {return Err(SceneRuntimeError::ProgressionLocked);}
+        let target=self.registry.scene("gh_gate_b").ok_or_else(||SceneRuntimeError::UnknownTransitionTarget("gh_gate_b".into()))?;
+        if target.world_id!="grey_hive" || target.transitions.iter().filter(|t|t.id=="gh_gate_b_to_deep_decon"
+            && t.to_scene_id=="gh_deep_decon" && t.requires_event.as_deref()==Some("hive_lockdown")
+            && t.polygon==[[22.0,7.0],[24.0,7.0],[24.0,9.0],[22.0,9.0]]).count()!=1 {
+            return Err(SceneRuntimeError::UnsafeTransition);
+        }
+        let spawn=target.spawns.iter().find(|s|s.id=="gh_gate_b_spawn").ok_or_else(||SceneRuntimeError::UnknownTransitionSpawn("gh_gate_b_spawn".into()))?;
+        let spawn_id=spawn.id.clone();let spawn_position=vec3(spawn.position);
+        let next_epoch=self.world_epoch.checked_add(1).ok_or(SceneRuntimeError::StaleEpoch)?;
+        self.scene_id="gh_gate_b".into();self.world_epoch=next_epoch;self.checkpoint_id=None;
+        self.emitted.clear();self.completed_objectives.clear();self.activated.clear();
+        Ok(TransitionResult{target_world_id:"grey_hive".into(),target_scene_id:self.scene_id.clone(),spawn_id:spawn_id.clone(),position:spawn_position,next_epoch,
+            event:SceneEvent::Transition{from_scene_id:"gh_deep_decon".into(),to_scene_id:self.scene_id.clone(),spawn_id,world_epoch:next_epoch}})
     }
     pub(crate) fn is_complete_clockworks_production(&self) -> bool {
         self.registry.is_complete_clockworks_production()
@@ -1368,6 +1729,8 @@ impl SceneRuntime {
             .ok_or(SceneRuntimeError::StaleEpoch)?;
         let from = self.scene_id.clone();
         self.scene_id = target.0.clone();
+        self.lockdown_legacy = None;
+        self.utility_legacy = None;
         self.world_epoch = next_epoch;
         self.checkpoint_id = None;
         self.emitted.clear();

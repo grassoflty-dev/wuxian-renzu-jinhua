@@ -177,3 +177,70 @@ fn structurally_valid_but_unrestorable_default_is_unavailable_without_mutation()
         assert_eq!(runtime.snapshot().unwrap(), before_world); assert_eq!(files(&saves.0), before_files);
     }
 }
+
+#[test]
+fn unrestorable_named_slots_are_unavailable_without_mutation() {
+    for legacy in [false, true] {
+        for bad in ["unknown-scene", "world-mismatch", "outside-level"] {
+            let saves = Saves::new(); let runtime = saves.runtime(); start_paused(&runtime); runtime.save().unwrap();
+            let mut save = save_v6::read_save(&saves.0).unwrap();
+            fs::remove_file(save_v6::save_path(&saves.0)).unwrap();
+            match bad {
+                "unknown-scene" => {
+                    save.save.scene_id = "rs_does_not_exist".into();
+                    for scene in &mut save.save.scene_states { scene.scene_id = "rs_does_not_exist".into(); }
+                },
+                "world-mismatch" => {
+                    save.save.scene_id = "gh_entry_maintenance".into();
+                    for scene in &mut save.save.scene_states { scene.scene_id = "gh_entry_maintenance".into(); }
+                },
+                _ => save.save.player.position_m.x_m = 99999.0,
+            };
+            if legacy {
+                wuxian_horror_ch1::save_slots::create_slot(&saves.0, "broken", "Broken", &save.save).unwrap();
+            } else {
+                wuxian_horror_ch1::save_slots::create_slot_v6(&saves.0, "broken", "Broken", &save).unwrap();
+            }
+            let raw = wuxian_horror_ch1::save_slots::list_slots(&saves.0);
+            assert_eq!(raw.len(), 1); assert!(raw[0].valid && !raw[0].recoverable);
+            let before_files = files(&saves.0); let before_world = runtime.snapshot().unwrap();
+            let before_events = runtime.presentation_events_since(before_world.world_epoch, 0).unwrap();
+            for _ in 0..3 {
+                let rows = runtime.list_save_slots(); assert_eq!(rows.len(), 1);
+                assert_eq!(rows[0].slot_id, "broken"); assert!(!rows[0].valid);
+                assert!(!rows[0].recoverable && rows[0].error_code.is_some());
+                assert!(!runtime.has_default_save()); assert!(!runtime.has_save());
+            }
+            assert_eq!(runtime.snapshot().unwrap(), before_world);
+            assert_eq!(runtime.presentation_events_since(before_world.world_epoch, 0).unwrap(), before_events);
+            assert_eq!(files(&saves.0), before_files);
+            assert!(runtime.continue_slot("broken").is_err());
+            assert_eq!(runtime.snapshot().unwrap(), before_world); assert_eq!(files(&saves.0), before_files);
+            runtime.save_slot("healthy", "Healthy", true).unwrap();
+            let mixed_files = files(&saves.0); let mixed_world = runtime.snapshot().unwrap();
+            let rows = runtime.list_save_slots();
+            assert!(rows.iter().any(|row| row.slot_id == "broken" && !row.valid));
+            assert!(rows.iter().any(|row| row.slot_id == "healthy" && row.valid));
+            assert!(!runtime.has_default_save()); assert!(runtime.has_save());
+            assert_eq!(files(&saves.0), mixed_files); assert_eq!(runtime.snapshot().unwrap(), mixed_world);
+            assert!(runtime.continue_slot("healthy").unwrap().player.current_hp > 0);
+        }
+    }
+}
+
+#[test]
+fn valid_named_v5_probe_does_not_migrate_the_source() {
+    let saves = Saves::new(); let runtime = saves.runtime(); start_paused(&runtime); runtime.save().unwrap();
+    let save = save_v6::read_save(&saves.0).unwrap();
+    fs::remove_file(save_v6::save_path(&saves.0)).unwrap();
+    wuxian_horror_ch1::save_slots::create_slot(&saves.0, "legacy", "Legacy V5", &save.save).unwrap();
+    let before_files = files(&saves.0); let before_world = runtime.snapshot().unwrap();
+    for _ in 0..3 {
+        let rows = runtime.list_save_slots(); assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].slot_id, "legacy"); assert!(rows[0].valid && !rows[0].read_only && !rows[0].recoverable);
+        assert!(runtime.has_save()); assert!(!runtime.has_default_save());
+    }
+    assert_eq!(files(&saves.0), before_files); assert_eq!(runtime.snapshot().unwrap(), before_world);
+    assert!(!saves.0.join("slots/legacy/slot-v6.json").exists());
+    assert!(runtime.continue_slot("legacy").unwrap().player.current_hp > 0);
+}

@@ -1,0 +1,42 @@
+{
+  "schema": "wuxian.gh-gate-a-exterior-reuse.internal-use/v1",
+  "resourceId": "ART-GH-ENTRY-MAINTENANCE-EXTERIOR-BACKPLATE-20261027-001",
+  "revision": "r1",
+  "approval": "ACCEPT_LIMITED_STATIC_GH_GATE_A_BACKGROUND_REUSE",
+  "GodotDisplay": "NOT_RUN",
+  "publicRelease": "NOT_ESTABLISHED",
+  "fallback": "EXISTING_CLEAR_AND_FLOOR",
+  "limitations": "UNREGISTERED_NONINTERACTIVE_RUNTIME_NOT_RUN",
+  "asset": {
+    "path": "res://assets/props/grey_hive/gh_entry_exterior_backplate_20261027_r1.png",
+    "bytes": 2211708,
+    "sha256": "1c936f9c07abe19a63b4277e2173817625905225b1ac55ff894d7969edec803c",
+    "width": 1536,
+    "height": 1024,
+    "format": "RGB8"
+  },
+  "composition": {
+    "space": "SCREEN_SPACE_BACKGROUND_ONLY",
+    "fit": "CENTERED_COVER_FULL_VIEWPORT",
+    "uv": "FULL_ONCE",
+    "filter": "LINEAR",
+    "repeat": "DISABLED",
+    "tint": "WHITE_OPAQUE"
+  },
+  "installation": {
+    "worldId": "grey_hive",
+    "sceneId": "gh_gate_a",
+    "sceneSchemaVersion": 1,
+    "boundsM": [
+      0,
+      0,
+      20,
+      14
+    ],
+    "sceneSha256": "3c62f3c35a2c9f2e935707e7a93c34a8d6f5696ed730b8487c4efe0b6d1ee484",
+    "canonicalScenePath": "res://data/scenes/gh_gate_a.json",
+    "canonicalSceneBytes": 6948,
+    "nonInteractive": true,
+    "unregistered": true
+  }
+}

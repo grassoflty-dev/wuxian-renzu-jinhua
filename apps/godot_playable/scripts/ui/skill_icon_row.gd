@@ -2,6 +2,7 @@ extends HBoxContainer
 const LABELS = {'pulse':'Q · 脉冲','guard':'E · 防御','pierce':'R · 穿刺','dash':'Shift · 冲刺'}
 const USE_TEXT = {'pulse':'短距径向作用。','guard':'按住 E 尝试防御；松开结束。','pierce':'定向直线攻击。','dash':'有移动输入时沿移动方向；否则沿朝向冲刺。'}
 var slots = {}
+var _applied_scale: float = -1.0
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for id in ['pulse','guard','pierce','dash']:
@@ -33,6 +34,7 @@ func _ready() -> void:
 		phase.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		box.add_child(phase)
 		slots[id] = {'icon':icon,'text':text,'phase':phase}
+	_applied_scale = -1.0
 func apply_admitted_mapping(mapping: Dictionary) -> void:
 	# Explicit future intake only. No private lookup, implicit preload or admission from existence.
 	for id in slots:
@@ -56,10 +58,13 @@ func apply_admitted_mapping(mapping: Dictionary) -> void:
 				if texture != null:
 					slots[id].icon.texture = texture
 func update_display(scale: float, action: String, eligible: bool, status: Dictionary = {}) -> void:
+	if _applied_scale!=scale:
+		for id in slots:
+			slots[id].icon.custom_minimum_size = Vector2(56,56)*scale
+			slots[id].text.add_theme_font_size_override('font_size',int(16*scale))
+			slots[id].phase.add_theme_font_size_override('font_size',int(14*scale))
+			slots[id].phase.custom_minimum_size.x = 56*scale
+		_applied_scale = scale
 	for id in slots:
-		slots[id].icon.custom_minimum_size = Vector2(56,56)*scale
-		slots[id].text.add_theme_font_size_override('font_size',int(16*scale))
 		slots[id].text.text = LABELS[id]+(' · 当前' if eligible and action==id else '')+(' · 暂停输入' if not eligible else '')
-		slots[id].phase.add_theme_font_size_override('font_size',int(14*scale))
-		slots[id].phase.custom_minimum_size.x = 56*scale
 		slots[id].phase.text = status.text if eligible and action==id and status.get('kind')==id and typeof(status.get('text'))==TYPE_STRING else ''

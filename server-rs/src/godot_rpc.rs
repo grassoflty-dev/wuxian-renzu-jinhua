@@ -55,12 +55,14 @@ pub fn safe_error(error:&str)->String {
 }
 pub fn response(id:u64,result:Result<Value,String>)->Value{match result {Ok(v)=>json!({"protocol":PROTOCOL,"protocolVersion":1,"id":id,"ok":true,"result":v,"error":null}),Err(e)=>json!({"protocol":PROTOCOL,"protocolVersion":1,"id":id,"ok":false,"result":null,"error":{"code":safe_error(&e)}})}}
 pub fn hold(runtime:&FormalRuntime)->Result<(),String>{
+    runtime.cancel_exit_preview()?;
     let s=runtime.bridge_session_status()?;
     let context=SessionContext{world_id:s["worldId"].as_str().ok_or("E_RPC_STATUS")?.into(),scene_id:s["sceneId"].as_str().ok_or("E_RPC_STATUS")?.into(),world_epoch:integer(&s["worldEpoch"],1,MAX_SAFE)?};
     let seq=integer(&s["lastLifecycleCommandSequence"],0,MAX_SAFE)?.checked_add(1).filter(|n|*n<=MAX_SAFE).ok_or("E_LIFECYCLE_STALE_COMMAND")?;
     runtime.pause_context_ordered(&context,seq)?;Ok(())
 }
 pub fn dispatch(runtime:&FormalRuntime,method:&str,p:&Value)->Result<Value,String>{
+    if runtime.exit_preview_pending()? && !matches!(method,"formal_snapshot"|"bridge_session_status"|"formal_scene_ready"|"formal_pause") {return Err("E_SCENE_ENTRY_NOT_READY".into());}
     match method {
         "formal_snapshot"=>{keys(p,&[])?;encode(WorldSnapshot::from_view(runtime.snapshot()?))},
         "bridge_session_status"=>{keys(p,&[])?;runtime.bridge_session_status()},
@@ -93,7 +95,7 @@ pub fn dispatch(runtime:&FormalRuntime,method:&str,p:&Value)->Result<Value,Strin
         "formal_save_slot"|"formal_return_slot"=>{keys(p,&["slotId","displayName","create"])?;let id=string(p,"slotId")?;let name=string(p,"displayName")?;let create=boolean(p,"create")?;if method=="formal_save_slot"{receipt("save-slot",runtime.save_slot(id,name,create))}else{receipt("return-slot",runtime.return_to_hub_slot(id,name,create))}},
         "formal_continue_slot"=>{keys(p,&["slotId"])?;receipt("continue-slot",runtime.continue_slot(string(p,"slotId")?))},
         "formal_pause"|"formal_resume"=>{keys(p,&["context","commandSequence"])?;let context:SessionContext=typed(&p["context"])?;let seq=integer(&p["commandSequence"],1,MAX_SAFE)?;if method=="formal_pause"{receipt("pause",runtime.pause_context_ordered(&context,seq))}else{receipt("resume",runtime.resume_context_ordered(&context,seq))}},
-        "formal_scene_ready"=>{keys(p,&["token","remainPaused"])?;let token:wuxian_horror_ch1::world_v3::SceneEntryToken=typed(&p["token"])?;receipt(&format!("scene-ready:{}",token.generation),runtime.scene_ready(&token,boolean(p,"remainPaused")?))},
+        "formal_scene_ready"=>{let proof=if p.get("pairProof").is_some(){keys(p,&["token","remainPaused","exitPreparedSourceSha256","pairProof"])?;Some(string(p,"exitPreparedSourceSha256")?)}else if p.get("exitPreparedSourceSha256").is_some(){keys(p,&["token","remainPaused","exitPreparedSourceSha256"])?;Some(string(p,"exitPreparedSourceSha256")?)}else{keys(p,&["token","remainPaused"])?;None};let token:wuxian_horror_ch1::world_v3::SceneEntryToken=typed(&p["token"])?;receipt(&format!("scene-ready:{}",token.generation),runtime.scene_ready_with_exit_proof(&token,boolean(p,"remainPaused")?,proof,p.get("pairProof")))},
         "formal_presentation_events"|"formal_sound_cues"=>{keys(p,&["worldEpoch","afterEventId"])?;let epoch=integer(&p["worldEpoch"],1,MAX_SAFE)?;let cursor=integer(&p["afterEventId"],0,MAX_SAFE)?;if method=="formal_presentation_events"{encode(runtime.presentation_events_since(epoch,cursor)?)}else{encode(runtime.sound_cues_since(epoch,cursor)?)}},
         _=>Err("E_RPC_METHOD".into())
     }

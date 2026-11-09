@@ -1,0 +1,20 @@
+{
+  "schema": "wuxian.cenyao-east-walk.local/v1",
+  "canvas": [
+    971,
+    1620
+  ],
+  "anchor": [
+    0.5,
+    0.984375
+  ],
+  "nominal_height": 104,
+  "reference_ppm": 48,
+  "fps": 6,
+  "frames": [
+    "res://assets/characters/cenyao/walk_east/frame_01.png",
+    "res://assets/characters/cenyao/walk_east/frame_02.png",
+    "res://assets/characters/cenyao/walk_east/frame_03.png",
+    "res://assets/characters/cenyao/walk_east/frame_04.png"
+  ]
+}

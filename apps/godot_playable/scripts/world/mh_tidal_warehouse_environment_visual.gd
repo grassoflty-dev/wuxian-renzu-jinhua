@@ -303,7 +303,7 @@ func _frame_valid(frame_value, snapshot, scene, key, camera, viewport) -> bool:
 	var canonical: Dictionary = build_frame(snapshot,scene,key,camera,viewport)
 	return not canonical.is_empty() and _same(frame_value,canonical)
 
-func draw_floor(canvas_value, frame_value, snapshot, scene, key, camera, viewport) -> bool:
+func draw_floor(canvas_value, frame_value, snapshot, scene, key, camera, viewport, skip_static: bool = false) -> bool:
 	if not _canvas(canvas_value) or not _frame_valid(frame_value,snapshot,scene,key,camera,viewport):
 		return false
 	var frame: Dictionary = frame_value
@@ -313,15 +313,16 @@ func draw_floor(canvas_value, frame_value, snapshot, scene, key, camera, viewpor
 	var texture: Texture2D = textures['stone']
 	var tint: Color = Color(0.48,0.58,0.63,1)
 	var colors: PackedColorArray = PackedColorArray([tint,tint,tint,tint])
-	for patch_value in frame.floor:
-		var patch: Dictionary = patch_value
-		var points: PackedVector2Array = patch.points
-		var uvs: PackedVector2Array = patch.uvs
-		canvas.draw_polygon(points,colors,uvs,texture)
+	if not skip_static:
+		for patch_value in frame.floor:
+			var patch: Dictionary = patch_value
+			var points: PackedVector2Array = patch.points
+			var uvs: PackedVector2Array = patch.uvs
+			canvas.draw_polygon(points,colors,uvs,texture)
 	_draw_ground_ambient(canvas_value,frame_value,snapshot,scene,key,camera,viewport)
 	return true
 
-func draw_wall(canvas_value, frame_value, wall_value, snapshot, scene, key, camera, viewport, crates: MHWarehouseCratesVisual = null) -> bool:
+func draw_wall(canvas_value, frame_value, wall_value, snapshot, scene, key, camera, viewport, crates: MHWarehouseCratesVisual = null, skip_static: bool = false) -> bool:
 	if not _canvas(canvas_value) or not wall_value is Dictionary or not _frame_valid(frame_value,snapshot,scene,key,camera,viewport):
 		return false
 	var wall: Dictionary = wall_value
@@ -337,6 +338,7 @@ func draw_wall(canvas_value, frame_value, wall_value, snapshot, scene, key, came
 	var outer_faces: Array = _outer_face_plan(canvas_value,frame_value,wall,snapshot,scene,key,camera,viewport)
 	if id_value == 'warehouse_wall_north' and crates != null and is_instance_valid(crates):
 		crates.draw_north_backdrop(canvas,snapshot,scene,key,camera,viewport)
+	if skip_static: return true
 	canvas.draw_colored_polygon(contact,Color(0.01,0.025,0.03,0.14))
 	canvas.draw_colored_polygon(side,Color('#273b40'))
 	if not outer_faces.is_empty() and _frame_valid(frame_value,snapshot,scene,key,camera,viewport) and _outer_canvas_context(canvas_value,snapshot,scene,key,camera,viewport):

@@ -162,9 +162,19 @@
       "x": 0,
       "y": 0
     }
+    ,{
+      "id": 12,
+      "name": "logic.moving_support",
+      "objects": [{"id":39,"name":"gh_shaft_two_stop_lift","x":48,"y":32,"width":128,"height":128,"properties":[{"name":"lowerM","type":"float","value":-4.0},{"name":"upperM","type":"float","value":0.0},{"name":"travelMs","type":"int","value":4000},{"name":"endpointHoldMs","type":"int","value":2000}]}],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    }
   ],
-  "nextlayerid": 12,
-  "nextobjectid": 39,
+  "nextlayerid": 13,
+  "nextobjectid": 40,
   "orientation": "orthogonal",
   "properties": [{"name": "worldId", "type": "string", "value": "grey_hive"}, {"name": "sceneId", "type": "string", "value": "gh_central_shaft"}, {"name": "pixelsPerMeter", "type": "int", "value": 32}, {"name": "cameraProfile", "type": "string", "value": "oblique_default"}],
   "renderorder": "right-down",

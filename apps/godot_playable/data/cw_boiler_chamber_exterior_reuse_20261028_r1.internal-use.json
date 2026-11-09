@@ -1,0 +1,42 @@
+{
+  "schema": "wuxian.cw-boiler-chamber-exterior-reuse.internal-use/v1",
+  "resourceId": "ART-CW-ENTRY-FOUNDRY-EXTERIOR-BACKPLATE-20261027-001",
+  "revision": "r1",
+  "approval": "ACCEPT_LIMITED_STATIC_CW_BOILER_CHAMBER_BACKGROUND_REUSE",
+  "GodotDisplay": "NOT_RUN",
+  "publicRelease": "NOT_ESTABLISHED",
+  "fallback": "EXISTING_CLEAR_AND_FLOOR",
+  "limitations": "UNREGISTERED_NONINTERACTIVE_RUNTIME_NOT_RUN",
+  "asset": {
+    "path": "res://assets/props/clockworks/cw_entry_foundry_exterior_backplate_20261027_r1.png",
+    "bytes": 1766900,
+    "sha256": "33765bd03d89f5eac73444b165b3b614d3fb7962c58150c23bbd63d266749e60",
+    "width": 1536,
+    "height": 1024,
+    "format": "RGB8"
+  },
+  "composition": {
+    "space": "SCREEN_SPACE_BACKGROUND_ONLY",
+    "fit": "CENTERED_COVER_FULL_VIEWPORT",
+    "uv": "FULL_ONCE",
+    "filter": "LINEAR",
+    "repeat": "DISABLED",
+    "tint": "WHITE_OPAQUE"
+  },
+  "installation": {
+    "worldId": "clockworks",
+    "sceneId": "cw_boiler_chamber",
+    "sceneSchemaVersion": 1,
+    "boundsM": [
+      0,
+      0,
+      24,
+      16
+    ],
+    "sceneSha256": "04b00520e16435d159f1a459016083020fd40d11a2f8086d2f78dcbd0e483b39",
+    "canonicalScenePath": "res://data/scenes/cw_boiler_chamber.json",
+    "canonicalSceneBytes": 7927,
+    "nonInteractive": true,
+    "unregistered": true
+  }
+}

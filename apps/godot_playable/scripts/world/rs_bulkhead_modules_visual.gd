@@ -1,4 +1,5 @@
 extends RefCounted
+const BulkheadAtlasTexture = preload('res://scripts/world/bulkhead_atlas_texture.gd')
 
 const MODULES_RESOURCE = "res://data/rs_bulkhead_modules.internal-use.json"
 const MODULE_TEXTURE_PATH = "res://assets/props/return_station/bulkhead_tiles.png"
@@ -180,7 +181,7 @@ func _load_once() -> void:
 	if clipped_bounds.size.x <= 0 or clipped_bounds.size.y <= 0:
 		return
 	terminal_painted_bounds = clipped_bounds
-	module_texture = ImageTexture.create_from_image(image)
+	module_texture = BulkheadAtlasTexture.acquire(image, MODULE_TEXTURE_PATH, MODULE_BYTES, MODULE_SHA256)
 	terminal_texture = ImageTexture.create_from_image(clipped)
 
 func _valid_manifest(value) -> bool:

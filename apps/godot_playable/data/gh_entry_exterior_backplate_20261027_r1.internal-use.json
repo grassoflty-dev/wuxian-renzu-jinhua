@@ -1,0 +1,30 @@
+{
+  "schema": "wuxian.gh-entry-exterior-backplate.internal-use/v1",
+  "resourceId": "ART-GH-ENTRY-MAINTENANCE-EXTERIOR-BACKPLATE-20261027-001",
+  "revision": "r1",
+  "approval": "ACCEPT_LIMITED_STATIC_GH_ENTRY_BACKGROUND_USE",
+  "GodotDisplay": "NOT_RUN",
+  "publicRelease": "NOT_ESTABLISHED",
+  "asset": {
+    "path": "res://assets/props/grey_hive/gh_entry_exterior_backplate_20261027_r1.png",
+    "bytes": 2211708,
+    "sha256": "1c936f9c07abe19a63b4277e2173817625905225b1ac55ff894d7969edec803c",
+    "width": 1536,
+    "height": 1024,
+    "format": "RGB8"
+  },
+  "composition": {
+    "space": "SCREEN_SPACE_BACKGROUND_ONLY",
+    "fit": "CENTERED_COVER_FULL_VIEWPORT",
+    "filter": "LINEAR",
+    "repeat": "DISABLED"
+  },
+  "installation": {
+    "worldId": "grey_hive",
+    "sceneId": "gh_entry_maintenance",
+    "sceneSchemaVersion": 1,
+    "boundsM": [0, 0, 20, 14],
+    "sceneSha256": "5deb6c01b2ad81144144ae2526c06f8c337839e8d880aeb1b3af3a225afe787b",
+    "nonInteractive": true
+  }
+}

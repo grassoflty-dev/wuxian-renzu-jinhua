@@ -492,3 +492,56 @@ pub(crate) fn valid_id(id: &str) -> bool {
             .chars()
             .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.' | ':'))
 }
+
+#[cfg(test)]
+mod hive_route_transaction_tests {
+    use super::*;
+    use crate::{scene_runtime::SceneRuntime,world_v3::Vec3};
+
+    fn registry() -> WorldRegistry {
+        let rows=[
+            include_str!("../../content/scenes/compiled/gh_entry_maintenance.json"),
+            include_str!("../../content/scenes/compiled/gh_power_room.json"),
+            include_str!("../../content/scenes/compiled/gh_lockdown.json"),
+            include_str!("../../content/scenes/compiled/gh_bio_isolation.json"),
+            include_str!("../../content/scenes/compiled/gh_gate_b.json"),
+            include_str!("../../content/scenes/compiled/gh_deep_decon.json"),
+            include_str!("../../content/scenes/compiled/gh_sentinel_arena.json"),
+            include_str!("../../content/scenes/compiled/gh_beacon.json"),
+        ];
+        let scenes=rows.into_iter().map(|raw| {
+            let scene:SceneDefinition=serde_json::from_str(raw).unwrap();
+            (scene.scene_id.clone(),scene)
+        }).collect();
+        WorldRegistry{scenes,required_events:BTreeMap::new(),event_owner:BTreeMap::new(),mode:RegistryMode::GreyHiveSlice}
+    }
+
+    #[test]
+    fn ten_route_directions_preserve_original_event_and_first_kill_gates() {
+        let routes=[
+            ("gh_entry_maintenance","gh_power_room",19.9,7.0),
+            ("gh_power_room","gh_entry_maintenance",0.1,7.0),
+            ("gh_lockdown","gh_bio_isolation",23.9,8.0),
+            ("gh_bio_isolation","gh_lockdown",0.1,8.0),
+            ("gh_bio_isolation","gh_gate_b",23.9,8.0),
+            ("gh_gate_b","gh_bio_isolation",0.1,8.0),
+            ("gh_deep_decon","gh_sentinel_arena",23.9,8.0),
+            ("gh_sentinel_arena","gh_deep_decon",0.1,8.0),
+            ("gh_sentinel_arena","gh_beacon",23.9,8.0),
+            ("gh_beacon","gh_sentinel_arena",0.1,8.0),
+        ];
+        let enabled=BTreeSet::from(["hive_lockdown".to_string()]);
+        for (source,target,x,z) in routes {
+            let mut scene=SceneRuntime::new(registry(),source,1).unwrap();
+            let result=scene.hive_route_walk(target,"route-test",1,Vec3::new(x,0.0,z).unwrap(),&enabled,true).unwrap();
+            assert_eq!(result.target_scene_id,target);
+            assert_eq!(result.next_epoch,2);
+            if source=="gh_lockdown" || (source=="gh_bio_isolation" && target=="gh_gate_b") {
+                let mut blocked=SceneRuntime::new(registry(),source,1).unwrap();
+                assert!(blocked.hive_route_walk(target,"gate-test",1,Vec3::new(x,0.0,z).unwrap(),&BTreeSet::new(),true).is_err());
+            }
+        }
+        let mut blocked=SceneRuntime::new(registry(),"gh_sentinel_arena",1).unwrap();
+        assert!(blocked.hive_route_walk("gh_beacon","kill-test",1,Vec3::new(23.9,0.0,8.0).unwrap(),&enabled,false).is_err());
+    }
+}

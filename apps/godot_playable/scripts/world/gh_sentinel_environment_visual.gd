@@ -2,14 +2,15 @@ extends RefCounted
 
 const P = preload('res://scripts/bridge/protocol.gd')
 const ProjectionScript = preload('res://scripts/world/projection.gd')
+const GHPalette = preload('res://scripts/world/gh_palette.gd')
 const SCENE_RESOURCE = 'res://data/scenes/gh_sentinel_arena.json'
 const SCENE_BYTES = 8241
 const SCENE_SHA256 = '3e3e3a52dca003ec13c7b3698317f6a32627091eeda833a49896910e521f45bb'
 # Visual relief only; never collision height or a support surface.
 const RELIEF_M = 12.0 / 48.0
-const FACE_COLOR = Color(0.18,0.25,0.29,1)
-const CAP_COLOR = Color(0.29,0.39,0.43,1)
-const EDGE_COLOR = Color(0.53,0.66,0.68,0.8)
+const NORTH_IMAGE_PATH = 'res://assets/props/return_station/bulkhead_tiles.png'
+var north_image_attempted := false
+var north_image: Texture2D
 const WALLS = [
 	{'id':'sentinel_arena_wall_north','polygon':[[0,0],[24,0],[24,0.5],[0,0.5]]},
 	{'id':'sentinel_arena_wall_south','polygon':[[0,15.5],[24,15.5],[24,16],[0,16]]},
@@ -163,14 +164,14 @@ func _plan(camera: Variant) -> Array[Dictionary]:
 		# concave endpoints enter another canonical cap at this height.
 		var low_b: Vector3 = b-(b-a).normalized()*RELIEF_M if face.clip_end else b
 		var points = PackedVector2Array([camera.project(a),camera.project(low_b),top_b,top_a])
-		result.append({'points':points,'original':original,'color':FACE_COLOR,'width':0.0})
+		result.append({'points':points,'original':original,'color':GHPalette.FACE,'width':0.0})
 	for row: Dictionary in WALLS:
 		var points = _project(row.polygon,camera)
-		result.append({'points':points,'original':points,'color':CAP_COLOR,'width':0.0})
+		result.append({'points':points,'original':points,'color':GHPalette.CAP,'width':0.0})
 	for boundary: Array in OUTLINES:
 		var points = _project(boundary,camera)
 		points.append(points[0])
-		result.append({'points':points,'original':points,'color':EDGE_COLOR,'width':1.2*camera.ppm/48.0})
+		result.append({'points':points,'original':points,'color':GHPalette.EDGE,'width':1.2*camera.ppm/48.0})
 	return result
 
 func _valid_points(points: PackedVector2Array, line: bool) -> bool:
@@ -199,6 +200,39 @@ func _bounds(points: PackedVector2Array, width: float) -> Rect2:
 func _intersects(a: Rect2, b: Rect2) -> bool:
 	return a.end.x >= b.position.x and a.position.x <= b.end.x and a.end.y >= b.position.y and a.position.y <= b.end.y
 
+func _north_placements(camera: Variant) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	if OUTLINES[0]!=[[0,0],[24,0],[24,6.5],[23.5,6.5],[23.5,0.5],[0.5,0.5],[0.5,6.5],[0,6.5]] or FACES[2].a!=[0.5,0.5] or FACES[2].b!=[23.5,0.5] or not FACES[2].clip_end or WALLS[0].id!='sentinel_arena_wall_north' or WALLS[0].polygon!=[[0,0],[24,0],[24,0.5],[0,0.5]]:
+		return result
+	if not north_image_attempted:
+		north_image_attempted = true
+		if ResourceLoader.exists(NORTH_IMAGE_PATH):
+			var loaded = load(NORTH_IMAGE_PATH)
+			if loaded is Texture2D:
+				north_image = loaded
+		if not is_instance_valid(north_image):
+			var image = Image.new()
+			if image.load(NORTH_IMAGE_PATH)==OK and image.get_width()==1418 and image.get_height()==1028:
+				north_image = ImageTexture.create_from_image(image)
+	if not is_instance_valid(north_image) or north_image.get_width()!=1418 or north_image.get_height()!=1028:
+		return result
+	var foot_a := Vector2(50,322)
+	var foot_b := Vector2(300,460)
+	var source_axis := foot_b-foot_a
+	for i in range(23):
+		var a: Vector2 = camera.project(Vector3(0.5+i,0,0.5))
+		var b: Vector2 = camera.project(Vector3(1.5+i,0,0.5))
+		if not _v2(a) or not _v2(b):
+			return []
+		var delta := b-a
+		var scale := delta.length()/source_axis.length()
+		var angle := delta.angle()-source_axis.angle()
+		var origin := a-foot_a.rotated(angle)*scale
+		if not is_finite(scale) or scale<=0.0 or not is_finite(angle) or not _v2(origin) or (origin+foot_b.rotated(angle)*scale).distance_to(b)>0.01:
+			return []
+		result.append({'origin':origin,'angle':angle,'scale':scale})
+	return result
+
 func draw_shell(canvas: Variant, snapshot: Variant, scene: Variant, current_key: Variant, scene_hash: Variant, camera: Variant, viewport: Variant) -> bool:
 	if not canvas is CanvasItem or not is_instance_valid(canvas) or canvas.is_queued_for_deletion() or not canvas.is_inside_tree() or not canvas.is_visible_in_tree():
 		return false
@@ -225,9 +259,25 @@ func draw_shell(canvas: Variant, snapshot: Variant, scene: Variant, current_key:
 		emitted_visible = emitted_visible or _intersects(box,viewport)
 	if not original_visible or not emitted_visible:
 		return false
+	var placements = _north_placements(camera)
+	var use_north_image = placements.size()==23
 	# No area epsilon and no per-cap/per-face dropping. Floating-point collapse
 	# rejects the entire plan above. Every successful shell retains all six caps.
-	for command: Dictionary in plan:
+	for index in range(plan.size()):
+		var command: Dictionary = plan[index]
+		if use_north_image and index==2:
+			for placement in placements:
+				canvas.draw_set_transform(placement.origin,placement.angle,Vector2.ONE*placement.scale)
+				canvas.draw_texture_rect_region(north_image,Rect2(0,0,355,480),Rect2(0,0,355,480))
+			canvas.draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
+			continue
+		if use_north_image and index==8:
+			continue
+		if use_north_image and index==14:
+			var points: PackedVector2Array = command.points
+			canvas.draw_polyline(PackedVector2Array([points[1],points[2],points[3],points[4]]),command.color,command.width,true)
+			canvas.draw_polyline(PackedVector2Array([points[5],points[6],points[7],points[0]]),command.color,command.width,true)
+			continue
 		if command.width > 0:
 			canvas.draw_polyline(command.points,command.color,command.width,true)
 		else:

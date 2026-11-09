@@ -10,7 +10,7 @@ use crate::{
     sentinel_ai::Sentinel,
     world_progression::{RouteState, WORLD_CLOCKWORKS, WORLD_GREY_HIVE, WORLD_MIST_HARBOR},
     world_v3::{
-        ActorRuntime, ExploredMap, RearViewAuthorization, Vec3, WorldRevision, WorldStateV3,
+        ActorRuntime, ExploredMap, ObservedMapVariant, RearViewAuthorization, Vec3, WorldRevision, WorldStateV3,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -79,6 +79,15 @@ pub struct SceneStateSave {
     pub checkpoint_id: Option<String>,
 }
 
+/// The last admitted Shaft owner while another scene owns the live world.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ShaftInactiveHistory {
+    pub scene_source_sha256: String,
+    pub deferred: bool,
+    pub frame: Option<crate::moving_support::SupportFrame>,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SaveV5 {
@@ -104,6 +113,12 @@ pub struct SaveV5 {
     /// checked against immutable scene geometry and the saved clock on Continue.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub moving_support_frame: Option<crate::moving_support::SupportFrame>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub shaft_inactive_history: Option<ShaftInactiveHistory>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub shaft_upper_map_observation: Option<ObservedMapVariant>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lockdown_map_observation: Option<ObservedMapVariant>,
     pub explored: ExploredMap,
     pub rear_view: RearViewAuthorization,
     pub last_input_seq: u64,
@@ -136,7 +151,7 @@ impl SaveV5 {
         }
         if !state
             .kcc
-            .can_occupy(state.world.player.position_m, state.world.player.radius_m)
+            .can_player_occupy(state.world.player.position_m, state.world.player.radius_m)
         {
             return Err("E_SAVE_PLAYER_POSITION_INVALID".into());
         }
@@ -178,10 +193,16 @@ impl SaveV5 {
             dialog_flags: DialogFlags::default(),
             revision: state.world.revision,
             server_time_ms: state.world.server_time_ms,
-            moving_support_frame: if state.kcc.has_support_surfaces() {
+            moving_support_frame: if let Some(owner)=&state.shaft_owner {
+                let definition=scene.ok_or("E_SHAFT_FRAME_SCENE")?.current_scene();
+                Some(owner.frame(definition,state.world.revision.world_epoch).map_err(|_|"E_SAVE_SUPPORT_FRAME_INVALID")?)
+            } else if state.kcc.has_support_surfaces() {
                 Some(state.kcc.support_frame(state.world.revision.world_epoch,state.world.server_time_ms)
                     .map_err(|_| "E_SAVE_SUPPORT_FRAME_INVALID")?)
             } else {None},
+            shaft_inactive_history: state.shaft_inactive_history.clone(),
+            shaft_upper_map_observation: state.world.shaft_upper_map_observation.clone(),
+            lockdown_map_observation: state.world.lockdown_map_observation.clone(),
             explored: state.world.explored.clone(),
             rear_view: state.world.rear_view.clone(),
             last_input_seq: state.last_received_seq,
@@ -195,12 +216,30 @@ impl SaveV5 {
     }
 
     pub fn validate(&self) -> Result<(), String> {
+        if let Some(history)=&self.shaft_inactive_history {
+            if (self.world_id=="grey_hive" && self.scene_id=="gh_central_shaft")
+                || history.scene_source_sha256.len()!=64
+                || !history.scene_source_sha256.bytes().all(|v|v.is_ascii_hexdigit()&&!v.is_ascii_uppercase())
+                || history.deferred==history.frame.is_some() {
+                return Err("E_SAVE_SHAFT_HISTORY_INVALID".into());
+            }
+            if let Some(frame)=&history.frame {
+                if frame.world_epoch>self.revision.world_epoch || frame.server_time_ms>self.server_time_ms
+                    || !crate::formal_runtime::shaft_lift::saved_frame_shape(frame,frame.world_epoch,frame.server_time_ms) {
+                    return Err("E_SAVE_SHAFT_HISTORY_INVALID".into());
+                }
+            }
+        }
         if let Some(frame) = &self.moving_support_frame {
-            if frame.world_epoch != self.revision.world_epoch || frame.server_time_ms != self.server_time_ms
-                || crate::moving_support::validate_saved_frame_shape(frame).is_err() {
+            let shaft=self.world_id=="grey_hive" && self.scene_id=="gh_central_shaft";
+            let shape_ok=if shaft {crate::formal_runtime::shaft_lift::saved_frame_shape(frame,self.revision.world_epoch,self.server_time_ms)}
+                else {frame.world_epoch==self.revision.world_epoch && frame.server_time_ms==self.server_time_ms
+                    && crate::moving_support::validate_saved_frame_shape(frame).is_ok()};
+            if !shape_ok {
                 return Err("E_SAVE_SUPPORT_FRAME_INVALID".into());
             }
-            if !(crate::moving_support::FLOOR_M..=crate::moving_support::CEILING_M)
+            let min_y=if shaft {-4.0} else {crate::moving_support::FLOOR_M};
+            if !(min_y..=crate::moving_support::CEILING_M)
                 .contains(&self.player.position_m.y_m) {
                 return Err("E_SAVE_SUPPORT_CONTACT_INVALID".into());
             }
@@ -506,7 +545,7 @@ impl SaveV5 {
         if self.world_id == WORLD_GREY_HIVE
             && self.scene_id == WORLD_GREY_HIVE
             && !StaticKccWorld::grey_hive_first_flow(route_has_power(&self.progression))
-                .can_occupy(world.player.position_m, world.player.radius_m)
+                .can_player_occupy(world.player.position_m, world.player.radius_m)
         {
             return Err("E_SAVE_NUMERIC_INVALID".into());
         }
@@ -520,6 +559,8 @@ impl SaveV5 {
             CombatState::from_handled_request_ids(self.combat_handled_request_ids.iter().copied())
                 .map_err(|_| "E_SAVE_COMBAT_REQUEST_INVALID")?;
         world.explored = self.explored.clone();
+        world.shaft_upper_map_observation = self.shaft_upper_map_observation.clone();
+        world.lockdown_map_observation = self.lockdown_map_observation.clone();
         world.rear_view = self.rear_view.clone();
         let mut capabilities = self.capabilities.clone();
         rebase_capability_epoch(&mut capabilities, epoch)?;
@@ -536,6 +577,14 @@ impl SaveV5 {
             effect_sources_v6: Vec::new(),
             effective_rules_v6: crate::player_rules::EffectivePlayerRules::default(),
             kcc: StaticKccWorld::grey_hive_first_flow(route_has_power(&self.progression)),
+            shaft_owner: None,
+            shaft_deferred: false,
+            shaft_inactive_history: self.shaft_inactive_history.clone(),
+            pending_exit: None,
+            beacon_exit_admission: None,
+            beacon_exit_latch: None,
+            hive_route_admission: None,
+            hive_route_latch: None,
             stepper,
             latest_sample: InputSample::new(epoch, 0, 0, 0.0, 0.0)
                 .map_err(|error| format!("E_SAVE_INPUT: {error:?}"))?,
@@ -557,6 +606,9 @@ impl SaveV5 {
             enhancement_terminal: None,
             baizhi: Default::default(),
             last_owner_error: None,
+            dense_region_previous: None,
+            mhcw_contact: None,
+            mhcw_paused_history: None,
         })
     }
 }
@@ -898,6 +950,9 @@ pub(crate) fn from_v4(legacy: &crate::save_v3::SaveV3) -> Result<SaveV5, String>
         revision: legacy.revision,
         server_time_ms: legacy.server_time_ms,
         moving_support_frame: None,
+        shaft_inactive_history: None,
+        shaft_upper_map_observation: None,
+        lockdown_map_observation: None,
         explored: legacy.explored.clone(),
         rear_view: legacy.rear_view.clone(),
         last_input_seq: legacy.last_input_seq,

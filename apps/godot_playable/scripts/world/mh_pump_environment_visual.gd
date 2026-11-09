@@ -336,14 +336,31 @@ func _push(packets: Array, packet_id: String, role: String, points: PackedVector
 	packets.append(packet)
 	return packets.size()<MAX_PACKETS
 
-func draw_land_material(canvas: Variant, snapshot_value: Variant, scene_value: Variant, current_key_value: Variant, projection_value: Variant, viewport_value: Variant) -> bool:
+func whole_static_ready(canvas: Variant, snapshot_value: Variant, scene_value: Variant, current_key_value: Variant, projection_value: Variant, viewport_value: Variant) -> bool:
+	if not snapshot_value is Dictionary or not snapshot_value.has('entryToken') or snapshot_value.entryToken!=null: return false
+	if not _material_context_valid(canvas,snapshot_value,scene_value,current_key_value,projection_value,viewport_value): return false
+	if not _channel_region_valid(scene_value): return false
+	var land: Array[Dictionary] = _build_land_material_commands(projection_value)
+	if not _material_commands_valid(land,40,true): return false
+	var packets = build_packets(scene_value,snapshot_value,current_key_value,projection_value)
+	if packets.is_empty(): return false
+	var walls: Dictionary = {}
+	var water_edges := 0
+	for packet in packets:
+		if not packet is Dictionary: return false
+		if is_wall_id(packet.get('wall_id')): walls[packet.wall_id] = true
+		if packet.get('role')=='channel_water_edge': water_edges += 1
+	return walls.size()==6 and water_edges==5
+
+func draw_land_material(canvas: Variant, snapshot_value: Variant, scene_value: Variant, current_key_value: Variant, projection_value: Variant, viewport_value: Variant, suppress_static: bool = false) -> bool:
 	if not _material_context_valid(canvas,snapshot_value,scene_value,current_key_value,projection_value,viewport_value):
 		return false
 	var commands: Array[Dictionary] = _build_land_material_commands(projection_value)
 	if not _material_commands_valid(commands,40,true):
 		return false
 	var canvas_item: CanvasItem = canvas
-	_draw_material_commands(canvas_item,commands)
+	if not suppress_static:
+		_draw_material_commands(canvas_item,commands)
 	_draw_ground_ambient(canvas,snapshot_value,scene_value,current_key_value,projection_value,viewport_value)
 	return true
 

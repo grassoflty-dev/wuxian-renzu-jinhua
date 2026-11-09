@@ -1,10 +1,15 @@
 extends RefCounted
+const BulkheadAtlasTexture = preload('res://scripts/world/bulkhead_atlas_texture.gd')
 
 const P = preload('res://scripts/bridge/protocol.gd')
 const PROJECTION_SCRIPT = preload('res://scripts/world/projection.gd')
 const SCENE_PATH = 'res://data/scenes/gh_central_shaft.json'
-const SCENE_BYTES = 10328
-const SCENE_SHA256 = '806ef2be417d59ab7041002cecfb26c1fc383db920157feb29c2669c343df5da'
+const SCENE_BYTES = 10728
+const SCENE_SHA256 = '6880bdf8dbab71a8bf74e38b8c614ad751e564cf87e8a2936ee801e52b72a832'
+# The unchanged material-use receipt records the earlier scene that qualified
+# these sources; the live scene is checked separately against SCENE_SHA256.
+const REGISTERED_SCENE_BYTES = 10328
+const REGISTERED_SCENE_SHA256 = '806ef2be417d59ab7041002cecfb26c1fc383db920157feb29c2669c343df5da'
 const MAP_PATH = 'res://data/gh_central_shaft_environment.internal-use.json'
 const MAP_BYTES = 3642
 const MAP_SHA256 = '9888dcf1993dd3c45eda7036f7f7c3a143a6c6c079e2738dc0c132987cea403d'
@@ -52,11 +57,11 @@ var _wall_texture: Texture2D
 var _pipe_texture: Texture2D
 
 func prepare(snapshot_value: Variant, scene_value: Variant, key_value: Variant, scene_hash_value: Variant) -> bool:
-	if snapshot_value is Dictionary and scene_value is Dictionary and typeof(key_value) == TYPE_STRING and typeof(scene_hash_value) == TYPE_STRING and _ready_for_scene and _scene_hash == SCENE_SHA256:
+	if snapshot_value is Dictionary and scene_value is Dictionary and typeof(key_value) == TYPE_STRING and typeof(scene_hash_value) == TYPE_STRING and _ready_for_scene and _scene_hash in [SCENE_SHA256,REGISTERED_SCENE_SHA256]:
 		var cached_snapshot: Dictionary = snapshot_value
 		var cached_scene: Dictionary = scene_value
 		var cached_key: String = key_value
-		if scene_hash_value == SCENE_SHA256 and _valid_snapshot_key(cached_snapshot,cached_key) and _same_value(cached_scene,_canonical_scene):
+		if scene_hash_value == _scene_hash and _valid_snapshot_key(cached_snapshot,cached_key) and _same_value(cached_scene,_canonical_scene):
 			return true
 	_ready_for_scene = false
 	_scene_hash = ''
@@ -70,7 +75,7 @@ func prepare(snapshot_value: Variant, scene_value: Variant, key_value: Variant, 
 	var scene_data: Dictionary = scene_value
 	var current_key: String = key_value
 	var supplied_hash: String = scene_hash_value
-	if not _valid_snapshot_key(snapshot_data, current_key) or supplied_hash != SCENE_SHA256:
+	if not _valid_snapshot_key(snapshot_data, current_key) or supplied_hash not in [SCENE_SHA256,REGISTERED_SCENE_SHA256]:
 		return false
 	var map_data: PackedByteArray = _read_exact(MAP_PATH, MAP_BYTES, MAP_SHA256)
 	if map_data.size() != MAP_BYTES:
@@ -81,8 +86,9 @@ func prepare(snapshot_value: Variant, scene_value: Variant, key_value: Variant, 
 	var map_value: Variant = JSON.parse_string(map_text)
 	if not _valid_use_map(map_value):
 		return false
-	var scene_bytes: PackedByteArray = _read_exact(SCENE_PATH, SCENE_BYTES, SCENE_SHA256)
-	if scene_bytes.size() != SCENE_BYTES:
+	var expected_scene_bytes: int = SCENE_BYTES if supplied_hash==SCENE_SHA256 else REGISTERED_SCENE_BYTES
+	var scene_bytes: PackedByteArray = _read_exact(SCENE_PATH, expected_scene_bytes, supplied_hash)
+	if scene_bytes.size() != expected_scene_bytes:
 		return false
 	var scene_text: String = scene_bytes.get_string_from_utf8()
 	if scene_text.to_utf8_buffer() != scene_bytes:
@@ -105,7 +111,7 @@ func prepare(snapshot_value: Variant, scene_value: Variant, key_value: Variant, 
 	if pipe_texture == null or pipe_texture.get_width() != PIPE_FRAME.size.x or pipe_texture.get_height() != PIPE_FRAME.size.y:
 		return false
 	_canonical_scene = canonical_scene
-	_scene_hash = SCENE_SHA256
+	_scene_hash = supplied_hash
 	_floor_texture = floor_texture
 	_wall_texture = wall_texture
 	_pipe_texture = pipe_texture
@@ -223,6 +229,15 @@ func draw_wall(canvas_value: Variant, wall_value: Variant, snapshot_value: Varia
 		var face_row: Dictionary = face_value
 		canvas_value.draw_colored_polygon(face_row.points, face_row.color)
 	canvas_value.draw_colored_polygon(raised_points, Color('#687773'))
+	if wall_id_value in ['shaft_support_column_a','shaft_support_column_b'] and _floor_texture != null:
+		var cap_uv: PackedVector2Array = PackedVector2Array()
+		for pixel in FLOOR_CORNERS:
+			var uv: Vector2 = Vector2((pixel.x + 0.5) / 1434.0, (pixel.y + 0.5) / 980.0)
+			if _finite_v2(uv):
+				cap_uv.append(uv)
+		if cap_uv.size() == 4:
+			var colors: PackedColorArray = PackedColorArray([Color(0.62,0.66,0.64,1.0),Color(0.62,0.66,0.64,1.0),Color(0.62,0.66,0.64,1.0),Color(0.62,0.66,0.64,1.0)])
+			canvas_value.draw_polygon(raised_points, colors, cap_uv, _floor_texture)
 	return true
 
 func matches_pipe_row(row_value: Variant) -> bool:
@@ -324,7 +339,7 @@ func _valid_pipe_packet(packet_value: Variant, snapshot_value: Variant, scene_va
 	return _finite_v2(packet.origin) and _finite_v2(packet.scale) and packet.scale.x > 0.0 and packet.scale.y > 0.0 and _valid_rect(packet.body_rect) and _valid_points(packet.body_points) and _valid_rect(packet.shadow_rect) and _valid_points(packet.shadow_points)
 
 func _valid_context(snapshot_value: Variant, scene_value: Variant, key_value: Variant) -> bool:
-	if not _ready_for_scene or _scene_hash != SCENE_SHA256 or not snapshot_value is Dictionary or not scene_value is Dictionary or typeof(key_value) != TYPE_STRING:
+	if not _ready_for_scene or _scene_hash not in [SCENE_SHA256,REGISTERED_SCENE_SHA256] or not snapshot_value is Dictionary or not scene_value is Dictionary or typeof(key_value) != TYPE_STRING:
 		return false
 	var snapshot_data: Dictionary = snapshot_value
 	var scene_data: Dictionary = scene_value
@@ -332,7 +347,11 @@ func _valid_context(snapshot_value: Variant, scene_value: Variant, key_value: Va
 	return _valid_snapshot_key(snapshot_data,current_key) and _same_value(scene_data,_canonical_scene)
 
 func _valid_snapshot_key(snapshot_data: Dictionary, current_key: String) -> bool:
-	if not P.snapshot(snapshot_data) or snapshot_data.get('entryToken') != null:
+	if not P.snapshot(snapshot_data):
+		return false
+	# The new Shaft must prepare its static boundary while entry is held;
+	# actual readiness and input remain owned by the renderer and entry token.
+	if snapshot_data.get('entryToken') != null and not snapshot_data.get('shaftLift') is Dictionary and snapshot_data.get('shaftLiftDeferred') != true:
 		return false
 	if typeof(snapshot_data.get('worldId')) != TYPE_STRING or snapshot_data.get('worldId') != 'grey_hive' or typeof(snapshot_data.get('sceneId')) != TYPE_STRING or snapshot_data.get('sceneId') != 'gh_central_shaft':
 		return false
@@ -414,7 +433,7 @@ func _expected_use_map() -> Dictionary:
 		'publicRelease':'NOT_ESTABLISHED',
 		'worldId':'grey_hive',
 		'sceneId':'gh_central_shaft',
-		'canonicalScene':{'path':SCENE_PATH,'bytes':SCENE_BYTES,'sha256':SCENE_SHA256},
+		'canonicalScene':{'path':SCENE_PATH,'bytes':REGISTERED_SCENE_BYTES,'sha256':REGISTERED_SCENE_SHA256},
 		'floor':{
 			'assetId':'runtime2d.grey_hive.floor_tiles.v1','path':FLOOR_PATH,'bytes':FLOOR_BYTES,'sha256':FLOOR_SHA256,
 			'canvas':[1434,980],'format':'RGBA8',
@@ -610,7 +629,7 @@ func _load_png(path: String, expected_bytes: int, expected_sha: String, expected
 	var image: Image = _load_png_image(path,expected_bytes,expected_sha,expected_size)
 	if image == null:
 		return null
-	var texture: ImageTexture = ImageTexture.create_from_image(image)
+	var texture: ImageTexture = BulkheadAtlasTexture.acquire(image, path, expected_bytes, expected_sha) if path == WALL_PATH else ImageTexture.create_from_image(image)
 	if texture == null or texture.get_width() != expected_size.x or texture.get_height() != expected_size.y:
 		return null
 	return texture

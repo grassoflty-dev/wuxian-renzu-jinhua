@@ -3,6 +3,12 @@ extends RefCounted
 const P = preload('res://scripts/bridge/protocol.gd')
 const ProjectionScript = preload('res://scripts/world/projection.gd')
 const RELIEF_PIXELS = 12.0
+const LOW_FACE_IMAGE_PATH = 'res://assets/props/return_station/bulkhead_tiles.png'
+var low_face_attempted := false
+var low_face_texture: Texture2D
+const END_FACE_IMAGE_PATH = 'res://assets/materials/cw_pressure_end_steel_local_r1.png'
+var end_face_attempted := false
+var end_face_texture: Texture2D
 const MAX_PACKETS = 160
 const PIPE_ASSET = 'runtime2d.world.clockworks.pressure_pipes.v1'
 const PIPE_ROWS = {
@@ -149,6 +155,208 @@ func _projection_valid(projection) -> bool:
 		return false
 	var sample: Vector2 = projection.project(Vector3.ZERO)
 	return is_finite(sample.x) and is_finite(sample.y)
+
+func prepare_low_face_images(packets: Array, scene_data: Dictionary, snapshot: Dictionary, current_key: String, projection) -> Dictionary:
+	if not _ensure_layout(scene_data,snapshot,current_key) or not _projection_valid(projection):
+		return {}
+	var definitions = {
+		'cw_pressure_hall_wall_north:face':[0.0,24.0,0.5],
+		'cw_pressure_hall_wall_south:face':[0.0,24.0,15.5],
+		'cw_pressure_hall_wall_south:exterior_face':[0.0,24.0,16.0],
+		'cw_pressure_hall_wall_west_north:short_union_face':[0.0,0.5,6.0],
+		'cw_pressure_hall_wall_east_north:short_union_face':[23.5,24.0,6.0]
+	}
+	var selected := {}
+	for packet in packets:
+		if not packet is Dictionary or not definitions.has(packet.get('id')):
+			continue
+		var id: String = packet.id
+		if selected.has(id) or packet.get('role')!='wall_face' or not packet.get('points') is PackedVector2Array or packet.points.size()!=4:
+			return {}
+		var d: Array = definitions[id]
+		var expected := PackedVector2Array([projection.project(Vector3(d[0],0,d[2])),projection.project(Vector3(d[1],0,d[2])),projection.project(Vector3(d[1],0.25,d[2])),projection.project(Vector3(d[0],0.25,d[2]))])
+		for i in range(4):
+			if not is_finite(expected[i].x) or not is_finite(expected[i].y) or expected[i].distance_to(packet.points[i])>0.01:
+				return {}
+		var pieces: Array = []
+		var x: float = d[0]
+		while x<float(d[1]):
+			var cell=floorf(x)
+			var xe=minf(float(d[1]),cell+1.0)
+			if xe<=x: return {}
+			var points := PackedVector2Array([projection.project(Vector3(x,0,d[2])),projection.project(Vector3(xe,0,d[2])),projection.project(Vector3(xe,0.25,d[2])),projection.project(Vector3(x,0.25,d[2]))])
+			if not _short_valid_quad(points,Color.WHITE): return {}
+			var f0=x-cell; var f1=xe-cell
+			var a=Vector2(50,322); var step=Vector2(250,138); var up=Vector2(10.4,-255.2)*0.25
+			var uv:=PackedVector2Array([(a+step*f0)/Vector2(1418,1028),(a+step*f1)/Vector2(1418,1028),(a+step*f1+up)/Vector2(1418,1028),(a+step*f0+up)/Vector2(1418,1028)])
+			pieces.append({'points':points,'uv':uv})
+			x=xe
+		if pieces.is_empty(): return {}
+		selected[id]=pieces
+	if not selected.has('cw_pressure_hall_wall_north:face') or not selected.has('cw_pressure_hall_wall_south:face'):
+		return {}
+	if not low_face_attempted:
+		low_face_attempted = true
+		if ResourceLoader.exists(LOW_FACE_IMAGE_PATH):
+			var loaded = load(LOW_FACE_IMAGE_PATH)
+			if loaded is Texture2D: low_face_texture = loaded
+		if not is_instance_valid(low_face_texture):
+			var image = Image.new()
+			if image.load(LOW_FACE_IMAGE_PATH)==OK and image.get_width()==1418 and image.get_height()==1028:
+				low_face_texture = ImageTexture.create_from_image(image)
+	if not is_instance_valid(low_face_texture) or low_face_texture.get_width()!=1418 or low_face_texture.get_height()!=1028:
+		return {}
+	return {'texture':low_face_texture,'groups':selected}
+
+func prepare_end_face_images(packets: Array, scene_data: Dictionary, snapshot: Dictionary, current_key: String, projection, viewport: Rect2) -> Dictionary:
+	if not _ensure_layout(scene_data,snapshot,current_key) or not _projection_valid(projection) or not _floor_viewport_valid(viewport):
+		return {}
+	var definitions = {
+		'cw_pressure_hall_wall_north:short_union_face': ['cw_pressure_hall_wall_north',0.0,0.5],
+		'cw_pressure_hall_wall_south:short_union_face': ['cw_pressure_hall_wall_south',15.5,16.0]
+	}
+	var groups := {}
+	for id in definitions:
+		var d: Array = definitions[id]
+		var points := PackedVector2Array([projection.project(Vector3(24,0,d[1])),projection.project(Vector3(24,0,d[2])),projection.project(Vector3(24,0.25,d[2])),projection.project(Vector3(24,0.25,d[1]))])
+		if not _short_valid_quad(points,Color.WHITE): return {}
+		var visible: int = _short_visible(points,viewport)
+		if visible<0: return {}
+		var matches: Array = packets.filter(func(packet): return packet is Dictionary and packet.get('id')==id)
+		if matches.size()!=(1 if visible>0 else 0): return {}
+		if visible>0:
+			var packet: Dictionary = matches[0]
+			if packet.get('role')!='wall_face' or packet.get('wall_id')!=d[0] or packet.get(SHORT_UNION_MARKER)!=true or not packet.get('points') is PackedVector2Array or packet.points.size()!=4 or not packet.get('color') is Color: return {}
+			for i in range(4):
+				if packet.points[i].distance_to(points[i])>0.01: return {}
+		groups[id] = {'points':points,'uv':PackedVector2Array([Vector2(0,1),Vector2(1,1),Vector2(1,0.5),Vector2(0,0.5)])}
+	if groups.size()!=2: return {}
+	if not end_face_attempted:
+		end_face_attempted = true
+		if ResourceLoader.exists(END_FACE_IMAGE_PATH):
+			var loaded = load(END_FACE_IMAGE_PATH)
+			if loaded is Texture2D:
+				var imported_image: Image = loaded.get_image()
+				if is_instance_valid(imported_image) and imported_image.get_width()==1254 and imported_image.get_height()==1254 and imported_image.get_format()==Image.FORMAT_RGB8:
+					end_face_texture = loaded
+		if not is_instance_valid(end_face_texture):
+			var image = Image.new()
+			var bytes: PackedByteArray = FileAccess.get_file_as_bytes(END_FACE_IMAGE_PATH)
+			if image.load_png_from_buffer(bytes)==OK and image.get_width()==1254 and image.get_height()==1254 and image.get_format()==Image.FORMAT_RGB8:
+				end_face_texture = ImageTexture.create_from_image(image)
+	if not is_instance_valid(end_face_texture) or end_face_texture.get_width()!=1254 or end_face_texture.get_height()!=1254: return {}
+	return {'texture':end_face_texture,'groups':groups}
+# The two outer east faces reuse the already-attempted end material. Cached
+# projected cells are rebuilt only when the projection frame actually changes.
+var _outer_z_camera: Variant = null
+var _outer_z_frame: Array = []
+var _outer_z_cache: Dictionary = {}
+
+func prepare_outer_z_images(packets: Array, scene_data: Dictionary, snapshot: Dictionary, current_key: String, projection, viewport: Rect2) -> Dictionary:
+	if not _ensure_layout(scene_data,snapshot,current_key) or not _floor_projection_valid(projection) or not _floor_viewport_valid(viewport):
+		return {}
+	if not is_instance_valid(end_face_texture) or end_face_texture.get_width()!=1254 or end_face_texture.get_height()!=1254:
+		return {}
+	var definitions: Dictionary = {
+		'cw_pressure_hall_wall_east_north:exterior_face':['cw_pressure_hall_wall_east_north',0.5,6.0,11],
+		'cw_pressure_hall_wall_east_south:exterior_face':['cw_pressure_hall_wall_east_south',9.5,15.5,12]
+	}
+	var frame: Array = [projection.get('origin'),projection.get('screen_center'),projection.get('viewport'),projection.get('ppm'),projection.get('initialized')]
+	if _outer_z_camera != projection or _outer_z_frame != frame:
+		_outer_z_camera = projection
+		_outer_z_frame = frame
+		_outer_z_cache = {}
+		var prepared: Dictionary = {}
+		for id: String in definitions:
+			var d: Array = definitions[id]
+			var cells: Array = []
+			var ground_a: Vector2 = projection.project(Vector3(24,0,d[1]))
+			var ground_b: Vector2 = projection.project(Vector3(24,0,d[2]))
+			var lift: Vector2 = Vector2(0,RELIEF_PIXELS*(float(projection.get('ppm'))/48.0))
+			var top_a: Vector2 = ground_a-lift
+			var top_b: Vector2 = ground_b-lift
+			for i: int in range(d[3]):
+				var t0: float = float(i)/float(d[3])
+				var t1: float = float(i+1)/float(d[3])
+				var points: PackedVector2Array = PackedVector2Array([ground_a.lerp(ground_b,t0),ground_a.lerp(ground_b,t1),top_a.lerp(top_b,t1),top_a.lerp(top_b,t0)])
+				if not _short_valid_quad(points,Color.WHITE):
+					return {}
+				cells.append({'points':points,'uv':PackedVector2Array([Vector2(0,1),Vector2(1,1),Vector2(1,0.5),Vector2(0,0.5)])})
+			if cells.size()!=d[3]:
+				return {}
+			prepared[id] = cells
+		_outer_z_cache = prepared
+	if _outer_z_cache.size()!=2:
+		return {}
+	var groups: Dictionary = {}
+	for id: String in definitions:
+		var d: Array = definitions[id]
+		var matches: Array = packets.filter(func(packet): return packet is Dictionary and packet.get('id')==id)
+		if matches.size()>1:
+			return {}
+		if matches.is_empty():
+			continue
+		var packet: Dictionary = matches[0]
+		if packet.get('role')!='wall_face' or packet.get('wall_id')!=d[0] or packet.get('filled')!=true or not packet.get('points') is PackedVector2Array or packet.points.size()!=4 or not packet.get('color') is Color:
+			return {}
+		var a: Vector2 = projection.project(Vector3(24,0,d[1]))
+		var b: Vector2 = projection.project(Vector3(24,0,d[2]))
+		var up: Vector2 = Vector2(0,RELIEF_PIXELS*(float(projection.get('ppm'))/48.0))
+		var expected: PackedVector2Array = PackedVector2Array([a,b,b-up,a-up])
+		if not _short_valid_quad(expected,packet.color):
+			return {}
+		for i: int in range(4):
+			if packet.points[i].distance_to(expected[i])>0.01:
+				return {}
+		var visible: int = _short_visible(expected,viewport)
+		if visible<0:
+			return {}
+		if visible>0:
+			groups[id] = _outer_z_cache[id]
+	return {'texture':end_face_texture,'groups':groups} if not groups.is_empty() else {}
+
+func prepare_cap_images(packets: Array, scene_data: Dictionary, snapshot: Dictionary, current_key: String, projection, floor_helper) -> Dictionary:
+	if not _ensure_layout(scene_data,snapshot,current_key) or not _projection_valid(projection) or not floor_helper is Object or not floor_helper.has_method('cached_pressure_floor_texture'):
+		return {}
+	var texture = floor_helper.cached_pressure_floor_texture()
+	if not texture is Texture2D or not is_instance_valid(texture):
+		return {}
+	var groups := {}
+	for wall in WALLS:
+		var matches = packets.filter(func(packet): return packet is Dictionary and packet.get('id')==wall.id+':cap' and packet.get('role')=='wall_cap' and packet.get('wall_id')==wall.id)
+		if matches.size()!=1:
+			return {}
+		var rect: Rect2 = wall.footprint
+		var pieces: Array = []
+		var x: float = rect.position.x
+		while x<rect.end.x:
+			var cx=floorf(x/2.0)*2.0
+			var xe=minf(rect.end.x,cx+2.0)
+			if xe<=x: return {}
+			var z: float = rect.position.y
+			while z<rect.end.y:
+				var cz=floorf(z/2.0)*2.0
+				var ze=minf(rect.end.y,cz+2.0)
+				if ze<=z: return {}
+				var points:=PackedVector2Array()
+				for world in [Vector3(x,0.25,z),Vector3(xe,0.25,z),Vector3(xe,0.25,ze),Vector3(x,0.25,ze)]:
+					var point: Vector2 = projection.project(world)
+					if not is_finite(point.x) or not is_finite(point.y): return {}
+					points.append(point)
+				var area := 0.0
+				for i in range(4):
+					area += points[i].cross(points[(i+1)%4])
+				if not is_finite(area) or absf(area)<=0.000001: return {}
+				var u0=(x-cx)/2.0; var u1=(xe-cx)/2.0; var v0=(z-cz)/2.0; var v1=(ze-cz)/2.0
+				var uv:=PackedVector2Array()
+				for f in [Vector2(u0,v0),Vector2(u1,v0),Vector2(u1,v1),Vector2(u0,v1)]:
+					uv.append((Vector2(510,200)+Vector2(460,260)*f.x+Vector2(-370,280)*f.y)/Vector2(1197,1132))
+				pieces.append({'points':points,'uv':uv})
+				z=ze
+			x=xe
+		if pieces.is_empty(): return {}
+		groups[wall.id]=pieces
+	return {'texture':texture,'groups':groups} if groups.size()==6 else {}
 
 func _add_wall(packets: Array, wall: Dictionary, projection) -> bool:
 	var edge: Array = wall.inner

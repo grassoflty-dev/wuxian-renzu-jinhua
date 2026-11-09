@@ -37,11 +37,24 @@ fn old_floor(save:&SaveV5)->bool{
             && s.activated_ids.iter().all(|id|id=="cw_gear_shaft_checkpoint")
             && s.emitted_event_ids.is_empty())
 }
+/// Only a versioned, grounded west-collar save may validate against the exact
+/// Boiler/Gear player union before the ordinary restored pair is reconstructed.
+fn valid_ground_collar(save:&SaveV5,p:&ClockworksPersistentState,gear:&StaticKccWorld,b:&crate::continuous_kcc::KccBody)->bool {
+    if p.gear_shaft_support_version!=VERSION || !b.grounded || b.position_m.y_m!=0.0
+        || b.position_m.x_m-b.radius_m>=0.0 || b.position_m.x_m < -b.radius_m
+        || b.position_m.z_m-b.radius_m<6.0 || b.position_m.z_m+b.radius_m>9.5
+        || !gear.validate_saved_support_frame(save.moving_support_frame.as_ref(),save.revision.world_epoch,save.server_time_ms) {return false;}
+    let Ok(boiler_scene)=serde_json::from_str::<crate::scene_runtime::SceneDefinition>(include_str!("../../../content/scenes/compiled/cw_boiler_chamber.json")) else {return false;};
+    if boiler_scene.world_id!="clockworks" || boiler_scene.scene_id!="cw_boiler_chamber" {return false;}
+    let Ok(boiler)=scene_kcc(&boiler_scene,&BTreeSet::new()) else {return false;};
+    let Ok(union)=gear.join_cw_gear_ground(&boiler,-24.0,true) else {return false;};
+    union.can_player_occupy(b.position_m,b.radius_m) && union.valid_saved_support_contact(b,save.server_time_ms)
+}
 pub(crate) fn validate_saved(save:&SaveV5,p:&ClockworksPersistentState)->Result<(),String>{
     version(p)?;
     if save.world_id!="clockworks" || save.scene_id!=SCENE{return Ok(());}
     let kcc=scene_kcc(&canonical()?,&BTreeSet::new())?;let b=body(save);
-    if !kcc.can_occupy(b.position_m,b.radius_m) || !kcc.valid_saved_support_contact(&b,save.server_time_ms){
+    if (!kcc.can_player_occupy(b.position_m,b.radius_m) && !valid_ground_collar(save,p,&kcc,&b)) || !kcc.valid_saved_support_contact(&b,save.server_time_ms){
         return Err("E_SAVE_GEAR_SUPPORT_CONTACT".into());
     }
     if p.gear_shaft_support_version==0 {
@@ -68,7 +81,7 @@ pub(super) fn restore_candidate(state:&mut RuntimeState,save:&SaveV5,scene:&crat
     exact_scene(scene)?;validate_saved(save,&state.world_persistent_v1.clockworks)?;
     if state.world_persistent_v1.clockworks.gear_shaft_support_version==VERSION{return Ok(false);}
     if state.world.combat_state.active_traversal.is_some()
-        || !state.kcc.can_occupy(state.world.player.position_m,state.world.player.radius_m)
+        || !state.kcc.can_player_occupy(state.world.player.position_m,state.world.player.radius_m)
         || !state.kcc.valid_saved_support_contact(&state.world.player,state.world.server_time_ms){
         return Err("E_SAVE_GEAR_SUPPORT_LEGACY".into());
     }

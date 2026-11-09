@@ -37,6 +37,28 @@ const SIDES = [
 	{'a':[24,9.5],'b':[24,15.5],'low':0.0,'high':LOW_M,'clip_low_end':false}
 ]
 
+const LOW_FACE_PATH = 'res://assets/props/return_station/bulkhead_tiles.png'
+const LOW_FACE_SIZE = Vector2(1418,1028)
+var _low_face_attempted: bool = false
+var _low_face_texture: Texture2D = null
+
+func _low_face_atlas() -> Texture2D:
+	if _low_face_attempted:
+		return _low_face_texture
+	_low_face_attempted = true
+	var texture: Texture2D = null
+	if ResourceLoader.exists(LOW_FACE_PATH, 'Texture2D'):
+		var loaded: Variant = ResourceLoader.load(LOW_FACE_PATH, 'Texture2D')
+		if loaded is Texture2D:
+			texture = loaded
+	if not is_instance_valid(texture):
+		var image: Image = Image.new()
+		if image.load(LOW_FACE_PATH) == OK and not image.is_empty():
+			texture = ImageTexture.create_from_image(image)
+	if is_instance_valid(texture) and texture.get_width() == int(LOW_FACE_SIZE.x) and texture.get_height() == int(LOW_FACE_SIZE.y):
+		_low_face_texture = texture
+	return _low_face_texture
+
 var _scene_attempted: bool = false
 var _canonical_scene: Dictionary = {}
 
@@ -239,6 +261,124 @@ func _visible(points: PackedVector2Array, viewport: Rect2) -> int:
 			separated = true
 	return 0 if separated else 1
 
+func _steel_cap_pieces(camera: RefCounted, polygon: Array, height: float) -> Array:
+	var x0=float(polygon[0][0]); var z0=float(polygon[0][1])
+	var x1=float(polygon[2][0]); var z1=float(polygon[2][1])
+	if not is_finite(x0) or not is_finite(z0) or not is_finite(x1) or not is_finite(z1) or x0>=x1 or z0>=z1:
+		return []
+	var pieces: Array = []
+	var x=x0
+	while x<x1:
+		var cx=floorf(x/2.0)*2.0
+		var xe=minf(x1,cx+2.0)
+		if xe<=x: return []
+		var z=z0
+		while z<z1:
+			var cz=floorf(z/2.0)*2.0
+			var ze=minf(z1,cz+2.0)
+			if ze<=z: return []
+			var points=_project_world([Vector3(x,height,z),Vector3(xe,height,z),Vector3(xe,height,ze),Vector3(x,height,ze)],camera)
+			if not _valid_polygon(points): return []
+			var u0=(x-cx)/2.0; var u1=(xe-cx)/2.0; var v0=(z-cz)/2.0; var v1=(ze-cz)/2.0
+			var uvs:=PackedVector2Array()
+			for uv in [Vector2(u0,v0),Vector2(u1,v0),Vector2(u1,v1),Vector2(u0,v1)]:
+				uvs.append((Vector2(510,200)+Vector2(460,260)*uv.x+Vector2(-370,280)*uv.y)/Vector2(1197,1132))
+			pieces.append({'points':points,'uv':uvs})
+			z=ze
+		x=xe
+	return pieces
+
+# Integer world-X phase, including the half-cell at X 23.5.
+func _low_face_pieces(camera: RefCounted, x0: float, x1: float, z: float) -> Array:
+	var pieces: Array = []
+	var x: float = x0
+	while x < x1:
+		var base: float = floorf(x)
+		var end: float = minf(x1,base+1.0)
+		if end <= x:
+			return []
+		var points: PackedVector2Array = _project_world([Vector3(x,0,z),Vector3(end,0,z),Vector3(end,LOW_M,z),Vector3(x,LOW_M,z)],camera)
+		if not _valid_polygon(points):
+			return []
+		var uv: PackedVector2Array = PackedVector2Array()
+		for pixel: Vector2 in [Vector2(50,322)+Vector2(250,138)*(x-base),Vector2(50,322)+Vector2(250,138)*(end-base),Vector2(51.872,276.064)+Vector2(250,138)*(end-base),Vector2(51.872,276.064)+Vector2(250,138)*(x-base)]:
+			if not _finite_v2(pixel) or pixel.x < 0.0 or pixel.y < 0.0 or pixel.x > LOW_FACE_SIZE.x or pixel.y > LOW_FACE_SIZE.y:
+				return []
+			uv.append(pixel/LOW_FACE_SIZE)
+		pieces.append({'points':points,'uv':uv})
+		x = end
+	return pieces
+
+# Immutable world-space cells and their projected cache; original shell guards
+# still run on every draw before this cache is consumed.
+var _high_layout_attempted: bool = false
+var _high_layout: Dictionary = {}
+var _high_camera: Variant = null
+var _high_camera_frame: Array = []
+var _high_projected: Dictionary = {}
+
+func _high_layout_once() -> Dictionary:
+	if _high_layout_attempted:
+		return _high_layout
+	_high_layout_attempted = true
+	var groups: Dictionary = {}
+	for spec: Array in [[0,2,94,0.5,0.0,true],[1,94,96,0.5,LOW_M,false],[6,0,2,6.0,0.0,false],[8,0,2,15.5,LOW_M,false]]:
+		var index: int = spec[0]
+		var cells: Array = []
+		for xi: int in range(spec[1],spec[2]):
+			var x0: float = float(xi)*0.25
+			var x1: float = x0+0.25
+			for yi: int in range(4):
+				var cell_y: float = float(yi)*0.25
+				var y0: float = maxf(cell_y,float(spec[4]))
+				var y1: float = cell_y+0.25
+				if y0 >= y1:
+					continue
+				var xy: Array[Vector2] = [Vector2(x0,y0),Vector2(x1,y0),Vector2(x1,y1),Vector2(x0,y1)]
+				if bool(spec[5]) and xi==93 and yi==0:
+					# Exact original clipped boundary from (b.x-.18,0) to (b.x,.18).
+					xy = [Vector2(x0,0),Vector2(23.5-LOW_M,0),Vector2(23.5,LOW_M),Vector2(x1,y1),Vector2(x0,y1)]
+				var world: Array[Vector3] = []
+				var uvs: PackedVector2Array = PackedVector2Array()
+				for point: Vector2 in xy:
+					var u: float = (point.x-x0)/0.25
+					var v: float = (point.y-cell_y)/0.25
+					if not _finite_v2(point) or u<0.0 or u>1.0 or v<0.0 or v>1.0:
+						return {}
+					var pixel: Vector2 = Vector2(150,270)+Vector2(62.5,34.5)*u+Vector2(2.6,-63.8)*v
+					if not _finite_v2(pixel):
+						return {}
+					world.append(Vector3(point.x,point.y,float(spec[3])))
+					uvs.append(pixel/LOW_FACE_SIZE)
+				cells.append({'world':world,'uv':uvs})
+		groups[index] = cells
+	if groups.size()!=4 or groups[0].size()!=368 or groups[1].size()!=8 or groups[6].size()!=8 or groups[8].size()!=8:
+		return {}
+	_high_layout = groups
+	return _high_layout
+
+func _high_face_groups(camera: RefCounted) -> Dictionary:
+	var frame: Array = [camera.origin,camera.screen_center,camera.viewport,camera.ppm,camera.initialized]
+	if _high_camera == camera and _high_camera_frame == frame:
+		return _high_projected
+	_high_camera = camera
+	_high_camera_frame = frame
+	_high_projected = {}
+	var layout: Dictionary = _high_layout_once()
+	if layout.size()!=4:
+		return {}
+	var groups: Dictionary = {}
+	for index: int in [0,1,6,8]:
+		var projected_cells: Array = []
+		for cell: Dictionary in layout[index]:
+			var points: PackedVector2Array = _project_world(cell.world,camera)
+			if not _valid_polygon(points) or points.size()!=cell.uv.size():
+				return {}
+			projected_cells.append({'points':points,'uv':cell.uv})
+		groups[index] = projected_cells
+	_high_projected = groups
+	return _high_projected
+
 func draw_shell(canvas_value: Variant, snapshot_value: Variant, scene_value: Variant, key_value: Variant, scene_hash_value: Variant, camera_value: Variant, viewport_value: Variant) -> bool:
 	if not _canvas_matches(canvas_value,snapshot_value,scene_value,key_value,scene_hash_value,camera_value,viewport_value):
 		return false
@@ -250,7 +390,8 @@ func draw_shell(canvas_value: Variant, snapshot_value: Variant, scene_value: Var
 		return false
 	var drawable: Array[Dictionary] = []
 	var final_vertex_count: int = 0
-	for command: Dictionary in plan:
+	for index in range(plan.size()):
+		var command: Dictionary = plan[index]
 		var original: PackedVector2Array = command.original
 		var points: PackedVector2Array = command.points
 		if not _valid_polygon(original) or not _valid_polygon(points):
@@ -260,12 +401,50 @@ func draw_shell(canvas_value: Variant, snapshot_value: Variant, scene_value: Var
 		if visible < 0:
 			return false
 		if visible > 0:
-			drawable.append(command)
+			drawable.append({'index':index,'command':command})
 	if final_vertex_count != 74 or drawable.is_empty():
 		return false
 	if not _canvas_matches(canvas_value,snapshot_value,scene_value,key_value,scene_hash_value,camera_value,viewport_value):
 		return false
+	var floor_helper = canvas_value.get('cw_pressure_floor_material_visual')
+	var texture: Texture2D = null
+	if floor_helper is Object and floor_helper.has_method('cached_furnace_floor_texture'):
+		texture = floor_helper.cached_furnace_floor_texture()
+	var cap_groups: Array = []
+	if is_instance_valid(texture):
+		for i in range(6):
+			var pieces = _steel_cap_pieces(camera_value,WALLS[i].polygon,CAP_HEIGHTS[i])
+			if pieces.is_empty():
+				cap_groups.clear()
+				break
+			cap_groups.append(pieces)
+	# Preflight both selected sides before either replaces its legacy draw.
+	var face_texture: Texture2D = null
+	var face_groups: Array = []
+	if canvas_value.material == null and not canvas_value.use_parent_material:
+		face_texture = _low_face_atlas()
+		if is_instance_valid(face_texture):
+			var long_face: Array = _low_face_pieces(camera_value,0.0,24.0,16.0)
+			var short_face: Array = _low_face_pieces(camera_value,23.5,24.0,6.0)
+			if long_face.size() == 24 and short_face.size() == 1:
+				face_groups = [long_face,short_face]
+	# This is independent of the existing low-face group's preflight and fallback.
+	var high_groups: Dictionary = {}
+	if is_instance_valid(face_texture):
+		high_groups = _high_face_groups(camera_value)
 	# No command has been emitted until the complete geometry, SAT and binding pass.
-	for command: Dictionary in drawable:
-		canvas_value.draw_colored_polygon(command.points,command.color)
+	for item: Dictionary in drawable:
+		var command: Dictionary = item.command
+		if item.index in [0,1,6,8] and high_groups.size()==4:
+			for piece: Dictionary in high_groups[item.index]:
+				canvas_value.draw_polygon(piece.points,PackedColorArray([Color.WHITE]),piece.uv,face_texture)
+		elif (item.index == 3 or item.index == 10) and face_groups.size() == 2:
+			var group: Array = face_groups[0] if item.index == 3 else face_groups[1]
+			for piece: Dictionary in group:
+				canvas_value.draw_polygon(piece.points,PackedColorArray([Color.WHITE]),piece.uv,face_texture)
+		elif item.index>=12 and cap_groups.size()==6:
+			for piece in cap_groups[item.index-12]:
+				canvas_value.draw_polygon(piece.points,PackedColorArray([Color.WHITE]),piece.uv,texture)
+		else:
+			canvas_value.draw_colored_polygon(command.points,command.color)
 	return true

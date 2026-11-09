@@ -11,19 +11,19 @@ use std::{
 const EXPECTED_SCENES: [(&str, &str); 11] = [
     (
         "gh_beacon.json",
-        "3cab424771d10799ee82a453a72117affb0ebca09dd814f25308be70310da9ee",
+        "e6434c598904d7fe36f4f48ebc67559e6d484eb535393a7b447bc99cbf86c766",
     ),
     (
         "gh_bio_isolation.json",
-        "a3d629f04dc955cf0f8e644b54a4a64d054411a7d59a9fb15da5c9d9ea953aff",
+        "bf531fd9d49ee875653a8048130dd0c6e1d9b2170c1848ad48c49f2cb35ce0db",
     ),
     (
         "gh_central_shaft.json",
-        "806ef2be417d59ab7041002cecfb26c1fc383db920157feb29c2669c343df5da",
+        "6880bdf8dbab71a8bf74e38b8c614ad751e564cf87e8a2936ee801e52b72a832",
     ),
     (
         "gh_deep_decon.json",
-        "65e0cbf11183fe114259d680b0cd84a23a7f8619a25e628f4b30a7a84ce870a8",
+        "a53fd5c62a4540a375b51f7286798c7bab1a5c73aa37e98d3f4d6bad7b24f1c0",
     ),
     (
         "gh_entry_maintenance.json",
@@ -31,7 +31,7 @@ const EXPECTED_SCENES: [(&str, &str); 11] = [
     ),
     (
         "gh_exit.json",
-        "6ab262467e1992feac94f27d8bf571dcf77ddbc8c1693a79c57b3aeebff0c54c",
+        "b32ad8d1204e9eaf45512b0e2d5ea22e08f5bd09ec0b5e31980e41336c45ee09",
     ),
     (
         "gh_gate_a.json",
@@ -43,7 +43,7 @@ const EXPECTED_SCENES: [(&str, &str); 11] = [
     ),
     (
         "gh_lockdown.json",
-        "718489a1ea4ec4622ccdcefc8459a1dc1bd4f66ccf26abc813b6a06519197850",
+        "23e5d5d9f37f6f44b1f8b9105aab656424778ef5edf0e775bbc364143fe1b30c",
     ),
     (
         "gh_power_room.json",

@@ -1,4 +1,4 @@
-use super::{ActorView, Transform, Vec3};
+use super::{ActorAnimationPresentation, ActorView, Transform, Vec3};
 #[path = "warden_controller.rs"]
 mod warden_controller;
 #[path = "ordinary_controller.rs"]
@@ -10,6 +10,14 @@ pub use ordinary_controller::{OrdinaryActiveAttack, OrdinaryCombatProfile, Ordin
 use crate::continuous_kcc::StaticKccWorld;
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, sync::OnceLock};
+
+fn is_registered_drowned_id(id: &str) -> bool {
+    matches!(id,
+        "mh_fog_pier_drowned_01" | "mh_fog_pier_drowned_02" |
+        "mh_tidal_warehouse_drowned_01" | "mh_tidal_warehouse_drowned_02" | "mh_tidal_warehouse_drowned_03" |
+        "mh_drowned_quay_drowned_01" | "mh_drowned_quay_drowned_02" | "mh_drowned_quay_drowned_03" | "mh_drowned_quay_drowned_04" |
+        "mh_pump_station_drowned_01" | "mh_pump_station_drowned_02" | "mh_pump_station_drowned_03")
+}
 pub use warden_controller::{WardenAttack, WardenConfig, WardenCueKind, WardenStage, WardenState};
 
 #[derive(Clone, Debug, Deserialize)]
@@ -157,6 +165,15 @@ fn actor_profile_variant(entity_type: &str, variant: u8) -> Option<&'static Acto
     else { profiles().variants.get(entity_type)?.get(&variant) }
 }
 fn is_zero(value: &u8) -> bool { *value == 0 }
+
+fn is_regular_forged_guard_id(id:&str)->bool {
+    matches!(id,
+        "cw_entry_foundry_forged_guard_01"|"cw_entry_foundry_forged_guard_02"|
+        "cw_pressure_hall_forged_guard_01"|"cw_pressure_hall_forged_guard_02"|
+        "cw_conveyor_bridge_forged_guard_01"|"cw_conveyor_bridge_forged_guard_02"|"cw_conveyor_bridge_forged_guard_03"|
+        "cw_gear_shaft_forged_guard_01"|"cw_gear_shaft_forged_guard_02"|
+        "cw_furnace_heart_forged_guard_01"|"cw_furnace_heart_forged_guard_02")
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -412,6 +429,7 @@ impl ActorRuntime {
     pub fn view(&self) -> ActorView {
         let profile = self.selected_profile().expect("validated actor type");
         ActorView {
+            signal_only: false,
             entity_id: self.entity_id.clone(),
             entity_type: profile.render_type.clone(),
             actor_kind: "enemy".into(),
@@ -422,6 +440,28 @@ impl ActorRuntime {
             active: self.hp > 0,
             members: group_members::view_members(self),
             signal_perception: None,
+            animation_presentation: if matches!(self.entity_type.as_str(), "grey_hive.infected_maintenance_worker" | "grey_hive.infected_security")
+                || (self.entity_type=="enemy.clockworks.prime_regulator" && self.entity_id=="cw_prime_regulator")
+                || (self.entity_type=="enemy.clockworks.forged_guard" && is_regular_forged_guard_id(&self.entity_id))
+                || (self.entity_type=="enemy.mist_harbor.drowned" && is_registered_drowned_id(&self.entity_id)) {
+                let state = match self.state {
+                    ActorAiState::Idle => Some("idle"),
+                    ActorAiState::Chasing => Some("chasing"),
+                    ActorAiState::Windup => Some("windup"),
+                    ActorAiState::Cooldown => Some("cooldown"),
+                    _ => None,
+                };
+                state.map(|state| ActorAnimationPresentation {
+                    state: state.into(),
+                    remaining_ms: self.state_remaining_ms,
+                    attack_serial: self.attack_serial,
+                    current_attack: self.current_attack.map(|kind| match kind {
+                        ActorAttackKind::HeavyMelee => "heavy_melee".into(),
+                        ActorAttackKind::PressureWave if self.entity_type=="enemy.clockworks.prime_regulator" && self.entity_id=="cw_prime_regulator" => "pressure_wave".into(),
+                        _ => "unsupported".into(),
+                    }),
+                })
+            } else { None },
         }
     }
 
@@ -609,6 +649,60 @@ mod tests {
         continuous_input::InputSample,
         world_v3::{step_world, CwStepInput, WorldStateV3},
     };
+
+    #[test]
+    fn prime_regulator_presentation_projects_only_actual_owned_phases() {
+        let mut actor=ActorRuntime::spawn("cw_prime_regulator","enemy.clockworks.prime_regulator",Vec3::zero()).unwrap();
+        actor.state=ActorAiState::Windup;actor.state_remaining_ms=73;actor.attack_serial=4;
+        actor.current_attack=Some(ActorAttackKind::PressureWave);
+        let view=actor.view();let animation=view.animation_presentation.unwrap();
+        assert_eq!(view.entity_type,"runtime2d.enemy.clockworks.forged_guard.v2");
+        assert_eq!(animation.state,"windup");assert_eq!(animation.remaining_ms,73);
+        assert_eq!(animation.attack_serial,4);assert_eq!(animation.current_attack.as_deref(),Some("pressure_wave"));
+        actor.current_attack=Some(ActorAttackKind::HeavyMelee);
+        assert_eq!(actor.view().animation_presentation.unwrap().current_attack.as_deref(),Some("heavy_melee"));
+        actor.state=ActorAiState::Cooldown;actor.state_remaining_ms=50;actor.attack_serial=5;actor.current_attack=None;
+        let recovery=actor.view().animation_presentation.unwrap();assert_eq!(recovery.state,"cooldown");assert_eq!(recovery.attack_serial,5);assert!(recovery.current_attack.is_none());
+        actor.state=ActorAiState::Stagger;assert!(actor.view().animation_presentation.is_none());
+        actor.state=ActorAiState::Idle;actor.entity_id="other_regulator".into();assert!(actor.view().animation_presentation.is_none());
+    }
+
+    #[test]
+    fn regular_forged_presentation_is_limited_to_exact_authored_ids() {
+        for id in ["cw_entry_foundry_forged_guard_01","cw_entry_foundry_forged_guard_02",
+            "cw_pressure_hall_forged_guard_01","cw_pressure_hall_forged_guard_02",
+            "cw_conveyor_bridge_forged_guard_01","cw_conveyor_bridge_forged_guard_02","cw_conveyor_bridge_forged_guard_03",
+            "cw_gear_shaft_forged_guard_01","cw_gear_shaft_forged_guard_02",
+            "cw_furnace_heart_forged_guard_01","cw_furnace_heart_forged_guard_02"] {
+            let mut actor=ActorRuntime::spawn(id,"enemy.clockworks.forged_guard",Vec3::zero()).unwrap();
+            actor.state=ActorAiState::Windup;actor.state_remaining_ms=60;actor.attack_serial=3;actor.current_attack=Some(ActorAttackKind::HeavyMelee);
+            let view=actor.view().animation_presentation.unwrap();
+            assert_eq!(view.state,"windup");assert_eq!(view.remaining_ms,60);assert_eq!(view.attack_serial,3);assert_eq!(view.current_attack.as_deref(),Some("heavy_melee"));
+            actor.state=ActorAiState::Cooldown;actor.current_attack=None;actor.attack_serial=4;
+            let recovery=actor.view().animation_presentation.unwrap();assert_eq!(recovery.state,"cooldown");assert_eq!(recovery.attack_serial,4);assert!(recovery.current_attack.is_none());
+            actor.state=ActorAiState::Stagger;assert!(actor.view().animation_presentation.is_none());
+        }
+        let actor=ActorRuntime::spawn("cw_conveyor_bridge_forged_guard_04","enemy.clockworks.forged_guard",Vec3::zero()).unwrap();
+        assert!(actor.view().animation_presentation.is_none());
+    }
+
+    #[test]
+    fn drowned_presentation_only_registered_base_melee_phases() {
+        for id in ["mh_fog_pier_drowned_01","mh_fog_pier_drowned_02",
+            "mh_tidal_warehouse_drowned_01","mh_tidal_warehouse_drowned_02","mh_tidal_warehouse_drowned_03",
+            "mh_drowned_quay_drowned_01","mh_drowned_quay_drowned_02","mh_drowned_quay_drowned_03","mh_drowned_quay_drowned_04",
+            "mh_pump_station_drowned_01","mh_pump_station_drowned_02","mh_pump_station_drowned_03"] {
+            let mut actor=ActorRuntime::spawn(id,"enemy.mist_harbor.drowned",Vec3::zero()).unwrap();
+            actor.state=ActorAiState::Windup;actor.state_remaining_ms=60;actor.attack_serial=3;actor.current_attack=Some(ActorAttackKind::HeavyMelee);
+            let view=actor.view();assert_eq!(view.entity_type,"runtime2d.enemy.mistharbor.drowned.v2");
+            let animation=view.animation_presentation.unwrap();assert_eq!(animation.state,"windup");assert_eq!(animation.current_attack.as_deref(),Some("heavy_melee"));
+            actor.state=ActorAiState::Cooldown;actor.current_attack=None;actor.attack_serial=4;
+            assert_eq!(actor.view().animation_presentation.unwrap().attack_serial,4);
+            actor.state=ActorAiState::Dead;assert!(actor.view().animation_presentation.is_none());
+        }
+        assert!(ActorRuntime::spawn("mh_fog_pier_drowned_03","enemy.mist_harbor.drowned",Vec3::zero()).unwrap().view().animation_presentation.is_none());
+        assert!(ActorRuntime::spawn("mh_drowned_quay_drowned_01","enemy.mist_harbor.tidebound",Vec3::zero()).unwrap().view().animation_presentation.is_none());
+    }
 
     #[test]
     fn profiles_are_data_driven_and_unknown_types_fail_closed() {

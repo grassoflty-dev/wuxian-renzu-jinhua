@@ -61,6 +61,7 @@ fn validate_v6_envelope(
     Ok(())
 }
 
+pub(crate) fn valid_retained_slot_backup(bytes:&[u8],slot_id:&str)->bool {decode_slot_v6(bytes,slot_id).is_ok()}
 fn decode_slot_v6(
     bytes: &[u8],
     slot_id: &str,
@@ -146,6 +147,11 @@ pub fn overwrite_slot_v6(
             return Err("E_SLOT_ID_MISMATCH".into());
         }
     }
+    if !new {
+        let bytes = crate::save_v6::read_bounded(&target, "E_SLOT", "E_SLOT_NOT_FOUND")?;
+        decode_slot_v6(&bytes, slot_id)?;
+    }
+    require_writable_current_source(root, slot_id)?;
     write_slot_v6(
         &target,
         &SlotDocumentV6 {
@@ -172,10 +178,10 @@ pub(crate) fn require_writable_current_source(root: &Path, slot_id: &str) -> Res
 
 fn write_slot_v6(target: &Path, doc: &SlotDocumentV6, new: bool) -> Result<(), String> {
     crate::save_v6::recovery::require_no_recovery(target, "E_SLOT")?;
-    write_slot_v6_inner(target, doc, new, None)
+    write_slot_v6_inner(target, doc, new, None, None)
 }
 
-fn write_slot_v6_inner(target: &Path, doc: &SlotDocumentV6, new: bool, backup: Option<&crate::save_v6::recovery::Backup>) -> Result<(), String> {
+fn write_slot_v6_inner(target: &Path, doc: &SlotDocumentV6, new: bool, backup: Option<&crate::save_v6::recovery::Backup>, expected: Option<&[u8]>) -> Result<(), String> {
     validate_writable_slot_id(&doc.slot_id)?;
     validate_v6_envelope(
         doc.schema_version,
@@ -185,17 +191,44 @@ fn write_slot_v6_inner(target: &Path, doc: &SlotDocumentV6, new: bool, backup: O
     )?;
     doc.save.validate()?;
     let original = if new {
+        if expected.is_some() {return Err("E_SLOT_SOURCE_CHANGED".into());}
         None
     } else {
         let bytes = crate::save_v6::read_bounded(target, "E_SLOT", "E_SLOT_NOT_FOUND")?;
-        if decode_slot_v6(&bytes, &doc.slot_id)?.1 == crate::save_v6::Profile::Legacy {
+        if expected.is_some_and(|guard| guard!=bytes.as_slice()) {return Err("E_SLOT_SOURCE_CHANGED".into());}
+        let (previous,profile)=decode_slot_v6(&bytes, &doc.slot_id)?;
+        if profile == crate::save_v6::Profile::Legacy {
             crate::save_v6::retain_legacy_backup(target, &bytes, "E_SLOT")?;
+        }
+        if previous.save.world_persistent_v1.map_knowledge_archive_v1.is_none()
+            && doc.save.world_persistent_v1.map_knowledge_archive_v1.is_some() {
+            crate::save_v6::retain_archive_upgrade_backup(target,&bytes,"E_SLOT")?;
+        }
+        if previous.save.world_persistent_v1.map_knowledge_archive_v2.is_none()
+            && doc.save.world_persistent_v1.map_knowledge_archive_v2.is_some() {
+            crate::save_v6::retain_gh_archive_upgrade_backup(target,&bytes,"E_SLOT")?;
+        }
+        if previous.save.world_persistent_v1.shaft_recipe_format_v2.is_none()
+            && doc.save.world_persistent_v1.shaft_recipe_format_v2.is_some() {
+            crate::save_v6::retain_shaft_recipe_upgrade_backup(target,&bytes,"E_SLOT")?;
+        }
+        if previous.save.world_persistent_v1.lower_service_map_v1.is_none() && doc.save.world_persistent_v1.lower_service_map_v1.is_some() {
+            crate::save_v6::retain_lower_service_map_upgrade_backup(target,&bytes,"E_SLOT")?;
         }
         Some(bytes)
     };
     let bytes = serde_json::to_vec_pretty(doc).map_err(|e| format!("E_SLOT_ENCODE: {e}"))?;
     crate::save_v6::atomic_write_verified_guarded(target, &bytes, original.as_deref(), "E_SLOT", || {
-        if let Some(backup) = backup { crate::save_v6::recovery::require_unchanged(target, backup, "E_SLOT")?; }
+        if let Some(backup) = backup {
+            crate::save_v6::recovery::require_unchanged(target, backup, "E_SLOT")?;
+            let (previous,_)=decode_slot_v6(&backup.bytes,&doc.slot_id)?;
+            if previous.save.world_persistent_v1.shaft_recipe_format_v2.is_none() && doc.save.world_persistent_v1.shaft_recipe_format_v2.is_some() {
+                crate::save_v6::retain_shaft_recipe_upgrade_backup(target,&backup.bytes,"E_SLOT")?;
+            }
+            if previous.save.world_persistent_v1.lower_service_map_v1.is_none() && doc.save.world_persistent_v1.lower_service_map_v1.is_some() {
+                crate::save_v6::retain_lower_service_map_upgrade_backup(target,&backup.bytes,"E_SLOT")?;
+            }
+        }
         Ok(())
     }, |raw| {
         // Current DTO only: normalization must never conceal a mismatched temp/commit.
@@ -225,15 +258,19 @@ pub(crate) fn read_slot_v6_candidate(root: &Path, slot_id: &str) -> Result<(Stri
 }
 
 pub(crate) fn read_slot_v6_source(root: &Path, slot_id: &str) -> Result<(String, crate::save_v6::SaveV6, Option<crate::save_v6::recovery::Backup>), String> {
+    read_slot_v6_source_with_raw(root,slot_id).map(|(name,save,backup,_)|(name,save,backup))
+}
+
+pub(crate) fn read_slot_v6_source_with_raw(root: &Path, slot_id: &str) -> Result<(String, crate::save_v6::SaveV6, Option<crate::save_v6::recovery::Backup>, Option<Vec<u8>>), String> {
     let path = slot_v6_path(root, slot_id)?;
     if crate::save_v6::path_present(&path) {
         let bytes = crate::save_v6::read_bounded(&path, "E_SLOT", "E_SLOT_NOT_FOUND")?;
         let (doc, _) = decode_slot_v6(&bytes, slot_id)?;
-        return Ok((doc.display_name, doc.save, None));
+        return Ok((doc.display_name, doc.save, None, Some(bytes)));
     }
     if let Some(backup) = crate::save_v6::recovery::backup(&path, "E_SLOT")? {
         let (doc, _) = decode_slot_v6(&backup.bytes, slot_id)?;
-        return Ok((doc.display_name, doc.save, Some(backup)));
+        return Ok((doc.display_name, doc.save, Some(backup), None));
     }
     let path = slot_path(root, slot_id)?;
     let (name, save) = if crate::save_v6::path_present(&path) {
@@ -249,7 +286,7 @@ pub(crate) fn read_slot_v6_source(root: &Path, slot_id: &str) -> Result<(String,
         provenance.method = "validated-v4-slot-copy; Grey Hive checkpoint mapping; original retained".into();
         (doc.display_name, save)
     };
-    Ok((name, crate::save_v6::SaveV6::from_v5(save)?, None))
+    Ok((name, crate::save_v6::SaveV6::from_v5(save)?, None, None))
 }
 pub(crate) fn slot_v6_present(root: &Path, slot_id: &str) -> Result<bool, String> {
     Ok(crate::save_v6::path_present(&slot_v6_path(root, slot_id)?))
@@ -264,7 +301,7 @@ pub(crate) fn write_continued_slot_v6(root: &Path, slot_id: &str, display_name: 
         return write_slot_v6_inner(&target, &SlotDocumentV6 {
             schema_version: 3, slot_id: slot_id.into(), display_name: display_name.into(),
             updated_at_ms: now_ms(), save: save.clone(),
-        }, true, Some(backup));
+        }, true, Some(backup), None);
     }
     crate::save_v6::recovery::require_no_recovery(&target, "E_SLOT")?;
     // Verify the actual winning source, including a corrupt newer file, before replacement.
@@ -276,6 +313,19 @@ pub(crate) fn write_continued_slot_v6(root: &Path, slot_id: &str, display_name: 
         schema_version: 3, slot_id: slot_id.into(), display_name: display_name.into(),
         updated_at_ms: now_ms(), save: save.clone(),
     }, !crate::save_v6::path_present(&target))
+}
+
+pub(crate) fn write_continued_slot_guarded(root: &Path, slot_id: &str, display_name: &str, save: &crate::save_v6::SaveV6, expected: &[u8]) -> Result<(), String> {
+    validate_writable_slot_id(slot_id)?;
+    let target=slot_v6_path(root,slot_id)?;
+    crate::save_v6::recovery::require_no_recovery(&target,"E_SLOT")?;
+    write_slot_v6_inner(&target,&SlotDocumentV6{schema_version:3,slot_id:slot_id.into(),display_name:display_name.into(),updated_at_ms:now_ms(),save:save.clone()},false,None,Some(expected))
+}
+
+pub(crate) fn require_continued_slot_source(root: &Path, slot_id: &str, expected: &[u8]) -> Result<std::fs::File, String> {
+    let target=slot_v6_path(root,slot_id)?;
+    crate::save_v6::recovery::require_no_recovery(&target,"E_SLOT")?;
+    crate::save_v6::lock_continued_source_path(&target,expected,"E_SLOT")
 }
 
 pub fn read_slot_v6(

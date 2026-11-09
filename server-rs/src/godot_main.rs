@@ -27,12 +27,13 @@ fn ordinary(path:&Path,missing_leaf:bool)->Result<(),String>{
         }
     }Ok(())
 }
-fn arguments()->Result<(PathBuf,PathBuf,String),String>{
-    let mut session=None;let mut save=None;let mut token=None;let mut a=std::env::args().skip(1);
+fn arguments()->Result<(PathBuf,PathBuf,String,Option<u32>),String>{
+    let mut session=None;let mut save=None;let mut token=None;let mut proof_target=None;let mut a=std::env::args().skip(1);
     while let Some(k)=a.next(){let v=a.next().ok_or("E_SESSION_ARGS")?;match k.as_str(){
         "--session-dir" if session.is_none()=>session=Some(PathBuf::from(v)),
         "--save-dir" if save.is_none()=>save=Some(PathBuf::from(v)),
-        "--session-token" if token.is_none()=>token=Some(v), _=>return Err("E_SESSION_ARGS".into())
+        "--session-token" if token.is_none()=>token=Some(v),
+        "--owner-proof-target-pid" if proof_target.is_none()=>{let p=v.parse::<u32>().map_err(|_|"E_SESSION_ARGS")?;if p==0{return Err("E_SESSION_ARGS".into());}proof_target=Some(p);}, _=>return Err("E_SESSION_ARGS".into())
     }}
     let session=session.ok_or("E_SESSION_ARGS")?;let save=save.ok_or("E_SESSION_ARGS")?;let token:String=token.ok_or("E_SESSION_ARGS")?;
     if !(32..=128).contains(&token.len()) || !token.bytes().all(|b|b.is_ascii_alphanumeric()||b==b'-'){return Err("E_SESSION_TOKEN".into());}
@@ -40,7 +41,7 @@ fn arguments()->Result<(PathBuf,PathBuf,String),String>{
     ordinary(&session,false)?;if !session.is_dir() || save!=session.join("saves"){return Err("E_SESSION_NAMESPACE".into());}
     ordinary(&save,true)?;ordinary(&session.join("run"),true)?;
     match fs::symlink_metadata(session.join("run/bridge-ready.json")){Ok(_)=>return Err("E_READY_OCCUPIED".into()),Err(e) if e.kind()==io::ErrorKind::NotFound=>{},Err(_)=>return Err("E_READY_PATH".into())}
-    Ok((session,save,token))
+    Ok((session,save,token,proof_target))
 }
 struct Connection {stream:TcpStream,line:Vec<u8>,pending:VecDeque<Vec<u8>>,offset:usize,queued:usize,last_id:u64,authenticated:bool,closing:bool,last_progress:Instant}
 impl Connection {
@@ -93,19 +94,101 @@ impl Connection {
         Ok(false)
     }
 }
+#[cfg(windows)]
+fn listener_state(listener:&TcpListener)->i32 {
+    use std::os::windows::io::AsRawSocket;
+    #[link(name="Ws2_32")] extern "system" { fn getsockopt(s:usize,level:i32,optname:i32,optval:*mut i8,optlen:*mut i32)->i32; }
+    let mut state:i32=0;let mut len:i32=4;
+    let rc=unsafe{getsockopt(listener.as_raw_socket() as usize,0xffff,2,(&mut state as *mut i32).cast(),&mut len)};
+    if rc==0 && len==4 && (state==0 || state==1){state}else{-1}
+}
+#[cfg(not(windows))]
+fn listener_state(_listener:&TcpListener)->i32 {-1}
+fn emit_listener_state(listener:&TcpListener) {
+    let stamp=std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).ok().map(|v|v.as_millis()).filter(|v|*v>0 && *v<=9_999_999_999_999).unwrap_or(0);
+    let state=listener_state(listener);let code=match state {0=>"0",1=>"1",_=>"U"};
+    let _=writeln!(io::stderr(),"GH_SC_{}:{}",code,stamp);
+}
+#[cfg(windows)]
+fn emit_owner_socket(listener:&TcpListener,target:u32)->Result<(),String>{
+    use std::os::windows::io::AsRawSocket;
+    #[repr(C)] struct Guid { d1:u32,d2:u16,d3:u16,d4:[u8;8] }
+    #[repr(C)] struct ProtocolChain { len:i32, entries:[u32;7] }
+    #[repr(C)] struct ProtocolInfo { service:[u32;4],provider_flags:u32,provider:Guid,catalog:u32,chain:ProtocolChain,version:i32,family:i32,max_addr:i32,min_addr:i32,socket_type:i32,protocol:i32,protocol_offset:i32,network_order:i32,security:i32,message_size:u32,reserved:u32,name:[u16;256] }
+    #[link(name="Ws2_32")] extern "system" { fn WSADuplicateSocketW(socket:usize,pid:u32,info:*mut ProtocolInfo)->i32; }
+    if std::mem::size_of::<ProtocolInfo>()!=628 { return Err("E_OWNER_PROOF".into()); }
+    let mut info:ProtocolInfo=unsafe{std::mem::zeroed()};
+    let result=(||{
+        if unsafe{WSADuplicateSocketW(listener.as_raw_socket() as usize,target,&mut info)}!=0{return Err("E_OWNER_PROOF".into());}
+        let bytes=unsafe{std::slice::from_raw_parts((&info as *const ProtocolInfo).cast::<u8>(),628)};
+        let mut output=io::stderr().lock();
+        write!(output,"GH_OWNER_SOCKET_V1:").map_err(|_|"E_OWNER_PROOF")?;
+        for byte in bytes { write!(output,"{:02x}",byte).map_err(|_|"E_OWNER_PROOF")?; }
+        writeln!(output).and_then(|_|output.flush()).map_err(|_|"E_OWNER_PROOF")?;
+        Ok(())
+    })();
+    unsafe{std::ptr::write_bytes((&mut info as *mut ProtocolInfo).cast::<u8>(),0,628)};
+    result
+}
+#[cfg(not(windows))]
+fn emit_owner_socket(_listener:&TcpListener,_target:u32)->Result<(),String>{Err("E_OWNER_PROOF".into())}
+#[cfg(windows)]
+struct WinSockLease;
+#[cfg(windows)]
+impl Drop for WinSockLease { fn drop(&mut self) { unsafe { WSACleanup(); } } }
+#[cfg(windows)]
+#[link(name="Ws2_32")]
+extern "system" {
+    fn WSAStartup(version:u16,data:*mut u8)->i32;
+    fn WSACleanup()->i32;
+    fn WSASocketW(af:i32,kind:i32,protocol:i32,info:*mut u8,group:u32,flags:u32)->usize;
+    fn setsockopt(socket:usize,level:i32,option:i32,value:*const i8,length:i32)->i32;
+    fn bind(socket:usize,address:*const u8,length:i32)->i32;
+    fn listen(socket:usize,backlog:i32)->i32;
+    fn closesocket(socket:usize)->i32;
+}
+#[cfg(windows)]
+fn bind_owned_listener()->Result<(WinSockLease,TcpListener),String>{
+    use std::os::windows::io::FromRawSocket;
+    #[repr(C)] struct SockaddrIn { family:u16,port:u16,address:[u8;4],zero:[u8;8] }
+    let mut data=[0u64;64];
+    if unsafe{WSAStartup(0x0202,data.as_mut_ptr().cast())}!=0 {return Err("E_SOCKET_BIND".into());}
+    let lease=WinSockLease;
+    let version=unsafe{*(data.as_ptr().cast::<u16>())};
+    data.fill(0);
+    if version!=0x0202{return Err("E_SOCKET_BIND".into());}
+    let socket=unsafe{WSASocketW(2,1,6,std::ptr::null_mut(),0,1)};
+    if socket==usize::MAX{return Err("E_SOCKET_BIND".into());}
+    let exclusive:i32=1;
+    let address=SockaddrIn{family:2,port:0,address:[127,0,0,1],zero:[0;8]};
+    let ok=unsafe{setsockopt(socket,0xffff,-5,(&exclusive as *const i32).cast(),4)==0 &&
+        bind(socket,(&address as *const SockaddrIn).cast(),16)==0 && listen(socket,128)==0};
+    if !ok {unsafe{closesocket(socket)};return Err("E_SOCKET_BIND".into());}
+    let listener=unsafe{TcpListener::from_raw_socket(socket as _)};
+    Ok((lease,listener))
+}
+#[cfg(not(windows))]
+struct WinSockLease;
+#[cfg(not(windows))]
+fn bind_owned_listener()->Result<(WinSockLease,TcpListener),String>{
+    Ok((WinSockLease,TcpListener::bind(("127.0.0.1",0)).map_err(|_|"E_SOCKET_BIND")?))
+}
 fn run()->Result<(),String>{
-    let (session,save,token)=arguments()?;
+    let (session,save,token,proof_target)=arguments()?;
     fs::create_dir_all(session.join("run")).map_err(|_|"E_SESSION_CREATE")?;
     fs::create_dir_all(&save).map_err(|_|"E_SESSION_CREATE")?;ordinary(&save,false)?;ordinary(&session.join("run"),false)?;
-    let listener=TcpListener::bind(("127.0.0.1",0)).map_err(|_|"E_SOCKET_BIND")?;listener.set_nonblocking(true).map_err(|_|"E_SOCKET")?;
+    let (_winsock,listener)=bind_owned_listener()?;listener.set_nonblocking(true).map_err(|_|"E_SOCKET")?;
     let runtime=FormalRuntime::new_with_save_dir(save.clone())?;production_scene_bootstrap::install(&runtime)?;rpc::hold(&runtime)?;
     let ready=json!({"schema":"wuxian.godot-v1.ready/v1","protocolVersion":1,"host":"127.0.0.1","port":listener.local_addr().map_err(|_|"E_SOCKET")?.port(),"sessionToken":token,"processId":std::process::id(),"sessionDir":session,"saveDir":save});
+    if let Some(target)=proof_target { emit_owner_socket(&listener,target)?; }
     let mut ready_file=OpenOptions::new().write(true).create_new(true).open(session.join("run/bridge-ready.json")).map_err(|_|"E_READY_CREATE")?;
     let mut bytes=serde_json::to_vec(&ready).map_err(|_|"E_READY_SERIALIZE")?;bytes.push(b'\n');ready_file.write_all(&bytes).and_then(|_|ready_file.sync_all()).map_err(|_|"E_READY_WRITE")?;drop(ready_file);
     let mut client:Option<Connection>=None;let mut started=false;
+    let mut telemetry_count:u32=0;let mut telemetry_last:Option<Instant>=None;let mut telemetry_authenticated=false;
     loop {
+        if telemetry_count<96 && !telemetry_authenticated && telemetry_last.map(|t|t.elapsed()>=Duration::from_secs(1)).unwrap_or(true) { emit_listener_state(&listener);telemetry_count+=1;telemetry_last=Some(Instant::now()); }
         if client.is_none(){match listener.accept(){Ok((s,address))=>{if address.ip().is_loopback(){client=Some(Connection::new(s)?);}},Err(e) if e.kind()==io::ErrorKind::WouldBlock=>{},Err(e) if e.kind()==io::ErrorKind::Interrupted=>{},Err(_)=>return Err("E_SOCKET_ACCEPT".into())}}
-        if let Some(c)=client.as_mut(){match c.update(&runtime,&token,&mut started){Ok(true)=>{rpc::hold(&runtime)?;break;},Ok(false)=>{},Err(_)=>{let explicitly_closing=c.closing;rpc::hold(&runtime)?;client=None;if explicitly_closing{break;}}}}
+        if let Some(c)=client.as_mut(){let update=c.update(&runtime,&token,&mut started);if c.authenticated {telemetry_authenticated=true;}match update{Ok(true)=>{rpc::hold(&runtime)?;break;},Ok(false)=>{},Err(_)=>{let explicitly_closing=c.closing;rpc::hold(&runtime)?;client=None;if explicitly_closing{break;}}}}
         thread::sleep(Duration::from_millis(5));
     }
     // FormalRuntime::drop requests stop and joins its actual simulation owner.

@@ -1,4 +1,5 @@
 extends RefCounted
+const BulkheadAtlasTexture = preload('res://scripts/world/bulkhead_atlas_texture.gd')
 
 const P = preload('res://scripts/bridge/protocol.gd')
 const MAPPING_RESOURCE = 'res://data/gh_bio_wall_modules.internal-use.json'
@@ -262,7 +263,7 @@ func _load_once() -> void:
 		return
 	if image.get_pixel(int(FOOT_A.x), int(FOOT_A.y)).a <= 0.0 or image.get_pixel(int(FOOT_B.x), int(FOOT_B.y)).a <= 0.0:
 		return
-	module_texture = ImageTexture.create_from_image(image)
+	module_texture = BulkheadAtlasTexture.acquire(image, MODULE_TEXTURE_PATH, MODULE_BYTES, MODULE_SHA256)
 
 func _valid_manifest(value) -> bool:
 	if not value is Dictionary or not _keys_are(value, ['schema','registeredSourceReuse','approval','GodotDisplay','publicRelease','sourceAsset','asset','installation']):

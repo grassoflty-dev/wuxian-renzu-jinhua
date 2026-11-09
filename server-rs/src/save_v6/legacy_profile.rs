@@ -37,7 +37,8 @@ pub(crate) fn decode(value: Value) -> Result<(SaveV6, Profile), String> {
     // SaveV5 is shared by current and frozen legacy DTOs. Presence of a new
     // support field is forbidden in the absent-discriminator profile, even null.
     if object.get("save").and_then(Value::as_object)
-        .is_some_and(|save| save.contains_key("movingSupportFrame")) {
+        .is_some_and(|save| save.contains_key("movingSupportFrame")
+            || save.contains_key("shaftUpperMapObservation") || save.contains_key("lockdownMapObservation")) {
         return Err("E_SAVE_SCHEMA_INVALID".into());
     }
     // Keep the absent-discriminator profile frozen even when current persistent

@@ -1,0 +1,497 @@
+{
+  "schema": "gh-lower-service/v2",
+  "status": "candidate-not-admitted",
+  "scene": "gh_central_shaft",
+  "source_sha": "6880bdf8dbab71a8bf74e38b8c614ad751e564cf87e8a2936ee801e52b72a832",
+  "floor_y": -4,
+  "floor_union_rects": [
+    [
+      1.5,
+      5.0,
+      19.5,
+      14.0
+    ],
+    [
+      19.5,
+      5.25,
+      23.5,
+      9.25
+    ],
+    [
+      23.0,
+      6.5,
+      26.25,
+      9.5
+    ],
+    [
+      26.0,
+      1.0,
+      50.0,
+      21.0
+    ]
+  ],
+  "old_owner_cut": [
+    19.5,
+    5.25,
+    19.75,
+    7.75
+  ],
+  "retained_spans": [
+    [
+      19.5,
+      4.75,
+      19.75,
+      5.25
+    ],
+    [
+      19.5,
+      7.75,
+      19.75,
+      14.25
+    ]
+  ],
+  "new_walls": [
+    {
+      "id": "connector_north_a",
+      "rect_xz": [
+        19.75,
+        5,
+        23.25,
+        5.25
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "connector_north_turn",
+      "rect_xz": [
+        23.25,
+        5.25,
+        23.5,
+        6.5
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "connector_north_b",
+      "rect_xz": [
+        24,
+        6.25,
+        26,
+        6.5
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "connector_south_a",
+      "rect_xz": [
+        19.75,
+        9.25,
+        23,
+        9.5
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "connector_south_b",
+      "rect_xz": [
+        23,
+        9.5,
+        26,
+        9.75
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "sector_north",
+      "rect_xz": [
+        26,
+        1,
+        50,
+        1.25
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "sector_south",
+      "rect_xz": [
+        26,
+        20.75,
+        50,
+        21
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "sector_east",
+      "rect_xz": [
+        49.75,
+        1.25,
+        50,
+        20.75
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "sector_west_north",
+      "rect_xz": [
+        26,
+        1.25,
+        26.25,
+        6.5
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "sector_west_south",
+      "rect_xz": [
+        26,
+        9.5,
+        26.25,
+        20.75
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "north_bays_front_0",
+      "rect_xz": [
+        26.25,
+        6.75,
+        29,
+        7
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "north_bays_front_1",
+      "rect_xz": [
+        31,
+        6.75,
+        37,
+        7
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "north_bays_front_2",
+      "rect_xz": [
+        39,
+        6.75,
+        45,
+        7
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "north_bays_front_last",
+      "rect_xz": [
+        47,
+        6.75,
+        49.75,
+        7
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "north_divider_34",
+      "rect_xz": [
+        33.875,
+        1.25,
+        34.125,
+        6.75
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "north_divider_42",
+      "rect_xz": [
+        41.875,
+        1.25,
+        42.125,
+        6.75
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "middle_bays_front_0",
+      "rect_xz": [
+        29,
+        10,
+        31,
+        10.25
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "middle_bays_front_1",
+      "rect_xz": [
+        33,
+        10,
+        37,
+        10.25
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "middle_bays_front_2",
+      "rect_xz": [
+        39,
+        10,
+        43,
+        10.25
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "middle_bays_front_last",
+      "rect_xz": [
+        45,
+        10,
+        47,
+        10.25
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "middle_bays_rear_0",
+      "rect_xz": [
+        29,
+        13.75,
+        31,
+        14
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "middle_bays_rear_1",
+      "rect_xz": [
+        33,
+        13.75,
+        37,
+        14
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "middle_bays_rear_2",
+      "rect_xz": [
+        39,
+        13.75,
+        43,
+        14
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "middle_bays_rear_last",
+      "rect_xz": [
+        45,
+        13.75,
+        47,
+        14
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "middle_divider_35",
+      "rect_xz": [
+        34.875,
+        10.25,
+        35.125,
+        13.75
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "middle_divider_41",
+      "rect_xz": [
+        40.875,
+        10.25,
+        41.125,
+        13.75
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "middle_west",
+      "rect_xz": [
+        28.75,
+        10,
+        29,
+        14
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "middle_east",
+      "rect_xz": [
+        47,
+        10,
+        47.25,
+        14
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "south_bays_front_0",
+      "rect_xz": [
+        26.25,
+        17,
+        29,
+        17.25
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "south_bays_front_1",
+      "rect_xz": [
+        31,
+        17,
+        37,
+        17.25
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "south_bays_front_2",
+      "rect_xz": [
+        39,
+        17,
+        45,
+        17.25
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "south_bays_front_last",
+      "rect_xz": [
+        47,
+        17,
+        49.75,
+        17.25
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "south_divider_34",
+      "rect_xz": [
+        33.875,
+        17.25,
+        34.125,
+        20.75
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    },
+    {
+      "id": "south_divider_42",
+      "rect_xz": [
+        41.875,
+        17.25,
+        42.125,
+        20.75
+      ],
+      "band": [
+        -4,
+        -1.6
+      ]
+    }
+  ]
+}

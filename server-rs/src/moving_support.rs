@@ -72,12 +72,24 @@ pub struct SupportPose {
     pub phase_elapsed_ms: u32,
 }
 
+/// A distinct, versioned lower Shaft recipe; not a moving-support catalog hash.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ShaftLowerRecipeIdentity { pub recipe_version:u32, pub scene_source_sha256:String }
+impl ShaftLowerRecipeIdentity {
+    pub(crate) fn is_known(&self)->bool {self.recipe_version==2 && self.scene_source_sha256=="6880bdf8dbab71a8bf74e38b8c614ad751e564cf87e8a2936ee801e52b72a832"}
+}
+fn deserialize_shaft_recipe<'de,D:serde::Deserializer<'de>>(d:D)->Result<Option<ShaftLowerRecipeIdentity>,D::Error> {
+    ShaftLowerRecipeIdentity::deserialize(d).map(Some)
+}
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SupportFrame {
     pub world_epoch: u64,
     pub server_time_ms: u64,
     pub catalog_sha256: String,
+    #[serde(default,skip_serializing_if="Option::is_none",deserialize_with="deserialize_shaft_recipe")]
+    pub shaft_lower_recipe: Option<ShaftLowerRecipeIdentity>,
     pub poses: Vec<SupportPose>,
 }
 
@@ -203,7 +215,7 @@ pub fn frame_with_standing(moving:&[MovingSupportDefinition],standing:&[Standing
     let bytes=if standing.is_empty() {serde_json::to_vec(&canonical_moving)} else {
         serde_json::to_vec(&serde_json::json!({"movingSupports":canonical_moving,"standingDecks":canonical_standing}))
     }.map_err(|_|"E_SUPPORT_DEFINITION_INVALID")?;
-    Ok(SupportFrame{world_epoch,server_time_ms,catalog_sha256:format!("{:x}",Sha256::digest(bytes)),poses})
+    Ok(SupportFrame{world_epoch,server_time_ms,catalog_sha256:format!("{:x}",Sha256::digest(bytes)),shaft_lower_recipe:None,poses})
 }
 pub fn validate_frame(value:&SupportFrame,definitions:&[MovingSupportDefinition],world_epoch:u64,server_time_ms:u64)->Result<(),&'static str> {
     validate_frame_with_standing(value,definitions,&[],world_epoch,server_time_ms)
@@ -218,7 +230,7 @@ pub fn validate_frame_with_standing(value:&SupportFrame,moving:&[MovingSupportDe
 /// Shape-only persistence validation. Exact source/timing equality is checked
 /// separately by the canonical scene KCC before any restored state is installed.
 pub fn validate_saved_frame_shape(value: &SupportFrame) -> Result<(), &'static str> {
-    if value.world_epoch==0 || value.poses.is_empty() || value.poses.len()>64
+    if value.shaft_lower_recipe.is_some() || value.world_epoch==0 || value.poses.is_empty() || value.poses.len()>64
         || value.catalog_sha256.len()!=64 || !value.catalog_sha256.bytes().all(|c|c.is_ascii_hexdigit() && !c.is_ascii_uppercase()) {
         return Err("E_SUPPORT_FRAME_MISMATCH");
     }

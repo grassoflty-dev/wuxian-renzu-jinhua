@@ -1,4 +1,5 @@
 extends RefCounted
+const P = preload('res://scripts/bridge/protocol.gd')
 
 const STRUCTURES = [
 	{"id":"north_bulkhead","x0":0.0,"x1":24.0,"z0":0.0,"z1":0.5,"kind":"bulkhead","relief":18.0},
@@ -19,9 +20,58 @@ const TERMINALS = [
 ]
 const STRUCTURE_IDS = ["north_bulkhead","south_bulkhead","west_bulkhead_north","west_bulkhead_south","east_bulkhead_north","east_bulkhead_south","service_island_north","service_island_south"]
 const TERMINAL_IDS = ["mission_terminal_art","capability_terminal_art","storage_terminal_art","world_gate_terminal_art","save_rest_terminal_art"]
+const ISLAND_PLINTH_PATH = 'res://assets/props/return_station/bulkhead_tiles.png'
+var island_plinth_attempted := false
+var island_plinth_texture: Texture2D
 
 var _cache_key = ""
 var _cached_shapes: Array = []
+
+func _ensure_island_plinth_texture() -> bool:
+	if not island_plinth_attempted:
+		island_plinth_attempted = true
+		if ResourceLoader.exists(ISLAND_PLINTH_PATH):
+			var loaded = load(ISLAND_PLINTH_PATH)
+			if loaded is Texture2D: island_plinth_texture = loaded
+		if not is_instance_valid(island_plinth_texture):
+			var image = Image.new()
+			if image.load(ISLAND_PLINTH_PATH)==OK and image.get_width()==1418 and image.get_height()==1028:
+				island_plinth_texture = ImageTexture.create_from_image(image)
+	return is_instance_valid(island_plinth_texture) and island_plinth_texture.get_width()==1418 and island_plinth_texture.get_height()==1028
+
+func draw_south_floor_fascia(canvas: CanvasItem, snapshot: Dictionary, scene_data: Dictionary, current_key: String, projection, viewport: Rect2) -> bool:
+	if not is_instance_valid(canvas) or not P.snapshot(snapshot) or snapshot.get('entryToken')!=null or snapshot.get('worldId')!='return_station' or snapshot.get('sceneId')!='rs_core_room' or current_key!='return_station:rs_core_room:'+str(snapshot.get('worldEpoch')):
+		return false
+	if not _ensure_layout('return_station','rs_core_room',scene_data) or not scene_data.get('boundsM') is Dictionary:
+		return false
+	var bounds: Dictionary = scene_data.boundsM
+	if not P.number(bounds.get('x'),0,0) or not P.number(bounds.get('z'),0,0) or not P.number(bounds.get('width'),24,24) or not P.number(bounds.get('depth'),16,16):
+		return false
+	if projection==null or not projection.initialized or not is_finite(projection.ppm) or projection.ppm<=0 or projection.ppm>256 or not _finite_rect(viewport) or viewport.size.x<=0 or viewport.size.y<=0:
+		return false
+	var pieces: Array = []
+	var extent := Rect2()
+	var offset := Vector2(0,8.0*projection.ppm/48.0)
+	var foot:=Vector2(50,322); var step:=Vector2(250,138); var up:=Vector2(10.4,-255.2)/6.0
+	for i in range(24):
+		var left = projection.project(Vector3(i,0,16))
+		var right = projection.project(Vector3(i+1,0,16))
+		if not left is Vector2 or not right is Vector2 or not is_finite(left.x) or not is_finite(left.y) or not is_finite(right.x) or not is_finite(right.y): return false
+		var points:=PackedVector2Array([left,right,right+offset,left+offset])
+		var area := 0.0
+		for j in range(4):
+			area += points[j].cross(points[(j+1)%4])
+		if not is_finite(area) or absf(area)<=0.000001: return false
+		for point in points:
+			if pieces.is_empty() and point==points[0]: extent=Rect2(point,Vector2.ZERO)
+			else: extent=extent.expand(point)
+		var uv:=PackedVector2Array([(foot+up)/Vector2(1418,1028),(foot+step+up)/Vector2(1418,1028),(foot+step)/Vector2(1418,1028),foot/Vector2(1418,1028)])
+		pieces.append({'points':points,'uv':uv})
+	if pieces.size()!=24 or not extent.intersects(viewport) or not _ensure_island_plinth_texture():
+		return false
+	for piece in pieces:
+		canvas.draw_polygon(piece.points,PackedColorArray([Color.WHITE]),piece.uv,island_plinth_texture)
+	return true
 
 func has_valid_layout(world_id: String, scene_id: String, scene_data: Dictionary) -> bool:
 	return _ensure_layout(world_id,scene_id,scene_data)
@@ -49,7 +99,51 @@ func build_packets(scene_data: Dictionary, world_id: String, scene_id: String, p
 	else:
 		for shape in _cached_shapes:
 			_add_structure_front(packets,shape,projection,scale)
+		_attach_island_plinths(packets,projection,scale)
 	return packets if packets.size()<=256 else []
+
+func _attach_island_plinths(packets: Array, projection, scale: float) -> void:
+	var targets = {'rs:front:service_island_north:1':7.5,'rs:front:service_island_south:1':9.5}
+	var prepared := {}
+	for id in targets:
+		var matches = packets.filter(func(packet): return packet is Dictionary and packet.get('id')==id and packet.get('role')=='front_face' and packet.get('filled')==true)
+		if matches.size()!=1 or not matches[0].get('points') is PackedVector2Array or matches[0].points.size()!=4:
+			return
+		var z: float = targets[id]
+		var right: Vector2 = projection.project(Vector3(14.5,0,z))
+		var left: Vector2 = projection.project(Vector3(9.5,0,z))
+		var raised := Vector2(0,-8.0*scale)
+		var expected := PackedVector2Array([right+raised,left+raised,left,right])
+		for i in range(4):
+			if not is_finite(expected[i].x) or not is_finite(expected[i].y) or expected[i].distance_to(matches[0].points[i])>0.01:
+				return
+		var pieces: Array = []
+		var x := 9.5
+		while x<14.5:
+			var cell=floorf(x)
+			var xe=minf(14.5,cell+1.0)
+			if xe<=x: return
+			var a: Vector2 = projection.project(Vector3(x,0,z))
+			var b: Vector2 = projection.project(Vector3(xe,0,z))
+			if not is_finite(a.x) or not is_finite(a.y) or not is_finite(b.x) or not is_finite(b.y): return
+			var points:=PackedVector2Array([b+raised,a+raised,a,b])
+			var area := 0.0
+			for i in range(4):
+				area += points[i].cross(points[(i+1)%4])
+			if not is_finite(area) or absf(area)<=0.000001: return
+			var f0=x-cell; var f1=xe-cell
+			var foot=Vector2(50,322); var step=Vector2(250,138); var up=Vector2(10.4,-255.2)/6.0
+			var uv:=PackedVector2Array([(foot+step*f1+up)/Vector2(1418,1028),(foot+step*f0+up)/Vector2(1418,1028),(foot+step*f0)/Vector2(1418,1028),(foot+step*f1)/Vector2(1418,1028)])
+			pieces.append({'points':points,'uv':uv})
+			x=xe
+		if pieces.size()!=6: return
+		prepared[id]={'packet':matches[0],'pieces':pieces}
+	if prepared.size()!=2: return
+	if not _ensure_island_plinth_texture():
+		return
+	for id in prepared:
+		prepared[id].packet['island_plinth_pieces']=prepared[id].pieces
+		prepared[id].packet['island_plinth_texture']=island_plinth_texture
 
 func front_overlap_target(packets: Array, player_rect: Rect2) -> float:
 	if player_rect.size.x<=0 or player_rect.size.y<=0 or not _finite_rect(player_rect):
@@ -158,8 +252,8 @@ func _add_terminal_bases_and_pools(packets: Array, projection, scale: float, ter
 		var half_width: float = float(terminal.width)*0.5
 		var pad = _rect_world(position.x-half_width,position.x+half_width,position.z-0.22,position.z+0.22)
 		var pad_points = _project_world(pad,projection)
-		_append_polygon(packets,"rs:terminal-base:"+terminal.id,"terminal_base",pad_points,Color("#26373d"),true)
-		_append_polygon(packets,"rs:terminal-base-rim:"+terminal.id,"terminal_base",pad_points,Color(0.73,0.76,0.73,0.34),false,0.8*scale)
+		_append_polygon(packets,"rs:terminal-base:"+terminal.id,"terminal_base",pad_points,Color("#3a3733"),true)
+		_append_polygon(packets,"rs:terminal-base-rim:"+terminal.id,"terminal_base",pad_points,Color(0.78,0.84,0.81,0.48),false,0.8*scale)
 		_add_pool(packets,"rs:terminal-light:"+terminal.id,Vector2(position.x,position.z),0.68,0.28,projection,scale)
 
 func _add_pool(packets: Array, packet_id: String, center: Vector2, radius_x: float, radius_z: float, projection, scale: float) -> void:
@@ -182,17 +276,22 @@ func _add_structure_back(packets: Array, shape: Dictionary, projection, scale: f
 	var relief_offset = Vector2(0,-relief)
 	var raised_base = _offset_points(base,relief_offset)
 	var shadow = _offset_points(base,Vector2(0,2.5*scale))
-	_append_polygon(packets,"rs:shadow:"+shape.id,"ground_shadow",shadow,Color(0.025,0.035,0.040,0.30),true)
-	var surface_color: Color = Color("#35474d") if shape.kind=="bulkhead" else Color("#46565a")
+	var shadow_color: Color = Color(0.025,0.035,0.040,0.30) if shape.kind=="bulkhead" else Color(0.018,0.028,0.035,0.40)
+	_append_polygon(packets,"rs:shadow:"+shape.id,"ground_shadow",shadow,shadow_color,true)
+	var surface_color: Color = Color("#484440") if shape.kind=="bulkhead" else Color("#6b665f")
 	_append_polygon(packets,"rs:top:"+shape.id,"structure_top",raised_base,surface_color,true)
-	_append_polygon(packets,"rs:top-edge:"+shape.id,"structure_cap",raised_base,Color(0.88,0.86,0.78,0.38),false,maxf(0.8,1.0*scale))
+	var edge_color: Color = Color(0.88,0.86,0.78,0.38) if shape.kind=="bulkhead" else Color(0.80,0.86,0.84,0.52)
+	_append_polygon(packets,"rs:top-edge:"+shape.id,"structure_cap",raised_base,edge_color,false,maxf(0.8,1.0*scale))
 	var inset_x: float = 0.035 if shape.kind=="bulkhead" else 0.14
 	var inset_z: float = 0.035 if shape.kind=="bulkhead" else 0.10
 	var inset = _offset_points(_project_world(_rect_world(shape.x0+inset_x,shape.x1-inset_x,shape.z0+inset_z,shape.z1-inset_z),projection),relief_offset)
-	var inset_color: Color = Color("#3d5055") if shape.kind=="bulkhead" else Color("#4c5c5d")
+	var inset_color: Color = Color("#514d48") if shape.kind=="bulkhead" else Color("#54504a")
+	if shape.kind=="bulkhead" and shape.id=="north_bulkhead":
+		inset_color = Color("#3c3935")
 	_append_polygon(packets,"rs:inset:"+shape.id,"structure_recess",inset,inset_color,true)
 	var top_edge = _offset_points(_project_world([Vector2(shape.x0+inset_x,shape.z0+inset_z),Vector2(shape.x1-inset_x,shape.z0+inset_z)],projection),relief_offset)
-	_append_polygon(packets,"rs:key-edge:"+shape.id,"structure_cap",top_edge,Color(0.95,0.88,0.73,0.42),false,maxf(0.75,0.9*scale))
+	var key_edge_color: Color = Color(0.95,0.88,0.73,0.42) if shape.kind=="bulkhead" else Color(0.88,0.84,0.70,0.55)
+	_append_polygon(packets,"rs:key-edge:"+shape.id,"structure_cap",top_edge,key_edge_color,false,maxf(0.75,0.9*scale))
 	if shape.kind=="bulkhead":
 		_add_bulkhead_seams(packets,shape,projection,scale,relief_offset)
 	else:
@@ -217,19 +316,19 @@ func _add_island_recess(packets: Array, shape: Dictionary, projection, scale: fl
 	var z0: float = shape.z0+0.18
 	var z1: float = shape.z1-0.18
 	var panel = _offset_points(_project_world(_rect_world(x0,x1,z0,z1),projection),relief_offset)
-	var panel_color: Color = Color("#35494d") if shape.kind=="island_north" else Color("#3a4849")
+	var panel_color: Color = Color("#322f2c") if shape.kind=="island_north" else Color("#3b3935")
 	_append_polygon(packets,"rs:panel:"+shape.id,"structure_recess",panel,panel_color,true)
-	_append_polygon(packets,"rs:panel-rim:"+shape.id,"structure_cap",panel,Color(0.79,0.82,0.77,0.30),false,maxf(0.75,0.9*scale))
+	_append_polygon(packets,"rs:panel-rim:"+shape.id,"structure_cap",panel,Color(0.72,0.80,0.80,0.42),false,maxf(0.75,0.9*scale))
 	if shape.kind=="island_north":
 		var trim = _offset_points(_project_world([Vector2(x0,z0+0.035),Vector2(x1,z0+0.035)],projection),relief_offset)
-		_append_polygon(packets,"rs:static-info-trim:"+shape.id,"static_trim",trim,Color(0.35,0.84,0.91,0.34),false,maxf(0.8,1.0*scale))
+		_append_polygon(packets,"rs:static-info-trim:"+shape.id,"static_trim",trim,Color(0.40,0.78,0.84,0.48),false,maxf(0.8,1.0*scale))
 		var channel = _offset_points(_project_world([Vector2(x0+0.28,(z0+z1)*0.5),Vector2(x1-0.28,(z0+z1)*0.5)],projection),relief_offset)
-		_append_polygon(packets,"rs:service-channel:"+shape.id,"structure_seam",channel,Color(0.08,0.13,0.15,0.56),false,maxf(1.0,1.2*scale))
+		_append_polygon(packets,"rs:service-channel:"+shape.id,"structure_seam",channel,Color(0.025,0.06,0.08,0.78),false,maxf(1.0,1.2*scale))
 	else:
 		var channel_x: float = (x0+x1)*0.5
 		for offset in [-0.12,0.12]:
 			var channel = _offset_points(_project_world([Vector2(channel_x+offset,z0+0.03),Vector2(channel_x+offset,z1-0.03)],projection),relief_offset)
-			_append_polygon(packets,"rs:service-channel:"+shape.id+":"+str(offset),"structure_seam",channel,Color(0.08,0.13,0.15,0.52),false,maxf(0.8,1.0*scale))
+			_append_polygon(packets,"rs:service-channel:"+shape.id+":"+str(offset),"structure_seam",channel,Color(0.025,0.06,0.08,0.74),false,maxf(0.8,1.0*scale))
 
 func _add_structure_front(packets: Array, shape: Dictionary, projection, scale: float) -> void:
 	var world = _rect_world(shape.x0,shape.x1,shape.z0,shape.z1)
@@ -249,10 +348,11 @@ func _add_structure_front(packets: Array, shape: Dictionary, projection, scale: 
 		var face = PackedVector2Array([raised_base[front_index],raised_base[neighbor],base[neighbor],base[front_index]])
 		var suffix: String = str(edge_index)
 		var fade_group: String = "rs:front-fade:"+shape.id+":"+suffix
-		var face_color: Color = Color("#26343a") if shape.kind=="bulkhead" else Color("#303d40")
+		var face_color: Color = Color("#34322e") if shape.kind=="bulkhead" else Color("#383531")
 		_append_polygon(packets,"rs:front:"+shape.id+":"+suffix,"front_face",face,face_color,true,1.0,fade_group)
 		var lower = PackedVector2Array([base[neighbor],base[front_index]])
-		_append_polygon(packets,"rs:fascia:"+shape.id+":"+suffix,"front_face",lower,Color(0.87,0.84,0.75,0.30),false,maxf(0.75,0.9*scale),fade_group)
+		var fascia_color: Color = Color(0.87,0.84,0.75,0.30) if shape.kind=="bulkhead" else Color(0.66,0.76,0.78,0.42)
+		_append_polygon(packets,"rs:fascia:"+shape.id+":"+suffix,"front_face",lower,fascia_color,false,maxf(0.75,0.9*scale),fade_group)
 
 func _rect_world(x0: float, x1: float, z0: float, z1: float) -> Array:
 	return [Vector2(x0,z0),Vector2(x1,z0),Vector2(x1,z1),Vector2(x0,z1)]

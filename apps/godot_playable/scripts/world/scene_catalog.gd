@@ -10,7 +10,7 @@ func _init() -> void:
 		f.close()
 		if value is Dictionary and value.size()==30:
 			manifest = value
-func build(world: String, scene: String) -> bool:
+func build(world: String, scene: String, expected_hash: String = '') -> bool:
 	current.clear()
 	source_hash = ''
 	if not manifest.has(scene):
@@ -22,6 +22,29 @@ func build(world: String, scene: String) -> bool:
 		if not c in '0123456789abcdef':
 			return false
 	var pin: Dictionary = value
+	if world=='grey_hive' and scene=='gh_lockdown':
+		if expected_hash=='718489a1ea4ec4622ccdcefc8459a1dc1bd4f66ccf26abc813b6a06519197850':
+			pin={'path':'res://data/scene-variants/gh_lockdown_legacy.json','bytes':10081,'sha256':expected_hash}
+		elif expected_hash!='' and expected_hash!=value.sha256:
+			return false
+	elif world=='grey_hive' and scene=='gh_bio_isolation':
+		if expected_hash=='a3d629f04dc955cf0f8e644b54a4a64d054411a7d59a9fb15da5c9d9ea953aff':
+			pin={'path':'res://data/scene-variants/gh_bio_isolation_legacy.json','bytes':7071,'sha256':expected_hash}
+		elif expected_hash!='' and expected_hash!=value.sha256: return false
+	elif world=='grey_hive' and scene=='gh_deep_decon':
+		if expected_hash=='65e0cbf11183fe114259d680b0cd84a23a7f8619a25e628f4b30a7a84ce870a8':
+			pin={'path':'res://data/scene-variants/gh_deep_decon_legacy.json','bytes':9748,'sha256':expected_hash}
+		elif expected_hash!='' and expected_hash!=value.sha256: return false
+	elif world=='grey_hive' and scene=='gh_beacon':
+		if expected_hash=='3cab424771d10799ee82a453a72117affb0ebca09dd814f25308be70310da9ee':
+			pin={'path':'res://data/scene-variants/gh_beacon_legacy.json','bytes':5927,'sha256':expected_hash}
+		elif expected_hash!='' and expected_hash!=value.sha256: return false
+	elif world=='grey_hive' and scene=='gh_exit':
+		if expected_hash=='6ab262467e1992feac94f27d8bf571dcf77ddbc8c1693a79c57b3aeebff0c54c':
+			pin={'path':'res://data/scene-variants/gh_exit_legacy.json','bytes':5617,'sha256':expected_hash}
+		elif expected_hash!='' and expected_hash!=value.sha256: return false
+	elif expected_hash!='' and expected_hash!=value.sha256:
+		return false
 	var f = FileAccess.open(pin.path,FileAccess.READ)
 	if f == null or f.get_length()!=pin.bytes:
 		return false

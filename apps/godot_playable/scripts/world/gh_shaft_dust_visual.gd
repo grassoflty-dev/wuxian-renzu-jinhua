@@ -5,7 +5,8 @@ extends RefCounted
 # Stateless accepted native tick; reduced motion omits the entire dust layer.
 const P = preload('res://scripts/bridge/protocol.gd')
 const ProjectionScript = preload('res://scripts/world/projection.gd')
-const SCENE_SHA: String = '806ef2be417d59ab7041002cecfb26c1fc383db920157feb29c2669c343df5da'
+const SCENE_SHA: String = '6880bdf8dbab71a8bf74e38b8c614ad751e564cf87e8a2936ee801e52b72a832'
+const LEGACY_SCENE_SHA: String = '806ef2be417d59ab7041002cecfb26c1fc383db920157feb29c2669c343df5da'
 const PERIOD_TICKS: int = 720
 const RGB: Color = Color(183.0/255.0,197.0/255.0,188.0/255.0,1.0)
 const CENTERS: Array[Vector2] = [Vector2(3,2),Vector2(7,2),Vector2(12,2),Vector2(21,2),Vector2(3,8.25),Vector2(7,8.25),Vector2(12,8.25),Vector2(21,8.25),Vector2(3,13),Vector2(7,13),Vector2(12,13),Vector2(21,13)]
@@ -41,7 +42,7 @@ func _context(canvas: Variant, snapshot: Variant, scene: Variant, key: Variant, 
 		return false
 	if snapshot.worldId!='grey_hive' or snapshot.sceneId!='gh_central_shaft' or not P.counter(snapshot.worldEpoch,1):
 		return false
-	if typeof(key)!=TYPE_STRING or key!='grey_hive:gh_central_shaft:'+str(snapshot.worldEpoch) or scene_hash!=SCENE_SHA:
+	if typeof(key)!=TYPE_STRING or key!='grey_hive:gh_central_shaft:'+str(snapshot.worldEpoch) or scene_hash not in [SCENE_SHA,LEGACY_SCENE_SHA]:
 		return false
 	if not scene is Dictionary or scene.get('worldId')!='grey_hive' or scene.get('sceneId')!='gh_central_shaft':
 		return false

@@ -1,0 +1,37 @@
+{
+  "schema": "wuxian.gh-exit-sealed-barrier.internal-use/v1",
+  "approval": "INTERNAL_REGISTERED_SOURCE_REUSE",
+  "world": "grey_hive",
+  "scene": "gh_exit",
+  "sceneSha256": "6ab262467e1992feac94f27d8bf571dcf77ddbc8c1693a79c57b3aeebff0c54c",
+  "barrier": "exit_sealed_extraction_barrier",
+  "event": "hive_extraction",
+  "asset": "res://assets/props/return_station/bulkhead_tiles.png",
+  "assetBytes": 1673423,
+  "assetSha256": "c5a18cae9a3ddc95c8515f6b342cb7ca3be12c23ff502ab5b3f16000bb4c9a5b",
+  "canvas": [
+    1418,
+    1028
+  ],
+  "frame": [
+    0,
+    0,
+    355,
+    480
+  ],
+  "sourceFeet": [
+    [
+      50,
+      322
+    ],
+    [
+      300,
+      460
+    ]
+  ],
+  "modules": 15,
+  "groundX": 22,
+  "startZ": 0.5,
+  "cadence": 1,
+  "scope": "visualOnlyNoCollisionOrState"
+}

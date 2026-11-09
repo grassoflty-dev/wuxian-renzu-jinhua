@@ -38,6 +38,16 @@ var _definition_valid_by_scene: Dictionary = {}
 var _definition_by_scene: Dictionary = {}
 var _floor_texture: ImageTexture
 
+func cached_pressure_floor_texture() -> Texture2D:
+	if not _definition_valid_by_scene.get(SCENE_ID,false) or not is_instance_valid(_floor_texture):
+		return null
+	return _floor_texture
+
+func cached_furnace_floor_texture() -> Texture2D:
+	if not _definition_valid_by_scene.get(FURNACE_HEART_SCENE_ID,false) or not is_instance_valid(_floor_texture):
+		return null
+	return _floor_texture
+
 func is_definition_valid(value) -> bool:
 	if not value is Dictionary:
 		return false

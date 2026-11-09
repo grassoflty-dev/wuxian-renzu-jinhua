@@ -114,3 +114,96 @@ static func sentinel(s: Dictionary) -> Dictionary:
 	elif v.get('warning')!=null:
 		return {}
 	return v
+
+# Exact full-disc coverage of the selected lower-service support union. This
+# validates presentation only; it never grants movement or a visit.
+static func _shaft_service_disc_covered(x: float, z: float, radius: float) -> bool:
+	if not is_finite(x) or not is_finite(z) or not is_finite(radius) or radius <= 0.0: return false
+	var rects := [Rect2(1.5,5,18,9),Rect2(19.5,5.25,4,4),Rect2(23,6.5,3.25,3),Rect2(26,1,24,20)]
+	var xs: Array = [x-radius,x+radius]
+	var zs: Array = [z-radius,z+radius]
+	for rect: Rect2 in rects:
+		for edge in [rect.position.x,rect.end.x]:
+			if edge>x-radius and edge<x+radius: xs.append(edge)
+		for edge in [rect.position.y,rect.end.y]:
+			if edge>z-radius and edge<z+radius: zs.append(edge)
+	xs.sort(); zs.sort()
+	for i in range(xs.size()-1):
+		for j in range(zs.size()-1):
+			if xs[i] == xs[i+1] or zs[j] == zs[j+1]: continue
+			var midpoint := Vector2((xs[i]+xs[i+1])*0.5,(zs[j]+zs[j+1])*0.5)
+			var covered := false
+			for rect: Rect2 in rects:
+				if rect.has_point(midpoint): covered = true; break
+			if covered: continue
+			var dx: float = maxf(maxf(float(xs[i])-x,x-float(xs[i+1])),0.0)
+			var dz: float = maxf(maxf(float(zs[j])-z,z-float(zs[j+1])),0.0)
+			if dx*dx+dz*dz<radius*radius: return false
+	return true
+# Shaft-only snapshot view: geometry remains authored; gates come from authority.
+static func shaft_lift_view(v, s: Dictionary, scene: Dictionary, scene_hash: String) -> Dictionary:
+	if not P.snapshot(s) or s.worldId!='grey_hive' or s.sceneId!='gh_central_shaft' or scene.get('worldId')!=s.worldId or scene.get('sceneId')!=s.sceneId or not v is Dictionary or v.size()!=13 or not P.counter(v.get('schemaVersion'),1,1) or not P.context(v) or not P.same(v,s): return {}
+	if not P.counter(v.get('serverTick')) or not P.counter(v.get('authorityRevision')) or v.serverTick!=s.serverTick or v.authorityRevision!=s.authorityRevision or typeof(scene_hash)!=TYPE_STRING or scene_hash.is_empty() or v.get('sceneSourceSha256')!=scene_hash: return {}
+	if not P.counter(v.get('serverTimeMs')) or not P.counter(s.get('serverTimeMs')) or v.serverTimeMs!=s.serverTimeMs: return {}
+	var service=s.get('shaftLowerService')
+	var service_ok: bool = service is Dictionary and service.size()==2 and service.get('recipeVersion')==2 and service.get('sceneSourceSha256')=='6880bdf8dbab71a8bf74e38b8c614ad751e564cf87e8a2936ee801e52b72a832' and scene_hash==service.get('sceneSourceSha256')
+	if service!=null and not service_ok: return {}
+	var frame=s.get('supportScene')
+	if not frame is Dictionary or not P.counter(frame.get('schemaVersion'),1,1) or not P.context(frame) or not P.same(frame,s) or frame.get('serverTick')!=s.serverTick or frame.get('authorityRevision')!=s.authorityRevision or frame.get('serverTimeMs')!=v.serverTimeMs or frame.get('sceneSourceSha256')!=scene_hash or not P.rows(frame.get('poses'),1) or frame.poses.size()!=1: return {}
+	var pose=v.get('pose')
+	if not pose is Dictionary or pose!=frame.poses[0] or pose.get('supportId')!='gh_shaft_two_stop_lift' or not pose.get('phase') in ['lower_hold','rising','upper_hold','falling'] or not P.number(pose.get('heightM'),-4,0) or not P.number(pose.get('velocityMps'),-1,1) or not P.counter(pose.get('phaseElapsedMs')): return {}
+	var elapsed: float = float(pose.phaseElapsedMs)
+	var expected_height: float = 0.0
+	var expected_velocity: float = 0.0
+	if pose.phase=='lower_hold':
+		if elapsed>=2000: return {}
+		expected_height=-4.0
+	elif pose.phase=='upper_hold':
+		if elapsed>=2000: return {}
+	else:
+		if elapsed>=4000: return {}
+		if pose.phase=='rising':
+			expected_height=-4.0+4.0*elapsed/4000.0
+			expected_velocity=1.0
+		else:
+			expected_height=-4.0*elapsed/4000.0
+			expected_velocity=-1.0
+	if absf(float(pose.heightM)-expected_height)>0.0001 or not (float(pose.velocityMps)==expected_velocity or expected_velocity!=0.0 and float(pose.velocityMps)==0.0): return {}
+	for field in ['upperGateOpen','lowerGateOpen','cabinGateOpen','legacyFloorActive']:
+		if typeof(v.get(field))!=TYPE_BOOL: return {}
+	if v.upperGateOpen!=(pose.phase=='upper_hold') or v.lowerGateOpen!=(pose.phase=='lower_hold') or v.cabinGateOpen!=(v.upperGateOpen or v.lowerGateOpen): return {}
+	var supports=scene.get('movingSupports')
+	if not P.rows(supports,64) or not P.unique(supports,'id'): return {}
+	var matching: Array = supports.filter(func(row): return row.get('id')==pose.supportId)
+	if matching.size()!=1: return {}
+	var source: Dictionary = matching[0]
+	if not P.number(source.get('lowerM'),-4,-4) or not P.number(source.get('upperM'),0,0) or not P.counter(source.get('travelMs'),4000,4000) or not P.counter(source.get('endpointHoldMs'),2000,2000): return {}
+	var poly=source.get('polygon')
+	if not poly is Array or poly.size()!=4: return {}
+	for point in poly:
+		if not point is Array or point.size()!=2 or not P.number(point[0]) or not P.number(point[1]): return {}
+	if float(poly[0][0])!=1.5 or float(poly[0][1])!=1.0 or float(poly[1][0])!=5.5 or float(poly[1][1])!=1.0 or float(poly[2][0])!=5.5 or float(poly[2][1])!=5.0 or float(poly[3][0])!=1.5 or float(poly[3][1])!=5.0: return {}
+	var rider=frame.get('rider')
+	if not rider is Dictionary or not P.point(rider.get('positionM')) or not P.number(rider.get('radiusM'),0.001,4) or not rider.get('mode') in ['surface','floor','airborne','traversal']: return {}
+	var position: Vector3 = P.vector(rider.positionM)
+	if position.distance_to(P.vector(s.player.transform.positionM))>0.0001: return {}
+	var radius=float(rider.radiusM)
+	if rider.mode=='surface':
+		if rider.get('supportId')!=pose.supportId or absf(position.y-float(pose.heightM))>0.0001 or position.x-radius<1.5 or position.x+radius>5.5 or position.z-radius<1.0 or position.z+radius>5.0: return {}
+	elif rider.get('supportId')!=null: return {}
+	if rider.mode=='floor':
+		if absf(position.y+4.0)<0.0001:
+			var lower_floor = position.x-radius>=1.5 and position.x+radius<=19.5 and position.z-radius>=5.0 and position.z+radius<=14.0
+			var docked_union = pose.phase=='lower_hold' and position.x-radius>=1.5 and position.x+radius<=5.5 and position.z-radius>=1.0 and position.z+radius<=14.0
+			if not lower_floor and not docked_union and not (service_ok and _shaft_service_disc_covered(position.x,position.z,radius)): return {}
+		elif absf(position.y)<0.0001:
+			var overlaps_well = position.x+radius>1.5 and position.x-radius<5.5 and position.z+radius>1.0 and position.z-radius<5.0
+			if overlaps_well and not v.legacyFloorActive and pose.phase!='upper_hold': return {}
+		else: return {}
+	elif v.legacyFloorActive: return {}
+	return {'pose':pose,'anchor':Vector2((float(poly[0][0])+float(poly[2][0]))*0.5,(float(poly[0][1])+float(poly[2][1]))*0.5),'upperGateOpen':v.upperGateOpen,'lowerGateOpen':v.lowerGateOpen,'cabinGateOpen':v.cabinGateOpen,'legacyFloorActive':v.legacyFloorActive,'rider':rider}
+
+static func shaft_cabin(v, s: Dictionary, scene: Dictionary, scene_hash: String) -> Dictionary:
+	var view=shaft_lift_view(s.get('shaftLift'),s,scene,scene_hash)
+	if view.is_empty() or v!=s.get('supportScene') or view.rider.mode!='surface': return {}
+	return view

@@ -1,4 +1,5 @@
 extends RefCounted
+const BulkheadAtlasTexture = preload('res://scripts/world/bulkhead_atlas_texture.gd')
 
 const P = preload('res://scripts/bridge/protocol.gd')
 const MAPPING_RESOURCE = 'res://data/gh_entry_wall_modules.internal-use.json'
@@ -68,6 +69,10 @@ func build_packets(snapshot, scene_data, current_key, projection) -> Array:
 	if module_texture == null:
 		return []
 	var packets: Array = []
+	var source_axis: Vector2 = FOOT_B - FOOT_A
+	var source_length: float = source_axis.length()
+	var source_angle: float = source_axis.angle()
+	var expected_step: float = float(projection.get('ppm')) * sqrt(1.25)
 	for run in RUNS:
 		var run_length: float = run.start.distance_to(run.end)
 		if not is_finite(run_length) or run_length <= 0.0 or not is_equal_approx(run_length, roundf(run_length)):
@@ -76,24 +81,21 @@ func build_packets(snapshot, scene_data, current_key, projection) -> Array:
 		if count > MAX_MODULES or packets.size() + count > MAX_MODULES:
 			return []
 		var direction: Vector3 = (run.end - run.start).normalized()
+		var reflected: bool = run.axis == 'z'
+		var reflected_source_angle: float = PI - source_angle if reflected else source_angle
 		for index in range(count):
 			var world_start: Vector3 = run.start + direction * float(index)
 			var world_end: Vector3 = run.start + direction * float(index + 1)
 			var screen_start: Vector2 = projection.project(world_start)
 			var screen_end: Vector2 = projection.project(world_end)
 			var screen_axis: Vector2 = screen_end - screen_start
-			var source_axis: Vector2 = FOOT_B - FOOT_A
-			var ratio: float = screen_axis.length() / source_axis.length()
-			var reflected: bool = run.axis == 'z'
+			var ratio: float = screen_axis.length() / source_length
 			var target_angle: float = screen_axis.angle()
-			var source_angle: float = source_axis.angle()
-			var reflected_source_angle: float = PI - source_angle if reflected else source_angle
 			var rotation: float = target_angle - reflected_source_angle
 			var transform_scale: Vector2 = Vector2(-ratio, ratio) if reflected else Vector2(ratio, ratio)
 			var transform_origin: Vector2 = screen_start - _source_to_screen(FOOT_A, rotation, transform_scale)
 			var endpoint_check: Vector2 = transform_origin + _source_to_screen(FOOT_B, rotation, transform_scale)
 			var painted_rect: Rect2 = _transformed_bounds(transform_origin, rotation, transform_scale, PAINTED_BOUNDS)
-			var expected_step: float = float(projection.get('ppm')) * sqrt(1.25)
 			if not _finite_vector2(screen_start) or not _finite_vector2(screen_end) or not _finite_vector2(transform_origin) or not is_finite(ratio) or ratio <= 0.0 or absf(endpoint_check.distance_to(screen_end)) > 0.01 or absf(screen_axis.length() - expected_step) > 0.01:
 				return []
 			if not _valid_rect(painted_rect) or maxf(painted_rect.size.x, painted_rect.size.y) > MAX_EXTENT_PX_AT_48 * (float(projection.get('ppm')) / 48.0) + 0.01:
@@ -287,7 +289,7 @@ func _load_once() -> void:
 		return
 	if image.get_pixel(int(FOOT_A.x), int(FOOT_A.y)).a <= 0.0 or image.get_pixel(int(FOOT_B.x), int(FOOT_B.y)).a <= 0.0:
 		return
-	module_texture = ImageTexture.create_from_image(image)
+	module_texture = BulkheadAtlasTexture.acquire(image, MODULE_TEXTURE_PATH, MODULE_BYTES, MODULE_SHA256)
 
 func _valid_manifest(value) -> bool:
 	if not value is Dictionary or not _keys_are(value, ['schema','registeredSourceReuse','approval','GodotDisplay','publicRelease','sourceAsset','asset','installation']):

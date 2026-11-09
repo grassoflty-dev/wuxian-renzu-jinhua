@@ -1,4 +1,5 @@
 extends RefCounted
+const BulkheadAtlasTexture = preload('res://scripts/world/bulkhead_atlas_texture.gd')
 
 const P = preload('res://scripts/bridge/protocol.gd')
 const ProjectionScript = preload('res://scripts/world/projection.gd')
@@ -249,7 +250,7 @@ func _load_assets() -> bool:
 	if pipe_cutout == null or clutter_cutout == null:
 		return false
 	_floor_texture = ImageTexture.create_from_image(floor_image)
-	_wall_texture = ImageTexture.create_from_image(wall_image)
+	_wall_texture = BulkheadAtlasTexture.acquire(wall_image, wall_entry.path, int(wall_entry.bytes), wall_entry.sha256)
 	_pipe_texture = ImageTexture.create_from_image(pipe_cutout)
 	_clutter_texture = ImageTexture.create_from_image(clutter_cutout)
 	return _texture_size(_floor_texture, Vector2i(1434,980)) and _texture_size(_wall_texture, Vector2i(1418,1028)) and _texture_size(_pipe_texture, Vector2i(388,270)) and _texture_size(_clutter_texture, Vector2i(347,287))
@@ -428,26 +429,26 @@ func _numbers_to_vector3(value: Variant) -> Vector3:
 		return Vector3(INF,INF,INF)
 	return Vector3(float(value[0]),float(value[1]),float(value[2]))
 
-func draw_floor(canvas: CanvasItem, snapshot: Dictionary, scene: Dictionary, current_key: String, projection: Variant, viewport: Rect2) -> bool:
+func prepare_floor(canvas: CanvasItem, snapshot: Dictionary, scene: Dictionary, current_key: String, projection: Variant, viewport: Rect2) -> Variant:
 	if not _valid_context(snapshot,scene,current_key) or not _valid_canvas(canvas) or not _valid_projection(projection,viewport) or not _texture_size(_floor_texture,Vector2i(1434,980)):
-		return false
+		return null
 	var floor_entry: Dictionary = _definition.get('floor',{})
 	var selection: Dictionary = floor_entry.get('selection',{})
 	var pixel_corners_variant: Variant = selection.get('pixelCenterCorners')
 	if not pixel_corners_variant is Array or pixel_corners_variant.size() != 4:
-		return false
+		return null
 	var pixel_corners: Array[Vector2] = []
 	for corner_variant in pixel_corners_variant:
 		var corner: Vector2 = _numbers_to_vector2(corner_variant)
 		if not _finite_point(corner):
-			return false
+			return null
 		pixel_corners.append(corner)
 	var canvas_size: Vector2i = _vector2i_from_array(floor_entry.get('canvas'))
 	var uvs: PackedVector2Array = PackedVector2Array()
 	for pixel_corner in pixel_corners:
 		uvs.append((pixel_corner + Vector2(0.5,0.5)) / Vector2(float(canvas_size.x),float(canvas_size.y)))
 	if uvs.size() != 4 or not _finite_points(uvs):
-		return false
+		return null
 	var patches: Array[PackedVector2Array] = []
 	var patch_bounds: Array[Rect2] = []
 	for row in range(8):
@@ -459,109 +460,109 @@ func draw_floor(canvas: CanvasItem, snapshot: Dictionary, scene: Dictionary, cur
 			for world_point in world_points:
 				var screen_point: Vector2 = _project(projection,world_point)
 				if not _finite_point(screen_point):
-					return false
+					return null
 				points.append(screen_point)
 			var bounds: Rect2 = _points_bounds(points)
 			if points.size() != 4 or not _valid_rect(bounds):
-				return false
+				return null
 			patches.append(points)
 			patch_bounds.append(bounds)
 	if patches.size() != 96:
-		return false
+		return null
 	var wash_points: PackedVector2Array = _ellipse_points(projection,Vector3(12,0,8),Vector2(10,7),32)
 	if wash_points.size() != 32 or not _finite_points(wash_points) or not _valid_rect(_points_bounds(wash_points)):
-		return false
-	var tint: Color = Color(0.56,0.60,0.58,1.0)
-	var colors: PackedColorArray = PackedColorArray([tint,tint,tint,tint])
-	for i in range(patches.size()):
-		if patch_bounds[i].intersects(viewport):
-			canvas.draw_polygon(patches[i],colors,uvs,_floor_texture)
+		return null
+	return {'patches':patches,'bounds':patch_bounds,'uvs':uvs,'wash':wash_points}
+
+func draw_floor(canvas: CanvasItem, snapshot: Dictionary, scene: Dictionary, current_key: String, projection: Variant, viewport: Rect2, suppress_static: bool = false) -> bool:
+	var plan = prepare_floor(canvas,snapshot,scene,current_key,projection,viewport)
+	if not plan is Dictionary or plan.is_empty(): return false
+	if not suppress_static:
+		var tint: Color = Color(0.56,0.60,0.58,1.0)
+		var colors: PackedColorArray = PackedColorArray([tint,tint,tint,tint])
+		for i in range(plan.patches.size()):
+			if plan.bounds[i].intersects(viewport): canvas.draw_polygon(plan.patches[i],colors,plan.uvs,_floor_texture)
 	var ambient_color: Color = Color.from_string('#77918b',Color.WHITE)
 	ambient_color.a = 0.018
-	if _rect_intersects(viewport,_points_bounds(wash_points)):
-		canvas.draw_colored_polygon(wash_points,ambient_color)
+	if _rect_intersects(viewport,_points_bounds(plan.wash)): canvas.draw_colored_polygon(plan.wash,ambient_color)
 	return true
 
-func draw_wall(canvas: CanvasItem, snapshot: Dictionary, scene: Dictionary, current_key: String, wall: Dictionary, projection: Variant, viewport: Rect2) -> bool:
+func prepare_wall(canvas: CanvasItem, snapshot: Dictionary, scene: Dictionary, current_key: String, wall: Dictionary, projection: Variant, viewport: Rect2) -> Variant:
 	if not _valid_context(snapshot,scene,current_key) or not _valid_canvas(canvas) or not _valid_projection(projection,viewport):
-		return false
+		return null
 	var id_variant: Variant = wall.get('id')
 	if typeof(id_variant) != TYPE_STRING or not EXTERIOR_IDS.has(id_variant):
-		return false
+		return null
 	var matched_count: int = 0
 	var canonical_wall: Dictionary = {}
 	for wall_variant in _canonical_scene.get('collision',[]):
 		if not wall_variant is Dictionary:
-			return false
+			return null
 		var candidate: Dictionary = wall_variant
 		if candidate.get('id') == id_variant:
 			matched_count += 1
 			canonical_wall = candidate
 	if matched_count != 1 or not _deep_equal(wall,canonical_wall):
-		return false
+		return null
 	var cutaway: Dictionary = _definition.get('cutaway',{})
 	var height_variant: Variant = cutaway.get('exteriorHeightM')
 	if not P.number(height_variant,0.0,1.0):
-		return false
+		return null
 	var height: float = float(height_variant)
 	if id_variant == 'exit_wall_north':
-		return _draw_north_wall(canvas,projection,viewport,canonical_wall,height)
+		return _prepare_north_wall(canvas,projection,viewport,canonical_wall,height)
 	if not LOW_WALLS.has(id_variant):
-		return false
+		return null
 	var descriptor: Dictionary = LOW_WALLS[id_variant]
 	var inner_a: Vector2 = _numbers_to_vector2(descriptor.get('inner_a'))
 	var inner_b: Vector2 = _numbers_to_vector2(descriptor.get('inner_b'))
 	var outer_a: Vector2 = _numbers_to_vector2(descriptor.get('outer_a'))
 	var outer_b: Vector2 = _numbers_to_vector2(descriptor.get('outer_b'))
 	if not _finite_point(inner_a) or not _finite_point(inner_b) or not _finite_point(outer_a) or not _finite_point(outer_b):
-		return false
+		return null
 	var contact: PackedVector2Array = _project_xz_polygon(projection,descriptor.get('contact'),0.0)
 	var cap: PackedVector2Array = _project_xz_polygon(projection,canonical_wall.get('polygon'),height)
 	var inside_face: PackedVector2Array = _project_vertical_face(projection,inner_a,inner_b,height)
 	var outside_face: PackedVector2Array = _project_vertical_face(projection,outer_a,outer_b,height)
 	if contact.size() != 4 or cap.size() != 4 or inside_face.size() != 4 or outside_face.size() != 4 or not _finite_points(contact) or not _finite_points(cap) or not _finite_points(inside_face) or not _finite_points(outside_face):
-		return false
+		return null
 	var contact_color: Color = Color(0.025,0.035,0.038,float(cutaway.get('contactAlpha',0.1)))
 	var face_key: String = 'faceX' if descriptor.get('axis') == 'x' else 'faceZ'
 	var face_color: Color = Color.from_string(str(cutaway.get(face_key,'')),Color('#34433d'))
 	var cap_color: Color = Color.from_string(str(cutaway.get('cap','')),Color('#64716e'))
-	canvas.draw_colored_polygon(contact,contact_color)
-	canvas.draw_colored_polygon(outside_face,face_color)
-	canvas.draw_colored_polygon(inside_face,face_color)
-	canvas.draw_colored_polygon(cap,cap_color)
-	return true
+	return {'kind':'low','contact':contact,'outside':outside_face,'inside':inside_face,'cap':cap,'contact_color':contact_color,'face_color':face_color,'cap_color':cap_color}
 
-func _draw_north_wall(canvas: CanvasItem, projection: Variant, viewport: Rect2, wall: Dictionary, height: float) -> bool:
+func _prepare_north_wall(canvas: CanvasItem, projection: Variant, viewport: Rect2, wall: Dictionary, height: float) -> Variant:
 	if not _texture_size(_wall_texture,Vector2i(1418,1028)) or wall.get('id') != 'exit_wall_north':
-		return false
+		return null
 	var wall_entry: Dictionary = _definition.get('wall',{})
 	var run_list_variant: Variant = wall_entry.get('texturedRuns')
 	var frame_variant: Variant = wall_entry.get('frame')
 	var feet_variant: Variant = wall_entry.get('groundFeetPx')
 	var paint_variant: Variant = wall_entry.get('paintedBounds')
 	if not run_list_variant is Array or run_list_variant.size() != 1 or not frame_variant is Array or not feet_variant is Array or feet_variant.size() != 2 or not paint_variant is Array:
-		return false
+		return null
 	var run_variant: Variant = run_list_variant[0]
 	if not run_variant is Dictionary:
-		return false
+		return null
 	var run: Dictionary = run_variant
 	if run.get('id') != 'north' or run.get('collisionId') != 'exit_wall_north' or not P.counter(run.get('count'),24,24) or not P.number(run.get('cadenceM'),1.0,1.0):
-		return false
+		return null
 	var start_variant: Variant = run.get('startM')
 	var end_variant: Variant = run.get('endM')
 	var start: Vector3 = _numbers_to_vector3(start_variant)
 	var end: Vector3 = _numbers_to_vector3(end_variant)
 	if not _finite_point3(start) or not _finite_point3(end) or start != Vector3(0,0,0.25) or end != Vector3(24,0,0.25):
-		return false
+		return null
 	var source_rect_i: Rect2i = _rect2i_from_array(frame_variant)
 	var painted_rect_i: Rect2i = _rect2i_from_array(paint_variant)
 	var foot_a: Vector2 = _numbers_to_vector2(feet_variant[0])
 	var foot_b: Vector2 = _numbers_to_vector2(feet_variant[1])
 	if source_rect_i != Rect2i(0,0,355,480) or painted_rect_i != Rect2i(41,6,299,457) or not _finite_point(foot_a) or not _finite_point(foot_b):
-		return false
+		return null
 	var source_axis: Vector2 = foot_b-foot_a
 	if source_axis.length() <= 0.0 or not is_finite(source_axis.length()):
-		return false
+		return null
 	var modules: Array[Dictionary] = []
 	for i in range(24):
 		var world_a: Vector3 = start + Vector3(float(i),0,0)
@@ -570,7 +571,7 @@ func _draw_north_wall(canvas: CanvasItem, projection: Variant, viewport: Rect2, 
 		var screen_b: Vector2 = _project(projection,world_b)
 		var screen_axis: Vector2 = screen_b-screen_a
 		if not _finite_point(screen_a) or not _finite_point(screen_b) or not is_finite(screen_axis.length()) or screen_axis.length() <= 0.0:
-			return false
+			return null
 		var scale: float = screen_axis.length()/source_axis.length()
 		var rotation: float = screen_axis.angle()-source_axis.angle()
 		var origin: Vector2 = screen_a-foot_a.rotated(rotation)*scale
@@ -578,26 +579,53 @@ func _draw_north_wall(canvas: CanvasItem, projection: Variant, viewport: Rect2, 
 		var bounds: Rect2 = _transformed_bounds(origin,rotation,Vector2(scale,scale),Rect2(Vector2(painted_rect_i.position),Vector2(painted_rect_i.size)))
 		var max_extent: float = float(wall_entry.get('maxExtentPxAt48',96))*float(projection.get('ppm'))/48.0
 		if not _finite_point(origin) or not _finite_point(endpoint) or endpoint.distance_to(screen_b) > 0.01 or not _valid_rect(bounds) or maxf(bounds.size.x,bounds.size.y) > max_extent+0.01:
-			return false
+			return null
 		modules.append({'origin':origin,'rotation':rotation,'scale':scale,'bounds':bounds})
 	if modules.size() != 24:
-		return false
+		return null
 	var base: PackedVector2Array = _project_xz_polygon(projection,wall.get('polygon'),0.0)
 	var contact: PackedVector2Array = _project_xz_polygon(projection,[[0,0.5],[24,0.5],[24,0.45],[0,0.45]],0.0)
 	if base.size() != 4 or contact.size() != 4 or not _finite_points(base) or not _finite_points(contact):
-		return false
+		return null
 	var tint_array: Variant = wall_entry.get('tint')
 	if not _numbers_equal(tint_array,[0.62,0.68,0.66,1]):
-		return false
+		return null
 	var tint: Color = Color(0.62,0.68,0.66,1.0)
 	var frame: Rect2 = Rect2(Vector2.ZERO,Vector2(float(source_rect_i.size.x),float(source_rect_i.size.y)))
-	canvas.draw_colored_polygon(base,Color('#34433d'))
-	canvas.draw_colored_polygon(contact,Color(0.025,0.035,0.038,0.1))
-	for module in modules:
-		canvas.draw_set_transform(module.get('origin'),float(module.get('rotation')),Vector2(float(module.get('scale')),float(module.get('scale'))))
-		canvas.draw_texture_rect_region(_wall_texture,frame,frame,tint,false,true)
-		canvas.draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
+	return {'kind':'north','base':base,'contact':contact,'modules':modules,'frame':frame,'tint':tint}
+
+func draw_wall(canvas: CanvasItem, snapshot: Dictionary, scene: Dictionary, current_key: String, wall: Dictionary, projection: Variant, viewport: Rect2) -> bool:
+	var plan = prepare_wall(canvas,snapshot,scene,current_key,wall,projection,viewport)
+	if not plan is Dictionary or plan.is_empty(): return false
+	if plan.kind=='north':
+		canvas.draw_colored_polygon(plan.base,Color('#34433d'))
+		canvas.draw_colored_polygon(plan.contact,Color(0.025,0.035,0.038,0.1))
+		for module in plan.modules:
+			canvas.draw_set_transform(module.origin,float(module.rotation),Vector2(float(module.scale),float(module.scale)))
+			canvas.draw_texture_rect_region(_wall_texture,plan.frame,plan.frame,plan.tint,false,true)
+			canvas.draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
+	else:
+		canvas.draw_colored_polygon(plan.contact,plan.contact_color)
+		canvas.draw_colored_polygon(plan.outside,plan.face_color)
+		canvas.draw_colored_polygon(plan.inside,plan.face_color)
+		canvas.draw_colored_polygon(plan.cap,plan.cap_color)
 	return true
+
+func whole_static_ready(canvas: CanvasItem, snapshot: Dictionary, scene: Dictionary, current_key: String, projection: Variant, viewport: Rect2) -> bool:
+	var floor_plan = prepare_floor(canvas,snapshot,scene,current_key,projection,viewport)
+	if not floor_plan is Dictionary or floor_plan.is_empty(): return false
+	var collision = scene.get('collision')
+	if not collision is Array: return false
+	var seen: Dictionary = {}
+	for wall in collision:
+		if not wall is Dictionary: return false
+		var id = wall.get('id')
+		if not EXTERIOR_IDS.has(id): continue
+		if seen.has(id): return false
+		var plan = prepare_wall(canvas,snapshot,scene,current_key,wall,projection,viewport)
+		if not plan is Dictionary or plan.is_empty(): return false
+		seen[id] = true
+	return seen.size()==6
 
 func _valid_context(snapshot: Dictionary, scene: Dictionary, current_key: String) -> bool:
 	return _current_ready and _prepared_key == current_key and _definitions_loaded and _assets_ready and _basic_context(snapshot,scene,current_key) and _deep_equal(scene,_canonical_scene)
@@ -808,3 +836,62 @@ func draw_dressing(canvas: CanvasItem, packet_value: Variant, snapshot: Dictiona
 	canvas.draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
 	return true
 
+func draw_body_grounding(canvas: CanvasItem, body_ids_value: Variant, snapshot: Dictionary, scene: Dictionary, current_key: String, projection: Variant, viewport: Rect2) -> bool:
+	if not _valid_canvas(canvas) or not _valid_context(snapshot,scene,current_key) or not _valid_projection(projection,viewport) or not body_ids_value is Array:
+		return false
+	var body_ids: Array = body_ids_value
+	if body_ids.is_empty() or body_ids.size()>2:
+		return false
+	var presentation_value: Variant = _canonical_scene.get('presentation')
+	if not presentation_value is Dictionary:
+		return false
+	var sprite_rows: Variant = presentation_value.get('sprites')
+	if not P.rows(sprite_rows,2048):
+		return false
+	var rows_by_id: Dictionary = {}
+	var counts: Dictionary = {}
+	for row_value: Variant in sprite_rows:
+		if not row_value is Dictionary:
+			return false
+		var row: Dictionary = row_value
+		var row_id: Variant = row.get('id')
+		if typeof(row_id) != TYPE_STRING:
+			return false
+		if row_id in ['exit_extraction_console_approved','exit_console_crates']:
+			counts[row_id] = int(counts.get(row_id,0))+1
+			rows_by_id[row_id] = row
+	var seen: Dictionary = {}
+	var commands: Array[PackedVector2Array] = []
+	var visible: Array[bool] = []
+	for body_id_value: Variant in body_ids:
+		if typeof(body_id_value) != TYPE_STRING or not body_id_value in ['exit_extraction_console_approved','exit_console_crates'] or seen.has(body_id_value):
+			return false
+		seen[body_id_value] = true
+		if counts.get(body_id_value,0) != 1:
+			return false
+		var row_value: Variant = rows_by_id.get(body_id_value)
+		var row: Dictionary = row_value
+		var center: Vector3 = Vector3(8,0,8) if body_id_value == 'exit_extraction_console_approved' else Vector3(18,0,11.5)
+		var radii: Vector2 = Vector2(0.40,0.22) if body_id_value == 'exit_extraction_console_approved' else Vector2(0.30,0.18)
+		if body_id_value == 'exit_extraction_console_approved':
+			if not matches_authored_row(row,'terminal'):
+				return false
+		else:
+			var crate_definition_value: Variant = _definition.get('crate')
+			if not crate_definition_value is Dictionary:
+				return false
+			var crate_definition: Dictionary = crate_definition_value
+			if row.get('id') != crate_definition.get('rowId') or row.get('assetId') != crate_definition.get('assetId') or row.get('layer') != crate_definition.get('layer') or not _numbers_equal(row.get('position'),crate_definition.get('positionM')):
+				return false
+		var points: PackedVector2Array = _ellipse_points(projection,center,radii,SHADOW_STEPS)
+		var bounds: Rect2 = _points_bounds(points)
+		if points.size() != SHADOW_STEPS or not _finite_points(points) or not _valid_rect(bounds):
+			return false
+		commands.append(points)
+		visible.append(_rect_intersects(viewport,bounds))
+	var drew: bool = false
+	for index in commands.size():
+		if visible[index]:
+			canvas.draw_colored_polygon(commands[index],Color(0.025,0.035,0.038,0.16))
+			drew = true
+	return drew

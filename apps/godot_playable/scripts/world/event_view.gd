@@ -116,6 +116,7 @@ func _authorized(e: Dictionary, s: Dictionary, renderer) -> bool:
 		if e.get('attackKind')=='tide_swing' and not P.number(e.get('halfAngleRad'),0.001,PI):
 			return false
 		if actor.entityType=='enemy.mist_harbor.signal_wraith':
+			if actor.get('signalOnly',false)==true: return false
 			if V.signal_positions(actor,s).is_empty() or not actor.signalPerception.precise:
 				return false
 		if e.kind in ['EnemyMemberHit','EnemyMemberDisperse']:
@@ -163,15 +164,26 @@ func project(s: Dictionary, renderer, eligible: bool) -> Array:
 		accept([],s,renderer)
 	var now = Time.get_ticks_msec()
 	active = active.filter(func(e): return e.worldEpoch==s.worldEpoch and maxf((s.serverTick-e.serverTick)*1000.0/60,e._initial_age+now-e._accepted)<e._duration and _authorized(e,s,renderer))
-	if not sound.is_empty() and (now>=sound.get('_until',0) or not V.mapping(s)):
+	if not sound.is_empty() and not sound_current(sound,s,now):
 		sound.clear()
 	previous_visible.clear()
 	for a in s.actors:
 		if a.active and renderer.actor_visible(a.entityId):
 			previous_visible[a.entityId] = true
 	return active
+# Read-only shared fence for accepted cues, evaluated again at draw time.
+static func sound_current(e, s: Dictionary, now: int) -> bool:
+	if not P.snapshot(s) or not e is Dictionary or not P.context(e) or not P.same(e,s) or not V.mapping(s): return false
+	if s.get('entryToken')!=null or s.get('exitEntryPreview')==true or s.get('shaftServiceEntryPreview')==true: return false
+	if not P.counter(e.get('protocolVersion'),1,1) or not P.counter(e.get('eventId'),1) or not P.counter(e.get('serverTick')) or e.serverTick>s.serverTick: return false
+	if not e.get('kind') in ['signal_ping','warden_true_call'] or not P.number(e.get('directionRad'),-PI,PI) or not P.number(e.get('distanceM'),0,10000): return false
+	if e.kind=='warden_true_call' and (s.worldId!='mist_harbor' or s.sceneId!='mh_warden_arena'): return false
+	if not P.counter(e.get('_accepted')) or not P.number(e.get('_initial_age'),0,2400) or not P.counter(now) or now<int(e._accepted): return false
+	var tick_age: float=(s.serverTick-e.serverTick)*1000.0/60.0
+	return maxf(tick_age,float(e._initial_age)+float(now-int(e._accepted)))<2400.0
+
 func accept_sound(rows, s: Dictionary) -> void:
-	if not P.rows(rows,2048):
+	if not P.snapshot(s) or not P.rows(rows,2048):
 		return
 	var seed_only = not sound_seeded
 	for e in rows:
@@ -183,10 +195,13 @@ func accept_sound(rows, s: Dictionary) -> void:
 		sound_cursor = int(e.eventId)
 		if seed_only or not V.mapping(s) or e.get('worldId')!=s.worldId or e.get('sceneId')!=s.sceneId or not e.get('kind') in ['signal_ping','warden_true_call'] or not P.number(e.get('directionRad'),-PI,PI) or not P.number(e.get('distanceM'),0,10000) or e.kind=='warden_true_call' and (s.worldId!='mist_harbor' or s.sceneId!='mh_warden_arena'):
 			continue
-		sound = e.duplicate(true)
-		sound['_until'] = Time.get_ticks_msec()+2400
+		var initial_age: float=(s.serverTick-e.serverTick)*1000.0/60.0
+		if initial_age<0.0 or initial_age>=2400.0: continue
+		var item: Dictionary=e.duplicate(true)
+		item['_accepted']=Time.get_ticks_msec()
+		item['_initial_age']=initial_age
+		if sound_current(item,s,int(item._accepted)): sound=item
 	sound_seeded = true
-
 func _enemy_source(a: Dictionary, s: Dictionary) -> bool:
 	match a.entityType:
 		'enemy.clockworks.pressure_drone','enemy.clockworks.furnace_hound':
@@ -201,5 +216,5 @@ func _enemy_source(a: Dictionary, s: Dictionary) -> bool:
 				if s.worldId=='mist_harbor' and a.entityId==s.sceneId+'_tidebound_0'+str(n+1):
 					return true
 		'enemy.mist_harbor.signal_wraith':
-			return not V.signal_positions(a,s).is_empty()
+			return a.get('signalOnly',false)!=true and not V.signal_positions(a,s).is_empty()
 	return false

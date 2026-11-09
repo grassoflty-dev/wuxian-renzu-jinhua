@@ -1,5 +1,6 @@
 extends RefCounted
 const P = preload('res://scripts/bridge/protocol.gd')
+const V = preload('res://scripts/world/presentation.gd')
 var origin = Vector3.ZERO
 var viewport = Vector2(1280,800)
 var screen_center = Vector2(640,400)
@@ -16,7 +17,7 @@ func inverse(screen: Vector2, height: float) -> Vector3:
 	var d = (screen-screen_center)/ppm
 	var sum = 2.0*(d.y+height-origin.y)
 	return Vector3(origin.x+(sum+d.x)*0.5,height,origin.z+(sum-d.x)*0.5)
-func update(s: Dictionary, scene: Dictionary, size: Vector2, delta: float, safe_rect: Rect2 = Rect2()) -> void:
+func update(s: Dictionary, scene: Dictionary, size: Vector2, delta: float, safe_rect: Rect2 = Rect2(), scene_hash: String = '') -> void:
 	viewport = size
 	screen_center = size*0.5
 	if size.x<=0 or size.y<=0 or not is_finite(delta):
@@ -54,6 +55,14 @@ func update(s: Dictionary, scene: Dictionary, size: Vector2, delta: float, safe_
 	var target_scale = 0.86 if s.sceneId=='gh_sentinel_arena' and sentinel==1 else 1.0
 	boss_scale = lerpf(boss_scale,target_scale,1-exp(-delta/0.24))
 	ppm = base*boss_scale
+	if scene.get('worldId')=='grey_hive' and scene.get('sceneId')=='gh_central_shaft':
+		var cabin: Dictionary = V.shaft_cabin(s.get('supportScene'),s,scene,scene_hash)
+		if not cabin.is_empty() and cabin.pose.phase in ['rising','falling']:
+			# The validated actual cabin anchor owns XZ throughout transit,
+			# including a cold Continue; actual rider height owns Y.
+			origin = Vector3(cabin.anchor.x,player.y,cabin.anchor.y)
+			initialized = true
+			return
 	var aim = Vector2(float(s.player.aimX),float(s.player.aimZ)).normalized()
 	var target = player+Vector3(aim.x,0,aim.y)*1.25
 	if not initialized:
@@ -68,5 +77,25 @@ func update(s: Dictionary, scene: Dictionary, size: Vector2, delta: float, safe_
 		desired.y = target.y
 		origin = origin.lerp(desired,1-exp(-delta/0.18))
 	# Keep the follow origin within the authored room; no position or collision mutation.
-	origin.x = clampf(origin.x,b.x,b.x+b.width)
-	origin.z = clampf(origin.z,b.z,b.z+b.depth)
+	# These two same-floor rooms share a 40 m camera span; collision is unchanged.
+	var camera_min_x: float = b.x
+	var camera_max_x: float = b.x+b.width
+	var camera_max_z: float = b.z+b.depth
+	if s.get('shaftLowerService') is Dictionary and s.worldId=='grey_hive' and s.sceneId=='gh_central_shaft' and player.y<0.0:
+		var service_view: Dictionary=V.shaft_lift_view(s.get('shaftLift'),s,scene,scene_hash)
+		if not service_view.is_empty(): camera_max_x=50.0; camera_max_z=21.0
+	if s.worldId=='grey_hive' and s.sceneId=='gh_power_room': camera_max_x += 20.0
+	elif s.worldId=='grey_hive' and s.sceneId=='gh_gate_a': camera_min_x -= 20.0
+	elif s.worldId=='grey_hive' and s.sceneId=='gh_beacon' and s.get('beaconExitNeighbor',{}).get('ready')==true: camera_max_x += 24.0
+	elif s.worldId=='grey_hive' and s.sceneId=='gh_exit' and s.get('beaconExitNeighbor',{}).get('ready')==true: camera_min_x -= 24.0
+	var route_boundary=s.get('hiveRouteBoundary')
+	var route_view=s.get('hiveRouteNeighbor')
+	var route_hold=s.get('hiveRouteHold')
+	if s.worldId in ['grey_hive','mist_harbor','clockworks'] and route_boundary is Dictionary and route_boundary.get('sourceSceneId')==s.sceneId and route_boundary.get('worldEpoch')==s.worldEpoch and route_boundary.get('sourceSceneSourceSha256')==scene_hash and typeof(route_boundary.get('east'))==TYPE_BOOL:
+		var route_target=route_boundary.get('targetSceneId')
+		var admitted: bool=(route_view is Dictionary and route_view.get('ready')==true and route_view.get('sourceSceneId')==s.sceneId and route_view.get('targetSceneId')==route_target and route_view.get('worldEpoch')==s.worldEpoch) or (route_hold is Dictionary and route_hold.get('sourceSceneId')==s.sceneId and route_hold.get('targetSceneId')==route_target and route_hold.get('worldEpoch')==s.worldEpoch and route_hold.get('sourceSceneSourceSha256')==scene_hash)
+		if admitted:
+			if route_boundary.east: camera_max_x+=b.width
+			else: camera_min_x-=b.width
+	origin.x = clampf(origin.x,camera_min_x,camera_max_x)
+	origin.z = clampf(origin.z,b.z,camera_max_z)

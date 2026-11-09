@@ -185,6 +185,363 @@
           13.5
         ]
       ]
+    },
+    {
+      "id": "north_entry_front_s0",
+      "polygon": [
+        [
+          0.5,
+          6.45
+        ],
+        [
+          1.0,
+          6.45
+        ],
+        [
+          1.0,
+          6.75
+        ],
+        [
+          0.5,
+          6.75
+        ]
+      ]
+    },
+    {
+      "id": "north_entry_front_s1",
+      "polygon": [
+        [
+          3.0,
+          6.45
+        ],
+        [
+          3.5,
+          6.45
+        ],
+        [
+          3.5,
+          6.75
+        ],
+        [
+          3.0,
+          6.75
+        ]
+      ]
+    },
+    {
+      "id": "north_east_front_s2",
+      "polygon": [
+        [
+          11.5,
+          6.45
+        ],
+        [
+          12.0,
+          6.45
+        ],
+        [
+          12.0,
+          6.75
+        ],
+        [
+          11.5,
+          6.75
+        ]
+      ]
+    },
+    {
+      "id": "north_east_front_s3",
+      "polygon": [
+        [
+          14.0,
+          6.45
+        ],
+        [
+          20.0,
+          6.45
+        ],
+        [
+          20.0,
+          6.75
+        ],
+        [
+          14.0,
+          6.75
+        ]
+      ]
+    },
+    {
+      "id": "north_east_front_s4",
+      "polygon": [
+        [
+          22.0,
+          6.45
+        ],
+        [
+          23.5,
+          6.45
+        ],
+        [
+          23.5,
+          6.75
+        ],
+        [
+          22.0,
+          6.75
+        ]
+      ]
+    },
+    {
+      "id": "north_cross_3_5_s5",
+      "polygon": [
+        [
+          3.35,
+          0.5
+        ],
+        [
+          3.65,
+          0.5
+        ],
+        [
+          3.65,
+          3.0
+        ],
+        [
+          3.35,
+          3.0
+        ]
+      ]
+    },
+    {
+      "id": "north_cross_3_5_s6",
+      "polygon": [
+        [
+          3.35,
+          5.0
+        ],
+        [
+          3.65,
+          5.0
+        ],
+        [
+          3.65,
+          6.45
+        ],
+        [
+          3.35,
+          6.45
+        ]
+      ]
+    },
+    {
+      "id": "north_cross_11_5_s7",
+      "polygon": [
+        [
+          11.35,
+          0.5
+        ],
+        [
+          11.65,
+          0.5
+        ],
+        [
+          11.65,
+          2.0
+        ],
+        [
+          11.35,
+          2.0
+        ]
+      ]
+    },
+    {
+      "id": "north_cross_11_5_s8",
+      "polygon": [
+        [
+          11.35,
+          4.0
+        ],
+        [
+          11.65,
+          4.0
+        ],
+        [
+          11.65,
+          6.45
+        ],
+        [
+          11.35,
+          6.45
+        ]
+      ]
+    },
+    {
+      "id": "north_cross_17_5_s9",
+      "polygon": [
+        [
+          17.35,
+          0.5
+        ],
+        [
+          17.65,
+          0.5
+        ],
+        [
+          17.65,
+          2.0
+        ],
+        [
+          17.35,
+          2.0
+        ]
+      ]
+    },
+    {
+      "id": "north_cross_17_5_s10",
+      "polygon": [
+        [
+          17.35,
+          4.0
+        ],
+        [
+          17.65,
+          4.0
+        ],
+        [
+          17.65,
+          6.45
+        ],
+        [
+          17.35,
+          6.45
+        ]
+      ]
+    },
+    {
+      "id": "south_service_front_s11",
+      "polygon": [
+        [
+          5.0,
+          8.75
+        ],
+        [
+          6.0,
+          8.75
+        ],
+        [
+          6.0,
+          9.05
+        ],
+        [
+          5.0,
+          9.05
+        ]
+      ]
+    },
+    {
+      "id": "south_service_front_s12",
+      "polygon": [
+        [
+          8.0,
+          8.75
+        ],
+        [
+          12.0,
+          8.75
+        ],
+        [
+          12.0,
+          9.05
+        ],
+        [
+          8.0,
+          9.05
+        ]
+      ]
+    },
+    {
+      "id": "south_service_west_s13",
+      "polygon": [
+        [
+          4.85,
+          8.75
+        ],
+        [
+          5.15,
+          8.75
+        ],
+        [
+          5.15,
+          11.0
+        ],
+        [
+          4.85,
+          11.0
+        ]
+      ]
+    },
+    {
+      "id": "south_service_west_s14",
+      "polygon": [
+        [
+          4.85,
+          13.0
+        ],
+        [
+          5.15,
+          13.0
+        ],
+        [
+          5.15,
+          15.5
+        ],
+        [
+          4.85,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "south_service_east_s15",
+      "polygon": [
+        [
+          11.85,
+          8.75
+        ],
+        [
+          12.15,
+          8.75
+        ],
+        [
+          12.15,
+          13.5
+        ],
+        [
+          11.85,
+          13.5
+        ]
+      ]
+    },
+    {
+      "id": "mist_court_east_s16",
+      "polygon": [
+        [
+          20.35,
+          10.75
+        ],
+        [
+          20.65,
+          10.75
+        ],
+        [
+          20.65,
+          13.5
+        ],
+        [
+          20.35,
+          13.5
+        ]
+      ]
     }
   ],
   "doors": [],
@@ -300,16 +657,208 @@
         "to": "gh_decon_safe_nav"
       },
       {
+        "from": "gh_decon_spawn_nav",
+        "to": "main7"
+      },
+      {
+        "from": "gh_decon_spawn_nav",
+        "to": "north_entry_door_nav"
+      },
+      {
         "from": "gh_decon_safe_nav",
         "to": "gh_decon_valve_01_nav"
+      },
+      {
+        "from": "gh_decon_safe_nav",
+        "to": "checkpoint_link_nav"
       },
       {
         "from": "gh_decon_valve_01_nav",
         "to": "gh_decon_valve_02_nav"
       },
       {
+        "from": "gh_decon_valve_01_nav",
+        "to": "north_entry_inner"
+      },
+      {
+        "from": "gh_decon_valve_01_nav",
+        "to": "north_control_detour"
+      },
+      {
         "from": "gh_decon_valve_02_nav",
         "to": "gh_decon_exit_nav"
+      },
+      {
+        "from": "gh_decon_exit_nav",
+        "to": "main21_5"
+      },
+      {
+        "from": "main7",
+        "to": "gh_decon_spawn_nav"
+      },
+      {
+        "from": "main7",
+        "to": "main13"
+      },
+      {
+        "from": "main7",
+        "to": "south_front_door_nav"
+      },
+      {
+        "from": "main13",
+        "to": "main7"
+      },
+      {
+        "from": "main13",
+        "to": "main21_5"
+      },
+      {
+        "from": "main13",
+        "to": "north_inspection_door_nav"
+      },
+      {
+        "from": "main13",
+        "to": "south_return_west"
+      },
+      {
+        "from": "main21_5",
+        "to": "main13"
+      },
+      {
+        "from": "main21_5",
+        "to": "gh_decon_exit_nav"
+      },
+      {
+        "from": "main21_5",
+        "to": "north_east_door_nav"
+      },
+      {
+        "from": "main21_5",
+        "to": "south_return_east"
+      },
+      {
+        "from": "north_entry_door_nav",
+        "to": "gh_decon_spawn_nav"
+      },
+      {
+        "from": "north_entry_door_nav",
+        "to": "north_entry_inner"
+      },
+      {
+        "from": "north_entry_inner",
+        "to": "north_entry_door_nav"
+      },
+      {
+        "from": "north_entry_inner",
+        "to": "gh_decon_valve_01_nav"
+      },
+      {
+        "from": "north_control_detour",
+        "to": "gh_decon_valve_01_nav"
+      },
+      {
+        "from": "north_control_detour",
+        "to": "north_cross_center"
+      },
+      {
+        "from": "north_inspection_inner",
+        "to": "north_east_inner"
+      },
+      {
+        "from": "north_inspection_inner",
+        "to": "north_inspection_door_nav"
+      },
+      {
+        "from": "north_inspection_inner",
+        "to": "north_cross_center"
+      },
+      {
+        "from": "north_inspection_door_nav",
+        "to": "north_inspection_inner"
+      },
+      {
+        "from": "north_inspection_door_nav",
+        "to": "main13"
+      },
+      {
+        "from": "north_east_inner",
+        "to": "north_inspection_inner"
+      },
+      {
+        "from": "north_east_inner",
+        "to": "north_east_door_nav"
+      },
+      {
+        "from": "north_east_door_nav",
+        "to": "north_east_inner"
+      },
+      {
+        "from": "north_east_door_nav",
+        "to": "main21_5"
+      },
+      {
+        "from": "south_front_door_nav",
+        "to": "main7"
+      },
+      {
+        "from": "south_front_door_nav",
+        "to": "south_service_inner"
+      },
+      {
+        "from": "south_service_inner",
+        "to": "south_front_door_nav"
+      },
+      {
+        "from": "south_service_inner",
+        "to": "checkpoint_link_nav"
+      },
+      {
+        "from": "south_service_inner",
+        "to": "south_service_rear"
+      },
+      {
+        "from": "checkpoint_link_nav",
+        "to": "gh_decon_safe_nav"
+      },
+      {
+        "from": "checkpoint_link_nav",
+        "to": "south_service_inner"
+      },
+      {
+        "from": "south_service_rear",
+        "to": "south_service_inner"
+      },
+      {
+        "from": "south_service_rear",
+        "to": "south_return_west"
+      },
+      {
+        "from": "south_return_west",
+        "to": "south_service_rear"
+      },
+      {
+        "from": "south_return_west",
+        "to": "main13"
+      },
+      {
+        "from": "south_return_west",
+        "to": "south_return_east"
+      },
+      {
+        "from": "south_return_east",
+        "to": "south_return_west"
+      },
+      {
+        "from": "south_return_east",
+        "to": "main21_5"
+      },
+      {
+        "from": "north_cross_center",
+        "to": "north_control_detour"
+      },
+      {
+        "from": "north_cross_center",
+        "to": "north_inspection_inner"
       }
     ],
     "nodes": [
@@ -351,6 +900,142 @@
           22.0,
           0.0,
           8.0
+        ]
+      },
+      {
+        "id": "main7",
+        "position": [
+          7.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "main13",
+        "position": [
+          13.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "main21_5",
+        "position": [
+          21.5,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "north_entry_door_nav",
+        "position": [
+          2.0,
+          0.0,
+          6.75
+        ]
+      },
+      {
+        "id": "north_entry_inner",
+        "position": [
+          2.0,
+          0.0,
+          4.0
+        ]
+      },
+      {
+        "id": "north_control_detour",
+        "position": [
+          10.5,
+          0.0,
+          1.75
+        ]
+      },
+      {
+        "id": "north_inspection_inner",
+        "position": [
+          13.0,
+          0.0,
+          3.0
+        ]
+      },
+      {
+        "id": "north_inspection_door_nav",
+        "position": [
+          13.0,
+          0.0,
+          6.75
+        ]
+      },
+      {
+        "id": "north_east_inner",
+        "position": [
+          21.0,
+          0.0,
+          3.0
+        ]
+      },
+      {
+        "id": "north_east_door_nav",
+        "position": [
+          21.0,
+          0.0,
+          6.75
+        ]
+      },
+      {
+        "id": "south_front_door_nav",
+        "position": [
+          7.0,
+          0.0,
+          8.75
+        ]
+      },
+      {
+        "id": "south_service_inner",
+        "position": [
+          7.0,
+          0.0,
+          12.0
+        ]
+      },
+      {
+        "id": "checkpoint_link_nav",
+        "position": [
+          5.0,
+          0.0,
+          12.0
+        ]
+      },
+      {
+        "id": "south_service_rear",
+        "position": [
+          7.0,
+          0.0,
+          14.75
+        ]
+      },
+      {
+        "id": "south_return_west",
+        "position": [
+          13.0,
+          0.0,
+          14.75
+        ]
+      },
+      {
+        "id": "south_return_east",
+        "position": [
+          21.5,
+          0.0,
+          14.75
+        ]
+      },
+      {
+        "id": "north_cross_center",
+        "position": [
+          11.5,
+          0.0,
+          3.0
         ]
       }
     ]

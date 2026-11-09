@@ -81,6 +81,12 @@ static func snapshot(s) -> bool:
 	if s.get('entryToken') != null and (not token(s.entryToken) or not same(s.entryToken, s)):
 		return false
 	return true
+# Optional render-only authority; absent, null, malformed or wrong-scene is UNKNOWN.
+static func forged_guard_shutters_open(s):
+	if not snapshot(s) or s.get('worldId')!='clockworks' or s.get('sceneId')!='cw_forged_guard_arena':
+		return null
+	var value = s.get('forgedGuardShuttersOpen')
+	return value if typeof(value)==TYPE_BOOL else null
 static func receipt(r) -> bool:
 	if not r is Dictionary or typeof(r.get('commandId')) != TYPE_STRING or typeof(r.get('applied')) != TYPE_BOOL or typeof(r.get('alreadyApplied')) != TYPE_BOOL or not snapshot(r.get('snapshot')):
 		return false

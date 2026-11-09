@@ -21,6 +21,27 @@
       "sourceRelative": "batch07/09_runtime2d.world.returnstation.terminal.v1.png",
       "nominalHeight": 72
     },
+    "rs_terminals": {
+      "sourceApproval": "release_approved",
+      "assetId": "runtime2d.world.returnstation.terminals.v1",
+      "referencePpm": 48,
+      "path": "res://assets/props/rs_terminals.png",
+      "derivedRelative": "assets/derived/asset-pipeline-v1/sprites/png/runtime2d.world.returnstation.terminals.v1.png",
+      "registryStatus": "ADOPT",
+      "canvas": [
+        1176,
+        1065
+      ],
+      "sha256": "9cbee889ed0f97f3b2bb122e5b3abc6cbd41edf8dc15beaf816fa00570e8691d",
+      "bytes": 785007,
+      "anchor": [
+        0.5,
+        1.0
+      ],
+      "sourceSha256": "83008caf30bcd0cd40e1d9720be7176dbbdf1e0072983551e3e1784b25f352fb",
+      "sourceRelative": "batch06/09_runtime2d.world.returnstation.terminals.v1.png",
+      "nominalHeight": 72
+    },
     "beacon_deployed": {
       "sourceApproval": "release_approved",
       "assetId": "runtime2d.prop.beacon.deployed.v1",

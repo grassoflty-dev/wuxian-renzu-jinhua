@@ -1,0 +1,37 @@
+{
+  "schema": "wuxian.cw-entry-foundry-exterior-backplate.internal-use/v1",
+  "resourceId": "ART-CW-ENTRY-FOUNDRY-EXTERIOR-BACKPLATE-20261027-001",
+  "revision": "r1",
+  "approval": "ACCEPT_LIMITED_STATIC_CW_ENTRY_FOUNDRY_BACKGROUND_USE",
+  "GodotDisplay": "NOT_RUN",
+  "publicRelease": "NOT_ESTABLISHED",
+  "fallback": "EXISTING_CLEAR_AND_FLOOR",
+  "limitations": "UNREGISTERED_NONINTERACTIVE_RUNTIME_NOT_RUN",
+  "asset": {
+    "path": "res://assets/props/clockworks/cw_entry_foundry_exterior_backplate_20261027_r1.png",
+    "bytes": 1766900,
+    "sha256": "33765bd03d89f5eac73444b165b3b614d3fb7962c58150c23bbd63d266749e60",
+    "width": 1536,
+    "height": 1024,
+    "format": "RGB8"
+  },
+  "composition": {
+    "space": "SCREEN_SPACE_BACKGROUND_ONLY",
+    "fit": "CENTERED_COVER_FULL_VIEWPORT",
+    "uv": "FULL_ONCE",
+    "filter": "LINEAR",
+    "repeat": "DISABLED",
+    "tint": "WHITE_OPAQUE"
+  },
+  "installation": {
+    "worldId": "clockworks",
+    "sceneId": "cw_entry_foundry",
+    "sceneSchemaVersion": 1,
+    "boundsM": [0, 0, 24, 16],
+    "canonicalScenePath": "res://data/scenes/cw_entry_foundry.json",
+    "canonicalSceneBytes": 5551,
+    "sceneSha256": "d90f852367b998cf5874b82fed583f1254664d4a88a8175bb3c94524b8f496b1",
+    "nonInteractive": true,
+    "unregistered": true
+  }
+}

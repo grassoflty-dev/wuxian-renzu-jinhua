@@ -43,12 +43,18 @@ func _polygon(value: Variant, expected: Array) -> bool:
 			return false
 	return true
 
-func _context(s: Variant, scene: Variant, key: Variant, projection: Variant, viewport: Variant) -> bool:
+func _context(s: Variant, scene: Variant, key: Variant, projection: Variant, viewport: Variant, neighbor: Dictionary = {}) -> bool:
 	if not s is Dictionary or not P.snapshot(s) or not scene is Dictionary:
 		return false
-	if s.get('worldId')!='grey_hive' or s.get('sceneId')!='gh_beacon' or scene.get('worldId')!='grey_hive' or scene.get('sceneId')!='gh_beacon' or not P.counter(s.get('worldEpoch'),1):
+	if s.get('worldId')!='grey_hive' or scene.get('worldId')!='grey_hive' or scene.get('sceneId')!='gh_beacon' or not P.counter(s.get('worldEpoch'),1):
 		return false
-	if typeof(key)!=TYPE_STRING or key!='grey_hive:gh_beacon:'+str(s.worldEpoch) or not P.counter(scene.get('schemaVersion'),1,1):
+	if neighbor.is_empty():
+		if s.get('sceneId')!='gh_beacon' or key!='grey_hive:gh_beacon:'+str(s.worldEpoch): return false
+	else:
+		if s.get('sceneId')!='gh_exit' or key!='grey_hive:gh_exit:'+str(s.worldEpoch) or s.get('beaconExitNeighbor')!=neighbor: return false
+		if neighbor.get('sourceSceneId')!='gh_exit' or neighbor.get('targetSceneId')!='gh_beacon' or neighbor.get('worldEpoch')!=s.worldEpoch or neighbor.get('serverTick')!=s.serverTick or neighbor.get('authorityRevision')!=s.authorityRevision: return false
+		if not neighbor.get('targetSceneSourceSha256') in ['e6434c598904d7fe36f4f48ebc67559e6d484eb535393a7b447bc99cbf86c766','3cab424771d10799ee82a453a72117affb0ebca09dd814f25308be70310da9ee'] or not P.token(neighbor.get('token')): return false
+	if typeof(key)!=TYPE_STRING or not P.counter(scene.get('schemaVersion'),1,1):
 		return false
 	var bounds: Variant = scene.get('boundsM')
 	if not bounds is Dictionary or bounds.size()!=4 or not P.number(bounds.get('x'),0,0) or not P.number(bounds.get('z'),0,0) or not P.number(bounds.get('width'),24,24) or not P.number(bounds.get('depth'),16,16):
@@ -99,13 +105,15 @@ func _context(s: Variant, scene: Variant, key: Variant, projection: Variant, vie
 func _canvas(canvas: Variant) -> bool:
 	return canvas is CanvasItem and is_instance_valid(canvas) and canvas.is_inside_tree() and not canvas.is_queued_for_deletion()
 
-func _faces_bound(canvas: CanvasItem, snapshot: Variant, scene: Variant, key: Variant, projection: Variant, viewport: Variant) -> bool:
+func _faces_bound(canvas: CanvasItem, snapshot: Variant, scene: Variant, key: Variant, projection: Variant, viewport: Variant, neighbor: Dictionary = {}) -> bool:
 	var actual_snapshot: Variant = canvas.get('snapshot')
 	var actual_scene: Variant = canvas.get('scene')
 	var actual_key: Variant = canvas.get('current_key')
 	var actual_camera: Variant = canvas.get('camera')
 	var actual_viewport: Variant = canvas.get('viewport_rect')
-	return actual_snapshot is Dictionary and actual_snapshot == snapshot and actual_scene is Dictionary and actual_scene == scene and typeof(actual_key)==TYPE_STRING and actual_key==key and actual_camera is RefCounted and actual_camera==projection and typeof(actual_viewport)==TYPE_RECT2 and actual_viewport==viewport
+	if not actual_snapshot is Dictionary or actual_snapshot!=snapshot or not actual_scene is Dictionary or typeof(actual_key)!=TYPE_STRING or actual_key!=key or not actual_camera is RefCounted or typeof(actual_viewport)!=TYPE_RECT2 or actual_viewport!=viewport: return false
+	if neighbor.is_empty(): return actual_scene==scene and actual_camera==projection
+	return actual_scene.get('worldId')=='grey_hive' and actual_scene.get('sceneId')=='gh_exit' and snapshot.get('beaconExitNeighbor')==neighbor and projection.get_script()==ProjectionScript and projection.origin==actual_camera.origin+Vector3(24,0,0) and projection.ppm==actual_camera.ppm and projection.screen_center==actual_camera.screen_center and projection.viewport==actual_camera.viewport
 
 func _exposed_quad(projection: Variant, segment_value: Variant, relief: Vector2) -> PackedVector2Array:
 	if not segment_value is Array or segment_value.size()!=2:
@@ -136,7 +144,7 @@ func _project(projection: Variant, coordinates: Array) -> PackedVector2Array:
 		points.append(point)
 	return points
 
-func _paint(canvas: CanvasItem, commands: Array[Dictionary]) -> bool:
+func _commands_valid(commands: Array[Dictionary]) -> bool:
 	if commands.is_empty() or commands.size()>64:
 		return false
 	for command: Dictionary in commands:
@@ -152,6 +160,10 @@ func _paint(canvas: CanvasItem, commands: Array[Dictionary]) -> bool:
 				return false
 		if command.kind=='line' and not P.number(command.get('width'),0.000001,8):
 			return false
+	return true
+
+func _paint(canvas: CanvasItem, commands: Array[Dictionary]) -> bool:
+	if not _commands_valid(commands): return false
 	for command: Dictionary in commands:
 		var points: PackedVector2Array = command.points
 		var colors: PackedColorArray = command.colors
@@ -161,9 +173,9 @@ func _paint(canvas: CanvasItem, commands: Array[Dictionary]) -> bool:
 			canvas.draw_polyline(points,colors[0],float(command.width),true)
 	return true
 
-func draw_floor(canvas: Variant, snapshot: Variant, scene: Variant, current_key: Variant, projection: Variant, viewport: Variant) -> bool:
-	if not _canvas(canvas) or not _context(snapshot,scene,current_key,projection,viewport):
-		return false
+func prepare_floor(canvas: Variant, snapshot: Variant, scene: Variant, current_key: Variant, projection: Variant, viewport: Variant, neighbor: Dictionary = {}) -> Variant:
+	if not _canvas(canvas) or not _context(snapshot,scene,current_key,projection,viewport,neighbor):
+		return null
 	var commands: Array[Dictionary] = []
 	var base: Color = Color('#273a37')
 	for column: int in range(6):
@@ -189,21 +201,25 @@ func draw_floor(canvas: Variant, snapshot: Variant, scene: Variant, current_key:
 		commands.append({'kind':'line','points':_project(projection,[[x,0],[x,16]]),'colors':joint,'width':width})
 	for z: int in [4,8,12]:
 		commands.append({'kind':'line','points':_project(projection,[[0,z],[24,z]]),'colors':joint,'width':width})
-	return _paint(canvas,commands)
+	return commands if _commands_valid(commands) else null
 
-func draw_wall(canvas: Variant, snapshot: Variant, scene: Variant, current_key: Variant, projection: Variant, wall: Variant, viewport: Variant) -> bool:
-	if not _canvas(canvas) or not _context(snapshot,scene,current_key,projection,viewport) or not wall is Dictionary or not WALLS.has(wall.get('id')):
-		return false
+func draw_floor(canvas: Variant, snapshot: Variant, scene: Variant, current_key: Variant, projection: Variant, viewport: Variant) -> bool:
+	var commands = prepare_floor(canvas,snapshot,scene,current_key,projection,viewport)
+	return _paint(canvas,commands) if commands is Array else false
+
+func prepare_wall(canvas: Variant, snapshot: Variant, scene: Variant, current_key: Variant, projection: Variant, wall: Variant, viewport: Variant, neighbor: Dictionary = {}) -> Variant:
+	if not _canvas(canvas) or not _context(snapshot,scene,current_key,projection,viewport,neighbor) or not wall is Dictionary or not WALLS.has(wall.get('id')):
+		return null
 	var spec: Dictionary = WALLS[wall.id]
 	if not _polygon(wall.get('polygon'),spec.polygon):
-		return false
+		return null
 	var a: Vector2 = Vector2(float(spec.inner[0][0]),float(spec.inner[0][1]))
 	var b: Vector2 = Vector2(float(spec.inner[1][0]),float(spec.inner[1][1]))
 	var inside: Vector2 = spec.inside
 	var ground: PackedVector2Array = _project(projection,spec.inner)
 	var cap: PackedVector2Array = _project(projection,spec.polygon)
 	if ground.size()!=2 or cap.size()!=4:
-		return false
+		return null
 	var relief: Vector2 = Vector2(0,12.0*float(projection.ppm)/48.0)
 	var face: PackedVector2Array = PackedVector2Array([ground[0],ground[1],ground[1]-relief,ground[0]-relief])
 	var contact_b: Vector2 = b
@@ -213,7 +229,7 @@ func draw_wall(canvas: Variant, snapshot: Variant, scene: Variant, current_key: 
 		contact_b.y -= south_cap_height
 		var clipped_ground: PackedVector2Array = _project(projection,[[contact_b.x,contact_b.y]])
 		if clipped_ground.size()!=1:
-			return false
+			return null
 		face = PackedVector2Array([ground[0],clipped_ground[0],ground[1]-relief,ground[0]-relief])
 	for index: int in range(cap.size()):
 		cap[index] -= relief
@@ -225,17 +241,91 @@ func draw_wall(canvas: Variant, snapshot: Variant, scene: Variant, current_key: 
 		{'kind':'polygon','points':cap,'colors':PackedColorArray([Color('#35483e')])},
 		{'kind':'line','points':outline,'colors':PackedColorArray([Color(0.42745098,0.50980392,0.46666667,0.35)]),'width':float(projection.ppm)/48.0}
 	]
-	if _faces_bound(canvas,snapshot,scene,current_key,projection,viewport):
+	if _faces_bound(canvas,snapshot,scene,current_key,projection,viewport,neighbor):
 		var exposed_values: Variant = EXPOSED_FACES.get(wall.get('id'))
 		if not exposed_values is Array:
-			return false
+			return null
 		for face_index: int in range(exposed_values.size()):
 			var segment_value: Variant = exposed_values[exposed_values.size()-1-face_index]
 			var quad: PackedVector2Array = _exposed_quad(projection,segment_value,relief)
 			if quad.size()!=4:
-				return false
+				return null
 			commands.insert(commands.size()-2,{'kind':'polygon','points':quad,'colors':PackedColorArray([Color('#26352f')])})
-	return _paint(canvas,commands)
+	return commands if _commands_valid(commands) else null
+
+func draw_wall(canvas: Variant, snapshot: Variant, scene: Variant, current_key: Variant, projection: Variant, wall: Variant, viewport: Variant) -> bool:
+	var commands = prepare_wall(canvas,snapshot,scene,current_key,projection,wall,viewport)
+	return _paint(canvas,commands) if commands is Array else false
+
+# New-layout adapter: the canvas remains bound to its actual canonical scene.
+func prepare_layout_wall(canvas: Variant, snapshot: Variant, canonical: Variant, original: Variant, current_key: Variant, projection: Variant, wall: Variant, viewport: Variant) -> Variant:
+	if not _canvas(canvas) or not snapshot is Dictionary or not canonical is Dictionary or not original is Dictionary or not wall is Dictionary:
+		return null
+	var expected: String = 'e6434c598904d7fe36f4f48ebc67559e6d484eb535393a7b447bc99cbf86c766'
+	if canvas.get('scene_hash')!=expected or snapshot.get('utilitySceneSourceSha256')!=expected or not canvas.has_method('_utility_plan_current') or not canvas.call('_utility_plan_current'):
+		return null
+	var plan: Variant = canvas.get('utility_plan')
+	if not plan is Dictionary or plan.get('original_beacon')!=original or not _faces_bound(canvas,snapshot,canonical,current_key,projection,viewport) or not _context(snapshot,original,current_key,projection,viewport):
+		return null
+	if not canonical.get('collision') is Array or canonical.collision.size()!=13 or not P.unique(canonical.collision,'id'):
+		return null
+	var actual: Array = canonical.collision.filter(func(row): return row is Dictionary and row.get('id')==wall.get('id'))
+	var prior: Array = original.collision.filter(func(row): return row is Dictionary and row.get('id')==wall.get('id'))
+	if actual.size()!=1 or prior.size()!=1 or actual[0]!=wall or prior[0]!=wall or not WALLS.has(wall.get('id')):
+		return null
+	var commands = prepare_wall(canvas,snapshot,original,current_key,projection,wall,viewport)
+	if not commands is Array: return null
+	var exposed: Variant = EXPOSED_FACES.get(wall.id)
+	if not exposed is Array: return null
+	var relief: Vector2 = Vector2(0,12.0*float(projection.ppm)/48.0)
+	for index: int in range(exposed.size()):
+		var quad: PackedVector2Array = _exposed_quad(projection,exposed[exposed.size()-1-index],relief)
+		if quad.size()!=4: return null
+		commands.insert(commands.size()-2,{'kind':'polygon','points':quad,'colors':PackedColorArray([Color('#26352f')])})
+	return commands if _commands_valid(commands) else null
+
+func whole_static_ready(canvas: Variant, snapshot: Variant, scene: Variant, current_key: Variant, projection: Variant, viewport: Variant) -> bool:
+	var floor_commands = prepare_floor(canvas,snapshot,scene,current_key,projection,viewport)
+	if not floor_commands is Array or floor_commands.size()!=32: return false
+	if not scene is Dictionary or not scene.get('collision') is Array: return false
+	var seen: Dictionary = {}
+	for wall in scene.collision:
+		if not wall is Dictionary or not WALLS.has(wall.get('id')) or seen.has(wall.id): return false
+		var commands = prepare_wall(canvas,snapshot,scene,current_key,projection,wall,viewport)
+		if not commands is Array or commands.is_empty(): return false
+		seen[wall.id] = true
+	return seen.size()==6
+
+# Target-only proof uses the actual source snapshot and a separately bound
+# catalog; it never swaps canvas.scene or manufactures a target snapshot.
+func neighbor_static_ready(canvas: Variant, snapshot: Dictionary, selected: Dictionary, hash: String, current_key: String, projection: Variant, viewport: Variant, neighbor: Dictionary, utility, art, props) -> bool:
+	if not _canvas(canvas) or snapshot.get('beaconExitNeighbor')!=neighbor or neighbor.get('targetSceneSourceSha256')!=hash: return false
+	var catalog=utility._catalog('gh_beacon',hash)
+	if catalog==null or catalog.source_hash!=hash or catalog.current!=selected: return false
+	var old='3cab424771d10799ee82a453a72117affb0ebca09dd814f25308be70310da9ee'
+	var original: Dictionary = selected
+	if hash!=old:
+		var plan: Dictionary=utility.prepare(selected,hash,Callable(projection,'project'),art)
+		if plan.is_empty(): return false
+		original=plan.get('original_beacon',{})
+		if original.is_empty() or original!=utility._original_scene(selected,'gh_beacon',old): return false
+	if not _context(snapshot,original,current_key,projection,viewport,neighbor): return false
+	var floor_commands=prepare_floor(canvas,snapshot,original,current_key,projection,viewport,neighbor)
+	if not floor_commands is Array or floor_commands.size()!=32: return false
+	var seen: Dictionary={}
+	for wall in original.collision:
+		if seen.has(wall.id): return false
+		var commands=prepare_wall(canvas,snapshot,original,current_key,projection,wall,viewport,neighbor)
+		if not commands is Array or commands.is_empty() or not _faces_bound(canvas,snapshot,original,current_key,projection,viewport,neighbor): return false
+		seen[wall.id]=true
+	if seen.size()!=6: return false
+	var beacon=snapshot.get('greyHiveBeacon')
+	if not beacon is Dictionary or beacon.size()!=2 or not beacon.get('state') in ['uncollected','carried','mounted'] or typeof(beacon.get('legacyCompletedWithoutReceipt'))!=TYPE_BOOL: return false
+	if beacon.state!='carried' and not beacon.legacyCompletedWithoutReceipt:
+		props._load_once()
+		var body='beacon_folded' if beacon.state=='uncollected' else 'beacon_deployed'
+		if not props.textures.get(body) is Texture2D: return false
+	return true
 
 func should_skip_mount_blockout(object: Variant, snapshot: Variant, scene: Variant, current_key: Variant, projection: Variant, viewport: Variant, drawn_bodies: Variant) -> bool:
 	if not _context(snapshot,scene,current_key,projection,viewport) or not object is Dictionary or object.get('kind')!='prop' or object.get('id')!='beacon_storage_mount_blockout':

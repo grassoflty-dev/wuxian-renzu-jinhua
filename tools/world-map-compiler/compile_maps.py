@@ -355,7 +355,11 @@ def compile_map(
                     result.setdefault("standingDecks", []).append({"id": ident, "polygon": shape, "heightM": finite(data["heightM"], "deck heightM")})
                 else:
                     low, high = finite(data["lowerM"], "support lowerM"), finite(data["upperM"], "support upperM")
-                    if not 0.0 <= low < high <= 3.0 or high - low < 0.1:
+                    shaft_lift = world_id == "grey_hive" and scene_id == "gh_central_shaft" and ident == "gh_shaft_two_stop_lift"
+                    if shaft_lift:
+                        if low != -4.0 or high != 0.0 or shape != [[1.5,1.0],[5.5,1.0],[5.5,5.0],[1.5,5.0]] or data["travelMs"] != 4000 or data["endpointHoldMs"] != 2000:
+                            raise MapError("shaft lift must match its exact authored signed-height contract")
+                    elif not 0.0 <= low < high <= 3.0 or high - low < 0.1:
                         raise MapError("moving support height span must be at least 0.1m within 0..3m")
                     environment_integer(data["travelMs"], 250, 60_000, "support travelMs")
                     environment_integer(data["endpointHoldMs"], 0, 30_000, "support endpointHoldMs")

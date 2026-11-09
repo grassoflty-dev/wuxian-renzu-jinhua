@@ -241,3 +241,66 @@ fn v5_overwrite_write_failure_preserves_source_and_destination_then_retries() {
     assert_eq!(fs::read(&default_path).unwrap(), default_bytes);
     fs::remove_dir_all(&runtime.save_root).unwrap();
 }
+
+#[test]
+fn manual_save_and_return_respect_read_only_sources_and_original_errors() {
+    for v5 in [false, true] {
+        for returning in [false, true] {
+            for fault in ["valid", "corrupt", "future"] {
+                let runtime = runtime();
+                let source = if v5 {
+                    legacy_slot(&runtime).0
+                } else {
+                    runtime.save_slot("legacy", "Original", true).unwrap();
+                    runtime.save_root.join("slots/legacy/slot-v6.json")
+                };
+                runtime.save_slot("anchor", "Other active slot", true).unwrap();
+                runtime.save().unwrap();
+                let anchor = runtime.save_root.join("slots/anchor/slot-v6.json");
+                let default = crate::save_v6::save_path(&runtime.save_root);
+                let anchor_bytes = fs::read(&anchor).unwrap();
+                let default_bytes = fs::read(&default).unwrap();
+                if fault == "corrupt" {
+                    fs::write(&source, b"corrupt winning source").unwrap();
+                } else if fault == "future" {
+                    let mut raw: serde_json::Value = serde_json::from_slice(&fs::read(&source).unwrap()).unwrap();
+                    raw["schemaVersion"] = 999.into();
+                    fs::write(&source, serde_json::to_vec(&raw).unwrap()).unwrap();
+                }
+                let original = fs::read(&source).unwrap();
+                runtime.state.lock().unwrap().world.player_hp = 37;
+                let before = runtime.snapshot().unwrap();
+                let scene_before = scene_state(&runtime);
+                let permissions = fs::metadata(&source).unwrap().permissions();
+                let mut read_only = permissions.clone();
+                read_only.set_readonly(true);
+                fs::set_permissions(&source, read_only).unwrap();
+                let result = if returning {
+                    runtime.return_to_hub_slot("legacy", "Must reject", false)
+                } else {
+                    runtime.save_slot("legacy", "Must reject", false)
+                };
+                let kept_read_only = fs::metadata(&source).unwrap().permissions().readonly();
+                fs::set_permissions(&source, permissions).unwrap();
+                let expected = match fault {
+                    "valid" => "E_SLOT_READ_ONLY",
+                    "corrupt" => "E_SLOT_CORRUPT",
+                    _ => "E_SLOT_VERSION_UNSUPPORTED",
+                };
+                assert_eq!(result.unwrap_err(), expected, "V5={v5}/return={returning}/{fault}");
+                assert!(kept_read_only);
+                assert_eq!(runtime.snapshot().unwrap(), before);
+                assert_eq!(scene_state(&runtime), scene_before);
+                assert_eq!(*runtime.active_slot.lock().unwrap(), Some("anchor".into()));
+                assert_eq!(fs::read(&source).unwrap(), original);
+                assert_eq!(fs::read(&anchor).unwrap(), anchor_bytes);
+                assert_eq!(fs::read(&default).unwrap(), default_bytes);
+                let mut files: Vec<_> = fs::read_dir(source.parent().unwrap()).unwrap()
+                    .map(|entry| entry.unwrap().file_name()).collect();
+                files.sort();
+                assert_eq!(files, [source.file_name().unwrap().to_os_string()]);
+                fs::remove_dir_all(&runtime.save_root).unwrap();
+            }
+        }
+    }
+}

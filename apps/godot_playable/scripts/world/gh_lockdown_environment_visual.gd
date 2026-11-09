@@ -59,6 +59,17 @@ const OUTER_WALL_EDGES: Dictionary = {
 	"lockdown_wall_east_south": [Vector2(24.0, 9.5), Vector2(24.0, 15.5)]
 }
 
+# GB_SHORT_DATA_BEGIN
+const SHORT_SCENE_SHA: String = "718489a1ea4ec4622ccdcefc8459a1dc1bd4f66ccf26abc813b6a06519197850"
+const SHORT_FACES: Array = [
+	{"id":"north_east_end","owner":"lockdown_wall_north","a":[24,0],"b":[24,0.5],"low":0,"high":0.9},
+	{"id":"south_east_end","owner":"lockdown_wall_south","a":[24,15.5],"b":[24,16],"low":0,"high":0.18},
+	{"id":"west_north_jamb","owner":"lockdown_wall_west_north","a":[0,6.5],"b":[0.5,6.5],"low":0,"high":0.9},
+	{"id":"west_south_step","owner":"lockdown_wall_west_south","a":[0,15.5],"b":[0.5,15.5],"low":0.18,"high":0.9},
+	{"id":"east_north_jamb","owner":"lockdown_wall_east_north","a":[23.5,6.5],"b":[24,6.5],"low":0,"high":0.18}
+]
+# GB_SHORT_DATA_END
+
 var _static_attempted: bool = false
 var _static_ready: bool = false
 var _context_ready: bool = false
@@ -274,10 +285,12 @@ func draw_wall(canvas, snapshot, scene_data, current_key, wall, projection, view
 		return false
 	if draw_outer_face and (not _nonzero_polygon_area(contact_points) or not _nonzero_polygon_area(face_points) or not _nonzero_polygon_area(outer_face_points) or not _nonzero_polygon_area(cap_points)):
 		return false
+	var short_family: Dictionary = _short_stage(canvas,snapshot,scene_data,current_key,wall_id,projection,viewport)
 	canvas.draw_colored_polygon(contact_points, Color(0.025, 0.03, 0.03, 0.12))
 	canvas.draw_colored_polygon(face_points, Color(0.15, 0.21, 0.22, 1.0))
 	if draw_outer_face:
 		canvas.draw_colored_polygon(outer_face_points, Color(0.15, 0.21, 0.22, 1.0))
+	_short_emit(canvas,snapshot,scene_data,current_key,wall_id,projection,viewport,short_family)
 	canvas.draw_colored_polygon(cap_points, Color(0.23, 0.29, 0.3, 1.0))
 	return true
 
@@ -873,3 +886,145 @@ func _finite_points(points: PackedVector2Array) -> bool:
 
 func _finite_rect(value: Rect2) -> bool:
 	return _finite_point(value.position) and _finite_point(value.size) and value.size.x > 0.0 and value.size.y > 0.0 and _finite_point(value.end)
+
+# GB_SHORT_FUNCTION_BEGIN
+func _short_equal(actual, expected, depth: int = 0) -> bool:
+	if depth > 64: return false
+	if P.number(expected): return P.number(actual,float(expected),float(expected))
+	if typeof(actual) != typeof(expected): return false
+	if expected is Dictionary:
+		if actual.size() != expected.size(): return false
+		for key: Variant in expected:
+			if not actual.has(key) or not _short_equal(actual[key],expected[key],depth+1): return false
+		return true
+	if expected is Array:
+		if actual.size() != expected.size(): return false
+		for index: int in range(expected.size()):
+			if not _short_equal(actual[index],expected[index],depth+1): return false
+		return true
+	return actual == expected
+
+func _short_canonical(scene_data) -> bool:
+	return scene_data is Dictionary and _static_ready and _context_ready and not _canonical_scene.is_empty() and _short_equal(scene_data,_canonical_scene)
+
+func _short_bindings(canvas, snapshot, scene_data, current_key, projection, viewport) -> bool:
+	if not canvas is CanvasItem or not is_instance_valid(canvas) or not _valid_canvas(canvas) or not canvas.is_visible_in_tree(): return false
+	if not viewport is Rect2 or not _valid_context(snapshot,scene_data,current_key) or not _valid_projection(projection,viewport) or not _short_canonical(scene_data): return false
+	var view: Rect2 = viewport
+	if not _finite_rect(view) or view.position != Vector2.ZERO: return false
+	var stored_snapshot: Variant = canvas.get("snapshot")
+	var stored_scene: Variant = canvas.get("scene")
+	var stored_key: Variant = canvas.get("current_key")
+	var stored_hash: Variant = canvas.get("scene_hash")
+	var stored_camera: Variant = canvas.get("camera")
+	var stored_viewport: Variant = canvas.get("viewport_rect")
+	var actual_viewport: Rect2 = canvas.get_viewport_rect()
+	var camera_viewport: Variant = projection.get("viewport")
+	return stored_snapshot is Dictionary and _short_equal(stored_snapshot,snapshot) and stored_scene is Dictionary and _short_equal(stored_scene,scene_data) and typeof(stored_key) == TYPE_STRING and stored_key == current_key and stored_hash == SHORT_SCENE_SHA and stored_camera == projection and stored_viewport is Rect2 and stored_viewport == view and actual_viewport == view and camera_viewport is Vector2 and camera_viewport == view.size
+
+func _short_capture(canvas, snapshot, current_key, projection) -> Array:
+	return [snapshot.duplicate(true),current_key,SHORT_SCENE_SHA,canvas,projection,projection.get("origin"),projection.get("screen_center"),projection.get("viewport"),projection.get("ppm")]
+
+func _short_capture_matches(before, stamp) -> bool:
+	if not before is Array or not stamp is Array or before.size() != 9 or stamp.size() != 9: return false
+	return _short_equal(before[0],stamp[0]) and _short_equal(before[1],stamp[1]) and _short_equal(before[2],stamp[2]) and _short_equal(before[3],stamp[3]) and _short_equal(before[4],stamp[4]) and _short_equal(before[5],stamp[5]) and _short_equal(before[6],stamp[6]) and _short_equal(before[7],stamp[7]) and _short_equal(before[8],stamp[8])
+
+func _short_world(row: Dictionary) -> Array[Vector3]:
+	var a: Array = row.get("a")
+	var b: Array = row.get("b")
+	var low: float = float(row.get("low"))
+	var high: float = float(row.get("high"))
+	return [Vector3(a[0],low,a[1]),Vector3(b[0],low,b[1]),Vector3(b[0],high,b[1]),Vector3(a[0],high,a[1])]
+
+func _short_quad(row: Dictionary, projection) -> PackedVector2Array:
+	var points: PackedVector2Array = PackedVector2Array()
+	for world: Vector3 in _short_world(row):
+		if not _finite_world(world): return PackedVector2Array()
+		var projected: Variant = projection.call("project",world)
+		if not projected is Vector2 or not _finite_point(projected): return PackedVector2Array()
+		points.append(projected)
+	if points.size() != 4 or not _valid_points_bounds(points) or not _nonzero_polygon_area(points): return PackedVector2Array()
+	var winding: float = 0.0
+	for index: int in range(4):
+		var edge: Vector2 = points[(index+1)%4]-points[index]
+		var next_edge: Vector2 = points[(index+2)%4]-points[(index+1)%4]
+		var turn: float = edge.cross(next_edge)
+		if not _finite_point(edge) or edge == Vector2.ZERO or not is_finite(turn) or turn == 0.0: return PackedVector2Array()
+		if index == 0: winding = turn
+		elif (turn > 0.0) != (winding > 0.0): return PackedVector2Array()
+	return points
+
+func _short_visible(points: PackedVector2Array, viewport: Rect2) -> int:
+	if points.size() != 4 or not _finite_rect(viewport): return -1
+	var corners: PackedVector2Array = PackedVector2Array([viewport.position,Vector2(viewport.end.x,viewport.position.y),viewport.end,Vector2(viewport.position.x,viewport.end.y)])
+	var axes: Array[Vector2] = [Vector2.RIGHT,Vector2.DOWN]
+	for index: int in range(4):
+		var edge: Vector2 = points[(index+1)%4]-points[index]
+		axes.append(Vector2(-edge.y,edge.x))
+	var separated: bool = false
+	for axis: Vector2 in axes:
+		if not _finite_point(axis) or axis == Vector2.ZERO: return -1
+		var polygon_min: float = INF
+		var polygon_max: float = -INF
+		var view_min: float = INF
+		var view_max: float = -INF
+		for point: Vector2 in points:
+			var projected: float = (point-points[0]).dot(axis)
+			if not is_finite(projected): return -1
+			polygon_min = minf(polygon_min,projected)
+			polygon_max = maxf(polygon_max,projected)
+		for point: Vector2 in corners:
+			var projected: float = (point-points[0]).dot(axis)
+			if not is_finite(projected): return -1
+			view_min = minf(view_min,projected)
+			view_max = maxf(view_max,projected)
+		if not is_finite(polygon_min) or not is_finite(polygon_max) or not is_finite(view_min) or not is_finite(view_max) or polygon_min >= polygon_max or view_min >= view_max: return -1
+		if polygon_max <= view_min or view_max <= polygon_min: separated = true
+	return 0 if separated else 1
+
+func _short_stage(canvas, snapshot, scene_data, current_key, wall_id, projection, viewport) -> Dictionary:
+	if not _short_bindings(canvas,snapshot,scene_data,current_key,projection,viewport): return {}
+	var stamp: Array = _short_capture(canvas,snapshot,current_key,projection)
+	var all: Array = []
+	var visible: Array = []
+	for face_value: Variant in SHORT_FACES:
+		if not face_value is Dictionary: return {}
+		var row: Dictionary = face_value
+		var owner: Variant = row.get("owner")
+		if typeof(owner) != TYPE_STRING or not WALL_IDS.has(owner) or _find_row(_canonical_scene.get("collision"),"id",owner).is_empty(): return {}
+		var spec: Dictionary = _wall_spec(owner)
+		var height: Variant = spec.get("height")
+		var low: Variant = row.get("low")
+		var high: Variant = row.get("high")
+		var expected_low: float = 0.0
+		if row.get("id") == "west_south_step": expected_low = float(_wall_spec("lockdown_wall_south").get("height"))
+		if not P.number(height,0.01,1.0) or not P.number(high,float(height),float(height)) or not P.number(low,expected_low,expected_low) or low >= high: return {}
+		var points: PackedVector2Array = _short_quad(row,projection)
+		if points.size() != 4: return {}
+		var result: int = _short_visible(points,viewport)
+		if result < 0: return {}
+		all.append({"owner":owner,"points":points,"visible":result})
+	if all.size() != 5: return {}
+	for face: Dictionary in all:
+		if face.get("visible") == 1: visible.append(face)
+	if not _short_bindings(canvas,snapshot,scene_data,current_key,projection,viewport) or not _short_capture_matches(stamp,_short_capture(canvas,snapshot,current_key,projection)): return {}
+	return {"faces":visible,"stamp":stamp}
+
+func _short_emit(canvas, snapshot, scene_data, current_key, wall_id, projection, viewport, short_family) -> void:
+	if not short_family is Dictionary or typeof(wall_id) != TYPE_STRING: return
+	var faces: Variant = short_family.get("faces")
+	var stamp: Variant = short_family.get("stamp")
+	if not faces is Array or not stamp is Array: return
+	var selected: Dictionary = {}
+	for face_value: Variant in faces:
+		if not face_value is Dictionary: return
+		var face: Dictionary = face_value
+		if face.get("owner") == wall_id:
+			selected = face
+			break
+	if selected.is_empty(): return
+	var points: Variant = selected.get("points")
+	if not points is PackedVector2Array or points.size() != 4 or not _valid_points_bounds(points) or not _nonzero_polygon_area(points): return
+	if not _short_bindings(canvas,snapshot,scene_data,current_key,projection,viewport) or not _short_capture_matches(stamp,_short_capture(canvas,snapshot,current_key,projection)): return
+	canvas.draw_colored_polygon(points,Color(0.15,0.21,0.22,1.0))
+# GB_SHORT_FUNCTION_END

@@ -219,6 +219,150 @@
           "y": 304,
           "width": 16,
           "height": 192
+        },
+        {
+          "id": 28,
+          "name": "north_corridor_edge_segment_0",
+          "x": 16.0,
+          "y": 198.4,
+          "width": 80.0,
+          "height": 9.599999999999994
+        },
+        {
+          "id": 29,
+          "name": "north_corridor_edge_segment_1",
+          "x": 160,
+          "y": 198.4,
+          "width": 32,
+          "height": 9.599999999999994
+        },
+        {
+          "id": 30,
+          "name": "north_corridor_edge_segment_2",
+          "x": 320,
+          "y": 198.4,
+          "width": 64,
+          "height": 9.599999999999994
+        },
+        {
+          "id": 31,
+          "name": "north_corridor_edge_segment_3",
+          "x": 448,
+          "y": 198.4,
+          "width": 192,
+          "height": 9.599999999999994
+        },
+        {
+          "id": 32,
+          "name": "north_corridor_edge_segment_4",
+          "x": 704,
+          "y": 198.4,
+          "width": 48.0,
+          "height": 9.599999999999994
+        },
+        {
+          "id": 33,
+          "name": "south_corridor_edge_segment_5",
+          "x": 16.0,
+          "y": 304.0,
+          "width": 16.0,
+          "height": 9.600000000000023
+        },
+        {
+          "id": 34,
+          "name": "south_corridor_edge_segment_6",
+          "x": 96,
+          "y": 304.0,
+          "width": 72.0,
+          "height": 9.600000000000023
+        },
+        {
+          "id": 35,
+          "name": "south_corridor_edge_segment_7",
+          "x": 344.0,
+          "y": 304.0,
+          "width": 136.0,
+          "height": 9.600000000000023
+        },
+        {
+          "id": 36,
+          "name": "south_corridor_edge_segment_8",
+          "x": 544,
+          "y": 304.0,
+          "width": 96,
+          "height": 9.600000000000023
+        },
+        {
+          "id": 37,
+          "name": "south_corridor_edge_segment_9",
+          "x": 704,
+          "y": 304.0,
+          "width": 48.0,
+          "height": 9.600000000000023
+        },
+        {
+          "id": 38,
+          "name": "north_cross_10_5_segment_10",
+          "x": 331.2,
+          "y": 16.0,
+          "width": 9.600000000000023,
+          "height": 48.0
+        },
+        {
+          "id": 39,
+          "name": "north_cross_10_5_segment_11",
+          "x": 331.2,
+          "y": 128,
+          "width": 9.600000000000023,
+          "height": 70.4
+        },
+        {
+          "id": 40,
+          "name": "north_cross_18_5_segment_12",
+          "x": 587.2,
+          "y": 16.0,
+          "width": 9.599999999999909,
+          "height": 48.0
+        },
+        {
+          "id": 41,
+          "name": "north_cross_18_5_segment_13",
+          "x": 587.2,
+          "y": 128,
+          "width": 9.599999999999909,
+          "height": 70.4
+        },
+        {
+          "id": 42,
+          "name": "south_cross_4_segment_14",
+          "x": 123.2,
+          "y": 313.6,
+          "width": 9.600000000000009,
+          "height": 94.39999999999998
+        },
+        {
+          "id": 43,
+          "name": "south_cross_4_segment_15",
+          "x": 123.2,
+          "y": 472.0,
+          "width": 9.600000000000009,
+          "height": 24.0
+        },
+        {
+          "id": 44,
+          "name": "south_cross_12_segment_16",
+          "x": 379.2,
+          "y": 313.6,
+          "width": 9.600000000000023,
+          "height": 94.39999999999998
+        },
+        {
+          "id": 45,
+          "name": "south_cross_12_segment_17",
+          "x": 379.2,
+          "y": 472.0,
+          "width": 9.600000000000023,
+          "height": 24.0
         }
       ],
       "opacity": 1,
@@ -240,7 +384,7 @@
             {
               "name": "neighbors",
               "type": "string",
-              "value": "gh_bio_isolation_mid_nav"
+              "value": "gh_bio_isolation_mid_nav,main_x4,south_door_0"
             }
           ]
         },
@@ -253,7 +397,7 @@
             {
               "name": "neighbors",
               "type": "string",
-              "value": "gh_bio_isolation_exit_nav"
+              "value": "gh_bio_isolation_exit_nav,main_x4,main_x13,baizhi_approach"
             }
           ]
         },
@@ -261,7 +405,248 @@
           "id": 20,
           "name": "gh_bio_isolation_exit_nav",
           "x": 640,
-          "y": 256
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "main_x16,main_x21"
+            }
+          ]
+        },
+        {
+          "id": 46,
+          "name": "main_x4",
+          "x": 128,
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "gh_bio_isolation_spawn_nav,gh_bio_isolation_mid_nav,north_door_0"
+            }
+          ]
+        },
+        {
+          "id": 47,
+          "name": "main_x13",
+          "x": 416,
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "gh_bio_isolation_mid_nav,main_x16,north_door_1"
+            }
+          ]
+        },
+        {
+          "id": 48,
+          "name": "main_x16",
+          "x": 512,
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "main_x13,gh_bio_isolation_exit_nav,south_door_1"
+            }
+          ]
+        },
+        {
+          "id": 49,
+          "name": "main_x21",
+          "x": 672,
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "gh_bio_isolation_exit_nav,east_transition_approach,north_door_2,south_door_2"
+            }
+          ]
+        },
+        {
+          "id": 50,
+          "name": "east_transition_approach",
+          "x": 720.0,
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "main_x21"
+            }
+          ]
+        },
+        {
+          "id": 51,
+          "name": "north_route_0",
+          "x": 128,
+          "y": 152.0,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "north_door_0,north_route_1"
+            }
+          ]
+        },
+        {
+          "id": 52,
+          "name": "north_door_0",
+          "x": 128,
+          "y": 208.0,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "main_x4,north_route_0"
+            }
+          ]
+        },
+        {
+          "id": 53,
+          "name": "north_route_1",
+          "x": 416,
+          "y": 96,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "north_door_1,north_route_0,north_route_2"
+            }
+          ]
+        },
+        {
+          "id": 54,
+          "name": "north_door_1",
+          "x": 416,
+          "y": 208.0,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "main_x13,north_route_1"
+            }
+          ]
+        },
+        {
+          "id": 55,
+          "name": "north_route_2",
+          "x": 672,
+          "y": 96,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "north_door_2,north_route_1"
+            }
+          ]
+        },
+        {
+          "id": 56,
+          "name": "north_door_2",
+          "x": 672,
+          "y": 208.0,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "main_x21,north_route_2"
+            }
+          ]
+        },
+        {
+          "id": 57,
+          "name": "south_route_0",
+          "x": 64,
+          "y": 440.0,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "south_door_0,south_route_1"
+            }
+          ]
+        },
+        {
+          "id": 58,
+          "name": "south_door_0",
+          "x": 64,
+          "y": 304.0,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "gh_bio_isolation_spawn_nav,south_route_0"
+            }
+          ]
+        },
+        {
+          "id": 59,
+          "name": "south_route_1",
+          "x": 512,
+          "y": 440.0,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "south_door_1,south_route_0,south_route_2"
+            }
+          ]
+        },
+        {
+          "id": 60,
+          "name": "south_door_1",
+          "x": 512,
+          "y": 304.0,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "main_x16,south_route_1"
+            }
+          ]
+        },
+        {
+          "id": 61,
+          "name": "south_route_2",
+          "x": 672,
+          "y": 440.0,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "south_door_2,south_route_1"
+            }
+          ]
+        },
+        {
+          "id": 62,
+          "name": "south_door_2",
+          "x": 672,
+          "y": 304.0,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "main_x21,south_route_2"
+            }
+          ]
+        },
+        {
+          "id": 63,
+          "name": "baizhi_approach",
+          "x": 256,
+          "y": 280.0,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "gh_bio_isolation_mid_nav"
+            }
+          ]
         }
       ],
       "opacity": 1,
@@ -448,7 +833,7 @@
     }
   ],
   "nextlayerid": 9,
-  "nextobjectid": 28,
+  "nextobjectid": 64,
   "orientation": "orthogonal",
   "properties": [
     {

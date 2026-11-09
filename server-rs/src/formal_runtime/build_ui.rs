@@ -202,6 +202,7 @@ impl FormalRuntime {
     ) -> Result<CommandReceipt, String> {
         request.validate().map_err(str::to_owned)?;
         let mut state = self.state.lock().map_err(|_| "E_RUNTIME_LOCK_POISONED")?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         // Acquire both locks before mutation, so a projection failure cannot hide a committed change.
         let scene = self
             .scene_runtime

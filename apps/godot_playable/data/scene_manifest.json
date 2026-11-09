@@ -75,18 +75,18 @@
     "path": "res://data/scenes/mh_breakwater.json"
   },
   "gh_deep_decon": {
-    "bytes": 9748,
-    "sha256": "65e0cbf11183fe114259d680b0cd84a23a7f8619a25e628f4b30a7a84ce870a8",
+    "bytes": 20892,
+    "sha256": "a53fd5c62a4540a375b51f7286798c7bab1a5c73aa37e98d3f4d6bad7b24f1c0",
     "path": "res://data/scenes/gh_deep_decon.json"
   },
   "gh_beacon": {
-    "bytes": 5927,
-    "sha256": "3cab424771d10799ee82a453a72117affb0ebca09dd814f25308be70310da9ee",
+    "bytes": 10650,
+    "sha256": "e6434c598904d7fe36f4f48ebc67559e6d484eb535393a7b447bc99cbf86c766",
     "path": "res://data/scenes/gh_beacon.json"
   },
   "gh_exit": {
-    "bytes": 5617,
-    "sha256": "6ab262467e1992feac94f27d8bf571dcf77ddbc8c1693a79c57b3aeebff0c54c",
+    "bytes": 12367,
+    "sha256": "b32ad8d1204e9eaf45512b0e2d5ea22e08f5bd09ec0b5e31980e41336c45ee09",
     "path": "res://data/scenes/gh_exit.json"
   },
   "mh_warden_arena": {
@@ -95,8 +95,8 @@
     "path": "res://data/scenes/mh_warden_arena.json"
   },
   "gh_lockdown": {
-    "bytes": 10081,
-    "sha256": "718489a1ea4ec4622ccdcefc8459a1dc1bd4f66ccf26abc813b6a06519197850",
+    "bytes": 24602,
+    "sha256": "23e5d5d9f37f6f44b1f8b9105aab656424778ef5edf0e775bbc364143fe1b30c",
     "path": "res://data/scenes/gh_lockdown.json"
   },
   "cw_entry_foundry": {
@@ -115,13 +115,13 @@
     "path": "res://data/scenes/mh_tidal_warehouse.json"
   },
   "gh_central_shaft": {
-    "bytes": 10328,
-    "sha256": "806ef2be417d59ab7041002cecfb26c1fc383db920157feb29c2669c343df5da",
+    "bytes": 10728,
+    "sha256": "6880bdf8dbab71a8bf74e38b8c614ad751e564cf87e8a2936ee801e52b72a832",
     "path": "res://data/scenes/gh_central_shaft.json"
   },
   "gh_bio_isolation": {
-    "bytes": 7071,
-    "sha256": "a3d629f04dc955cf0f8e644b54a4a64d054411a7d59a9fb15da5c9d9ea953aff",
+    "bytes": 18371,
+    "sha256": "bf531fd9d49ee875653a8048130dd0c6e1d9b2170c1848ad48c49f2cb35ce0db",
     "path": "res://data/scenes/gh_bio_isolation.json"
   },
   "mh_fog_pier": {

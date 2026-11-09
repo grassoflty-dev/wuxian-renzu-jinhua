@@ -165,6 +165,426 @@
         ]
       ],
       "requiresEvent": "hive_lockdown"
+    },
+    {
+      "id": "north_west_front_segment_0",
+      "polygon": [
+        [
+          0.5,
+          6.2
+        ],
+        [
+          3.0,
+          6.2
+        ],
+        [
+          3.0,
+          6.5
+        ],
+        [
+          0.5,
+          6.5
+        ]
+      ]
+    },
+    {
+      "id": "north_west_front_segment_1",
+      "polygon": [
+        [
+          5.0,
+          6.2
+        ],
+        [
+          7.75,
+          6.2
+        ],
+        [
+          7.75,
+          6.5
+        ],
+        [
+          5.0,
+          6.5
+        ]
+      ]
+    },
+    {
+      "id": "north_west_front_segment_2",
+      "polygon": [
+        [
+          9.75,
+          6.2
+        ],
+        [
+          10.0,
+          6.2
+        ],
+        [
+          10.0,
+          6.5
+        ],
+        [
+          9.75,
+          6.5
+        ]
+      ]
+    },
+    {
+      "id": "north_east_front_segment_3",
+      "polygon": [
+        [
+          11.0,
+          6.2
+        ],
+        [
+          13.0,
+          6.2
+        ],
+        [
+          13.0,
+          6.5
+        ],
+        [
+          11.0,
+          6.5
+        ]
+      ]
+    },
+    {
+      "id": "north_east_front_segment_4",
+      "polygon": [
+        [
+          15.0,
+          6.2
+        ],
+        [
+          20.0,
+          6.2
+        ],
+        [
+          20.0,
+          6.5
+        ],
+        [
+          15.0,
+          6.5
+        ]
+      ]
+    },
+    {
+      "id": "north_east_front_segment_5",
+      "polygon": [
+        [
+          22.0,
+          6.2
+        ],
+        [
+          23.5,
+          6.2
+        ],
+        [
+          23.5,
+          6.5
+        ],
+        [
+          22.0,
+          6.5
+        ]
+      ]
+    },
+    {
+      "id": "south_west_front_segment_6",
+      "polygon": [
+        [
+          0.5,
+          9.5
+        ],
+        [
+          2.0,
+          9.5
+        ],
+        [
+          2.0,
+          9.8
+        ],
+        [
+          0.5,
+          9.8
+        ]
+      ]
+    },
+    {
+      "id": "south_west_front_segment_7",
+      "polygon": [
+        [
+          4.0,
+          9.5
+        ],
+        [
+          7.5,
+          9.5
+        ],
+        [
+          7.5,
+          9.8
+        ],
+        [
+          4.0,
+          9.8
+        ]
+      ]
+    },
+    {
+      "id": "south_west_front_segment_8",
+      "polygon": [
+        [
+          9.5,
+          9.5
+        ],
+        [
+          10.0,
+          9.5
+        ],
+        [
+          10.0,
+          9.8
+        ],
+        [
+          9.5,
+          9.8
+        ]
+      ]
+    },
+    {
+      "id": "south_east_front_segment_9",
+      "polygon": [
+        [
+          11.0,
+          9.5
+        ],
+        [
+          13.0,
+          9.5
+        ],
+        [
+          13.0,
+          9.8
+        ],
+        [
+          11.0,
+          9.8
+        ]
+      ]
+    },
+    {
+      "id": "south_east_front_segment_10",
+      "polygon": [
+        [
+          15.0,
+          9.5
+        ],
+        [
+          20.0,
+          9.5
+        ],
+        [
+          20.0,
+          9.8
+        ],
+        [
+          15.0,
+          9.8
+        ]
+      ]
+    },
+    {
+      "id": "south_east_front_segment_11",
+      "polygon": [
+        [
+          22.0,
+          9.5
+        ],
+        [
+          23.5,
+          9.5
+        ],
+        [
+          23.5,
+          9.8
+        ],
+        [
+          22.0,
+          9.8
+        ]
+      ]
+    },
+    {
+      "id": "north_west_cross_segment_12",
+      "polygon": [
+        [
+          7.35,
+          0.5
+        ],
+        [
+          7.65,
+          0.5
+        ],
+        [
+          7.65,
+          2.0
+        ],
+        [
+          7.35,
+          2.0
+        ]
+      ]
+    },
+    {
+      "id": "north_west_cross_segment_13",
+      "polygon": [
+        [
+          7.35,
+          4.0
+        ],
+        [
+          7.65,
+          4.0
+        ],
+        [
+          7.65,
+          6.2
+        ],
+        [
+          7.35,
+          6.2
+        ]
+      ]
+    },
+    {
+      "id": "north_east_cross_segment_14",
+      "polygon": [
+        [
+          17.35,
+          0.5
+        ],
+        [
+          17.65,
+          0.5
+        ],
+        [
+          17.65,
+          2.0
+        ],
+        [
+          17.35,
+          2.0
+        ]
+      ]
+    },
+    {
+      "id": "north_east_cross_segment_15",
+      "polygon": [
+        [
+          17.35,
+          4.0
+        ],
+        [
+          17.65,
+          4.0
+        ],
+        [
+          17.65,
+          6.2
+        ],
+        [
+          17.35,
+          6.2
+        ]
+      ]
+    },
+    {
+      "id": "south_west_cross_segment_16",
+      "polygon": [
+        [
+          5.35,
+          9.8
+        ],
+        [
+          5.65,
+          9.8
+        ],
+        [
+          5.65,
+          12.0
+        ],
+        [
+          5.35,
+          12.0
+        ]
+      ]
+    },
+    {
+      "id": "south_west_cross_segment_17",
+      "polygon": [
+        [
+          5.35,
+          14.0
+        ],
+        [
+          5.65,
+          14.0
+        ],
+        [
+          5.65,
+          15.5
+        ],
+        [
+          5.35,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "south_east_cross_segment_18",
+      "polygon": [
+        [
+          18.35,
+          9.8
+        ],
+        [
+          18.65,
+          9.8
+        ],
+        [
+          18.65,
+          12.0
+        ],
+        [
+          18.35,
+          12.0
+        ]
+      ]
+    },
+    {
+      "id": "south_east_cross_segment_19",
+      "polygon": [
+        [
+          18.35,
+          14.0
+        ],
+        [
+          18.65,
+          14.0
+        ],
+        [
+          18.65,
+          15.5
+        ],
+        [
+          18.35,
+          15.5
+        ]
+      ]
     }
   ],
   "doors": [],
@@ -191,8 +611,280 @@
         "to": "gh_lockdown_terminal_nav"
       },
       {
+        "from": "gh_lockdown_spawn_nav",
+        "to": "main_w3"
+      },
+      {
         "from": "gh_lockdown_terminal_nav",
         "to": "gh_lockdown_checkpoint_nav"
+      },
+      {
+        "from": "gh_lockdown_terminal_nav",
+        "to": "main_w3"
+      },
+      {
+        "from": "gh_lockdown_terminal_nav",
+        "to": "north_door_nav_0"
+      },
+      {
+        "from": "gh_lockdown_checkpoint_nav",
+        "to": "main_w8"
+      },
+      {
+        "from": "main_w3",
+        "to": "gh_lockdown_spawn_nav"
+      },
+      {
+        "from": "main_w3",
+        "to": "gh_lockdown_terminal_nav"
+      },
+      {
+        "from": "main_w3",
+        "to": "south_door_nav_0"
+      },
+      {
+        "from": "main_w8",
+        "to": "gh_lockdown_checkpoint_nav"
+      },
+      {
+        "from": "main_w8",
+        "to": "main_gate_w"
+      },
+      {
+        "from": "main_w8",
+        "to": "north_door_nav_1"
+      },
+      {
+        "from": "main_w8",
+        "to": "south_door_nav_1"
+      },
+      {
+        "from": "main_gate_w",
+        "to": "main_w8"
+      },
+      {
+        "from": "main_gate_w",
+        "to": "main_gate_e"
+      },
+      {
+        "from": "main_gate_e",
+        "to": "main_e14"
+      },
+      {
+        "from": "main_gate_e",
+        "to": "main_gate_w"
+      },
+      {
+        "from": "main_e14",
+        "to": "main_gate_e"
+      },
+      {
+        "from": "main_e14",
+        "to": "main_e21"
+      },
+      {
+        "from": "main_e14",
+        "to": "north_door_nav_4"
+      },
+      {
+        "from": "main_e14",
+        "to": "south_door_nav_4"
+      },
+      {
+        "from": "main_e21",
+        "to": "main_e14"
+      },
+      {
+        "from": "main_e21",
+        "to": "main_exit"
+      },
+      {
+        "from": "main_e21",
+        "to": "north_door_nav_5"
+      },
+      {
+        "from": "main_e21",
+        "to": "south_door_nav_5"
+      },
+      {
+        "from": "main_exit",
+        "to": "main_e21"
+      },
+      {
+        "from": "north_route_0",
+        "to": "north_route_1"
+      },
+      {
+        "from": "north_route_0",
+        "to": "north_door_nav_0"
+      },
+      {
+        "from": "north_route_1",
+        "to": "north_route_0"
+      },
+      {
+        "from": "north_route_1",
+        "to": "north_route_2"
+      },
+      {
+        "from": "north_route_1",
+        "to": "north_door_nav_1"
+      },
+      {
+        "from": "north_route_2",
+        "to": "north_route_1"
+      },
+      {
+        "from": "north_route_2",
+        "to": "north_route_3"
+      },
+      {
+        "from": "north_route_3",
+        "to": "north_route_4"
+      },
+      {
+        "from": "north_route_3",
+        "to": "north_route_2"
+      },
+      {
+        "from": "north_route_4",
+        "to": "north_route_3"
+      },
+      {
+        "from": "north_route_4",
+        "to": "north_route_5"
+      },
+      {
+        "from": "north_route_4",
+        "to": "north_door_nav_4"
+      },
+      {
+        "from": "north_route_5",
+        "to": "north_route_4"
+      },
+      {
+        "from": "north_route_5",
+        "to": "north_door_nav_5"
+      },
+      {
+        "from": "north_door_nav_0",
+        "to": "gh_lockdown_terminal_nav"
+      },
+      {
+        "from": "north_door_nav_0",
+        "to": "north_route_0"
+      },
+      {
+        "from": "north_door_nav_1",
+        "to": "main_w8"
+      },
+      {
+        "from": "north_door_nav_1",
+        "to": "north_route_1"
+      },
+      {
+        "from": "north_door_nav_4",
+        "to": "main_e14"
+      },
+      {
+        "from": "north_door_nav_4",
+        "to": "north_route_4"
+      },
+      {
+        "from": "north_door_nav_5",
+        "to": "main_e21"
+      },
+      {
+        "from": "north_door_nav_5",
+        "to": "north_route_5"
+      },
+      {
+        "from": "south_route_0",
+        "to": "south_route_1"
+      },
+      {
+        "from": "south_route_0",
+        "to": "south_door_nav_0"
+      },
+      {
+        "from": "south_route_1",
+        "to": "south_route_0"
+      },
+      {
+        "from": "south_route_1",
+        "to": "south_route_2"
+      },
+      {
+        "from": "south_route_1",
+        "to": "south_door_nav_1"
+      },
+      {
+        "from": "south_route_2",
+        "to": "south_route_1"
+      },
+      {
+        "from": "south_route_2",
+        "to": "south_route_3"
+      },
+      {
+        "from": "south_route_3",
+        "to": "south_route_4"
+      },
+      {
+        "from": "south_route_3",
+        "to": "south_route_2"
+      },
+      {
+        "from": "south_route_4",
+        "to": "south_route_3"
+      },
+      {
+        "from": "south_route_4",
+        "to": "south_route_5"
+      },
+      {
+        "from": "south_route_4",
+        "to": "south_door_nav_4"
+      },
+      {
+        "from": "south_route_5",
+        "to": "south_route_4"
+      },
+      {
+        "from": "south_route_5",
+        "to": "south_door_nav_5"
+      },
+      {
+        "from": "south_door_nav_0",
+        "to": "main_w3"
+      },
+      {
+        "from": "south_door_nav_0",
+        "to": "south_route_0"
+      },
+      {
+        "from": "south_door_nav_1",
+        "to": "main_w8"
+      },
+      {
+        "from": "south_door_nav_1",
+        "to": "south_route_1"
+      },
+      {
+        "from": "south_door_nav_4",
+        "to": "main_e14"
+      },
+      {
+        "from": "south_door_nav_4",
+        "to": "south_route_4"
+      },
+      {
+        "from": "south_door_nav_5",
+        "to": "main_e21"
+      },
+      {
+        "from": "south_door_nav_5",
+        "to": "south_route_5"
       }
     ],
     "nodes": [
@@ -218,6 +910,222 @@
           6.0,
           0.0,
           8.0
+        ]
+      },
+      {
+        "id": "main_w3",
+        "position": [
+          3.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "main_w8",
+        "position": [
+          8.75,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "main_gate_w",
+        "position": [
+          9.5,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "main_gate_e",
+        "position": [
+          11.5,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "main_e14",
+        "position": [
+          14.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "main_e21",
+        "position": [
+          21.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "main_exit",
+        "position": [
+          22.5,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "north_route_0",
+        "position": [
+          4.0,
+          0.0,
+          3.0
+        ]
+      },
+      {
+        "id": "north_route_1",
+        "position": [
+          8.75,
+          0.0,
+          3.0
+        ]
+      },
+      {
+        "id": "north_route_2",
+        "position": [
+          9.5,
+          0.0,
+          3.0
+        ]
+      },
+      {
+        "id": "north_route_3",
+        "position": [
+          11.5,
+          0.0,
+          3.0
+        ]
+      },
+      {
+        "id": "north_route_4",
+        "position": [
+          14.0,
+          0.0,
+          3.0
+        ]
+      },
+      {
+        "id": "north_route_5",
+        "position": [
+          21.0,
+          0.0,
+          3.0
+        ]
+      },
+      {
+        "id": "north_door_nav_0",
+        "position": [
+          4.0,
+          0.0,
+          6.5
+        ]
+      },
+      {
+        "id": "north_door_nav_1",
+        "position": [
+          8.75,
+          0.0,
+          6.5
+        ]
+      },
+      {
+        "id": "north_door_nav_4",
+        "position": [
+          14.0,
+          0.0,
+          6.5
+        ]
+      },
+      {
+        "id": "north_door_nav_5",
+        "position": [
+          21.0,
+          0.0,
+          6.5
+        ]
+      },
+      {
+        "id": "south_route_0",
+        "position": [
+          3.0,
+          0.0,
+          13.0
+        ]
+      },
+      {
+        "id": "south_route_1",
+        "position": [
+          8.5,
+          0.0,
+          13.0
+        ]
+      },
+      {
+        "id": "south_route_2",
+        "position": [
+          9.5,
+          0.0,
+          13.0
+        ]
+      },
+      {
+        "id": "south_route_3",
+        "position": [
+          11.5,
+          0.0,
+          13.0
+        ]
+      },
+      {
+        "id": "south_route_4",
+        "position": [
+          14.0,
+          0.0,
+          13.0
+        ]
+      },
+      {
+        "id": "south_route_5",
+        "position": [
+          21.0,
+          0.0,
+          13.0
+        ]
+      },
+      {
+        "id": "south_door_nav_0",
+        "position": [
+          3.0,
+          0.0,
+          9.5
+        ]
+      },
+      {
+        "id": "south_door_nav_1",
+        "position": [
+          8.5,
+          0.0,
+          9.5
+        ]
+      },
+      {
+        "id": "south_door_nav_4",
+        "position": [
+          14.0,
+          0.0,
+          9.5
+        ]
+      },
+      {
+        "id": "south_door_nav_5",
+        "position": [
+          21.0,
+          0.0,
+          9.5
         ]
       }
     ]

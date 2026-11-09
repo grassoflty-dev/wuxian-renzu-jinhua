@@ -3,6 +3,7 @@ const P = preload('res://scripts/bridge/protocol.gd')
 const ContactGeometry = preload('res://scripts/world/gh_supply_crate_visual.gd')
 const CONFIG = {
 	'rs_terminal':{'id':'runtime2d.world.returnstation.terminal.v1','width':1071,'height':1218,'nominal':72},
+	'rs_terminals':{'id':'runtime2d.world.returnstation.terminals.v1','width':1176,'height':1065,'nominal':72},
 	'beacon_folded':{'id':'runtime2d.prop.beacon.folded.v1','width':1226,'height':1005,'nominal':36},
 	'beacon_deployed':{'id':'runtime2d.prop.beacon.deployed.v1','width':1333,'height':1054,'nominal':72}
 }
@@ -23,7 +24,7 @@ func _load_once() -> void:
 	if bytes.get_string_from_utf8().to_utf8_buffer()!=bytes:
 		return
 	var map = JSON.parse_string(bytes.get_string_from_utf8())
-	if not map is Dictionary or map.get('schema')!='wuxian.registered-props.internal-use/v1' or typeof(map.get('registeredSourceReuse'))!=TYPE_BOOL or not map.registeredSourceReuse or map.get('approval')!='INTERNAL_REGISTERED_SOURCE_REUSE' or map.get('GodotDisplay')!='NOT_RUN' or map.get('publicRelease')!='NOT_ESTABLISHED' or not map.get('assets') is Dictionary or map.assets.size()!=3:
+	if not map is Dictionary or map.get('schema')!='wuxian.registered-props.internal-use/v1' or typeof(map.get('registeredSourceReuse'))!=TYPE_BOOL or not map.registeredSourceReuse or map.get('approval')!='INTERNAL_REGISTERED_SOURCE_REUSE' or map.get('GodotDisplay')!='NOT_RUN' or map.get('publicRelease')!='NOT_ESTABLISHED' or not map.get('assets') is Dictionary or map.assets.size()!=4:
 		return
 	for key in CONFIG:
 		var row = map.assets.get(key)
@@ -133,6 +134,40 @@ func draw_beacon_contact_shadow(canvas_value: Variant, snapshot_value: Variant, 
 	canvas.draw_colored_polygon(plan.points,plan.color)
 	return true
 
+# Dedicated local storage body; a failed attempt leaves the shared body intact.
+const STORAGE_BODY_PATH = 'res://assets/props/return_station/versionedstorage_terminal_body_local_r1.png'
+var storage_body_attempted: bool = false
+var storage_body_texture: Texture2D = null
+
+func _storage_body_once() -> Texture2D:
+	if storage_body_attempted:
+		return storage_body_texture
+	storage_body_attempted = true
+	var candidate: Texture2D = null
+	if ResourceLoader.exists(STORAGE_BODY_PATH, 'Texture2D'):
+		var loaded: Variant = ResourceLoader.load(STORAGE_BODY_PATH, 'Texture2D')
+		if loaded is Texture2D:
+			candidate = loaded
+	if not is_instance_valid(candidate):
+		var image: Image = Image.new()
+		if image.load(STORAGE_BODY_PATH)==OK and not image.is_empty() and image.get_width()==1150 and image.get_height()==1368 and image.get_format()==Image.FORMAT_RGBA8:
+			candidate = ImageTexture.create_from_image(image)
+	if is_instance_valid(candidate) and candidate.get_width()==1150 and candidate.get_height()==1368:
+		storage_body_texture = candidate
+	return storage_body_texture
+
+func draw_storage_body(canvas: CanvasItem, foot: Vector2, ppm: float) -> bool:
+	if canvas==null or not is_instance_valid(canvas) or not is_finite(foot.x) or not is_finite(foot.y) or not is_finite(ppm) or ppm<=0.0:
+		return false
+	var texture: Texture2D = _storage_body_once()
+	if not is_instance_valid(texture):
+		return false
+	var factor: float = (72.0/1368.0)*(ppm/48.0)
+	if not is_finite(factor) or factor<=0.0:
+		return false
+	canvas.draw_texture_rect(texture,Rect2(foot-Vector2(690,1150)*factor,Vector2(1150,1368)*factor),false,Color.WHITE)
+	return true
+
 func draw_body(canvas: CanvasItem, key: String, foot: Vector2, ppm: float) -> bool:
 	if not CONFIG.has(key) or not is_finite(foot.x) or not is_finite(foot.y) or not is_finite(ppm) or ppm<=0:
 		return false
@@ -143,5 +178,13 @@ func draw_body(canvas: CanvasItem, key: String, foot: Vector2, ppm: float) -> bo
 	var factor = (float(c.nominal)/float(c.height))*(ppm/48.0)
 	if not is_finite(factor) or factor<=0:
 		return false
-	canvas.draw_texture_rect(textures[key],Rect2(foot-Vector2(c.width*0.5,c.height)*factor,Vector2(c.width,c.height)*factor),false,Color.WHITE)
+	# Authored visual pivots preserve the existing world and interaction anchors.
+	var pivot := Vector2(c.width*0.5,c.height)
+	var texture: Variant = textures[key]
+	if texture is Texture2D and is_instance_valid(texture):
+		if key=='rs_terminal' and c.id=='runtime2d.world.returnstation.terminal.v1' and c.width==1071 and c.height==1218 and texture.get_width()==1071 and texture.get_height()==1218:
+			pivot = Vector2(540,1200)
+		elif key=='rs_terminals' and c.id=='runtime2d.world.returnstation.terminals.v1' and c.width==1176 and c.height==1065 and texture.get_width()==1176 and texture.get_height()==1065:
+			pivot = Vector2(720,1025)
+	canvas.draw_texture_rect(textures[key],Rect2(foot-pivot*factor,Vector2(c.width,c.height)*factor),false,Color.WHITE)
 	return true

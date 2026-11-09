@@ -5,6 +5,7 @@ const ID = 'runtime2d.prop.supply_crates.v1'
 const SHA = '0dbad1364c14649b021f20510b9faf970ff317e6202131bd4cb2c32648b34b00'
 const ContactProjection = preload('res://scripts/world/projection.gd')
 const CONTACT_SCENE_SHA256 = '3cab424771d10799ee82a453a72117affb0ebca09dd814f25308be70310da9ee'
+const CONTACT_BEACON_LAYOUT_SHA256 = 'e6434c598904d7fe36f4f48ebc67559e6d484eb535393a7b447bc99cbf86c766'
 const CUTOUT = [[250,10],[510,100],[539,440],[295,549],[15,420],[15,140]]
 var attempted = false
 var texture: Texture2D
@@ -159,7 +160,9 @@ static func _contact_context_valid(snapshot: Dictionary, scene: Dictionary, key:
 		return false
 	var epoch: Variant = snapshot.get('worldEpoch')
 	var bounds: Variant = scene.get('boundsM')
-	return typeof(key)==TYPE_STRING and key=='grey_hive:gh_beacon:'+str(epoch) and typeof(scene_hash)==TYPE_STRING and scene_hash==CONTACT_SCENE_SHA256 and scene.get('worldId')=='grey_hive' and scene.get('sceneId')=='gh_beacon' and bounds is Dictionary and P.number(bounds.get('x'),0.0,0.0) and P.number(bounds.get('z'),0.0,0.0) and P.number(bounds.get('width'),24.0,24.0) and P.number(bounds.get('depth'),16.0,16.0)
+	var old_identity: bool = scene_hash==CONTACT_SCENE_SHA256 and scene.get('collision') is Array and scene.collision.size()==6
+	var new_identity: bool = scene_hash==CONTACT_BEACON_LAYOUT_SHA256 and snapshot.get('utilitySceneSourceSha256')==scene_hash and scene.get('collision') is Array and scene.collision.size()==13
+	return typeof(key)==TYPE_STRING and key=='grey_hive:gh_beacon:'+str(epoch) and typeof(scene_hash)==TYPE_STRING and (old_identity or new_identity) and scene.get('worldId')=='grey_hive' and scene.get('sceneId')=='gh_beacon' and bounds is Dictionary and P.number(bounds.get('x'),0.0,0.0) and P.number(bounds.get('z'),0.0,0.0) and P.number(bounds.get('width'),24.0,24.0) and P.number(bounds.get('depth'),16.0,16.0)
 
 static func _contact_crate_row_valid(scene: Dictionary) -> bool:
 	var presentation: Variant = scene.get('presentation')
@@ -186,7 +189,7 @@ static func _contact_collision_clear(world: PackedVector2Array, scene: Dictionar
 	if not rows is Array:
 		return false
 	var collision_rows: Array = rows
-	if not P.rows(collision_rows,128) or collision_rows.size()!=6 or not P.unique(collision_rows,'id'):
+	if not P.rows(collision_rows,128) or collision_rows.size() not in [6,13] or not P.unique(collision_rows,'id'):
 		return false
 	for row in collision_rows:
 		var raw: Variant = row.get('polygon')

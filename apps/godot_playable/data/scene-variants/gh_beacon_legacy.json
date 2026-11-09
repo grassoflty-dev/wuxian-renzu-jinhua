@@ -1,0 +1,359 @@
+{
+  "boundsM": {
+    "depth": 16.0,
+    "width": 24.0,
+    "x": 0,
+    "z": 0
+  },
+  "cameraZones": [],
+  "checkpoints": [
+    {
+      "id": "gh_beacon_checkpoint",
+      "navNode": "gh_beacon_device_nav",
+      "position": [
+        8.0,
+        0.0,
+        8.0
+      ]
+    }
+  ],
+  "collision": [
+    {
+      "id": "beacon_wall_north",
+      "polygon": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          0.0,
+          0.5
+        ]
+      ]
+    },
+    {
+      "id": "beacon_wall_south",
+      "polygon": [
+        [
+          0.0,
+          15.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          24.0,
+          16.0
+        ],
+        [
+          0.0,
+          16.0
+        ]
+      ]
+    },
+    {
+      "id": "beacon_wall_west_north",
+      "polygon": [
+        [
+          0.0,
+          0.5
+        ],
+        [
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          6.5
+        ],
+        [
+          0.0,
+          6.5
+        ]
+      ]
+    },
+    {
+      "id": "beacon_wall_west_south",
+      "polygon": [
+        [
+          0.0,
+          9.5
+        ],
+        [
+          0.5,
+          9.5
+        ],
+        [
+          0.5,
+          15.5
+        ],
+        [
+          0.0,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "beacon_wall_east_north",
+      "polygon": [
+        [
+          23.5,
+          0.5
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          24.0,
+          6.5
+        ],
+        [
+          23.5,
+          6.5
+        ]
+      ]
+    },
+    {
+      "id": "beacon_wall_east_south",
+      "polygon": [
+        [
+          23.5,
+          9.5
+        ],
+        [
+          24.0,
+          9.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          23.5,
+          15.5
+        ]
+      ]
+    }
+  ],
+  "doors": [],
+  "hazards": [],
+  "interactions": [
+    {
+      "event": null,
+      "id": "gh_beacon_deploy_marker",
+      "kind": "beacon_collect",
+      "position": [
+        8.0,
+        0.0,
+        8.0
+      ]
+    },
+    {
+      "event": null,
+      "id": "gh_beacon_storage_mount_marker",
+      "kind": "beacon_mount",
+      "position": [
+        17.0,
+        0.0,
+        8.0
+      ]
+    }
+  ],
+  "logic": {
+    "traversal": []
+  },
+  "navigation": {
+    "links": [
+      {
+        "from": "gh_beacon_spawn_nav",
+        "to": "gh_beacon_device_nav"
+      },
+      {
+        "from": "gh_beacon_device_nav",
+        "to": "gh_beacon_mount_nav"
+      },
+      {
+        "from": "gh_beacon_mount_nav",
+        "to": "gh_beacon_exit_nav"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "gh_beacon_spawn_nav",
+        "position": [
+          2.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "gh_beacon_device_nav",
+        "position": [
+          8.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "gh_beacon_mount_nav",
+        "position": [
+          17.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "gh_beacon_exit_nav",
+        "position": [
+          22.0,
+          0.0,
+          8.0
+        ]
+      }
+    ]
+  },
+  "objectives": [],
+  "occluders": [],
+  "presentation": {
+    "cameraProfile": "oblique_default",
+    "layers": [
+      {
+        "id": "visual.floor",
+        "zGroup": 0
+      },
+      {
+        "id": "visual.props_back",
+        "zGroup": 10
+      },
+      {
+        "id": "visual.props_dynamic",
+        "zGroup": 20
+      }
+    ],
+    "sprites": [
+      {
+        "assetId": "runtime2d.grey_hive.floor_tiles.v1",
+        "id": "beacon_approved_floor",
+        "layer": "visual.floor",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.wall_tiles.v1",
+        "id": "beacon_room_wall",
+        "layer": "visual.props_back",
+        "position": [
+          12.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.pipes_cables.v1",
+        "id": "beacon_room_cabling",
+        "layer": "visual.props_back",
+        "position": [
+          9.0,
+          0.0,
+          3.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.clutter.v1",
+        "id": "beacon_storage_mount_blockout",
+        "layer": "visual.props_back",
+        "position": [
+          17.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.prop.supply_crates.v1",
+        "id": "beacon_service_crates",
+        "layer": "visual.props_back",
+        "position": [
+          5.0,
+          0.0,
+          11.5
+        ]
+      },
+      {
+        "assetId": "runtime2d.prop.beacon.folded.v1",
+        "id": "beacon_folded_approved",
+        "layer": "visual.props_dynamic",
+        "position": [
+          8.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.prop.beacon.deployed.v1",
+        "id": "beacon_mounted_approved",
+        "layer": "visual.props_dynamic",
+        "position": [
+          17.0,
+          0.0,
+          8.0
+        ]
+      }
+    ]
+  },
+  "sceneId": "gh_beacon",
+  "schemaVersion": 1,
+  "spawns": [
+    {
+      "entityType": null,
+      "id": "gh_beacon_spawn",
+      "kind": "player",
+      "navNode": "gh_beacon_spawn_nav",
+      "position": [
+        2.0,
+        0.0,
+        8.0
+      ]
+    }
+  ],
+  "transitions": [
+    {
+      "id": "gh_beacon_to_exit",
+      "polygon": [
+        [
+          22.0,
+          7.0
+        ],
+        [
+          24.0,
+          7.0
+        ],
+        [
+          24.0,
+          9.0
+        ],
+        [
+          22.0,
+          9.0
+        ]
+      ],
+      "spawnId": "gh_exit_spawn",
+      "toSceneId": "gh_exit"
+    }
+  ],
+  "triggers": [],
+  "vfxMarkers": [],
+  "worldId": "grey_hive"
+}

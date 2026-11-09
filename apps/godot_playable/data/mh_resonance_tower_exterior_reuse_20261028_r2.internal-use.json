@@ -1,0 +1,42 @@
+{
+  "schema": "wuxian.mh-resonance-tower-exterior-reuse.internal-use/v1",
+  "resourceId": "ART-MH-FOG-PIER-EXTERIOR-BACKPLATE-20261027-001",
+  "revision": "r2",
+  "approval": "ACCEPT_LIMITED_STATIC_MH_RESONANCE_TOWER_BACKGROUND_REUSE",
+  "GodotDisplay": "NOT_RUN",
+  "publicRelease": "NOT_ESTABLISHED",
+  "fallback": "EXISTING_CLEAR_AND_FLOOR",
+  "limitations": "UNREGISTERED_NONINTERACTIVE_RUNTIME_NOT_RUN",
+  "asset": {
+    "path": "res://assets/props/mist_harbor/mh_fog_pier_exterior_backplate_20261027_r2.png",
+    "bytes": 2069499,
+    "sha256": "ae21e5372b8f236865d13de5f0b2eee81adc32d9ee3328f434e59959ecf5cb2c",
+    "width": 1536,
+    "height": 1024,
+    "format": "RGB8"
+  },
+  "composition": {
+    "space": "SCREEN_SPACE_BACKGROUND_ONLY",
+    "fit": "CENTERED_COVER_FULL_VIEWPORT",
+    "uv": "FULL_ONCE",
+    "filter": "LINEAR",
+    "repeat": "DISABLED",
+    "tint": "WHITE_OPAQUE"
+  },
+  "installation": {
+    "worldId": "mist_harbor",
+    "sceneId": "mh_resonance_tower",
+    "sceneSchemaVersion": 1,
+    "boundsM": [
+      0,
+      0,
+      24,
+      16
+    ],
+    "sceneSha256": "61d42c94a06204b1c4ddac4f29577d3e031a14f1b6fcc66613d625006fd94452",
+    "canonicalScenePath": "res://data/scenes/mh_resonance_tower.json",
+    "canonicalSceneBytes": 8668,
+    "nonInteractive": true,
+    "unregistered": true
+  }
+}

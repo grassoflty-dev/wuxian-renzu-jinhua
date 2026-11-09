@@ -19,6 +19,9 @@ const UV_CONVENTION = "(sourcePixelCenter + 0.5) / canvasSize"
 
 var attempted: bool = false
 var floor_texture: ImageTexture
+var _fixed_world_lattice: Array[Vector3] = []
+var _fixed_cells: Array = []
+var _fixed_uvs := PackedVector2Array()
 var last_lattice_vertex_count: int = 0
 var last_lattice_vertices: Array[Vector2] = []
 
@@ -28,62 +31,72 @@ func build_packets(snapshot: Dictionary, scene_data: Dictionary, current_key: St
 	if not _valid_context(snapshot, scene_data, current_key) or not _valid_projection(projection):
 		return []
 	_load_once()
-	if floor_texture == null:
+	if floor_texture == null or not _prepare_fixed_geometry():
 		return []
 	var lattice: Array[Vector2] = []
-	for z_index in range(GRID_VERTICES.y):
-		for x_index in range(GRID_VERTICES.x):
-			var world_point := Vector3(float(x_index) * CELL_SIZE, 0.0, float(z_index) * CELL_SIZE)
-			var screen_point = projection.call("project", world_point)
-			if not screen_point is Vector2 or not _finite_point(screen_point):
-				return []
-			lattice.append(screen_point)
+	for world_point in _fixed_world_lattice:
+		var screen_point = projection.call("project", world_point)
+		if not screen_point is Vector2 or not _finite_point(screen_point):
+			return []
+		lattice.append(screen_point)
 	if lattice.size() != 88:
 		return []
 	last_lattice_vertices = lattice
 	last_lattice_vertex_count = lattice.size()
-	var uvs := _uv_corners()
 	var packets: Array = []
-	for z_index in range(GRID_CELLS.y):
-		for x_index in range(GRID_CELLS.x):
-			var top_left: int = z_index * GRID_VERTICES.x + x_index
-			var points := PackedVector2Array([
-				lattice[top_left],
-				lattice[top_left + 1],
-				lattice[top_left + GRID_VERTICES.x + 1],
-				lattice[top_left + GRID_VERTICES.x]
-			])
-			if not _convex_quad(points):
-				last_lattice_vertices.clear()
-				last_lattice_vertex_count = 0
-				return []
-			var world_x: float = float(x_index) * CELL_SIZE
-			var world_z: float = float(z_index) * CELL_SIZE
-			var world_corners: Array[Vector3] = [
-				Vector3(world_x, 0.0, world_z),
-				Vector3(world_x + CELL_SIZE, 0.0, world_z),
-				Vector3(world_x + CELL_SIZE, 0.0, world_z + CELL_SIZE),
-				Vector3(world_x, 0.0, world_z + CELL_SIZE)
-			]
-			var bounds := _points_bounds(points)
-			if not _valid_rect(bounds):
-				last_lattice_vertices.clear()
-				last_lattice_vertex_count = 0
-				return []
-			packets.append({
-				"id": "gh_entry_floor:%02d:%02d" % [z_index, x_index],
-				"grid_x": x_index,
-				"grid_z": z_index,
-				"world_corners": world_corners,
-				"points": points,
-				"uvs": uvs,
-				"bounds_rect": bounds
-			})
+	for cell in _fixed_cells:
+		var top_left: int = cell.top_left
+		var points := PackedVector2Array([
+			lattice[top_left],
+			lattice[top_left + 1],
+			lattice[top_left + GRID_VERTICES.x + 1],
+			lattice[top_left + GRID_VERTICES.x]
+		])
+		if not _convex_quad(points):
+			last_lattice_vertices.clear()
+			last_lattice_vertex_count = 0
+			return []
+		var bounds := _points_bounds(points)
+		if not _valid_rect(bounds):
+			last_lattice_vertices.clear()
+			last_lattice_vertex_count = 0
+			return []
+		packets.append({
+			"id": cell.id,
+			"grid_x": cell.grid_x,
+			"grid_z": cell.grid_z,
+			"world_corners": cell.world_corners.duplicate(),
+			"points": points,
+			"uvs": _fixed_uvs.duplicate(),
+			"bounds_rect": bounds
+		})
 	if packets.size() != 70:
 		last_lattice_vertices.clear()
 		last_lattice_vertex_count = 0
 		return []
 	return packets
+
+func _prepare_fixed_geometry() -> bool:
+	if not _fixed_world_lattice.is_empty() or not _fixed_cells.is_empty() or not _fixed_uvs.is_empty():
+		return _fixed_world_lattice.size() == 88 and _fixed_cells.size() == 70 and _fixed_uvs.size() == 4
+	var world_lattice: Array[Vector3] = []
+	for z_index in range(GRID_VERTICES.y):
+		for x_index in range(GRID_VERTICES.x):
+			world_lattice.append(Vector3(float(x_index) * CELL_SIZE, 0.0, float(z_index) * CELL_SIZE))
+	var cells: Array = []
+	for z_index in range(GRID_CELLS.y):
+		for x_index in range(GRID_CELLS.x):
+			var x: float = float(x_index) * CELL_SIZE
+			var z: float = float(z_index) * CELL_SIZE
+			var corners: Array[Vector3] = [Vector3(x,0.0,z), Vector3(x+CELL_SIZE,0.0,z), Vector3(x+CELL_SIZE,0.0,z+CELL_SIZE), Vector3(x,0.0,z+CELL_SIZE)]
+			cells.append({"id":"gh_entry_floor:%02d:%02d" % [z_index,x_index], "grid_x":x_index, "grid_z":z_index, "top_left":z_index*GRID_VERTICES.x+x_index, "world_corners":corners})
+	var uvs := _uv_corners()
+	if world_lattice.size() != 88 or cells.size() != 70 or uvs.size() != 4:
+		return false
+	_fixed_world_lattice = world_lattice
+	_fixed_cells = cells
+	_fixed_uvs = uvs
+	return true
 
 func draw_tiles(canvas: CanvasItem, packets: Array, viewport: Rect2) -> bool:
 	if canvas == null or floor_texture == null or not _valid_rect(viewport) or packets.size() != 70:

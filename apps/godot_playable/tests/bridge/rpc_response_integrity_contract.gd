@@ -1,5 +1,5 @@
 extends SceneTree
-# SOURCE ONLY: not executed. Off-tree clients; no connection, request send or retry.
+# Off-tree clients and a disconnect-only transport spy; no connection/send/retry.
 const Rpc = preload('res://scripts/bridge/rpc_client.gd')
 const P = preload('res://scripts/bridge/protocol.gd')
 const Fixture = preload('res://tests/ui/decon_hazard_text_contract.gd')
@@ -9,6 +9,11 @@ var errors: Array = []
 var replies: Array = []
 var changes: Array = []
 var sample: Dictionary = {}
+var checks: int = 0
+class DisconnectSpy extends RefCounted:
+	var disconnects: int = 0
+	func disconnect_from_host() -> void:
+		disconnects += 1
 
 func _initialize() -> void:
 	sample = Fixture._fixture()
@@ -16,10 +21,13 @@ func _initialize() -> void:
 	_error_matrix()
 	_out_of_order()
 	_protocol_rejections()
-	print('RPC_RESPONSE_INTEGRITY_CONTRACT failures='+str(failures))
+	_malformed_owned_responses()
+	_handshake_success()
+	print('RPC_RESPONSE_INTEGRITY_CONTRACT checks='+str(checks)+' failures='+str(failures))
 	quit(0 if failures==0 else 1)
 
 func _check(ok: bool, label: String) -> void:
+	checks += 1
 	if not ok:
 		failures += 1
 		push_error(label)
@@ -29,6 +37,7 @@ func _client():
 	replies.clear()
 	changes.clear()
 	var c = Rpc.new()
+	c.peer = DisconnectSpy.new()
 	c.connection_generation = 7
 	c.next_id = 102
 	c.authenticated = true
@@ -118,3 +127,53 @@ func _protocol_rejections() -> void:
 		_check(c.pending.is_empty(),field+'/no retained request')
 		_no_resend(c,field)
 		c.free()
+
+func _malformed_owned_responses() -> void:
+	for method in ['formal_snapshot','formal_submit_action']:
+		for malformed in ['null-error','scalar-error','missing-code','numeric-code','long-code','success-with-error']:
+			var c = _client()
+			var affected: Dictionary = _seed(c,101,method)
+			var other_method: String = 'formal_submit_input' if method in Rpc.READS else 'formal_has_save'
+			var other: Dictionary = _seed(c,102,other_method)
+			c.queue = [{'id':101,'bytes':PackedByteArray([1,2]),'offset':0}]
+			c.queued_bytes = 2
+			c.incoming = PackedByteArray([3,4])
+			c.token_secret = 'fixture-only'
+			var bad: Dictionary = _envelope(101,'E_ACTION_BUSY')
+			match malformed:
+				'null-error': bad.error = null
+				'scalar-error': bad.error = 7
+				'missing-code': bad.error = {}
+				'numeric-code': bad.error = {'code':7}
+				'long-code': bad.error = {'code':'x'.repeat(129)}
+				'success-with-error': bad.ok = true; bad.result = sample
+			var before: Dictionary = bad.duplicate(true)
+			c._handle(bad)
+			var label: String = method+'/'+malformed
+			var expected_affected: Array = [101,method,'E_RESPONSE_PROTOCOL' if method in Rpc.READS else 'UNKNOWN_MUTATION',affected]
+			var expected_other: Array = [102,other_method,'E_RESPONSE_PROTOCOL' if other_method in Rpc.READS else 'UNKNOWN_MUTATION',other]
+			_check(errors.size()==2 and errors.has(expected_affected) and errors.has(expected_other),label+'/each original association failed exactly once')
+			_check(c.transport_stopped and c.peer.disconnects==1 and changes==[[false,'E_RESPONSE_PROTOCOL']],label+'/one disconnect and notification')
+			_check(c.pending.is_empty() and c.queue.is_empty() and c.incoming.is_empty() and c.queued_bytes==0,label+'/all buffers cleared')
+			_check(not c.authenticated and not c.hello_sent and c.token_secret.is_empty() and c.connection_generation==7,label+'/teardown without generation substitution')
+			_check(replies.is_empty() and bad==before,label+'/no success or envelope mutation')
+			_no_resend(c,label)
+			c._drop('E_REPEAT')
+			c._handle(bad)
+			_check(errors.size()==2 and replies.is_empty() and c.peer.disconnects==1 and changes==[[false,'E_RESPONSE_PROTOCOL']],label+'/repeated teardown emits nothing')
+			_no_resend(c,label+'/repeat')
+			c.free()
+
+func _handshake_success() -> void:
+	var c = _client()
+	c.authenticated = false
+	_seed(c,101,'hello')
+	var success: Dictionary = _envelope(101,'')
+	success.ok = true
+	success.error = null
+	success.result = {'protocolVersion':1,'service':'wuxian-v1-formal','snapshotProtocolVersion':3}
+	c._handle(success)
+	_check(c.authenticated and c.pending.is_empty() and not c.transport_stopped,'valid handshake consumed and authenticated')
+	_check(changes==[[true,'']] and errors.is_empty() and replies.is_empty() and c.peer.disconnects==0,'valid handshake preserves signal routing')
+	_no_resend(c,'valid handshake')
+	c.free()

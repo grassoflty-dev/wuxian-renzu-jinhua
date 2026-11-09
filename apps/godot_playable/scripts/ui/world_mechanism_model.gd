@@ -14,19 +14,18 @@ static func project(s: Dictionary, eligible) -> Array:
 		return []
 	if s.worldId=='grey_hive':
 		var decon_lines: Array = local_decon_environment(s)
+		var sentinel_lines: Array = local_sentinel_status(s)
 		var beacon = s.get('greyHiveBeacon')
 		if not beacon is Dictionary or beacon.size()!=2 or typeof(beacon.get('state'))!=TYPE_STRING or not beacon.state in ['uncollected','carried','mounted'] or typeof(beacon.get('legacyCompletedWithoutReceipt'))!=TYPE_BOOL or beacon.legacyCompletedWithoutReceipt and beacon.state!='uncollected':
-			return ['信标：状态未确认']+extraction_controls(s)+decon_lines
+			return ['信标：状态未确认']+extraction_controls(s)+decon_lines+sentinel_lines
 		if beacon.legacyCompletedWithoutReceipt:
-			return ['信标：收取回执未确认']+extraction_controls(s)+decon_lines
-		return ['信标：'+{'uncollected':'尚未收取','carried':'已携带','mounted':'已部署'}[beacon.state]]+extraction_controls(s)+decon_lines
+			return ['信标：收取回执未确认']+extraction_controls(s)+decon_lines+sentinel_lines
+		return ['信标：'+{'uncollected':'尚未收取','carried':'已携带','mounted':'已部署'}[beacon.state]]+extraction_controls(s)+decon_lines+sentinel_lines
 	if s.worldId=='mist_harbor':
 		var pump = s.get('mistHarborPump')
 		if not pump is Dictionary or pump.size()!=1 or typeof(pump.get('state'))!=TYPE_STRING or not pump.state in ['ready','draining','drained']:
 			return ['泵站：状态未确认']+extraction_controls(s)
 		return ['泵站：'+{'ready':'就绪','draining':'排水中','drained':'排水完成'}[pump.state]]+extraction_controls(s)
-	if s.worldId=='clockworks' and s.sceneId in ['cw_conveyor_bridge','cw_gear_shaft']:
-		return local_traversal(s)
 	if s.worldId=='clockworks' and s.sceneId in ['cw_boiler_chamber','cw_furnace_heart']:
 		return local_environment(s)
 	if s.worldId=='clockworks' and s.sceneId=='cw_pressure_hall':
@@ -34,6 +33,16 @@ static func project(s: Dictionary, eligible) -> Array:
 	if s.worldId=='clockworks' and s.sceneId=='cw_shutdown_exit':
 		return extraction_controls(s)
 	return []
+static func local_sentinel_status(s: Dictionary) -> Array:
+	if not P.snapshot(s) or s.get('worldId')!='grey_hive' or s.get('sceneId')!='gh_sentinel_arena' or s.get('entryToken')!=null:
+		return []
+	var encounter = Presentation.sentinel(s)
+	if encounter.is_empty():
+		return []
+	var labels = {'chase':'追击中','light_windup':'轻击蓄势','heavy_windup':'重击蓄势','charge_windup':'冲锋蓄势','charge':'冲锋中','recover':'恢复中','hit':'受击','stagger':'失衡','dead':'已停用','inactive':'当前未激活'}
+	if not labels.has(encounter.phase):
+		return []
+	return ['哨卫：'+labels[encounter.phase]]
 static func extraction_controls(s: Dictionary) -> Array:
 	if not P.context(s) or s.get('entryToken')!=null:
 		return []
@@ -185,30 +194,3 @@ static func in_polygon(point: Dictionary, polygon: Array) -> bool:
 		if (a[1]>z)!=(b[1]>z) and x<(b[0]-a[0])*(z-a[1])/(b[1]-a[1])+a[0]:
 			inside = not inside
 	return inside
-static func local_traversal(s: Dictionary) -> Array:
-	if not P.snapshot(s):
-		return []
-	var point: Dictionary = s.player.transform.positionM
-	if not P.point(point):
-		return []
-	if s.worldId=='clockworks' and s.sceneId=='cw_gear_shaft' and P.granted(s,'mobility.air_step_i') and P.number(point.yM,0,0.1):
-		var earned_dx: float = float(point.xM)-11.0
-		var earned_dz: float = float(point.zM)-8.0
-		if earned_dx*earned_dx+earned_dz*earned_dz<=1.2*1.2:
-			return ['Space：空中踏步起点']
-	var start_x = 8.0
-	var minimum_y = 0.0
-	var maximum_y = 0.1
-	var label = 'Space：输送桥短跨起点'
-	if s.sceneId=='cw_gear_shaft':
-		start_x = 17.8
-		minimum_y = 1.9
-		maximum_y = 2.1
-		label = 'Space：上层间隙起点'
-	if not P.point(point) or not P.number(point.yM,minimum_y,maximum_y):
-		return []
-	var dx: float = float(point.xM)-start_x
-	var dz: float = float(point.zM)-8.0
-	if dx*dx+dz*dz>1.2*1.2:
-		return []
-	return [label]

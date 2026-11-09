@@ -3,6 +3,9 @@ extends RefCounted
 const P = preload('res://scripts/bridge/protocol.gd')
 const ProjectionScript = preload('res://scripts/world/projection.gd')
 const FurnaceVisualScript = preload('res://scripts/world/cw_furnace_visual.gd')
+const STEAM_PUFF_PATH = 'res://assets/vfx/cw_boiler_steam_puff_local_r1.png'
+var steam_puff_attempted := false
+var steam_puff_texture: Texture2D
 
 const WALLS = {
 	'cw_boiler_chamber_wall_north': [[0.0,0.0],[24.0,0.0],[24.0,0.5],[0.0,0.5]],
@@ -604,8 +607,44 @@ func draw_pressure_steam(canvas_value: Variant, snapshot_value: Variant, scene_v
 		return false
 	# Complete 72-point plan validated before the first of exactly three commands.
 	var canvas: CanvasItem = canvas_value
+	var uv_plans: Array[PackedVector2Array] = []
 	for points: PackedVector2Array in plans:
-		canvas.draw_colored_polygon(points,steam_color)
+		var bounds := Rect2(points[0],Vector2.ZERO)
+		for point: Vector2 in points:
+			bounds = bounds.expand(point)
+		if not _finite_rect(bounds) or bounds.size.x<=0.0 or bounds.size.y<=0.0:
+			uv_plans.clear()
+			break
+		var uv := PackedVector2Array()
+		for point: Vector2 in points:
+			var mapped := (point-bounds.position)/bounds.size
+			if not is_finite(mapped.x) or not is_finite(mapped.y):
+				uv.clear()
+				break
+			uv.append(mapped)
+		if uv.size()!=24:
+			uv_plans.clear()
+			break
+		uv_plans.append(uv)
+	if uv_plans.size()==3 and not steam_puff_attempted:
+		steam_puff_attempted = true
+		if ResourceLoader.exists(STEAM_PUFF_PATH):
+			var loaded = load(STEAM_PUFF_PATH)
+			if loaded is Texture2D:
+				var imported_image: Image = loaded.get_image()
+				if is_instance_valid(imported_image) and imported_image.get_width()==1254 and imported_image.get_height()==1254 and imported_image.get_format()==Image.FORMAT_RGBA8:
+					steam_puff_texture = loaded
+		if not is_instance_valid(steam_puff_texture):
+			var image = Image.new()
+			var bytes: PackedByteArray = FileAccess.get_file_as_bytes(STEAM_PUFF_PATH)
+			if image.load_png_from_buffer(bytes)==OK and image.get_width()==1254 and image.get_height()==1254 and image.get_format()==Image.FORMAT_RGBA8:
+				steam_puff_texture = ImageTexture.create_from_image(image)
+	if uv_plans.size()==3 and is_instance_valid(steam_puff_texture):
+		for index in range(3):
+			canvas.draw_polygon(plans[index],PackedColorArray([Color(1,1,1,steam_color.a)]),uv_plans[index],steam_puff_texture)
+	else:
+		for points: PackedVector2Array in plans:
+			canvas.draw_colored_polygon(points,steam_color)
 	return true
 
 func _short_equal(actual: Variant, expected: Variant) -> bool:

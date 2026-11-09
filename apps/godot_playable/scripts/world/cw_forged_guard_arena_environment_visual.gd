@@ -606,9 +606,9 @@ func _emit(canvas: CanvasItem, plan: Array[Dictionary]) -> void:
 	for command: Dictionary in plan:
 		canvas.draw_colored_polygon(command.points,command.color)
 
-func draw_floor(canvas: Variant, snapshot_value: Variant, scene_value: Variant, key: Variant, camera: Variant, viewport: Variant, furnace: Variant, furnace_key: Variant) -> bool:
+func prepare_floor(canvas: Variant, snapshot_value: Variant, scene_value: Variant, key: Variant, camera: Variant, viewport: Variant, furnace: Variant, furnace_key: Variant) -> Dictionary:
 	if not _context(canvas,snapshot_value,scene_value,key,camera,viewport):
-		return false
+		return {}
 	var tiles: Array[Dictionary] = []
 	var corners: Array[Vector2] = [Vector2(510,200),Vector2(970,460),Vector2(600,740),Vector2(140,480)]
 	var uv: PackedVector2Array = PackedVector2Array()
@@ -621,7 +621,7 @@ func draw_floor(canvas: Variant, snapshot_value: Variant, scene_value: Variant, 
 			var world: Array[Vector3] = [Vector3(x,0,z),Vector3(x+4,0,z),Vector3(x+4,0,z+4),Vector3(x,0,z+4)]
 			var points: PackedVector2Array = _project(camera,world)
 			if points.is_empty():
-				return false
+				return {}
 			tiles.append({'points':points,'uv':uv})
 	var cues: Array[Dictionary] = []
 	if furnace_key == 'furnace_v2' and furnace is RefCounted and is_instance_valid(furnace) and furnace.get_script() == FurnaceScript:
@@ -638,11 +638,17 @@ func draw_floor(canvas: Variant, snapshot_value: Variant, scene_value: Variant, 
 						world.append(Vector3(18+cos(angle)*radius.x,0,5+sin(angle)*radius.y))
 					var color: Color = Color(0.025,0.032,0.035,radius.z) if i == 0 else Color(159.0/255.0,120.0/255.0,79.0/255.0,radius.z)
 					if not _color_plan(cues,camera,world,color):
-						return false
-	var tint: Color = Color(0.52,0.55,0.57,1)
-	for tile: Dictionary in tiles:
-		canvas.draw_polygon(tile.points,PackedColorArray([tint,tint,tint,tint]),tile.uv,steel_texture)
-	_emit(canvas,cues)
+						return {}
+	return {'tiles':tiles,'cues':cues}
+
+func draw_floor(canvas: Variant, snapshot_value: Variant, scene_value: Variant, key: Variant, camera: Variant, viewport: Variant, furnace: Variant, furnace_key: Variant, cues_only: bool = false, prepared: Dictionary = {}) -> bool:
+	var plan: Dictionary = prepared if cues_only else prepare_floor(canvas,snapshot_value,scene_value,key,camera,viewport,furnace,furnace_key)
+	if plan.is_empty(): return false
+	if not cues_only:
+		var tint: Color = Color(0.52,0.55,0.57,1)
+		for tile: Dictionary in plan.tiles:
+			canvas.draw_polygon(tile.points,PackedColorArray([tint,tint,tint,tint]),tile.uv,steel_texture)
+	_emit(canvas,plan.cues)
 	return true
 
 func draw_wall(canvas: Variant, snapshot_value: Variant, scene_value: Variant, key: Variant, camera: Variant, wall_value: Variant, viewport: Variant) -> bool:

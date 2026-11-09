@@ -223,7 +223,7 @@ impl ClockworksPersistentState {
     }
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct WorldPersistentState {
     #[serde(default, skip_serializing_if = "crate::environment_hazards::EnvironmentPersistentState::is_default")]
@@ -236,6 +236,148 @@ pub struct WorldPersistentState {
     pub mist_harbor: MistHarborPersistentState,
     #[serde(default, skip_serializing_if = "Option::is_none", deserialize_with = "deserialize_scene_history_v1")]
     pub scene_history_v1: Option<SceneHistoryV1>,
+    #[serde(default, skip_serializing_if = "Option::is_none", deserialize_with = "deserialize_map_archive")]
+    pub map_knowledge_archive_v1: Option<MapKnowledgeArchiveV1>,
+    #[serde(default, skip_serializing_if = "Option::is_none", deserialize_with = "deserialize_gh_map_archive")]
+    pub map_knowledge_archive_v2: Option<GhMapKnowledgeArchiveV2>,
+    /// Format-introduction marker only; never selects a physical recipe.
+    #[serde(default,skip_serializing_if="Option::is_none",deserialize_with="deserialize_shaft_recipe_marker")]
+    pub shaft_recipe_format_v2: Option<crate::moving_support::ShaftLowerRecipeIdentity>,
+    #[serde(default,skip_serializing_if="Option::is_none",deserialize_with="deserialize_lower_service_archive")]
+    pub lower_service_map_v1: Option<LowerServiceMapArchive>,
+}
+
+/// New lower-service history only; does not select physics or grant visibility.
+#[derive(Clone,Debug,PartialEq,Serialize,Deserialize)]
+#[serde(rename_all="camelCase",deny_unknown_fields)]
+pub struct LowerServiceMapArchive {
+    pub schema_version:u32,
+    pub recipe:crate::moving_support::ShaftLowerRecipeIdentity,
+    #[serde(deserialize_with="deserialize_lower_service_records")] pub records:Vec<LowerServiceMapRecord>,
+}
+#[derive(Clone,Debug,PartialEq,Serialize,Deserialize)]
+#[serde(rename_all="camelCase",deny_unknown_fields)]
+pub struct LowerServiceMapRecord {
+    pub parent_id:String,
+    #[serde(deserialize_with="deserialize_lower_service_rows")] pub rows:Vec<crate::world_v3::ExploredRoom>,
+}
+fn deserialize_lower_service_archive<'de,D:serde::Deserializer<'de>>(d:D)->Result<Option<LowerServiceMapArchive>,D::Error>{LowerServiceMapArchive::deserialize(d).map(Some)}
+fn deserialize_lower_service_records<'de,D:serde::Deserializer<'de>>(d:D)->Result<Vec<LowerServiceMapRecord>,D::Error>{deserialize_bounded::<D,LowerServiceMapRecord,14>(d)}
+fn deserialize_lower_service_rows<'de,D:serde::Deserializer<'de>>(d:D)->Result<Vec<crate::world_v3::ExploredRoom>,D::Error>{
+    Ok(deserialize_bounded::<D,BoundedArchiveRoom,5>(d)?.into_iter().map(|r|crate::world_v3::ExploredRoom{room_id:r.room_id,outline_m:r.outline_m}).collect())
+}
+impl LowerServiceMapArchive {
+    pub(crate) fn validate(&self)->bool {
+        if self.schema_version!=1 || !self.recipe.is_known() || self.records.len()>14{return false;}
+        let mut seen=std::collections::BTreeSet::new();
+        self.records.iter().all(|r|seen.insert(&r.parent_id)
+            && crate::formal_runtime::shaft_lower_service::candidate_rows(&r.parent_id).as_ref()==Some(&r.rows))
+    }
+}
+/// Grey Hive provider-memory history; V1 remains the separate MH/CW archive.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all="camelCase",deny_unknown_fields)]
+pub struct GhMapKnowledgeArchiveV2 {
+    pub schema_version:u32,
+    #[serde(deserialize_with="deserialize_gh_records")] pub records:Vec<GhMapKnowledgeRecord>,
+    #[serde(default,skip_serializing_if="Option::is_none",deserialize_with="deserialize_gh_observation")]
+    pub shaft_upper_observation:Option<crate::world_v3::ObservedMapVariant>,
+    #[serde(default,skip_serializing_if="Option::is_none",deserialize_with="deserialize_gh_observation")]
+    pub lockdown_observation:Option<crate::world_v3::ObservedMapVariant>,
+}
+#[derive(Clone,Debug,PartialEq,Serialize,Deserialize)]
+#[serde(rename_all="camelCase",deny_unknown_fields)]
+pub struct GhMapKnowledgeRecord {
+    pub world_id:String,pub scene_id:String,pub scene_source_sha256:String,pub provider_family:String,
+    pub layer_id:String,pub frame_id:String,pub parent_id:String,
+    #[serde(deserialize_with="deserialize_gh_rows")] pub rows:Vec<crate::world_v3::ExploredRoom>,
+}
+fn deserialize_shaft_recipe_marker<'de,D:serde::Deserializer<'de>>(d:D)->Result<Option<crate::moving_support::ShaftLowerRecipeIdentity>,D::Error>{
+    crate::moving_support::ShaftLowerRecipeIdentity::deserialize(d).map(Some)
+}
+fn deserialize_gh_map_archive<'de,D:serde::Deserializer<'de>>(d:D)->Result<Option<GhMapKnowledgeArchiveV2>,D::Error>{GhMapKnowledgeArchiveV2::deserialize(d).map(Some)}
+fn deserialize_gh_observation<'de,D:serde::Deserializer<'de>>(d:D)->Result<Option<crate::world_v3::ObservedMapVariant>,D::Error>{crate::world_v3::ObservedMapVariant::deserialize(d).map(Some)}
+fn deserialize_gh_records<'de,D:serde::Deserializer<'de>>(d:D)->Result<Vec<GhMapKnowledgeRecord>,D::Error>{deserialize_bounded::<D,GhMapKnowledgeRecord,85>(d)}
+fn deserialize_gh_rows<'de,D:serde::Deserializer<'de>>(d:D)->Result<Vec<crate::world_v3::ExploredRoom>,D::Error>{
+    Ok(deserialize_bounded::<D,BoundedArchiveRoom,12>(d)?.into_iter().map(|r|crate::world_v3::ExploredRoom{room_id:r.room_id,outline_m:r.outline_m}).collect())
+}
+impl GhMapKnowledgeArchiveV2 {
+    pub fn validate(&self)->bool {
+        if self.schema_version!=2 || self.records.len()>85{return false;}
+        for o in [&self.shaft_upper_observation,&self.lockdown_observation].into_iter().flatten(){
+            if !valid_scene_history_id(&o.scene_id)||!valid_scene_history_id(&o.provider_family)||o.scene_source_sha256.len()!=64
+                || !o.scene_source_sha256.bytes().all(|b|b.is_ascii_hexdigit()&&!b.is_ascii_uppercase())||!o.floor_y_m.is_finite(){return false;}
+        }
+        let mut keys=std::collections::BTreeSet::new();
+        for r in &self.records {
+            if [&r.world_id,&r.scene_id,&r.provider_family,&r.layer_id,&r.frame_id,&r.parent_id].iter().any(|id|!valid_scene_history_id(id))
+                || r.scene_source_sha256.len()!=64 || !r.scene_source_sha256.bytes().all(|b|b.is_ascii_hexdigit()&&!b.is_ascii_uppercase())
+                || r.rows.is_empty() || r.rows.len()>12{return false;}
+            if !keys.insert((&r.world_id,&r.scene_id,&r.scene_source_sha256,&r.provider_family,&r.layer_id,&r.frame_id,&r.parent_id)){return false;}
+            let mut ids=std::collections::BTreeSet::new();
+            for row in &r.rows {if !valid_scene_history_id(&row.room_id)||!ids.insert(&row.room_id)||row.outline_m.len()!=4
+                || row.outline_m.iter().any(|p|!p.x_m.is_finite()||!p.y_m.is_finite()||!p.z_m.is_finite()){return false;}}
+            if !crate::formal_runtime::gh_map_archive::valid_recognized_record(r){return false;}
+        }true
+    }
+}
+
+/// Versioned history only: local canonical rows, never current perception.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct MapKnowledgeArchiveV1 { pub schema_version:u32, #[serde(deserialize_with="deserialize_archive_records")] pub records:Vec<MapKnowledgeRecord> }
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct MapKnowledgeRecord {
+    pub world_id:String,pub scene_id:String,pub scene_source_sha256:String,pub provider_family:String,
+    pub layer_id:String,pub frame_id:String,pub parent_id:String,
+    #[serde(deserialize_with="deserialize_archive_rows")] pub rows:Vec<crate::world_v3::ExploredRoom>,
+}
+fn deserialize_bounded<'de,D,T,const N:usize>(d:D)->Result<Vec<T>,D::Error>
+where D:serde::Deserializer<'de>,T:Deserialize<'de> {
+    struct Bounded<T,const N:usize>(std::marker::PhantomData<T>);
+    impl<'de,T:Deserialize<'de>,const N:usize> serde::de::Visitor<'de> for Bounded<T,N> {
+        type Value=Vec<T>;
+        fn expecting(&self,f:&mut std::fmt::Formatter)->std::fmt::Result{write!(f,"at most {N} items")}
+        fn visit_seq<A:serde::de::SeqAccess<'de>>(self,mut seq:A)->Result<Vec<T>,A::Error>{
+            let mut out=Vec::new();while let Some(value)=seq.next_element()? {
+                if out.len()>=N{return Err(serde::de::Error::custom("map archive limit exceeded"));}out.push(value);
+            }Ok(out)
+        }
+    }
+    d.deserialize_seq(Bounded::<T,N>(std::marker::PhantomData))
+}
+fn deserialize_archive_records<'de,D:serde::Deserializer<'de>>(d:D)->Result<Vec<MapKnowledgeRecord>,D::Error>{deserialize_bounded::<D,MapKnowledgeRecord,38>(d)}
+#[derive(Deserialize)]
+#[serde(rename_all="camelCase",deny_unknown_fields)]
+struct BoundedArchiveRoom {room_id:String,#[serde(deserialize_with="deserialize_archive_vertices")] outline_m:Vec<crate::world_v3::Vec3>}
+#[derive(Deserialize)]
+#[serde(rename_all="camelCase",deny_unknown_fields)]
+struct BoundedArchivePoint{x_m:f32,y_m:f32,z_m:f32}
+fn deserialize_archive_vertices<'de,D:serde::Deserializer<'de>>(d:D)->Result<Vec<crate::world_v3::Vec3>,D::Error>{
+    deserialize_bounded::<D,BoundedArchivePoint,4>(d)?.into_iter().map(|p|crate::world_v3::Vec3::new(p.x_m,p.y_m,p.z_m).map_err(|_|serde::de::Error::custom("invalid map archive point"))).collect()
+}
+fn deserialize_archive_rows<'de,D:serde::Deserializer<'de>>(d:D)->Result<Vec<crate::world_v3::ExploredRoom>,D::Error>{
+    Ok(deserialize_bounded::<D,BoundedArchiveRoom,1>(d)?.into_iter().map(|r|crate::world_v3::ExploredRoom{room_id:r.room_id,outline_m:r.outline_m}).collect())
+}
+fn deserialize_map_archive<'de,D:serde::Deserializer<'de>>(d:D)->Result<Option<MapKnowledgeArchiveV1>,D::Error>{
+    MapKnowledgeArchiveV1::deserialize(d).map(Some)
+}
+impl MapKnowledgeArchiveV1 {
+    pub fn validate(&self)->bool {
+        if self.schema_version!=1 || self.records.len()>38 {return false;}
+        let mut keys=std::collections::BTreeSet::new();
+        for r in &self.records {
+            if [&r.world_id,&r.scene_id,&r.provider_family,&r.layer_id,&r.frame_id,&r.parent_id].iter().any(|id|!valid_scene_history_id(id))
+                || r.scene_source_sha256.len()!=64 || !r.scene_source_sha256.bytes().all(|b|b.is_ascii_hexdigit()&&!b.is_ascii_uppercase())
+                || r.rows.len()!=1 {return false;}
+            if !keys.insert((&r.world_id,&r.scene_id,&r.scene_source_sha256,&r.provider_family,&r.layer_id,&r.frame_id,&r.parent_id)){return false;}
+            let row=&r.rows[0];if !valid_scene_history_id(&row.room_id) || row.outline_m.len()!=4
+                || row.outline_m.iter().any(|p|!p.x_m.is_finite()||!p.y_m.is_finite()||!p.z_m.is_finite()){return false;}
+            if !crate::formal_runtime::mhcw_map_region::valid_recognized_record(r){return false;}
+        }
+        true
+    }
 }
 
 /// Bounded generic scene-local state retained across authored V1 scene visits.
@@ -342,6 +484,10 @@ impl WorldPersistentState {
 
     pub fn validate(&self) -> Result<(), PumpStateError> {
         self.mist_harbor.pump.validate()?;
+        if self.shaft_recipe_format_v2.as_ref().is_some_and(|v|!v.is_known()){return Err(PumpStateError::InvalidState);}
+        if self.lower_service_map_v1.as_ref().is_some_and(|a|!a.validate() || Some(&a.recipe)!=self.shaft_recipe_format_v2.as_ref()) {return Err(PumpStateError::InvalidState);}
+        if self.map_knowledge_archive_v1.as_ref().is_some_and(|archive|!archive.validate()){return Err(PumpStateError::InvalidState);}
+        if self.map_knowledge_archive_v2.as_ref().is_some_and(|archive|!archive.validate()){return Err(PumpStateError::InvalidState);}
         if self.grey_hive.beacon.as_ref().is_some_and(|state| !state.validate()) { return Err(PumpStateError::InvalidState); }
         let mut seen = std::collections::BTreeSet::new();
         if self.mist_harbor.explored_region_ids.iter().any(|id| {

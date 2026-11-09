@@ -222,6 +222,142 @@
           "y": 416,
           "width": 96,
           "height": 16
+        },
+        {
+          "id": 34,
+          "name": "north_entry_front_s0",
+          "x": 16.0,
+          "y": 206.4,
+          "width": 16.0,
+          "height": 9.599999999999994
+        },
+        {
+          "id": 35,
+          "name": "north_entry_front_s1",
+          "x": 96,
+          "y": 206.4,
+          "width": 16.0,
+          "height": 9.599999999999994
+        },
+        {
+          "id": 36,
+          "name": "north_east_front_s2",
+          "x": 368.0,
+          "y": 206.4,
+          "width": 16.0,
+          "height": 9.599999999999994
+        },
+        {
+          "id": 37,
+          "name": "north_east_front_s3",
+          "x": 448,
+          "y": 206.4,
+          "width": 192,
+          "height": 9.599999999999994
+        },
+        {
+          "id": 38,
+          "name": "north_east_front_s4",
+          "x": 704,
+          "y": 206.4,
+          "width": 48.0,
+          "height": 9.599999999999994
+        },
+        {
+          "id": 39,
+          "name": "north_cross_3_5_s5",
+          "x": 107.2,
+          "y": 16.0,
+          "width": 9.599999999999994,
+          "height": 80.0
+        },
+        {
+          "id": 40,
+          "name": "north_cross_3_5_s6",
+          "x": 107.2,
+          "y": 160,
+          "width": 9.599999999999994,
+          "height": 46.400000000000006
+        },
+        {
+          "id": 41,
+          "name": "north_cross_11_5_s7",
+          "x": 363.2,
+          "y": 16.0,
+          "width": 9.600000000000023,
+          "height": 48.0
+        },
+        {
+          "id": 42,
+          "name": "north_cross_11_5_s8",
+          "x": 363.2,
+          "y": 128,
+          "width": 9.600000000000023,
+          "height": 78.4
+        },
+        {
+          "id": 43,
+          "name": "north_cross_17_5_s9",
+          "x": 555.2,
+          "y": 16.0,
+          "width": 9.599999999999909,
+          "height": 48.0
+        },
+        {
+          "id": 44,
+          "name": "north_cross_17_5_s10",
+          "x": 555.2,
+          "y": 128,
+          "width": 9.599999999999909,
+          "height": 78.4
+        },
+        {
+          "id": 45,
+          "name": "south_service_front_s11",
+          "x": 160,
+          "y": 280.0,
+          "width": 32,
+          "height": 9.600000000000023
+        },
+        {
+          "id": 46,
+          "name": "south_service_front_s12",
+          "x": 256,
+          "y": 280.0,
+          "width": 128,
+          "height": 9.600000000000023
+        },
+        {
+          "id": 47,
+          "name": "south_service_west_s13",
+          "x": 155.2,
+          "y": 280.0,
+          "width": 9.600000000000023,
+          "height": 72.0
+        },
+        {
+          "id": 48,
+          "name": "south_service_west_s14",
+          "x": 155.2,
+          "y": 416,
+          "width": 9.600000000000023,
+          "height": 80.0
+        },
+        {
+          "id": 49,
+          "name": "south_service_east_s15",
+          "x": 379.2,
+          "y": 280.0,
+          "width": 9.600000000000023,
+          "height": 152.0
+        },
+        {
+          "id": 50,
+          "name": "mist_court_east_s16",
+          "x": 651.2,
+          "y": 344.0,
+          "width": 9.599999999999909,
+          "height": 88.0
         }
       ],
       "opacity": 1,
@@ -243,7 +379,7 @@
             {
               "name": "neighbors",
               "type": "string",
-              "value": "gh_decon_safe_nav"
+              "value": "gh_decon_safe_nav,main7,north_entry_door_nav"
             }
           ]
         },
@@ -256,7 +392,7 @@
             {
               "name": "neighbors",
               "type": "string",
-              "value": "gh_decon_valve_01_nav"
+              "value": "gh_decon_valve_01_nav,checkpoint_link_nav"
             }
           ]
         },
@@ -269,7 +405,7 @@
             {
               "name": "neighbors",
               "type": "string",
-              "value": "gh_decon_valve_02_nav"
+              "value": "gh_decon_valve_02_nav,north_entry_inner,north_control_detour"
             }
           ]
         },
@@ -290,7 +426,235 @@
           "id": 22,
           "name": "gh_decon_exit_nav",
           "x": 704,
-          "y": 256
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "main21_5"
+            }
+          ]
+        },
+        {
+          "id": 51,
+          "name": "main7",
+          "x": 224,
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "gh_decon_spawn_nav,main13,south_front_door_nav"
+            }
+          ]
+        },
+        {
+          "id": 52,
+          "name": "main13",
+          "x": 416,
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "main7,main21_5,north_inspection_door_nav,south_return_west"
+            }
+          ]
+        },
+        {
+          "id": 53,
+          "name": "main21_5",
+          "x": 688.0,
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "main13,gh_decon_exit_nav,north_east_door_nav,south_return_east"
+            }
+          ]
+        },
+        {
+          "id": 54,
+          "name": "north_entry_door_nav",
+          "x": 64,
+          "y": 216.0,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "gh_decon_spawn_nav,north_entry_inner"
+            }
+          ]
+        },
+        {
+          "id": 55,
+          "name": "north_entry_inner",
+          "x": 64,
+          "y": 128,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "north_entry_door_nav,gh_decon_valve_01_nav"
+            }
+          ]
+        },
+        {
+          "id": 56,
+          "name": "north_control_detour",
+          "x": 336.0,
+          "y": 56.0,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "gh_decon_valve_01_nav,north_cross_center"
+            }
+          ]
+        },
+        {
+          "id": 57,
+          "name": "north_inspection_inner",
+          "x": 416,
+          "y": 96,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "north_east_inner,north_inspection_door_nav,north_cross_center"
+            }
+          ]
+        },
+        {
+          "id": 58,
+          "name": "north_inspection_door_nav",
+          "x": 416,
+          "y": 216.0,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "north_inspection_inner,main13"
+            }
+          ]
+        },
+        {
+          "id": 59,
+          "name": "north_east_inner",
+          "x": 672,
+          "y": 96,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "north_inspection_inner,north_east_door_nav"
+            }
+          ]
+        },
+        {
+          "id": 60,
+          "name": "north_east_door_nav",
+          "x": 672,
+          "y": 216.0,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "north_east_inner,main21_5"
+            }
+          ]
+        },
+        {
+          "id": 61,
+          "name": "south_front_door_nav",
+          "x": 224,
+          "y": 280.0,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "main7,south_service_inner"
+            }
+          ]
+        },
+        {
+          "id": 62,
+          "name": "south_service_inner",
+          "x": 224,
+          "y": 384,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "south_front_door_nav,checkpoint_link_nav,south_service_rear"
+            }
+          ]
+        },
+        {
+          "id": 63,
+          "name": "checkpoint_link_nav",
+          "x": 160,
+          "y": 384,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "gh_decon_safe_nav,south_service_inner"
+            }
+          ]
+        },
+        {
+          "id": 64,
+          "name": "south_service_rear",
+          "x": 224,
+          "y": 472.0,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "south_service_inner,south_return_west"
+            }
+          ]
+        },
+        {
+          "id": 65,
+          "name": "south_return_west",
+          "x": 416,
+          "y": 472.0,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "south_service_rear,main13,south_return_east"
+            }
+          ]
+        },
+        {
+          "id": 66,
+          "name": "south_return_east",
+          "x": 688.0,
+          "y": 472.0,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "south_return_west,main21_5"
+            }
+          ]
+        },
+        {
+          "id": 67,
+          "name": "north_cross_center",
+          "x": 368.0,
+          "y": 96,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "north_control_detour,north_inspection_inner"
+            }
+          ]
         }
       ],
       "opacity": 1,
@@ -595,7 +959,7 @@
     }
   ],
   "nextlayerid": 11,
-  "nextobjectid": 34,
+  "nextobjectid": 68,
   "orientation": "orthogonal",
   "properties": [
     {

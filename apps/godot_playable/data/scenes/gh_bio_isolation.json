@@ -133,6 +133,384 @@
           15.5
         ]
       ]
+    },
+    {
+      "id": "north_corridor_edge_segment_0",
+      "polygon": [
+        [
+          0.5,
+          6.2
+        ],
+        [
+          3.0,
+          6.2
+        ],
+        [
+          3.0,
+          6.5
+        ],
+        [
+          0.5,
+          6.5
+        ]
+      ]
+    },
+    {
+      "id": "north_corridor_edge_segment_1",
+      "polygon": [
+        [
+          5.0,
+          6.2
+        ],
+        [
+          6.0,
+          6.2
+        ],
+        [
+          6.0,
+          6.5
+        ],
+        [
+          5.0,
+          6.5
+        ]
+      ]
+    },
+    {
+      "id": "north_corridor_edge_segment_2",
+      "polygon": [
+        [
+          10.0,
+          6.2
+        ],
+        [
+          12.0,
+          6.2
+        ],
+        [
+          12.0,
+          6.5
+        ],
+        [
+          10.0,
+          6.5
+        ]
+      ]
+    },
+    {
+      "id": "north_corridor_edge_segment_3",
+      "polygon": [
+        [
+          14.0,
+          6.2
+        ],
+        [
+          20.0,
+          6.2
+        ],
+        [
+          20.0,
+          6.5
+        ],
+        [
+          14.0,
+          6.5
+        ]
+      ]
+    },
+    {
+      "id": "north_corridor_edge_segment_4",
+      "polygon": [
+        [
+          22.0,
+          6.2
+        ],
+        [
+          23.5,
+          6.2
+        ],
+        [
+          23.5,
+          6.5
+        ],
+        [
+          22.0,
+          6.5
+        ]
+      ]
+    },
+    {
+      "id": "south_corridor_edge_segment_5",
+      "polygon": [
+        [
+          0.5,
+          9.5
+        ],
+        [
+          1.0,
+          9.5
+        ],
+        [
+          1.0,
+          9.8
+        ],
+        [
+          0.5,
+          9.8
+        ]
+      ]
+    },
+    {
+      "id": "south_corridor_edge_segment_6",
+      "polygon": [
+        [
+          3.0,
+          9.5
+        ],
+        [
+          5.25,
+          9.5
+        ],
+        [
+          5.25,
+          9.8
+        ],
+        [
+          3.0,
+          9.8
+        ]
+      ]
+    },
+    {
+      "id": "south_corridor_edge_segment_7",
+      "polygon": [
+        [
+          10.75,
+          9.5
+        ],
+        [
+          15.0,
+          9.5
+        ],
+        [
+          15.0,
+          9.8
+        ],
+        [
+          10.75,
+          9.8
+        ]
+      ]
+    },
+    {
+      "id": "south_corridor_edge_segment_8",
+      "polygon": [
+        [
+          17.0,
+          9.5
+        ],
+        [
+          20.0,
+          9.5
+        ],
+        [
+          20.0,
+          9.8
+        ],
+        [
+          17.0,
+          9.8
+        ]
+      ]
+    },
+    {
+      "id": "south_corridor_edge_segment_9",
+      "polygon": [
+        [
+          22.0,
+          9.5
+        ],
+        [
+          23.5,
+          9.5
+        ],
+        [
+          23.5,
+          9.8
+        ],
+        [
+          22.0,
+          9.8
+        ]
+      ]
+    },
+    {
+      "id": "north_cross_10_5_segment_10",
+      "polygon": [
+        [
+          10.35,
+          0.5
+        ],
+        [
+          10.65,
+          0.5
+        ],
+        [
+          10.65,
+          2.0
+        ],
+        [
+          10.35,
+          2.0
+        ]
+      ]
+    },
+    {
+      "id": "north_cross_10_5_segment_11",
+      "polygon": [
+        [
+          10.35,
+          4.0
+        ],
+        [
+          10.65,
+          4.0
+        ],
+        [
+          10.65,
+          6.2
+        ],
+        [
+          10.35,
+          6.2
+        ]
+      ]
+    },
+    {
+      "id": "north_cross_18_5_segment_12",
+      "polygon": [
+        [
+          18.35,
+          0.5
+        ],
+        [
+          18.65,
+          0.5
+        ],
+        [
+          18.65,
+          2.0
+        ],
+        [
+          18.35,
+          2.0
+        ]
+      ]
+    },
+    {
+      "id": "north_cross_18_5_segment_13",
+      "polygon": [
+        [
+          18.35,
+          4.0
+        ],
+        [
+          18.65,
+          4.0
+        ],
+        [
+          18.65,
+          6.2
+        ],
+        [
+          18.35,
+          6.2
+        ]
+      ]
+    },
+    {
+      "id": "south_cross_4_segment_14",
+      "polygon": [
+        [
+          3.85,
+          9.8
+        ],
+        [
+          4.15,
+          9.8
+        ],
+        [
+          4.15,
+          12.75
+        ],
+        [
+          3.85,
+          12.75
+        ]
+      ]
+    },
+    {
+      "id": "south_cross_4_segment_15",
+      "polygon": [
+        [
+          3.85,
+          14.75
+        ],
+        [
+          4.15,
+          14.75
+        ],
+        [
+          4.15,
+          15.5
+        ],
+        [
+          3.85,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "south_cross_12_segment_16",
+      "polygon": [
+        [
+          11.85,
+          9.8
+        ],
+        [
+          12.15,
+          9.8
+        ],
+        [
+          12.15,
+          12.75
+        ],
+        [
+          11.85,
+          12.75
+        ]
+      ]
+    },
+    {
+      "id": "south_cross_12_segment_17",
+      "polygon": [
+        [
+          11.85,
+          14.75
+        ],
+        [
+          12.15,
+          14.75
+        ],
+        [
+          12.15,
+          15.5
+        ],
+        [
+          11.85,
+          15.5
+        ]
+      ]
     }
   ],
   "doors": [],
@@ -170,8 +548,200 @@
         "to": "gh_bio_isolation_mid_nav"
       },
       {
+        "from": "gh_bio_isolation_spawn_nav",
+        "to": "main_x4"
+      },
+      {
+        "from": "gh_bio_isolation_spawn_nav",
+        "to": "south_door_0"
+      },
+      {
         "from": "gh_bio_isolation_mid_nav",
         "to": "gh_bio_isolation_exit_nav"
+      },
+      {
+        "from": "gh_bio_isolation_mid_nav",
+        "to": "main_x4"
+      },
+      {
+        "from": "gh_bio_isolation_mid_nav",
+        "to": "main_x13"
+      },
+      {
+        "from": "gh_bio_isolation_mid_nav",
+        "to": "baizhi_approach"
+      },
+      {
+        "from": "gh_bio_isolation_exit_nav",
+        "to": "main_x16"
+      },
+      {
+        "from": "gh_bio_isolation_exit_nav",
+        "to": "main_x21"
+      },
+      {
+        "from": "main_x4",
+        "to": "gh_bio_isolation_spawn_nav"
+      },
+      {
+        "from": "main_x4",
+        "to": "gh_bio_isolation_mid_nav"
+      },
+      {
+        "from": "main_x4",
+        "to": "north_door_0"
+      },
+      {
+        "from": "main_x13",
+        "to": "gh_bio_isolation_mid_nav"
+      },
+      {
+        "from": "main_x13",
+        "to": "main_x16"
+      },
+      {
+        "from": "main_x13",
+        "to": "north_door_1"
+      },
+      {
+        "from": "main_x16",
+        "to": "main_x13"
+      },
+      {
+        "from": "main_x16",
+        "to": "gh_bio_isolation_exit_nav"
+      },
+      {
+        "from": "main_x16",
+        "to": "south_door_1"
+      },
+      {
+        "from": "main_x21",
+        "to": "gh_bio_isolation_exit_nav"
+      },
+      {
+        "from": "main_x21",
+        "to": "east_transition_approach"
+      },
+      {
+        "from": "main_x21",
+        "to": "north_door_2"
+      },
+      {
+        "from": "main_x21",
+        "to": "south_door_2"
+      },
+      {
+        "from": "east_transition_approach",
+        "to": "main_x21"
+      },
+      {
+        "from": "north_route_0",
+        "to": "north_door_0"
+      },
+      {
+        "from": "north_route_0",
+        "to": "north_route_1"
+      },
+      {
+        "from": "north_door_0",
+        "to": "main_x4"
+      },
+      {
+        "from": "north_door_0",
+        "to": "north_route_0"
+      },
+      {
+        "from": "north_route_1",
+        "to": "north_door_1"
+      },
+      {
+        "from": "north_route_1",
+        "to": "north_route_0"
+      },
+      {
+        "from": "north_route_1",
+        "to": "north_route_2"
+      },
+      {
+        "from": "north_door_1",
+        "to": "main_x13"
+      },
+      {
+        "from": "north_door_1",
+        "to": "north_route_1"
+      },
+      {
+        "from": "north_route_2",
+        "to": "north_door_2"
+      },
+      {
+        "from": "north_route_2",
+        "to": "north_route_1"
+      },
+      {
+        "from": "north_door_2",
+        "to": "main_x21"
+      },
+      {
+        "from": "north_door_2",
+        "to": "north_route_2"
+      },
+      {
+        "from": "south_route_0",
+        "to": "south_door_0"
+      },
+      {
+        "from": "south_route_0",
+        "to": "south_route_1"
+      },
+      {
+        "from": "south_door_0",
+        "to": "gh_bio_isolation_spawn_nav"
+      },
+      {
+        "from": "south_door_0",
+        "to": "south_route_0"
+      },
+      {
+        "from": "south_route_1",
+        "to": "south_door_1"
+      },
+      {
+        "from": "south_route_1",
+        "to": "south_route_0"
+      },
+      {
+        "from": "south_route_1",
+        "to": "south_route_2"
+      },
+      {
+        "from": "south_door_1",
+        "to": "main_x16"
+      },
+      {
+        "from": "south_door_1",
+        "to": "south_route_1"
+      },
+      {
+        "from": "south_route_2",
+        "to": "south_door_2"
+      },
+      {
+        "from": "south_route_2",
+        "to": "south_route_1"
+      },
+      {
+        "from": "south_door_2",
+        "to": "main_x21"
+      },
+      {
+        "from": "south_door_2",
+        "to": "south_route_2"
+      },
+      {
+        "from": "baizhi_approach",
+        "to": "gh_bio_isolation_mid_nav"
       }
     ],
     "nodes": [
@@ -197,6 +767,150 @@
           20.0,
           0.0,
           8.0
+        ]
+      },
+      {
+        "id": "main_x4",
+        "position": [
+          4.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "main_x13",
+        "position": [
+          13.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "main_x16",
+        "position": [
+          16.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "main_x21",
+        "position": [
+          21.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "east_transition_approach",
+        "position": [
+          22.5,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "north_route_0",
+        "position": [
+          4.0,
+          0.0,
+          4.75
+        ]
+      },
+      {
+        "id": "north_door_0",
+        "position": [
+          4.0,
+          0.0,
+          6.5
+        ]
+      },
+      {
+        "id": "north_route_1",
+        "position": [
+          13.0,
+          0.0,
+          3.0
+        ]
+      },
+      {
+        "id": "north_door_1",
+        "position": [
+          13.0,
+          0.0,
+          6.5
+        ]
+      },
+      {
+        "id": "north_route_2",
+        "position": [
+          21.0,
+          0.0,
+          3.0
+        ]
+      },
+      {
+        "id": "north_door_2",
+        "position": [
+          21.0,
+          0.0,
+          6.5
+        ]
+      },
+      {
+        "id": "south_route_0",
+        "position": [
+          2.0,
+          0.0,
+          13.75
+        ]
+      },
+      {
+        "id": "south_door_0",
+        "position": [
+          2.0,
+          0.0,
+          9.5
+        ]
+      },
+      {
+        "id": "south_route_1",
+        "position": [
+          16.0,
+          0.0,
+          13.75
+        ]
+      },
+      {
+        "id": "south_door_1",
+        "position": [
+          16.0,
+          0.0,
+          9.5
+        ]
+      },
+      {
+        "id": "south_route_2",
+        "position": [
+          21.0,
+          0.0,
+          13.75
+        ]
+      },
+      {
+        "id": "south_door_2",
+        "position": [
+          21.0,
+          0.0,
+          9.5
+        ]
+      },
+      {
+        "id": "baizhi_approach",
+        "position": [
+          8.0,
+          0.0,
+          8.75
         ]
       }
     ]

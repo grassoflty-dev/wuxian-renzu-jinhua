@@ -834,9 +834,9 @@ func _poly(camera: Variant, world: Array[Vector3]) -> PackedVector2Array:
 func _uv(u: float, v: float) -> Vector2:
 	return (Vector2(820,240)+Vector2(212,102)*u+Vector2(-640,285)*v)/Vector2(1228,1254)
 
-func draw_ground(cv: Variant, sv: Variant, dv: Variant, kv: Variant, hv: Variant, camera: Variant, viewport: Variant) -> bool:
+func prepare_ground(cv: Variant, sv: Variant, dv: Variant, kv: Variant, hv: Variant, camera: Variant, viewport: Variant) -> Variant:
 	if not matches_context(cv,sv,dv,kv,hv,camera,viewport) or not _textures.get("stone") is Texture2D:
-		return false
+		return null
 	var polygons: Array[PackedVector2Array] = []
 	var uvs: Array[PackedVector2Array] = []
 	for row: int in range(4):
@@ -847,25 +847,29 @@ func draw_ground(cv: Variant, sv: Variant, dv: Variant, kv: Variant, hv: Variant
 			var z1: float = minf(z0+4.0,15.5)
 			var points: PackedVector2Array = _poly(camera,[Vector3(x0,0,z0),Vector3(x1,0,z0),Vector3(x1,0,z1),Vector3(x0,0,z1)])
 			if points.is_empty():
-				return false
+				return null
 			var u1: float = (x1-x0)/4.0
 			var v1: float = (z1-z0)/4.0
 			var uv: PackedVector2Array = PackedVector2Array([_uv(0,0),_uv(u1,0),_uv(u1,v1),_uv(0,v1)])
 			for p: Vector2 in uv:
 				if not _v2(p):
-					return false
+					return null
 			polygons.append(points)
 			uvs.append(uv)
-	var canvas: CanvasItem = cv
-	var texture: Texture2D = _textures["stone"]
-	for i: int in range(polygons.size()):
-		canvas.draw_polygon(polygons[i],PackedColorArray([STONE_COLOR,STONE_COLOR,STONE_COLOR,STONE_COLOR]),uvs[i],texture)
-	_field_draw(cv,sv,dv,kv,hv,camera,viewport)
-	return polygons.size() == 24
+	if polygons.size()!=24 or uvs.size()!=24: return null
+	return {'polygons':polygons,'uvs':uvs,'texture':_textures['stone']}
 
-func draw_wall(cv: Variant, wallv: Variant, sv: Variant, dv: Variant, kv: Variant, hv: Variant, camera: Variant, viewport: Variant) -> bool:
+func draw_ground(cv: Variant, sv: Variant, dv: Variant, kv: Variant, hv: Variant, camera: Variant, viewport: Variant) -> bool:
+	var plan = prepare_ground(cv,sv,dv,kv,hv,camera,viewport)
+	if not plan is Dictionary or plan.is_empty(): return false
+	for i in range(plan.polygons.size()):
+		cv.draw_polygon(plan.polygons[i],PackedColorArray([STONE_COLOR,STONE_COLOR,STONE_COLOR,STONE_COLOR]),plan.uvs[i],plan.texture)
+	_field_draw(cv,sv,dv,kv,hv,camera,viewport)
+	return true
+
+func prepare_wall(cv: Variant, wallv: Variant, sv: Variant, dv: Variant, kv: Variant, hv: Variant, camera: Variant, viewport: Variant) -> Variant:
 	if not matches_context(cv,sv,dv,kv,hv,camera,viewport) or not wallv is Dictionary:
-		return false
+		return null
 	var wall: Dictionary = wallv
 	var matched: bool = false
 	for expected: Variant in SPEC.collision:
@@ -873,13 +877,13 @@ func draw_wall(cv: Variant, wallv: Variant, sv: Variant, dv: Variant, kv: Varian
 			matched = true
 			break
 	if not matched:
-		return false
+		return null
 	var polygon: Array = wall.polygon
 	var base: Array[Vector3] = []
 	var top: Array[Vector3] = []
 	for pair_value: Variant in polygon:
 		if not pair_value is Array or pair_value.size() != 2 or not P.number(pair_value[0]) or not P.number(pair_value[1]):
-			return false
+			return null
 		var pair: Array = pair_value
 		base.append(Vector3(float(pair[0]),0,float(pair[1])))
 		top.append(Vector3(float(pair[0]),0.35,float(pair[1])))
@@ -893,11 +897,26 @@ func draw_wall(cv: Variant, wallv: Variant, sv: Variant, dv: Variant, kv: Varian
 	colors.append(WALL_CAP)
 	for p: PackedVector2Array in plan:
 		if p.is_empty():
-			return false
-	var canvas: CanvasItem = cv
-	for i: int in range(plan.size()):
-		canvas.draw_colored_polygon(plan[i],colors[i])
+			return null
+	return {'polygons':plan,'colors':colors}
+
+func draw_wall(cv: Variant, wallv: Variant, sv: Variant, dv: Variant, kv: Variant, hv: Variant, camera: Variant, viewport: Variant) -> bool:
+	var plan = prepare_wall(cv,wallv,sv,dv,kv,hv,camera,viewport)
+	if not plan is Dictionary or plan.is_empty(): return false
+	for i in range(plan.polygons.size()): cv.draw_colored_polygon(plan.polygons[i],plan.colors[i])
 	return true
+
+func whole_static_ready(cv: Variant, sv: Variant, dv: Variant, kv: Variant, hv: Variant, camera: Variant, viewport: Variant) -> bool:
+	var ground = prepare_ground(cv,sv,dv,kv,hv,camera,viewport)
+	if not ground is Dictionary or ground.is_empty(): return false
+	if not dv is Dictionary or not dv.get('collision') is Array: return false
+	var seen: Dictionary = {}
+	for item in dv.collision:
+		if not item is Dictionary or seen.has(item.get('id')): return false
+		var plan = prepare_wall(cv,item,sv,dv,kv,hv,camera,viewport)
+		if not plan is Dictionary or plan.is_empty(): return false
+		seen[item.id] = true
+	return seen.size()==6
 
 func _bank_rect(row: Dictionary, camera: Variant) -> Rect2:
 	var xyz: Array = row.position

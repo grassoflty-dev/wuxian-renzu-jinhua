@@ -204,6 +204,33 @@
   "logic": {
     "traversal": []
   },
+  "movingSupports": [
+    {
+      "endpointHoldMs": 2000,
+      "id": "gh_shaft_two_stop_lift",
+      "lowerM": -4.0,
+      "polygon": [
+        [
+          1.5,
+          1.0
+        ],
+        [
+          5.5,
+          1.0
+        ],
+        [
+          5.5,
+          5.0
+        ],
+        [
+          1.5,
+          5.0
+        ]
+      ],
+      "travelMs": 4000,
+      "upperM": 0.0
+    }
+  ],
   "navigation": {
     "links": [
       {

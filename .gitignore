@@ -69,3 +69,8 @@ assets-source/
 *.pfx
 .env
 .env.*
+
+# Godot import cache / exported packages (never upload; rebuild locally)
+**/.godot/
+*.pck
+*.pck.import

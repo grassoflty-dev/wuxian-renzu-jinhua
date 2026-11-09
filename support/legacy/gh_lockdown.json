@@ -1,0 +1,559 @@
+{
+  "boundsM": {
+    "depth": 16.0,
+    "width": 24.0,
+    "x": 0,
+    "z": 0
+  },
+  "cameraZones": [],
+  "checkpoints": [
+    {
+      "id": "gh_lockdown_checkpoint",
+      "navNode": "gh_lockdown_checkpoint_nav",
+      "position": [
+        6.0,
+        0.0,
+        8.0
+      ]
+    }
+  ],
+  "collision": [
+    {
+      "id": "lockdown_wall_north",
+      "polygon": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.0
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          0.0,
+          0.5
+        ]
+      ]
+    },
+    {
+      "id": "lockdown_wall_south",
+      "polygon": [
+        [
+          0.0,
+          15.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          24.0,
+          16.0
+        ],
+        [
+          0.0,
+          16.0
+        ]
+      ]
+    },
+    {
+      "id": "lockdown_wall_west_north",
+      "polygon": [
+        [
+          0.0,
+          0.5
+        ],
+        [
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          6.5
+        ],
+        [
+          0.0,
+          6.5
+        ]
+      ]
+    },
+    {
+      "id": "lockdown_wall_west_south",
+      "polygon": [
+        [
+          0.0,
+          9.5
+        ],
+        [
+          0.5,
+          9.5
+        ],
+        [
+          0.5,
+          15.5
+        ],
+        [
+          0.0,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "lockdown_wall_east_north",
+      "polygon": [
+        [
+          23.5,
+          0.5
+        ],
+        [
+          24.0,
+          0.5
+        ],
+        [
+          24.0,
+          6.5
+        ],
+        [
+          23.5,
+          6.5
+        ]
+      ]
+    },
+    {
+      "id": "lockdown_wall_east_south",
+      "polygon": [
+        [
+          23.5,
+          9.5
+        ],
+        [
+          24.0,
+          9.5
+        ],
+        [
+          24.0,
+          15.5
+        ],
+        [
+          23.5,
+          15.5
+        ]
+      ]
+    },
+    {
+      "id": "gh_lockdown_bio_seal",
+      "polygon": [
+        [
+          10.0,
+          0.5
+        ],
+        [
+          11.0,
+          0.5
+        ],
+        [
+          11.0,
+          15.5
+        ],
+        [
+          10.0,
+          15.5
+        ]
+      ],
+      "requiresEvent": "hive_lockdown"
+    }
+  ],
+  "doors": [],
+  "hazards": [],
+  "interactions": [
+    {
+      "event": "hive_lockdown",
+      "id": "gh_lockdown_terminal",
+      "kind": "lockdown_terminal",
+      "position": [
+        4.0,
+        0.0,
+        8.0
+      ]
+    }
+  ],
+  "logic": {
+    "traversal": []
+  },
+  "navigation": {
+    "links": [
+      {
+        "from": "gh_lockdown_spawn_nav",
+        "to": "gh_lockdown_terminal_nav"
+      },
+      {
+        "from": "gh_lockdown_terminal_nav",
+        "to": "gh_lockdown_checkpoint_nav"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "gh_lockdown_spawn_nav",
+        "position": [
+          2.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "gh_lockdown_terminal_nav",
+        "position": [
+          4.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "gh_lockdown_checkpoint_nav",
+        "position": [
+          6.0,
+          0.0,
+          8.0
+        ]
+      }
+    ]
+  },
+  "objectives": [
+    {
+      "completingEvent": "hive_lockdown",
+      "id": "gh_lockdown_objective",
+      "position": [
+        5.0,
+        0.0,
+        8.0
+      ]
+    }
+  ],
+  "occluders": [
+    {
+      "fadeTo": 0.25,
+      "id": "lockdown_occlusion_pipe_tray",
+      "polygon": [
+        [
+          13.5,
+          3.0
+        ],
+        [
+          19.5,
+          3.0
+        ],
+        [
+          19.5,
+          3.75
+        ],
+        [
+          13.5,
+          3.75
+        ]
+      ]
+    }
+  ],
+  "presentation": {
+    "cameraProfile": "oblique_default",
+    "layers": [
+      {
+        "id": "visual.floor",
+        "zGroup": 0
+      },
+      {
+        "id": "visual.props_back",
+        "zGroup": 10
+      },
+      {
+        "id": "visual.props_dynamic",
+        "zGroup": 20
+      },
+      {
+        "id": "visual.occluders",
+        "zGroup": 30
+      }
+    ],
+    "sprites": [
+      {
+        "assetId": "runtime2d.grey_hive.floor_tiles.v1",
+        "id": "lockdown_approved_floor",
+        "layer": "visual.floor",
+        "position": [
+          12.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.wall_tiles.v1",
+        "id": "lockdown_back_wall",
+        "layer": "visual.props_back",
+        "position": [
+          12.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.pipes_cables.v1",
+        "id": "lockdown_service_cables",
+        "layer": "visual.props_back",
+        "position": [
+          15.0,
+          0.0,
+          3.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.prop.supply_crates.v1",
+        "id": "lockdown_supply_crates",
+        "layer": "visual.props_back",
+        "position": [
+          20.0,
+          0.0,
+          11.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.grey_hive.clutter.v1",
+        "id": "lockdown_approved_clutter",
+        "layer": "visual.props_back",
+        "position": [
+          8.0,
+          0.0,
+          11.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.prop.lockdown_terminal.v1",
+        "id": "lockdown_terminal_visual",
+        "layer": "visual.props_dynamic",
+        "position": [
+          4.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.enemy.infected_maintenance_worker.v1",
+        "id": "lockdown_worker_01_visual",
+        "layer": "visual.props_dynamic",
+        "position": [
+          6.0,
+          0.0,
+          4.5
+        ]
+      },
+      {
+        "assetId": "runtime2d.enemy.infected_maintenance_worker.v1",
+        "id": "lockdown_worker_02_visual",
+        "layer": "visual.props_dynamic",
+        "position": [
+          12.0,
+          0.0,
+          4.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.enemy.infected_maintenance_worker.v1",
+        "id": "lockdown_worker_03_visual",
+        "layer": "visual.props_dynamic",
+        "position": [
+          17.0,
+          0.0,
+          12.0
+        ]
+      },
+      {
+        "assetId": "runtime2d.enemy.infected_security.v1",
+        "id": "lockdown_security_01_visual",
+        "layer": "visual.props_dynamic",
+        "position": [
+          9.0,
+          0.0,
+          11.5
+        ]
+      },
+      {
+        "assetId": "runtime2d.enemy.infected_security.v1",
+        "id": "lockdown_security_02_visual",
+        "layer": "visual.props_dynamic",
+        "position": [
+          14.0,
+          0.0,
+          4.5
+        ]
+      },
+      {
+        "assetId": "runtime2d.enemy.infected_security.v1",
+        "id": "lockdown_security_03_visual",
+        "layer": "visual.props_dynamic",
+        "position": [
+          20.0,
+          0.0,
+          5.5
+        ]
+      }
+    ]
+  },
+  "sceneId": "gh_lockdown",
+  "schemaVersion": 1,
+  "spawns": [
+    {
+      "entityType": null,
+      "id": "gh_lockdown_spawn",
+      "kind": "player",
+      "navNode": "gh_lockdown_spawn_nav",
+      "position": [
+        2.0,
+        0.0,
+        8.0
+      ]
+    },
+    {
+      "entityType": "grey_hive.infected_maintenance_worker",
+      "id": "gh_lockdown_worker_01",
+      "kind": "enemy",
+      "navNode": "gh_lockdown_terminal_nav",
+      "position": [
+        6.0,
+        0.0,
+        4.5
+      ]
+    },
+    {
+      "entityType": "grey_hive.infected_maintenance_worker",
+      "id": "gh_lockdown_worker_02",
+      "kind": "enemy",
+      "navNode": "gh_lockdown_terminal_nav",
+      "position": [
+        12.0,
+        0.0,
+        4.0
+      ]
+    },
+    {
+      "entityType": "grey_hive.infected_maintenance_worker",
+      "id": "gh_lockdown_worker_03",
+      "kind": "enemy",
+      "navNode": "gh_lockdown_checkpoint_nav",
+      "position": [
+        17.0,
+        0.0,
+        12.0
+      ]
+    },
+    {
+      "entityType": "grey_hive.infected_security",
+      "id": "gh_lockdown_security_01",
+      "kind": "enemy",
+      "navNode": "gh_lockdown_checkpoint_nav",
+      "position": [
+        9.0,
+        0.0,
+        11.5
+      ]
+    },
+    {
+      "entityType": "grey_hive.infected_security",
+      "id": "gh_lockdown_security_02",
+      "kind": "enemy",
+      "navNode": "gh_lockdown_terminal_nav",
+      "position": [
+        14.0,
+        0.0,
+        4.5
+      ]
+    },
+    {
+      "entityType": "grey_hive.infected_security",
+      "id": "gh_lockdown_security_03",
+      "kind": "enemy",
+      "navNode": "gh_lockdown_checkpoint_nav",
+      "position": [
+        20.0,
+        0.0,
+        5.5
+      ]
+    },
+    {
+      "entityType": "enemy.grey_hive.swarm",
+      "id": "gh_lockdown_swarm_01",
+      "kind": "enemy",
+      "navNode": "gh_lockdown_checkpoint_nav",
+      "position": [
+        7.0,
+        0.0,
+        8.0
+      ]
+    },
+    {
+      "entityType": "enemy.grey_hive.swarm",
+      "id": "gh_lockdown_swarm_02",
+      "kind": "enemy",
+      "navNode": "gh_lockdown_checkpoint_nav",
+      "position": [
+        17.0,
+        0.0,
+        8.0
+      ]
+    }
+  ],
+  "transitions": [
+    {
+      "id": "gh_lockdown_return_to_shaft",
+      "polygon": [
+        [
+          0.0,
+          7.0
+        ],
+        [
+          1.5,
+          7.0
+        ],
+        [
+          1.5,
+          9.0
+        ],
+        [
+          0.0,
+          9.0
+        ]
+      ],
+      "requiresEvent": "hive_power",
+      "spawnId": "gh_shaft_spawn",
+      "toSceneId": "gh_central_shaft"
+    },
+    {
+      "id": "gh_lockdown_to_bio_isolation",
+      "polygon": [
+        [
+          22.0,
+          7.0
+        ],
+        [
+          24.0,
+          7.0
+        ],
+        [
+          24.0,
+          9.0
+        ],
+        [
+          22.0,
+          9.0
+        ]
+      ],
+      "requiresEvent": "hive_lockdown",
+      "spawnId": "gh_bio_isolation_spawn",
+      "toSceneId": "gh_bio_isolation"
+    }
+  ],
+  "triggers": [],
+  "vfxMarkers": [],
+  "worldId": "grey_hive"
+}

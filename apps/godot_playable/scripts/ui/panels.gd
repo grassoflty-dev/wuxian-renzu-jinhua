@@ -1,6 +1,11 @@
 extends Control
+const JourneyPlayStatus = preload('res://scripts/ui/play_status_model.gd')
+const StyleBButtonArt = preload('res://scripts/ui/style_b_button_art.gd')
+const UiArt = preload('res://scripts/ui/ui_art_texture.gd')
+const RsBackdrop = preload('res://scripts/world/rs_exterior_backplate_visual.gd')
 const Content = preload('res://scripts/ui/content_model.gd')
 const P = preload('res://scripts/bridge/protocol.gd')
+const BAIZHI_LINES = {'taken':'我会帮你离开这里。','left':'我不能带你走。'}
 const MapView = preload('res://scripts/ui/map_panel.gd')
 const ThemeModel = preload('res://scripts/ui/theme_model.gd')
 const CAPS = {'information.local_map_i':'局部地图','information.enemy_vitals_basic':'敌人生命信息','perception.rear_view_i':'后方视野','perception.acoustic_mapping_i':'声学映射','body.regeneration_i':'再生能力','mobility.air_step_i':'空中踏步'}
@@ -11,9 +16,12 @@ var page_owner: Dictionary = {}
 var enhancement_preview = ''
 var enhancement_preview_owner: Dictionary = {}
 var box: VBoxContainer
+var save_entry: LineEdit
+var retained_save_entry: LineEdit
 var title: Label
 var status: Label
 var snapshot: Dictionary = {}
+var baizhi_region_authorized := true
 var slots: Array = []
 var default_save_state = 'unknown'
 var slot_list_state = 'unknown'
@@ -21,18 +29,48 @@ var connected = false
 var pending = false
 var preferences = {'scale':1.0,'fullscreen':false,'color':false,'reduced':false,'muted':false,'volume':0.35}
 var staged = {}
+var settings_build_id = 0
+var settings_apply_control: Button
+var slot_continue_buttons: Dictionary = {}
 var font_scale = 1.0
+var normal_button_texture: AtlasTexture
 var panel: PanelContainer
+var panel_b_skin: Control
+var panel_b_patches: Array = []
+var panel_b_style: StyleBoxEmpty
+var panel_background: TextureRect
+var shade: ColorRect
+var start_backdrop: TextureRect
+var world_loading_active: bool = false
 var scroll: ScrollContainer
+var rear_status_label: Label
+var rear_activate_button: Button
+var rear_grant_label: Label
+var rear_selection_label: Label
+var rear_select_button: Button
+var rear_select_intent: Dictionary = {}
+var rear_view_presented: Dictionary = {}
+var rear_view_key: Array = []
 var layout_busy = false
 func _ready() -> void:
+	ThemeModel.install_tooltip_skin(self)
+	normal_button_texture = UiArt.atlas('res://assets/ui/global_ui_button.png',Rect2(200,445,1100,130))
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	focus_mode = Control.FOCUS_ALL
-	var shade = ColorRect.new()
+	shade = ColorRect.new()
 	shade.color = Color(0.02,0.04,0.06,0.82)
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(shade)
+	start_backdrop = TextureRect.new()
+	start_backdrop.texture = RsBackdrop.get_whole_texture()
+	start_backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	start_backdrop.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	start_backdrop.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	start_backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	start_backdrop.visible = false
+	add_child(start_backdrop)
+	_setup_panel_b_skin()
 	panel = PanelContainer.new()
 	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	panel.offset_left = 100
@@ -49,12 +87,30 @@ func _ready() -> void:
 	style.content_margin_top = 18
 	style.content_margin_bottom = 18
 	panel.add_theme_stylebox_override('panel',style)
+	if panel_b_skin != null:
+		panel_b_style = StyleBoxEmpty.new()
+		panel.add_theme_stylebox_override('panel',panel_b_style)
+	panel.resized.connect(_layout_panel_b_skin)
+	# Use only the quiet central material; the illustrated frame is not slice-safe.
+	var panel_texture = _load_panel_texture()
+	panel_background = TextureRect.new()
+	if panel_texture != null:
+		var panel_material = AtlasTexture.new()
+		panel_material.atlas = panel_texture
+		panel_material.region = Rect2(160,235,1305,465)
+		panel_background.texture = panel_material
+	panel_background.visible = panel_b_skin == null
+	panel_background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	panel_background.stretch_mode = TextureRect.STRETCH_SCALE
+	panel_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(panel_background)
 	scroll = ScrollContainer.new()
 	# Keep keyboard-focused controls visible when scaled pages need scrolling.
 	scroll.follow_focus = true
 	# Ignore child horizontal minimums so an earlier wider page cannot block shrink.
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	panel.add_child(scroll)
+	ThemeModel.install_range_track(scroll.get_v_scroll_bar(),'scroll',true)
 	box = VBoxContainer.new()
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	box.custom_minimum_size.x = 0
@@ -63,6 +119,75 @@ func _ready() -> void:
 	scroll.resized.connect(_layout_content)
 	visible = false
 	call_deferred('_layout_content')
+func _setup_panel_b_skin() -> void:
+	var full = UiArt.atlas('res://assets/ui/global_ui_panel_b.png',Rect2(0,0,1536,1024))
+	if full == null:
+		return
+	panel_b_skin = Control.new()
+	panel_b_skin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(panel_b_skin)
+	var xs = [0,96,1440,1536]
+	var ys = [0,96,928,1024]
+	for row in range(3):
+		for col in range(3):
+			var region = AtlasTexture.new()
+			region.atlas = full.atlas
+			region.region = Rect2(xs[col],ys[row],xs[col+1]-xs[col],ys[row+1]-ys[row])
+			var patch = TextureRect.new()
+			patch.texture = region
+			patch.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			patch.stretch_mode = TextureRect.STRETCH_SCALE
+			patch.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			panel_b_skin.add_child(patch)
+			panel_b_patches.append(patch)
+
+func _layout_panel_b_skin() -> void:
+	if not is_instance_valid(panel_b_skin) or not is_instance_valid(panel) or panel_b_style == null:
+		return
+	var extent = panel.size
+	if not is_finite(extent.x) or not is_finite(extent.y) or extent.x<=0 or extent.y<=0:
+		return
+	panel_b_skin.position = panel.position
+	panel_b_skin.size = extent
+	var scale = font_scale if P.number(font_scale,1,1.5) else 1.0
+	var q = 0.75*scale
+	var cap = 96.0*q
+	var framed = extent.x>=320.0*scale and extent.y>=180.0*scale and extent.x>2.0*cap and extent.y>2.0*cap
+	var inset_x = 64.0*q if framed else 24.0
+	var inset_y = 64.0*q if framed else 18.0
+	if panel_b_style.content_margin_left!=inset_x or panel_b_style.content_margin_top!=inset_y:
+		panel_b_style.content_margin_left = inset_x
+		panel_b_style.content_margin_right = inset_x
+		panel_b_style.content_margin_top = inset_y
+		panel_b_style.content_margin_bottom = inset_y
+	if not framed:
+		for index in range(9):
+			var patch: TextureRect = panel_b_patches[index]
+			patch.visible = index==4
+			if index==4:
+				patch.position = Vector2.ZERO
+				patch.size = extent
+		return
+	var x = [0.0,cap,extent.x-cap,extent.x]
+	var y = [0.0,cap,extent.y-cap,extent.y]
+	for row in range(3):
+		for col in range(3):
+			var patch: TextureRect = panel_b_patches[row*3+col]
+			patch.visible = true
+			patch.position = Vector2(x[col],y[row])
+			patch.size = Vector2(x[col+1]-x[col],y[row+1]-y[row])
+func _load_panel_texture() -> Texture2D:
+	var path = 'res://assets/ui/global_panel_skin_original.png'
+	var texture: Texture2D = null
+	if ResourceLoader.exists(path, 'Texture2D'):
+		texture = ResourceLoader.load(path, 'Texture2D') as Texture2D
+	if texture == null:
+		var image = Image.new()
+		if image.load(path) == OK:
+			texture = ImageTexture.create_from_image(image)
+	if texture == null or texture.get_width() < 1465 or texture.get_height() < 700:
+		return null
+	return texture
 func _layout_content() -> void:
 	if layout_busy or not is_instance_valid(scroll) or not is_instance_valid(box) or not is_finite(size.x) or not is_finite(size.y) or size.x<=48 or size.y<=36:
 		return
@@ -84,11 +209,22 @@ func _layout_content() -> void:
 	var width = scroll.size.x-bar_width
 	if is_finite(width) and width>0 and box.custom_minimum_size.x!=width:
 		box.custom_minimum_size.x = width
+	_layout_panel_b_skin()
 	layout_busy = false
-func show_page(kind: String, association: Dictionary, s: Dictionary, is_connected: bool, blocked: bool = false) -> void:
+func set_baizhi_region_visibility(s:Dictionary,allowed:bool) -> void:
+	var changed=baizhi_region_authorized!=allowed or (not snapshot.is_empty() and not P.same(snapshot,s))
+	baizhi_region_authorized=allowed
+	if visible and mode in ['baizhi','baizhi_confirm','dialogue']:
+		snapshot=s
+		if changed and (mode!='dialogue' or page_owner.get('baizhiOwned')==true): _rebuild()
+
+func show_page(kind: String, association: Dictionary, s: Dictionary, is_connected: bool, blocked: bool = false, preserve_save_entry: bool = false) -> void:
+	var retain_entry = preserve_save_entry and _can_retain_save_entry(kind,association,s,is_connected,blocked)
+	retained_save_entry = save_entry if retain_entry else null
 	var opening = not visible
 	_clear_enhancement_preview()
 	mode = kind
+	panel_background.visible = panel_b_skin == null and panel_background.texture != null and kind in ['pause','save','settings']
 	page_owner = association.duplicate(true)
 	snapshot = s
 	connected = is_connected
@@ -101,8 +237,31 @@ func show_page(kind: String, association: Dictionary, s: Dictionary, is_connecte
 	# Take focus off the background without selecting a confirmation action.
 	if opening:
 		grab_focus()
+func _can_retain_save_entry(kind: String, association: Dictionary, incoming_snapshot: Dictionary, incoming_connected: bool, incoming_blocked: bool) -> bool:
+	if not visible or mode!='save' or kind!='save' or not connected or not incoming_connected or pending or incoming_blocked:
+		return false
+	if not P.snapshot(snapshot) or not P.snapshot(incoming_snapshot):
+		return false
+	var old_context = page_owner.get('context')
+	var new_context = association.get('context')
+	if not P.context(old_context) or not P.context(new_context):
+		return false
+	if not P.same(snapshot,incoming_snapshot) or not P.same(snapshot,old_context) or not P.same(snapshot,new_context):
+		return false
+	var old_generation = page_owner.get('generation')
+	var new_generation = association.get('generation')
+	var old_panel_generation = page_owner.get('panelGeneration')
+	var new_panel_generation = association.get('panelGeneration')
+	if not P.counter(old_generation,1) or not P.counter(new_generation,1) or old_generation!=new_generation:
+		return false
+	if not P.counter(old_panel_generation,1) or not P.counter(new_panel_generation,1) or new_panel_generation<=old_panel_generation:
+		return false
+	if retained_save_entry!=null or not is_instance_valid(save_entry) or save_entry.is_queued_for_deletion() or not is_instance_valid(box) or save_entry.get_parent()!=box:
+		return false
+	return true
 func close_page() -> void:
 	_clear_enhancement_preview()
+	retained_save_entry = null
 	visible = false
 	mode = ''
 	page_owner.clear()
@@ -112,13 +271,28 @@ func set_save_availability(default_state: String, list_state: String, rows: Arra
 	slots = rows.duplicate(true) if list_state=='list' else []
 func _save_availability_text() -> void:
 	_text({'unknown':'默认存档状态未确认','pending':'正在确认默认存档','available':'默认存档可继续','unavailable':'尚无默认存档','invalid':'默认存档响应无效；请刷新','error':'默认存档读取失败；请刷新'}.get(default_save_state,'默认存档状态未确认'))
-	_text({'unknown':'存档列表未确认','pending':'正在读取存档列表','empty':'当前没有命名存档','list':'当前存档列表已确认','invalid':'存档列表响应无效；请刷新','error':'存档列表读取失败；请刷新'}.get(slot_list_state,'存档列表未确认'))
+	_text({'unknown':'记录列表尚未确认。可刷新后重试。' if connected else '记录列表尚未确认。','pending':'正在读取记录列表…','empty':'暂无已保存记录。','list':'当前存档列表已确认','invalid':'记录列表响应无效；请刷新','error':'记录列表读取失败；请刷新'}.get(slot_list_state,'记录列表尚未确认。'))
 func set_message(text: String, blocked: bool = false) -> void:
 	pending = blocked
+	if mode=='settings' and is_instance_valid(settings_apply_control): settings_apply_control.disabled = pending or staged==preferences
 	if is_instance_valid(status):
 		status.text = text
 func _clear() -> void:
+	slot_continue_buttons.clear()
+	settings_apply_control = null
+	rear_status_label = null
+	rear_activate_button = null
+	rear_grant_label = null
+	rear_selection_label = null
+	rear_select_button = null
+	rear_select_intent.clear()
+	rear_view_presented.clear()
+	rear_view_key.clear()
+	var retained = retained_save_entry
+	save_entry = null
 	for child in box.get_children():
+		if is_instance_valid(retained) and child==retained:
+			continue
 		box.remove_child(child)
 		child.queue_free()
 func _text(text: String) -> Label:
@@ -137,6 +311,15 @@ func _button(text: String, action: String, value = null, enabled: bool = true) -
 	button.disabled = not enabled or pending
 	button.custom_minimum_size.y = 38*font_scale
 	button.add_theme_font_size_override('font_size',int(18*font_scale))
+	# The quiet center scales without stretching the unsliced decorated border.
+	if normal_button_texture != null:
+		var normal_style = StyleBoxTexture.new()
+		normal_style.texture = normal_button_texture
+		normal_style.content_margin_left = 8
+		normal_style.content_margin_right = 8
+		normal_style.content_margin_top = 4
+		normal_style.content_margin_bottom = 4
+		button.add_theme_stylebox_override('normal',normal_style)
 	var captured = page_owner.duplicate(true)
 	button.pressed.connect(func():
 		if action=='enhancement_choose' and (not _enhancement_ready(captured) or enhancement_preview_owner!=captured or value!=enhancement_preview):
@@ -144,10 +327,30 @@ func _button(text: String, action: String, value = null, enabled: bool = true) -
 		if page_owner==captured and visible and not pending:
 			intent.emit(action,value,captured))
 	box.add_child(button)
+	var art = StyleBButtonArt.new()
+	art.panel_owner = self
+	art.font_scale = font_scale
+	button.add_child(art)
 	return button
+func set_world_loading_active(value: bool) -> void:
+	world_loading_active = value
+	_apply_world_loading_presentation()
+func _apply_world_loading_presentation() -> void:
+	var show_body = not (mode=='waiting' and world_loading_active)
+	var show_start_art = show_body and mode=='start' and is_instance_valid(start_backdrop) and start_backdrop.texture != null
+	if is_instance_valid(start_backdrop):
+		start_backdrop.visible = show_start_art
+	if is_instance_valid(shade):
+		shade.visible = show_body and not show_start_art
+	if is_instance_valid(panel):
+		panel.visible = show_body
+	if is_instance_valid(panel_b_skin):
+		panel_b_skin.visible = show_body
 func _rebuild() -> void:
+	_apply_world_loading_presentation()
 	_clear()
-	title = _text({'start':'无限人族进化 · 归航','pause':'暂停','new_confirm':'开始新的旅程？','exit_confirm':'保存并退出？','settings':'系统设置','inventory':'背包与装备','character':'岑遥','capability':'能力','enhancement':'首次进化','mission':'任务与世界网络','archive':'档案','save':'存档','slots':'继续旅程','map':'地图','baizhi':'白芷','baizhi_confirm':'确认选择','dialogue':'信息','death':'旅程中断','error':'链路状态','waiting':'等待权威确认'}.get(mode,mode))
+	title = _text({'start':'无限人族进化 · 归航','pause':'暂停','new_confirm':'开始新的旅程？','exit_confirm':'保存并退出？','named_save_confirm':'确认记录操作','settings':'系统设置','inventory':'背包与装备','character':'岑遥','capability':'能力','enhancement':'首次进化','mission':'任务与世界网络','archive':'档案','save':'存档','slots':'继续旅程','map':'地图','baizhi':'白芷','baizhi_confirm':'确认选择','dialogue':'信息','death':'旅程中断','error':'链路状态','waiting':'等待权威确认'}.get(mode,mode))
+	if mode in ['baizhi','baizhi_confirm'] and not baizhi_region_authorized: title.text='信息暂不可用'
 	status = _text('等待确认' if pending else '')
 	match mode:
 		'start':
@@ -172,17 +375,12 @@ func _rebuild() -> void:
 			_text('成功保存回执到达后才请求关闭。失败或结果未知会留在此界面。')
 			_button('保存并退出','save_exit',null,connected)
 			_button('返回','back')
+		'named_save_confirm':
+			_named_save_confirmation()
 		'settings': _settings()
 		'inventory': _inventory()
 		'character':
-			if not snapshot.is_empty():
-				_text('岑遥 · 单一主角\n生命 %d / %d\n能量 %d / %d\n当前动作：%s\n身体状态：权威未提供'%[snapshot.player.currentHp,snapshot.player.maxHp,snapshot.player.currentEnergy,snapshot.player.maxEnergy,snapshot.player.actionState])
-				if P.build(snapshot.get('build')):
-					for e in snapshot.build.equipment:
-						_text(e.slotId+' · '+e.label)
-				for c in P.capability_items(snapshot):
-					if c.granted and CAPS.has(c.capabilityId):
-						_text(CAPS[c.capabilityId]+(' · 已选中' if c.selected else ' · 已获得'))
+			_character_sheet()
 			_exploration_resume()
 			_button('返回','back')
 		'capability': _capability()
@@ -205,24 +403,26 @@ func _rebuild() -> void:
 		'baizhi':
 			_baizhi_page()
 		'baizhi_confirm':
-			_text('确认后由权威保存当前选择；未知响应不会重复提交。')
-			_button('确认','baizhi_commit',page_owner.get('choice'),_baizhi_choice_state()=='unresolved' and typeof(page_owner.get('choice'))==TYPE_STRING and page_owner.choice in ['taken','left'])
-			_button('返回对白','baizhi_page')
-			_button('结束对白','baizhi_close',null,_baizhi_page_context_ready())
+			_baizhi_confirmation()
 		'dialogue':
-			_text(str(page_owner.get('text','')))
+			_text('当前区域信息不可用。' if page_owner.get('baizhiOwned')==true and not baizhi_region_authorized else str(page_owner.get('text','')))
 			_button('关闭','dialogue_close')
 		'death':
 			_text('当前角色已死亡；输入已停止。')
-			_button('从存档继续','slots',null,connected)
+			_text('仅能继续此前已成功保存的进度；退出不会保存本次未保存进度。')
+			_button('继续已有存档','slots',null,connected)
 			_button('新的旅程','new_confirm',null,connected)
+			_button('退出游戏（不保存）','close_client')
 		'error':
 			_text('游戏输入已停止。请保留当前会话结果，勿盲目重复未知操作。')
 			_button('返回状态','start')
 			_button('退出客户端','close_client')
 		'waiting': _text('正在等待当前请求的真实回执。')
-func _baizhi_page_context_ready() -> bool:
+	retained_save_entry = null
+func _baizhi_ticket_context_ready() -> bool:
 	return connected and not pending and P.snapshot(snapshot) and snapshot.get('entryToken')==null and snapshot.worldId=='grey_hive' and snapshot.sceneId=='gh_bio_isolation' and P.context(page_owner.get('context')) and P.same(page_owner.context,snapshot)
+func _baizhi_page_context_ready() -> bool:
+	return baizhi_region_authorized and _baizhi_ticket_context_ready()
 func _baizhi_choice_state() -> String:
 	if not _baizhi_page_context_ready() or snapshot.player.currentHp<=0:
 		return 'unknown'
@@ -231,11 +431,19 @@ func _baizhi_choice_state() -> String:
 		return 'unknown'
 	return b.choice
 func _baizhi_page() -> void:
+	if not baizhi_region_authorized:
+		_text('当前区域信息不可用。')
+		_button('结束对白','baizhi_close',null,_baizhi_ticket_context_ready())
+		return
 	match _baizhi_choice_state():
 		'unresolved':
-			_text('隔离室里的白芷等待你的回应。对白不会授予 Gate B 的钥匙。')
-			_button('我会帮你离开这里。','baizhi_confirm','taken')
-			_button('我不能带你走。','baizhi_confirm','left')
+			var card = _mission_card(box,'baizhi_dialogue',ThemeModel.palette(snapshot.worldId))
+			for line in ['别开那扇门。先听我说。','隔离室里的白芷等待你的回应。对白不会授予 Gate B 的钥匙。']:
+				var label = _text(line)
+				box.remove_child(label)
+				card.add_child(label)
+			_button(BAIZHI_LINES.taken,'baizhi_confirm','taken')
+			_button(BAIZHI_LINES.left,'baizhi_confirm','left')
 			_button('我还需要确认一些事情。','baizhi_unresolved')
 		'taken':
 			_text('已记录的白芷选择：我会帮你离开这里。')
@@ -243,51 +451,152 @@ func _baizhi_page() -> void:
 			_text('已记录的白芷选择：我不能带你走。')
 		_:
 			_text('白芷选择状态未确认；不能提交新选择。')
-	_button('结束对白','baizhi_close',null,_baizhi_page_context_ready())
+	_button('结束对白','baizhi_close',null,_baizhi_ticket_context_ready())
+
+func _baizhi_confirmation() -> void:
+	if not baizhi_region_authorized:
+		_text('当前区域信息不可用。')
+		_button('结束对白','baizhi_close',null,_baizhi_ticket_context_ready())
+		return
+	var choice = page_owner.get('choice')
+	if _baizhi_choice_state()!='unresolved' or typeof(choice)!=TYPE_STRING or not BAIZHI_LINES.has(choice) or not P.ticket(page_owner.get('dialogueTicket'),page_owner.get('context',{})):
+		_text('白芷选择状态未确认；不能提交新选择。')
+		_button('结束对白','baizhi_close',null,_baizhi_ticket_context_ready())
+		return
+	title.text = '确认这项回应？'
+	var card = _mission_card(box,'baizhi_choice',ThemeModel.palette(snapshot.worldId))
+	for line in ['所选回应',BAIZHI_LINES[choice]]:
+		var label = _text(line)
+		box.remove_child(label)
+		card.add_child(label)
+	var back = _button('返回对话','baizhi_page',null,true)
+	_button('确认回应','baizhi_commit',choice,true)
+	_button('结束对白','baizhi_close',null,_baizhi_ticket_context_ready())
+	back.grab_focus()
+func _settings_control_current(owner: Dictionary, build_id: int, control: Control) -> bool:
+	return visible and mode=='settings' and not pending and page_owner==owner and settings_build_id==build_id and is_instance_valid(control) and control.is_inside_tree() and not control.is_queued_for_deletion()
+
 func _settings() -> void:
-	_text('仅当前会话；不会写入偏好文件。文字大小保持所选比例，小窗口可以滚动。临时原生合成音频；实际输出尚未验证。静音和音量仅当前会话。')
+	settings_build_id += 1
+	var build_id = settings_build_id
+	var captured = page_owner.duplicate(true)
+	_text('仅当前会话生效，不会写入偏好文件。临时合成音频的实际输出尚未验证。')
+	var colors = ThemeModel.palette(snapshot.get('worldId','return_station'))
+	var display_card = _mission_card(box,'settings_display',colors)
+	var assist_card = _mission_card(box,'settings_assist',colors)
+	var audio_card = _mission_card(box,'settings_audio',colors)
+	for pair in [[display_card,'显示'],[assist_card,'辅助'],[audio_card,'声音']]:
+		var heading = _text(pair[1])
+		box.remove_child(heading)
+		pair[0].add_child(heading)
+	var size_label = _text('文字大小')
+	box.remove_child(size_label)
+	display_card.add_child(size_label)
 	var size_pick = OptionButton.new()
-	for label in ['100%','125%','150%']:
-		size_pick.add_item(label)
+	for label in ['100%','125%','150%']: size_pick.add_item(label)
 	size_pick.select([1.0,1.25,1.5].find(staged.scale))
-	size_pick.item_selected.connect(func(index): staged.scale=[1.0,1.25,1.5][index])
 	size_pick.add_theme_font_size_override('font_size',int(18*font_scale))
-	box.add_child(size_pick)
+	display_card.add_child(size_pick)
+	ThemeModel.install_choice_skin(size_pick)
+	var checks = {}
 	for pair in [['fullscreen','全屏'],['color','颜色辅助标记'],['reduced','减少动态效果'],['muted','静音']]:
 		var check = CheckBox.new()
 		check.text = pair[1]
 		check.add_theme_font_size_override('font_size',int(18*font_scale))
 		check.button_pressed = staged[pair[0]]
-		var key: String = pair[0]
-		check.toggled.connect(func(value): staged[key]=value)
-		box.add_child(check)
-	var captured = page_owner.duplicate(true)
-	var volume_label = Label.new()
-	volume_label.text = '主音量：'+str(int(round(staged.volume*100)))+'%'
-	volume_label.add_theme_font_size_override('font_size',int(18*font_scale))
-	box.add_child(volume_label)
+		checks[pair[0]] = check
+		(display_card if pair[0]=='fullscreen' else audio_card if pair[0]=='muted' else assist_card).add_child(check)
+	var volume_label = _text('主音量：'+str(int(round(staged.volume*100)))+'%')
+	box.remove_child(volume_label)
+	audio_card.add_child(volume_label)
 	var slider = HSlider.new()
 	slider.min_value = 0
 	slider.max_value = 100
 	slider.step = 1
 	slider.value = staged.volume*100
 	slider.custom_minimum_size.y = 36*font_scale
-	box.add_child(slider)
-	var settings_owner = page_owner.duplicate(true)
+	audio_card.add_child(slider)
+	ThemeModel.install_range_track(slider,'slider',false)
+	var state_label = _text('当前设置已同步')
+	var defaults = _button('恢复默认（待应用）','settings_defaults')
+	var apply = _button('应用到本次会话','settings_apply')
+	settings_apply_control = apply
+	var refresh = func() -> void:
+		if not _settings_control_current(captured,build_id,apply): return
+		var dirty = staged!=preferences
+		state_label.text = '有未应用的修改' if dirty else '当前设置已同步'
+		apply.disabled = not dirty or pending
+	refresh.call()
+	size_pick.item_selected.connect(func(index):
+		if _settings_control_current(captured,build_id,size_pick) and index>=0 and index<3:
+			staged.scale=[1.0,1.25,1.5][index]
+			refresh.call())
+	for key in checks:
+		var check: CheckBox = checks[key]
+		var field: String = key
+		check.toggled.connect(func(value):
+			if _settings_control_current(captured,build_id,check):
+				staged[field]=value
+				refresh.call())
 	slider.value_changed.connect(func(value):
-		if page_owner==settings_owner:
+		if _settings_control_current(captured,build_id,slider):
 			staged.volume=value/100.0
-			volume_label.text='主音量：'+str(int(value))+'%')
-	var defaults = _button('默认值','settings_defaults')
+			volume_label.text='主音量：'+str(int(value))+'%'
+			refresh.call())
 	defaults.pressed.connect(func():
-		if page_owner==captured:
+		if _settings_control_current(captured,build_id,defaults):
 			staged={'scale':1.0,'fullscreen':false,'color':false,'reduced':false,'muted':false,'volume':0.35}
-			_rebuild())
-	var apply = _button('应用','settings_apply')
+			size_pick.select(0)
+			for key in checks: checks[key].set_pressed_no_signal(false)
+			slider.set_value_no_signal(35)
+			volume_label.text='主音量：35%'
+			refresh.call())
 	apply.pressed.connect(func():
-		if page_owner==captured:
+		if _settings_control_current(captured,build_id,apply) and not apply.disabled and staged!=preferences:
 			intent.emit('apply_preferences',staged.duplicate(true),captured))
 	_button('返回（放弃未应用修改）','back')
+func _character_sheet() -> void:
+	var color_world: String = snapshot.worldId if typeof(snapshot.get('worldId'))==TYPE_STRING else 'return_station'
+	var colors = ThemeModel.palette(color_world)
+	var state_card = _mission_card(box,'character_state',colors)
+	var equipment_card = _mission_card(box,'character_equipment',colors)
+	var capability_card = _mission_card(box,'character_capabilities',colors)
+	_mission_label(state_card,'当前状态',colors,'system')
+	_mission_label(equipment_card,'已装备',colors,'system')
+	_mission_label(capability_card,'已获得能力',colors,'system')
+	var valid = connected and not pending and P.snapshot(snapshot) and snapshot.get('entryToken')==null and snapshot.get('exitEntryPreview')!=true and snapshot.get('shaftServiceEntryPreview')!=true and P.context(page_owner.get('context')) and P.same(page_owner.context,snapshot)
+	if not valid:
+		_mission_label(state_card,'当前状态尚未确认',colors)
+		_mission_label(equipment_card,'装备状态尚未确认',colors)
+		_mission_label(capability_card,'能力状态尚未确认',colors)
+		return
+	_mission_label(state_card,'当前快照 · 生命 %d / %d\n能量 %d / %d'%[snapshot.player.currentHp,snapshot.player.maxHp,snapshot.player.currentEnergy,snapshot.player.maxEnergy],colors)
+	var action_names = {'idle':'无当前动作','primaryAttack':'攻击','pulse':'脉冲','guard':'防御','pierce':'穿刺','dash':'冲刺'}
+	if snapshot.player.currentHp==0:
+		_mission_label(state_card,'快照状态：已死亡',colors)
+	elif typeof(snapshot.player.get('actionState'))==TYPE_STRING and action_names.has(snapshot.player.actionState):
+		_mission_label(state_card,'快照动作：'+action_names[snapshot.player.actionState],colors)
+	if not P.build(snapshot.get('build')):
+		_mission_label(equipment_card,'装备状态尚未确认',colors)
+	elif snapshot.build.equipment.is_empty():
+		_mission_label(equipment_card,'当前没有已装备物品',colors)
+	else:
+		var slot_names = {'charm':'饰物','lens':'镜片','map_array':'地图阵列','map_chip':'地图芯片','boots':'靴具','water_module':'浅水模块','lining':'内衬'}
+		for item in snapshot.build.equipment:
+			_mission_label(equipment_card,(slot_names[item.slotId]+' · ' if slot_names.has(item.slotId) else '已装备 · ')+item.label,colors)
+	var capabilities = snapshot.get('capabilities')
+	var raw_items = capabilities.get('items') if capabilities is Dictionary else null
+	var capability_rows = P.capability_items(snapshot)
+	if not raw_items is Array or not P.rows(raw_items,128) or not P.unique(raw_items,'capabilityId') or (not raw_items.is_empty() and capability_rows.is_empty()):
+		_mission_label(capability_card,'能力状态尚未确认',colors)
+	else:
+		var granted = false
+		for item in capability_rows:
+			if not item.granted: continue
+			granted = true
+			_mission_label(capability_card,(CAPS[item.capabilityId] if CAPS.has(item.capabilityId) else '已获得能力（名称未确认）')+(' · 已选用' if item.selected else ' · 未选用'),colors)
+		if not granted: _mission_label(capability_card,'尚未获得能力',colors)
+
 func _exploration_resume() -> void:
 	if P.snapshot(snapshot):
 		_button('继续探索','resume',null,connected and snapshot.player.currentHp>0)
@@ -363,6 +672,10 @@ func _inventory() -> void:
 				return
 			detail_state['selected_item_id'] = requested_item_id
 			detail_label.text = actual_item.label+' ×'+str(actual_item.quantity)+'\n'+actual_item.description+'\n槽位：'+actual_item.slotId+(' · 已装备' if actual_item.equipped else '')
+			if not actual_item.equipped:
+				for equipped_item in snapshot.build.equipment:
+					if equipped_item.slotId==actual_item.slotId:
+						detail_label.text += '\n将替换：'+equipped_item.label
 		for item in snapshot.build.items:
 			var item_row = HBoxContainer.new()
 			item_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -384,7 +697,17 @@ func _inventory() -> void:
 			selector.disabled = current_selector_item.is_empty()
 			selector.pressed.connect(select_inventory_item.bind(selector_owner,selector_revision,selector_item_id))
 			item_row.add_child(selector)
-			var action_button = _button('卸下' if item.equipped else '装备','build_item',item.itemId,connected)
+			var occupant = null
+			var occupant_label = ''
+			for equipment in snapshot.build.equipment:
+				if equipment.slotId==item.slotId:
+					occupant = equipment.itemId
+					occupant_label = equipment.label
+			var kind = 'unequip' if item.equipped else 'equip'
+			var payload = {'revision':snapshot.build.revision,'itemId':item.itemId,'slotId':item.slotId,'equipped':item.equipped,'expected':occupant,'kind':kind}
+			var action_button = _button('卸下' if item.equipped else ('替换' if occupant!=null else '装备'),'build_item',payload,not current_selector_item.is_empty())
+			if not item.equipped and occupant!=null:
+				action_button.tooltip_text = '将替换：'+occupant_label
 			box.remove_child(action_button)
 			item_row.add_child(action_button)
 		for equipment in snapshot.build.equipment:
@@ -405,6 +728,40 @@ func _inventory() -> void:
 			update_pane_minimums.call()
 	_exploration_resume()
 	_button('返回','back')
+static func rear_view_readiness(s: Dictionary) -> Dictionary:
+	if not P.snapshot(s): return {'state':'unknown'}
+	for item in P.capability_items(s):
+		if item.capabilityId!='perception.rear_view_i': continue
+		if not item.granted: return {'state':'ungranted','granted':false,'selected':item.selected}
+		if not item.has('cooldownRemainingMs'): return {'state':'unknown','granted':true,'selected':item.selected}
+		var remaining = int(item.cooldownRemainingMs)
+		return {'state':'ready' if remaining==0 else 'cooldown','remaining':remaining,'granted':true,'selected':item.selected}
+	return {'state':'unknown'}
+
+func update_rear_view(s: Dictionary, owner_ready: bool) -> void:
+	if not visible or mode!='capability' or not is_instance_valid(rear_status_label) or not is_instance_valid(rear_activate_button): return
+	var current = rear_view_readiness(s) if P.context(page_owner.get('context')) and P.same(page_owner.context,s) else {'state':'unknown'}
+	var key = [current,owner_ready,connected,pending]
+	if key==rear_view_key: return
+	rear_view_key = key.duplicate(true)
+	rear_view_presented = current.duplicate(true)
+	if is_instance_valid(rear_grant_label): rear_grant_label.text = '获得状态：'+('已获得' if current.get('granted')==true else '未获得' if current.get('granted')==false else '尚未确认')
+	if is_instance_valid(rear_selection_label): rear_selection_label.text = '选用状态：'+('已选用' if current.get('selected')==true else '未选用' if current.get('selected')==false else '尚未确认')
+	if is_instance_valid(rear_select_button):
+		rear_select_intent.clear()
+		rear_select_button.visible = current.get('granted')==true
+		if current.get('granted')==true and typeof(current.get('selected'))==TYPE_BOOL:
+			rear_select_intent.merge({'id':'perception.rear_view_i','granted':true,'selected':current.selected})
+			rear_select_button.text = '取消选择' if current.selected else '选择'
+			rear_select_button.tooltip_text = rear_select_button.text
+		rear_select_button.disabled = not owner_ready or not connected or pending or rear_select_intent.is_empty()
+	rear_activate_button.visible = current.get('granted')==true
+	match current.state:
+		'ready': rear_status_label.text = '冷却：已结束（当前快照）'
+		'cooldown': rear_status_label.text = '冷却：剩余约 %.1f 秒（当前快照）' % (ceil(float(current.remaining)/100.0)/10.0)
+		_: rear_status_label.text = '冷却：尚未确认'
+	rear_activate_button.disabled = not owner_ready or not connected or pending or current.state!='ready'
+
 func _capability() -> void:
 	if not P.snapshot(snapshot):
 		_text('能力状态尚未同步')
@@ -423,12 +780,30 @@ func _capability() -> void:
 			if not known:
 				_text('只显示永久能力状态；树关系与成本未提供')
 				known = true
-			_text(CAPS[c.capabilityId]+' · '+('已选中' if c.selected else '已获得' if c.granted else '未获得'))
-			_text(use_text[c.capabilityId])
-			if c.granted:
-				_button('取消选择' if c.selected else '选择','capability_select',c.capabilityId,connected)
-				if c.capabilityId=='perception.rear_view_i':
-					_button('确认后方视野','capability_activate',c.capabilityId,connected and c.get('cooldownRemainingMs',0)==0)
+			var card = _mission_card(box,'cap_'+c.capabilityId,ThemeModel.palette(snapshot.worldId))
+			var card_lines = [CAPS[c.capabilityId], '获得状态：'+('已获得' if c.granted else '未获得'), '选用状态：'+('已选用' if c.selected else '未选用'), use_text[c.capabilityId]]
+			for index in range(card_lines.size()):
+				var label = _text(card_lines[index])
+				box.remove_child(label)
+				card.add_child(label)
+				if c.capabilityId=='perception.rear_view_i' and index==1: rear_grant_label = label
+				if c.capabilityId=='perception.rear_view_i' and index==2: rear_selection_label = label
+			if c.granted and c.capabilityId!='perception.rear_view_i':
+				var select_button = _button('取消选择' if c.selected else '选择','capability_select',c.capabilityId,connected)
+				box.remove_child(select_button)
+				card.add_child(select_button)
+			if c.capabilityId=='perception.rear_view_i':
+				rear_select_button = _button('取消选择' if c.selected else '选择','capability_select',rear_select_intent,false)
+				rear_select_button.visible = c.granted
+				box.remove_child(rear_select_button)
+				card.add_child(rear_select_button)
+				rear_status_label = _text('冷却：尚未确认')
+				box.remove_child(rear_status_label)
+				card.add_child(rear_status_label)
+				rear_activate_button = _button('确认后方视野','capability_activate',c.capabilityId,false)
+				rear_activate_button.visible = c.granted
+				box.remove_child(rear_activate_button)
+				card.add_child(rear_activate_button)
 		if not known:
 			_text('当前能力状态未确认')
 		_button('继续探索','resume',null,connected and P.snapshot(snapshot) and snapshot.player.currentHp>0)
@@ -439,81 +814,7 @@ func _mission_route_guidance() -> Array:
 		return []
 	if not P.context(page_owner.get('context')) or not P.same(page_owner.context,snapshot):
 		return neutral
-	var world: String = snapshot.worldId
-	var scene: String = snapshot.sceneId
-	if not Content.WORLD_NAMES.has(world) or not Content.SCENE_NAMES.has(scene):
-		return neutral
-	if world=='return_station':
-		if scene!='rs_core_room':
-			return neutral
-	elif not scene.begins_with({'grey_hive':'gh_','mist_harbor':'mh_','clockworks':'cw_'}[world]):
-		return neutral
-	var rows = {}
-	for id in ['grey_hive','mist_harbor','clockworks'] if world=='return_station' else [world]:
-		var row: Dictionary = Content.progress(snapshot,id)
-		if row.is_empty():
-			return neutral
-		var events: Array = row.completedEvents
-		var canonical: Array = Content.EVENTS[id]
-		if id=='mist_harbor':
-			if canonical[2] in events and (not canonical[0] in events or not canonical[1] in events):
-				return neutral
-		elif (canonical[1] in events and not canonical[0] in events) or (canonical[2] in events and (not canonical[0] in events or not canonical[1] in events)):
-			return neutral
-		rows[id] = row
-	if world=='return_station':
-		if (rows.mist_harbor.completed and not rows.grey_hive.completed) or (rows.clockworks.completed and (not rows.grey_hive.completed or not rows.mist_harbor.completed)):
-			return neutral
-		if not rows.grey_hive.completed:
-			return ['任务参考：恢复场景后，靠近灰巢入口查看当前交互。']
-		if not rows.mist_harbor.completed:
-			return ['任务参考：恢复场景后，靠近雾港入口查看当前交互。']
-		if not rows.clockworks.completed:
-			return ['任务参考：恢复场景后，靠近钟骨入口查看当前交互。']
-		var completed_summary: Array = ['三处世界进度均已记录为完成。可查看当前保存与复访选项。']
-		if rows.clockworks.firstCompletion==true and rows.clockworks.completedEvents.size()==3 and P.granted(snapshot,'mobility.air_step_i'):
-			completed_summary.append('三处坐标不是孤立事件。网络中仍存在未识别节点。')
-		return completed_summary
-	if snapshot.progression.get('currentWorldId')!=world:
-		return neutral
-	var current: Dictionary = rows[world]
-	if current.revisitCount>0 or current.visitId>1:
-		return ['复访任务参考：以当前事件、门和交互提示为准；首通奖励不重复。']
-	if current.visitId!=1 or current.revisitCount!=0:
-		return neutral
-	var events: Array = current.completedEvents
-	var canonical: Array = Content.EVENTS[world]
-	if world=='grey_hive':
-		if not canonical[0] in events:
-			return ['任务参考：沿当前合法通路前往主电室，查看恢复主电的交互。']
-		if not canonical[1] in events:
-			return ['任务参考：沿当前合法通路前往隔离封锁，查看隔离协议交互。']
-		if canonical[2] in events:
-			return ['任务参考：灰巢撤离事件已记录；查看灰巢撤离区的当前归航交互。']
-		var beacon = snapshot.get('greyHiveBeacon')
-		if not beacon is Dictionary or beacon.size()!=2 or not beacon.has_all(['state','legacyCompletedWithoutReceipt']) or typeof(beacon.state)!=TYPE_STRING or not beacon.state in ['uncollected','carried','mounted'] or typeof(beacon.legacyCompletedWithoutReceipt)!=TYPE_BOOL or beacon.legacyCompletedWithoutReceipt:
-			return ['任务参考：信标收取状态未确认；查看当前信标交互提示。']
-		if beacon.state=='uncollected':
-			return ['任务参考：前往信标室查看收取信标的交互；部署为可选。']
-		return ['任务参考：前往灰巢撤离区查看撤离控制；具体条件以当前交互为准。']
-	if world=='mist_harbor':
-		if not canonical[0] in events or not canonical[1] in events:
-			var lines = ['任务参考：两处航标可以按任意顺序确认。']
-			if not canonical[0] in events:
-				lines.append('潮汐仓库：查看西侧航标交互。')
-			if not canonical[1] in events:
-				lines.append('防波堤：查看东侧航标交互。')
-			return lines
-		if not canonical[2] in events:
-			return ['任务参考：沿当前合法通路前往共鸣塔，查看信号终端。']
-		return ['任务参考：处理守望者区域的战斗后，前往雾港撤离区查看当前归航交互。']
-	if not canonical[0] in events:
-		return ['任务参考：前往压力大厅查看三处压力阀门；具体条件以当前交互为准。']
-	if not canonical[1] in events:
-		return ['任务参考：沿当前合法通路前往调节者核心，处理当前战斗与终端。']
-	if not canonical[2] in events:
-		return ['任务参考：前往停机出口查看停机终端。']
-	return ['任务参考：停机事件已记录；查看停机出口的当前归航交互。']
+	return JourneyPlayStatus.route_guidance(snapshot)
 func _mission_revisit_limit_suffix(world: String, row: Dictionary) -> String:
 	# Fixed caps from the frozen progression catalog and gameplay §33 policy.
 	var limits = {'grey_hive':2,'mist_harbor':2,'clockworks':4}
@@ -563,6 +864,7 @@ func _mission_card(parent: Control, key: String, colors: Dictionary) -> VBoxCont
 	style.content_margin_top = padding
 	style.content_margin_bottom = padding
 	card.add_theme_stylebox_override('panel',style)
+	ThemeModel.install_hud_information_panel(card)
 	var content = VBoxContainer.new()
 	content.name = 'MissionCardContent'
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -717,14 +1019,25 @@ func _save() -> void:
 	_button('返回归航站并保存','return',null,connected)
 	for slot in slots:
 		if slot.valid and not slot.readOnly:
-			_button('覆盖：'+slot.displayName,'save_slot',{'slotId':slot.slotId,'displayName':slot.displayName,'create':false},connected)
-			_button('返回并保存：'+slot.displayName,'return_slot',{'slotId':slot.slotId,'displayName':slot.displayName,'create':false},connected)
-	var entry = LineEdit.new()
-	entry.placeholder_text = '新存档名称'
-	entry.tooltip_text = '存档名称最多 48 个字符；不能全部为空白。'
-	entry.max_length = 48
-	entry.add_theme_font_size_override('font_size',int(18*font_scale))
-	box.add_child(entry)
+			var target_name = _text('目标记录：'+slot.displayName)
+			target_name.autowrap_mode = TextServer.AUTOWRAP_ARBITRARY
+			var reference = _text('记录标识：'+slot.slotId)
+			reference.autowrap_mode = TextServer.AUTOWRAP_ARBITRARY
+			_button('覆盖：'+slot.displayName,'named_save_prepare',{'operation':'save_slot','row':slot.duplicate(true)},connected)
+			_button('返回并保存：'+slot.displayName,'named_save_prepare',{'operation':'return_slot','row':slot.duplicate(true)},connected)
+	var entry: LineEdit
+	if is_instance_valid(retained_save_entry) and not retained_save_entry.is_queued_for_deletion() and is_instance_valid(box) and retained_save_entry.get_parent()==box:
+		entry = retained_save_entry
+		box.move_child(entry,box.get_child_count()-1)
+	else:
+		entry = LineEdit.new()
+		entry.placeholder_text = '新存档名称'
+		entry.tooltip_text = '存档名称最多 48 个字符；不能全部为空白。'
+		entry.max_length = 48
+		entry.add_theme_font_size_override('font_size',int(18*font_scale))
+		box.add_child(entry)
+		ThemeModel.install_save_name_skin(entry)
+	save_entry = entry
 	var captured = page_owner.duplicate(true)
 	var create = _button('创建新槽位','slot_create_prepare')
 	create.pressed.connect(func():
@@ -732,15 +1045,62 @@ func _save() -> void:
 			intent.emit('save_slot_new',entry.text.strip_edges(),captured))
 	_button('刷新列表','slots_refresh',null,connected)
 	_button('返回','back')
+func _named_save_confirmation() -> void:
+	var choice = page_owner.get('namedSave')
+	if not choice is Dictionary or not choice.get('row') is Dictionary or not choice.get('operation') in ['save_slot','return_slot'] or typeof(choice.row.get('displayName'))!=TYPE_STRING:
+		_text('记录状态已变化，请返回重新选择。')
+		_button('取消','back')
+		return
+	var returning = choice.operation=='return_slot'
+	_text('返回归航站并覆盖记录？' if returning else '覆盖这条记录？')
+	var target_name = _text('目标记录：'+choice.row.displayName)
+	target_name.autowrap_mode = TextServer.AUTOWRAP_ARBITRARY
+	var reference = _text('记录标识：'+choice.row.slotId)
+	reference.autowrap_mode = TextServer.AUTOWRAP_ARBITRARY
+	_text('将按当前返回并保存操作返回归航站，并覆盖指定记录。原记录内容将被本次保存替换。' if returning else '原记录内容将被本次保存替换。')
+	var cancel = _button('取消','back')
+	_button('确认返回并覆盖' if returning else '确认覆盖','named_save_confirm',choice.duplicate(true),connected)
+	cancel.grab_focus()
 func _slots() -> void:
-	_text('只继续服务报告的有效存档；缺失、只读和错误状态保留。')
+	_text('只继续服务报告的有效记录；只读记录也可能可以继续。')
 	_save_availability_text()
 	_button('继续默认存档','continue_default',null,connected and default_save_state=='available')
 	for slot in slots:
-		_text(slot.displayName+' · '+('有效' if slot.valid else '不可用')+(' · 只读' if slot.readOnly else '')+(' · 可恢复' if slot.get('recoverable',false) else ''))
-		_button('继续：'+slot.displayName,'continue_slot',slot.slotId,connected and slot.valid)
+		var world_for_color: String = snapshot.worldId if typeof(snapshot.get('worldId'))==TYPE_STRING else 'return_station'
+		var colors = ThemeModel.palette(world_for_color)
+		var card = _mission_card(box,'continue_slot',colors)
+		var name_label = _mission_label(card,slot.displayName,colors,'system')
+		name_label.autowrap_mode = TextServer.AUTOWRAP_ARBITRARY
+		var id_label = _mission_label(card,'记录编号：'+slot.slotId,colors)
+		id_label.autowrap_mode = TextServer.AUTOWRAP_ARBITRARY
+		var state = '此记录暂不可继续。'
+		if slot.valid:
+			state = ('可尝试备用记录' if slot.get('recoverable',false) else '可继续') if connected and not pending else '有效记录 · 等待连接或请求完成'
+			if slot.readOnly: state += ' · 只读记录'
+		elif slot.get('recoverable',false):
+			state = '记录状态待确认'
+		_mission_label(card,state,colors)
+		if slot.valid and typeof(slot.get('worldId'))==TYPE_STRING and Content.WORLD_NAMES.has(slot.worldId):
+			_mission_label(card,'记录世界：'+Content.WORLD_NAMES[slot.worldId],colors)
+		var continue_button = _button('继续此记录','continue_slot',slot.duplicate(true),connected and slot.valid)
+		slot_continue_buttons[slot.slotId] = continue_button
+		box.remove_child(continue_button)
+		card.add_child(continue_button)
 	_button('刷新列表','slots_refresh',null,connected)
 	_button('返回','back')
+
+func focused_continue_slot() -> String:
+	if not visible or mode!='slots': return ''
+	for id in slot_continue_buttons:
+		var button = slot_continue_buttons[id]
+		if is_instance_valid(button) and button.has_focus(): return str(id)
+	return ''
+
+func focus_continue_slot(id: String) -> void:
+	var button = slot_continue_buttons.get(id)
+	if not visible or mode!='slots': return
+	if is_instance_valid(button) and not button.disabled: button.grab_focus()
+	else: grab_focus()
 
 func _clear_enhancement_preview() -> void:
 	enhancement_preview = ''

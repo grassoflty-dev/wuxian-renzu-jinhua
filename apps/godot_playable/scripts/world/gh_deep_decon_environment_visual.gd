@@ -1,9 +1,13 @@
 extends RefCounted
 
 const P = preload('res://scripts/bridge/protocol.gd')
+const DeconFloor = preload('res://scripts/world/gh_deep_decon_floor_material_visual.gd')
 const ProjectionScript = preload('res://scripts/world/projection.gd')
 const SCENE_SHA256 = '65e0cbf11183fe114259d680b0cd84a23a7f8619a25e628f4b30a7a84ce870a8'
 const HEIGHT = 0.25
+const NORTH_IMAGE_PATH = 'res://assets/props/return_station/bulkhead_tiles.png'
+var north_image_attempted := false
+var north_image: Texture2D
 const SIDE_COLOR: Color = Color('#384246')
 const CAP_COLOR: Color = Color('#4b5659')
 const CONTACT_COLOR: Color = Color(17.0/255.0,26.0/255.0,29.0/255.0,0.14)
@@ -194,7 +198,104 @@ func _stage_plan(projection: RefCounted, viewport: Rect2) -> Dictionary:
 			visible_commands.append(command)
 	return {'all':commands,'visible':visible_commands}
 
-func draw_wall(canvas_value: Variant, snapshot_value: Variant, scene_value: Variant, current_key_value: Variant, scene_hash_value: Variant, projection_value: Variant, wall_value: Variant, viewport_value: Variant) -> bool:
+func _draw_floor_caps(canvas: CanvasItem, snapshot: Variant, scene: Variant, key: Variant, scene_hash: Variant, projection: RefCounted, viewport: Rect2, owner_index: int, floor_helper: Variant, floor_packet: Variant) -> void:
+	if not floor_helper is RefCounted or floor_helper.get_script() != DeconFloor or not floor_helper.is_packet_valid(floor_packet,snapshot,scene,key,scene_hash,projection):
+		return
+	var texture = floor_helper.get('floor_texture')
+	if not texture is ImageTexture or not is_instance_valid(texture) or not floor_helper.get('definition_valid') or not floor_helper.get('texture_attempted'):
+		return
+	if owner_index < 0 or owner_index >= WALL_PLAN.size():
+		return
+	var index: int = WALL_PLAN[owner_index].collision_index
+	var polygon: Array = CANONICAL_SCENE.collision[index].polygon
+	var x0: float = polygon[0][0]
+	var z0: float = polygon[0][1]
+	var x1: float = polygon[2][0]
+	var z1: float = polygon[2][1]
+	var nx: int = int(round((x1-x0)*2.0))
+	var nz: int = int(round((z1-z0)*2.0))
+	if nx < 1 or nz < 1 or nx*nz > 48 or (nx != 1 and nz != 1) or x0+float(nx)*0.5 != x1 or z0+float(nz)*0.5 != z1:
+		return
+	var uv: PackedVector2Array = PackedVector2Array()
+	for pixel in DeconFloor.PIXEL_CENTERS:
+		var point: Vector2 = Vector2((pixel[0]+0.5)/float(DeconFloor.CANVAS_SIZE.x),(pixel[1]+0.5)/float(DeconFloor.CANVAS_SIZE.y))
+		if not _v2(point):
+			return
+		uv.append(point)
+	if uv.size() != 4:
+		return
+	var patches: Array[PackedVector2Array] = []
+	for z in range(nz):
+		for x in range(nx):
+			var px: float = x0+float(x)*0.5
+			var pz: float = z0+float(z)*0.5
+			var points: PackedVector2Array = _project_world(projection,[Vector3(px,HEIGHT,pz),Vector3(px+0.5,HEIGHT,pz),Vector3(px+0.5,HEIGHT,pz+0.5),Vector3(px,HEIGHT,pz+0.5)])
+			if not _quad_ok(points,Color.WHITE):
+				return
+			var visible: int = _visible(points,viewport)
+			if visible < 0:
+				return
+			if visible == 1:
+				patches.append(points)
+	var tint: PackedColorArray = PackedColorArray([Color.WHITE,Color.WHITE,Color.WHITE,Color.WHITE])
+	for points in patches:
+		canvas.draw_polygon(points,tint,uv,texture)
+
+func _low_face_texture() -> Texture2D:
+	if not north_image_attempted:
+		north_image_attempted = true
+		if ResourceLoader.exists(NORTH_IMAGE_PATH):
+			var loaded = load(NORTH_IMAGE_PATH)
+			if loaded is Texture2D:
+				north_image = loaded
+		if not is_instance_valid(north_image):
+			var image = Image.new()
+			if image.load(NORTH_IMAGE_PATH)==OK and image.get_width()==1418 and image.get_height()==1028:
+				north_image = ImageTexture.create_from_image(image)
+	if not is_instance_valid(north_image) or north_image.get_width()!=1418 or north_image.get_height()!=1028:
+		return null
+	return north_image
+
+func _draw_north_image(canvas: CanvasItem, projection: RefCounted) -> bool:
+	if not is_instance_valid(_low_face_texture()):
+		return false
+	var foot_a := Vector2(50,322)
+	var foot_b := Vector2(300,460)
+	var source_axis := foot_b-foot_a
+	var placements: Array[Dictionary] = []
+	for i in range(24):
+		var a: Vector2 = projection.project(Vector3(i,0,0.25))
+		var b: Vector2 = projection.project(Vector3(i+1,0,0.25))
+		if not _v2(a) or not _v2(b):
+			return false
+		var delta := b-a
+		var scale := delta.length()/source_axis.length()
+		var angle := delta.angle()-source_axis.angle()
+		var origin := a-foot_a.rotated(angle)*scale
+		if not is_finite(scale) or scale<=0.0 or not is_finite(angle) or not _v2(origin) or (origin+foot_b.rotated(angle)*scale).distance_to(b)>0.01:
+			return false
+		placements.append({'origin':origin,'angle':angle,'scale':scale})
+	if placements.size()!=24:
+		return false
+	for placement in placements:
+		canvas.draw_set_transform(placement.origin,placement.angle,Vector2.ONE*placement.scale)
+		canvas.draw_texture_rect_region(north_image,Rect2(0,0,355,480),Rect2(0,0,355,480))
+	canvas.draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
+	return true
+
+func _south_low_pieces(projection: RefCounted) -> Array:
+	var pieces: Array = []
+	var uv: PackedVector2Array = PackedVector2Array()
+	for pixel: Vector2 in [Vector2(50,322),Vector2(300,460),Vector2(302.6,396.2),Vector2(52.6,258.2)]:
+		uv.append(pixel/Vector2(1418,1028))
+	for x: int in range(24):
+		var points: PackedVector2Array = _project_world(projection,[Vector3(x,0,16),Vector3(x+1,0,16),Vector3(x+1,HEIGHT,16),Vector3(x,HEIGHT,16)])
+		if not _quad_ok(points,Color.WHITE):
+			return []
+		pieces.append({'points':points,'uv':uv})
+	return pieces
+
+func draw_wall(canvas_value: Variant, snapshot_value: Variant, scene_value: Variant, current_key_value: Variant, scene_hash_value: Variant, projection_value: Variant, wall_value: Variant, viewport_value: Variant, floor_helper: Variant, floor_packet: Variant, floor_drawn: bool) -> bool:
 	if not _binding_ok(canvas_value,snapshot_value,scene_value,current_key_value,scene_hash_value,projection_value,viewport_value):
 		return false
 	var owner_index: int = _owner_index(wall_value)
@@ -215,6 +316,24 @@ func draw_wall(canvas_value: Variant, snapshot_value: Variant, scene_value: Vari
 	if commands.is_empty() or not _binding_ok(canvas_value,snapshot_value,scene_value,current_key_value,scene_hash_value,projection_value,viewport_value) or not _capture_matches(snapshot,projection,captured):
 		return false
 	var canvas: CanvasItem = canvas_value
+	if owner_id=='deep_decon_wall_north' and _draw_north_image(canvas,projection):
+		return true
+	var south_pieces: Array = []
+	var south_texture: Texture2D = null
+	if owner_id == 'deep_decon_wall_south' and canvas.material == null and not canvas.use_parent_material:
+		south_texture = _low_face_texture()
+		if is_instance_valid(south_texture):
+			south_pieces = _south_low_pieces(projection)
+	if south_pieces.size() != 24:
+		south_pieces.clear()
+	# The first south side is the selected outer +X face.
 	for command: Dictionary in commands:
-		canvas.draw_colored_polygon(command.points,command.color)
+		var selected: bool = owner_id == 'deep_decon_wall_south' and command.kind == 'side' and command == plan.all[4]
+		if selected and south_pieces.size() == 24:
+			for piece: Dictionary in south_pieces:
+				canvas.draw_polygon(piece.points,PackedColorArray([Color.WHITE]),piece.uv,south_texture)
+		else:
+			canvas.draw_colored_polygon(command.points,command.color)
+		if command.kind == 'cap' and floor_drawn:
+			_draw_floor_caps(canvas,snapshot_value,scene_value,current_key_value,scene_hash_value,projection,viewport,owner_index,floor_helper,floor_packet)
 	return true

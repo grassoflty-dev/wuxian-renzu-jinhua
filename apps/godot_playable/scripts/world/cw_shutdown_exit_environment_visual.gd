@@ -296,6 +296,37 @@ func _apply_completed_palette(plan: Array[Dictionary]) -> void:
 	for index: int in range(plan.size()):
 		plan[index]['color'] = colors[index]
 
+# Preflight both original presentation groups before replacing either.
+func whole_static_ready(canvas_value: Variant, snapshot_value: Variant, scene_value: Variant, key_value: Variant, hash_value: Variant, camera_value: Variant, viewport_value: Variant) -> bool:
+	if not canvas_value is CanvasItem or not is_instance_valid(canvas_value) or not canvas_value.is_inside_tree() or not canvas_value.is_visible_in_tree() or canvas_value.is_queued_for_deletion(): return false
+	if not snapshot_value is Dictionary or not scene_value is Dictionary or not viewport_value is Rect2: return false
+	var viewport: Rect2 = viewport_value
+	if not _canvas_matches(canvas_value,snapshot_value,scene_value,key_value,hash_value,camera_value,viewport) or not _context(snapshot_value,scene_value,key_value,hash_value): return false
+	if _completed_palette_context(canvas_value,snapshot_value,scene_value,key_value,hash_value): return false
+	var shell: Array[Dictionary] = _plan(camera_value)
+	var floor_plan: Array[Dictionary] = _floor_plan(camera_value)
+	if shell.size()!=15 or floor_plan.size()!=47: return false
+	var shell_count := 0
+	var floor_count := 0
+	var shell_visible := false
+	var floor_visible := false
+	for command: Dictionary in shell:
+		var original: PackedVector2Array = command.original
+		var points: PackedVector2Array = command.points
+		if not _valid_polygon(original) or not _valid_polygon(points): return false
+		shell_count += points.size()
+		var visible: int = _visible(points,viewport)
+		if visible<0: return false
+		if visible>0: shell_visible = true
+	for command: Dictionary in floor_plan:
+		var points: PackedVector2Array = command.points
+		if points.size()!=4 or not _valid_polygon(points): return false
+		floor_count += points.size()
+		var visible: int = _visible(points,viewport)
+		if visible<0: return false
+		if visible>0: floor_visible = true
+	return shell_count==62 and floor_count==188 and shell_visible and floor_visible and _canvas_matches(canvas_value,snapshot_value,scene_value,key_value,hash_value,camera_value,viewport)
+
 func draw_shell(canvas_value: Variant, snapshot_value: Variant, scene_value: Variant, key_value: Variant, scene_hash_value: Variant, camera_value: Variant, viewport_value: Variant) -> bool:
 	if not canvas_value is CanvasItem or not is_instance_valid(canvas_value) or not canvas_value.is_inside_tree() or not canvas_value.is_visible_in_tree() or canvas_value.is_queued_for_deletion():
 		return false

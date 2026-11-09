@@ -246,14 +246,14 @@ func _points_finite(points: PackedVector2Array) -> bool:
 			return false
 	return true
 
-func draw_ground(canvas_value: Variant, snapshot: Variant, scene: Variant, key: Variant, scene_hash: Variant, camera_value: Variant, viewport_value: Variant) -> bool:
+func prepare_ground(canvas_value: Variant, snapshot: Variant, scene: Variant, key: Variant, scene_hash: Variant, camera_value: Variant, viewport_value: Variant) -> Variant:
 	if not _canvas_valid(canvas_value) or not _context(snapshot,scene,key,scene_hash,camera_value,viewport_value):
-		return false
+		return null
 	var camera: ProjectionScript = camera_value
 	var canvas: CanvasItem = canvas_value
 	var texture_value: Variant = textures.get('stone')
 	if not texture_value is Texture2D:
-		return false
+		return null
 	var texture: Texture2D = texture_value
 	var patches: Array = []
 	var widths: Array[float] = [3.0,3.0,3.0,3.0,3.0,3.0,3.0,2.0]
@@ -287,25 +287,23 @@ func draw_ground(canvas_value: Variant, snapshot: Variant, scene: Variant, key: 
 			for world_point in world_points:
 				projected_points.append(_project(camera,world_point))
 			if not _points_finite(projected_points) or uv_points.size() != 4:
-				return false
+				return null
 			patches.append({'points':projected_points,'uvs':uv_points})
 			z0 += depth
 		x0 += width
 	if patches.size() != 40:
-		return false
-	var tint: Color = Color(0.34,0.41,0.44,1.0)
+		return null
 	for patch_value in patches:
-		if not patch_value is Dictionary:
-			return false
-		var patch: Dictionary = patch_value
-		var points_value: Variant = patch.get('points')
-		var uvs_value: Variant = patch.get('uvs')
-		if typeof(points_value) != TYPE_PACKED_VECTOR2_ARRAY or typeof(uvs_value) != TYPE_PACKED_VECTOR2_ARRAY:
-			return false
-		var points: PackedVector2Array = points_value
-		var uvs: PackedVector2Array = uvs_value
-		var colors: PackedColorArray = PackedColorArray([tint,tint,tint,tint])
-		canvas.draw_polygon(points,colors,uvs,texture)
+		if not patch_value is Dictionary: return null
+		if typeof(patch_value.get('points'))!=TYPE_PACKED_VECTOR2_ARRAY or typeof(patch_value.get('uvs'))!=TYPE_PACKED_VECTOR2_ARRAY: return null
+	return {'texture':texture,'patches':patches}
+
+func draw_ground(canvas_value: Variant, snapshot: Variant, scene: Variant, key: Variant, scene_hash: Variant, camera_value: Variant, viewport_value: Variant) -> bool:
+	var plan = prepare_ground(canvas_value,snapshot,scene,key,scene_hash,camera_value,viewport_value)
+	if not plan is Dictionary or plan.is_empty(): return false
+	var tint: Color = Color(0.34,0.41,0.44,1.0)
+	for patch in plan.patches:
+		canvas_value.draw_polygon(patch.points,PackedColorArray([tint,tint,tint,tint]),patch.uvs,plan.texture)
 	return true
 
 func _contact_polygon(wall_id: String) -> Array[Vector2]:
@@ -323,25 +321,25 @@ func _contact_polygon(wall_id: String) -> Array[Vector2]:
 		return [Vector2(23.5,9.5),Vector2(23.56,9.5),Vector2(23.56,15.5),Vector2(23.5,15.5)]
 	return []
 
-func draw_wall(canvas_value: Variant, snapshot: Variant, scene: Variant, key: Variant, scene_hash: Variant, wall_value: Variant, camera_value: Variant, viewport_value: Variant) -> bool:
+func prepare_wall(canvas_value: Variant, snapshot: Variant, scene: Variant, key: Variant, scene_hash: Variant, wall_value: Variant, camera_value: Variant, viewport_value: Variant) -> Variant:
 	if not _canvas_valid(canvas_value) or not _context(snapshot,scene,key,scene_hash,camera_value,viewport_value) or not wall_value is Dictionary:
-		return false
+		return null
 	var wall: Dictionary = wall_value
 	var wall_id: Variant = wall.get('id')
 	if typeof(wall_id) != TYPE_STRING or not WALLS.has(wall_id):
-		return false
+		return null
 	var expected_wall: Dictionary = {'id':wall_id,'polygon':WALLS[wall_id]}
 	if not _same(wall,expected_wall):
-		return false
+		return null
 	var camera: ProjectionScript = camera_value
 	var canvas: CanvasItem = canvas_value
 	var polygon_value: Variant = wall.get('polygon')
 	if not polygon_value is Array or polygon_value.size() != 4:
-		return false
+		return null
 	var world_points: Array[Vector2] = []
 	for point_value in polygon_value:
 		if not point_value is Array or point_value.size() != 2 or not P.number(point_value[0],0.0,24.0) or not P.number(point_value[1],0.0,16.0):
-			return false
+			return null
 		world_points.append(Vector2(float(point_value[0]),float(point_value[1])))
 	var high_ids: Array = ['warden_wall_north','warden_wall_west_north','warden_wall_west_south']
 	var height: float = 0.5 if wall_id in high_ids else 0.18
@@ -356,24 +354,39 @@ func draw_wall(canvas_value: Variant, snapshot: Variant, scene: Variant, key: Va
 			_project(camera,Vector3(first.x,height,first.y))
 		])
 		if not _points_finite(face):
-			return false
+			return null
 		side_faces.append(face)
 	var cap_points: PackedVector2Array = PackedVector2Array()
 	for point in world_points:
 		cap_points.append(_project(camera,Vector3(point.x,height,point.y)))
 	if not _points_finite(cap_points):
-		return false
+		return null
 	var contact_points: PackedVector2Array = PackedVector2Array()
 	for point in _contact_polygon(wall_id):
 		contact_points.append(_project(camera,Vector3(point.x,0,point.y)))
 	if not _points_finite(contact_points):
-		return false
-	var side_color: Color = Color('#293f47')
-	for face_points in side_faces:
-		canvas.draw_colored_polygon(face_points,side_color)
-	canvas.draw_colored_polygon(cap_points,Color('#485f67'))
-	canvas.draw_colored_polygon(contact_points,Color(0.025,0.032,0.035,0.1))
+		return null
+	return {'sides':side_faces,'cap':cap_points,'contact':contact_points}
+
+func draw_wall(canvas_value: Variant, snapshot: Variant, scene: Variant, key: Variant, scene_hash: Variant, wall_value: Variant, camera_value: Variant, viewport_value: Variant) -> bool:
+	var plan = prepare_wall(canvas_value,snapshot,scene,key,scene_hash,wall_value,camera_value,viewport_value)
+	if not plan is Dictionary or plan.is_empty(): return false
+	for face_points in plan.sides: canvas_value.draw_colored_polygon(face_points,Color('#293f47'))
+	canvas_value.draw_colored_polygon(plan.cap,Color('#485f67'))
+	canvas_value.draw_colored_polygon(plan.contact,Color(0.025,0.032,0.035,0.1))
 	return true
+
+func whole_static_ready(canvas_value: Variant, snapshot: Variant, scene: Variant, key: Variant, scene_hash: Variant, camera_value: Variant, viewport_value: Variant) -> bool:
+	var ground = prepare_ground(canvas_value,snapshot,scene,key,scene_hash,camera_value,viewport_value)
+	if not ground is Dictionary or ground.is_empty(): return false
+	if not scene is Dictionary or not scene.get('collision') is Array: return false
+	var seen: Dictionary = {}
+	for wall in scene.collision:
+		if not wall is Dictionary or not WALLS.has(wall.get('id')) or seen.has(wall.id): return false
+		var plan = prepare_wall(canvas_value,snapshot,scene,key,scene_hash,wall,camera_value,viewport_value)
+		if not plan is Dictionary or plan.is_empty(): return false
+		seen[wall.id] = true
+	return seen.size()==6
 
 func _air_plan(camera: ProjectionScript) -> Array[Dictionary]:
 	var centers: Array[Array] = [[8,0,4],[18,0,11]]

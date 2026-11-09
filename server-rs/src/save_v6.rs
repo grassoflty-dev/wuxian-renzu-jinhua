@@ -101,6 +101,16 @@ impl SaveV6 {
         if self.effect_sources_version != EFFECT_SOURCES_VERSION {
             return Err("E_SAVE_EFFECT_SOURCES_VERSION_UNSUPPORTED".into());
         }
+        if self.world_persistent_v1.map_knowledge_archive_v1.as_ref().is_some_and(|a|a.schema_version!=1) {
+            return Err("E_SAVE_MAP_ARCHIVE_VERSION_UNSUPPORTED".into());
+        }
+        if self.world_persistent_v1.map_knowledge_archive_v2.as_ref().is_some_and(|a|a.schema_version!=2) {
+            return Err("E_SAVE_GH_MAP_ARCHIVE_VERSION_UNSUPPORTED".into());
+        }
+        let marker=self.world_persistent_v1.shaft_recipe_format_v2.as_ref();
+        for frame in [self.save.moving_support_frame.as_ref(),self.save.shaft_inactive_history.as_ref().and_then(|h|h.frame.as_ref())].into_iter().flatten() {
+            if frame.shaft_lower_recipe.as_ref().is_some_and(|id|Some(id)!=marker) {return Err("E_SAVE_SHAFT_RECIPE_FORMAT_MISMATCH".into());}
+        }
         validate_authority(&self.save, &self.progression, &self.world_persistent_v1)?;
         let (sources, _) = self
             .progression
@@ -189,13 +199,18 @@ pub fn read_save(root: &Path) -> Result<SaveV6, String> {
 
 /// A normalized candidate plus the exact backup proof; never writes or grants.
 pub(crate) fn read_candidate(root: &Path) -> Result<Option<(SaveV6, Option<recovery::Backup>)>, String> {
+    Ok(read_candidate_with_raw(root)?.map(|(save,backup,_)|(save,backup)))
+}
+
+/// Retain the exact original decode buffer for a deferred Exit admission.
+pub(crate) fn read_candidate_with_raw(root: &Path) -> Result<Option<(SaveV6, Option<recovery::Backup>, Option<Vec<u8>>)>, String> {
     let target = save_path(root);
     if path_present(&target) {
         let bytes = read_bounded(&target, "E_SAVE", "E_NO_SAVE")?;
-        return Ok(Some((decode_bytes(&bytes)?.0, None)));
+        return Ok(Some((decode_bytes(&bytes)?.0, None, Some(bytes))));
     }
     match recovery::backup(&target, "E_SAVE")? {
-        Some(backup) => Ok(Some((decode_bytes(&backup.bytes)?.0, Some(backup)))),
+        Some(backup) => Ok(Some((decode_bytes(&backup.bytes)?.0, Some(backup), None))),
         None => Ok(None),
     }
 }
@@ -213,15 +228,43 @@ pub fn read_or_migrate(root: &Path) -> Result<SaveV6, String> {
 
 pub fn write_save(root: &Path, save: &SaveV6) -> Result<(), String> {
     recovery::require_no_recovery(&save_path(root), "E_SAVE")?;
-    write_save_inner(root, save, None)
+    write_save_inner(root, save, None, None)
 }
 
 pub(crate) fn write_recovered_save(root: &Path, save: &SaveV6, backup: &recovery::Backup) -> Result<(), String> {
     recovery::require_unchanged(&save_path(root), backup, "E_SAVE")?;
-    write_save_inner(root, save, Some(backup))
+    write_save_inner(root, save, Some(backup), None)
 }
 
-fn write_save_inner(root: &Path, save: &SaveV6, backup: Option<&recovery::Backup>) -> Result<(), String> {
+pub(crate) fn write_continued_guarded(root: &Path, save: &SaveV6, expected: &[u8]) -> Result<(), String> {
+    recovery::require_no_recovery(&save_path(root), "E_SAVE")?;
+    write_save_inner(root,save,None,Some(expected))
+}
+
+pub(crate) fn lock_continued_source_path(target: &Path, expected: &[u8], prefix: &str) -> Result<File, String> {
+    recovery::reject_links(target,prefix)?;
+    #[cfg(not(windows))]
+    { let _=(expected,prefix); return Err("E_EXIT_PREVIEW_SOURCE_LOCK_UNSUPPORTED".into()); }
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::OpenOptionsExt;
+        let mut file=OpenOptions::new().read(true).share_mode(1).open(target).map_err(|e|format!("{prefix}_READ: {e}"))?;
+        let metadata=file.metadata().map_err(|e|format!("{prefix}_READ: {e}"))?;
+        if !metadata.is_file() || metadata.len()>MAX_SAVE_BYTES {return Err(format!("{prefix}_READ_NOT_REGULAR"));}
+        let mut bytes=Vec::new();
+        (&mut file).take(MAX_SAVE_BYTES+1).read_to_end(&mut bytes).map_err(|e|format!("{prefix}_READ: {e}"))?;
+        if bytes!=expected {return Err(format!("{prefix}_SOURCE_CHANGED"));}
+        Ok(file)
+    }
+}
+
+pub(crate) fn require_continued_source(root: &Path, expected: &[u8]) -> Result<File, String> {
+    let target=save_path(root);
+    recovery::require_no_recovery(&target,"E_SAVE")?;
+    lock_continued_source_path(&target,expected,"E_SAVE")
+}
+
+fn write_save_inner(root: &Path, save: &SaveV6, backup: Option<&recovery::Backup>, expected: Option<&[u8]>) -> Result<(), String> {
     save.validate()?;
     fs::create_dir_all(root).map_err(|e| format!("E_SAVE_DIR: {e}"))?;
     let target = save_path(root);
@@ -230,16 +273,43 @@ fn write_save_inner(root: &Path, save: &SaveV6, backup: Option<&recovery::Backup
         None
     } else if path_present(&target) {
         let bytes = read_bounded(&target, "E_SAVE", "E_NO_SAVE")?;
-        if decode_bytes(&bytes)?.1 == Profile::Legacy {
+        if expected.is_some_and(|guard| guard!=bytes.as_slice()) {return Err("E_SAVE_SOURCE_CHANGED".into());}
+        let (previous,profile)=decode_bytes(&bytes)?;
+        if profile == Profile::Legacy {
             retain_legacy_backup(&target, &bytes, "E_SAVE")?;
+        }
+        if previous.world_persistent_v1.map_knowledge_archive_v1.is_none()
+            && save.world_persistent_v1.map_knowledge_archive_v1.is_some() {
+            retain_archive_upgrade_backup(&target,&bytes,"E_SAVE")?;
+        }
+        if previous.world_persistent_v1.map_knowledge_archive_v2.is_none()
+            && save.world_persistent_v1.map_knowledge_archive_v2.is_some() {
+            retain_gh_archive_upgrade_backup(&target,&bytes,"E_SAVE")?;
+        }
+        if previous.world_persistent_v1.shaft_recipe_format_v2.is_none()
+            && save.world_persistent_v1.shaft_recipe_format_v2.is_some() {
+            retain_shaft_recipe_upgrade_backup(&target,&bytes,"E_SAVE")?;
+        }
+        if previous.world_persistent_v1.lower_service_map_v1.is_none() && save.world_persistent_v1.lower_service_map_v1.is_some() {
+            retain_lower_service_map_upgrade_backup(&target,&bytes,"E_SAVE")?;
         }
         Some(bytes)
     } else {
+        if expected.is_some() {return Err("E_SAVE_SOURCE_CHANGED".into());}
         None
     };
     let bytes = serde_json::to_vec_pretty(save).map_err(|e| format!("E_SAVE_ENCODE: {e}"))?;
     atomic_write_verified_guarded(&target, &bytes, original.as_deref(), "E_SAVE", || {
-        if let Some(backup) = backup { recovery::require_unchanged(&target, backup, "E_SAVE")?; }
+        if let Some(backup) = backup {
+            recovery::require_unchanged(&target, backup, "E_SAVE")?;
+            let (previous,_)=decode_bytes(&backup.bytes)?;
+            if previous.world_persistent_v1.shaft_recipe_format_v2.is_none() && save.world_persistent_v1.shaft_recipe_format_v2.is_some() {
+                retain_shaft_recipe_upgrade_backup(&target,&backup.bytes,"E_SAVE")?;
+            }
+            if previous.world_persistent_v1.lower_service_map_v1.is_none() && save.world_persistent_v1.lower_service_map_v1.is_some() {
+                retain_lower_service_map_upgrade_backup(&target,&backup.bytes,"E_SAVE")?;
+            }
+        }
         Ok(())
     }, |raw| {
         // Decode only the current DTO here. Never normalize a temp/commit equality check.
@@ -300,6 +370,39 @@ pub(crate) fn retain_legacy_backup(
         .ok_or("E_SAVE_PATH_INVALID")?;
     let backup = target.with_file_name(format!("{name}.legacy-effect-sources-v1.bak"));
     retain_backup_at(target, &backup, bytes, prefix)
+}
+
+pub(crate) fn retain_archive_upgrade_backup(target:&Path,bytes:&[u8],prefix:&str)->Result<(),String>{
+    let name=target.file_name().and_then(|s|s.to_str()).ok_or("E_SAVE_PATH_INVALID")?;
+    retain_backup_at(target,&target.with_file_name(format!("{name}.pre-map-archive-v1.bak")),bytes,prefix)
+}
+pub(crate) fn retain_shaft_recipe_upgrade_backup(target:&Path,bytes:&[u8],prefix:&str)->Result<(),String>{
+    retain_numbered_backup(target,bytes,prefix,"pre-shaft-recipe-v2")
+}
+pub(crate) fn retain_lower_service_map_upgrade_backup(target:&Path,bytes:&[u8],prefix:&str)->Result<(),String>{
+    retain_numbered_backup(target,bytes,prefix,"pre-lower-service-map-v1")
+}
+fn retain_numbered_backup(target:&Path,bytes:&[u8],prefix:&str,tag:&str)->Result<(),String>{
+    let name=target.file_name().and_then(|s|s.to_str()).ok_or("E_SAVE_PATH_INVALID")?;
+    // A new journey may introduce the same format again. Never replace an
+    // earlier backup; retain exact bytes under the first available name.
+    let mut index=0_u32;
+    loop {
+        let suffix=if index==0 {format!(".{tag}.bak")}
+            else {format!(".{tag}.{index}.bak")};
+        let path=target.with_file_name(format!("{name}{suffix}"));
+        match retain_backup_at(target,&path,bytes,prefix) {
+            Ok(())=>return Ok(()),
+            Err(e) if e==format!("{prefix}_MIGRATION_BACKUP_MISMATCH")=>{
+                index=index.checked_add(1).ok_or_else(||format!("{prefix}_MIGRATION_BACKUP_EXHAUSTED"))?;
+            },
+            Err(e)=>return Err(e),
+        }
+    }
+}
+pub(crate) fn retain_gh_archive_upgrade_backup(target:&Path,bytes:&[u8],prefix:&str)->Result<(),String>{
+    let name=target.file_name().and_then(|s|s.to_str()).ok_or("E_SAVE_PATH_INVALID")?;
+    retain_backup_at(target,&target.with_file_name(format!("{name}.pre-map-archive-v2.bak")),bytes,prefix)
 }
 
 /// Preserve the established V4 backup name without writing an intermediate migrated save.
@@ -519,6 +622,118 @@ mod persistence_fault_tests {
         fn drop(&mut self) {
             let _ = fs::remove_dir_all(&self.0);
         }
+    }
+
+    #[test]
+    fn map_archive_wire_compatibility_and_upgrade_backup_guard() {
+        let state=crate::formal_runtime::archive_test_initial_state().unwrap();
+        let old=SaveV6::capture(&state,None).unwrap();
+        let mut old_json=serde_json::to_value(&old).unwrap();
+        assert!(old.world_persistent_v1.map_knowledge_archive_v1.is_none());
+        assert!(decode_bytes(&serde_json::to_vec(&old_json).unwrap()).unwrap().0.world_persistent_v1.map_knowledge_archive_v1.is_none());
+        assert!(old_json.get("worldPersistentV1").and_then(|v|v.get("mapKnowledgeArchiveV1")).is_none());
+        let mut null=old_json.clone();null["worldPersistentV1"]=serde_json::json!({"mapKnowledgeArchiveV1":null});
+        assert!(decode_bytes(&serde_json::to_vec(&null).unwrap()).is_err());
+        let mut legacy=null.clone();legacy.as_object_mut().unwrap().remove("effectSourcesVersion");
+        assert!(decode_bytes(&serde_json::to_vec(&legacy).unwrap()).is_err());
+        let record=crate::world_persistent_v1::MapKnowledgeRecord{world_id:"mist_harbor".into(),scene_id:"unknown".into(),scene_source_sha256:"0".repeat(64),provider_family:"unknown".into(),layer_id:"ground_y0".into(),frame_id:"unknown".into(),parent_id:"unknown".into(),rows:vec![crate::world_v3::ExploredRoom{room_id:"unknown:part0".into(),outline_m:vec![crate::world_v3::Vec3::new(0.,0.,0.).unwrap(),crate::world_v3::Vec3::new(1.,0.,0.).unwrap(),crate::world_v3::Vec3::new(1.,0.,1.).unwrap(),crate::world_v3::Vec3::new(0.,0.,1.).unwrap()]}]};
+        let mut next=old.clone();next.world_persistent_v1.map_knowledge_archive_v1=Some(crate::world_persistent_v1::MapKnowledgeArchiveV1{schema_version:1,records:vec![record]});
+        next.validate().unwrap();let mut unsupported=next.clone();unsupported.world_persistent_v1.map_knowledge_archive_v1.as_mut().unwrap().schema_version=2;
+        assert_eq!(unsupported.validate().unwrap_err(),"E_SAVE_MAP_ARCHIVE_VERSION_UNSUPPORTED");
+        let mut malformed=serde_json::to_value(&next).unwrap();malformed["worldPersistentV1"]["mapKnowledgeArchiveV1"]["records"][0]["rows"][0]["outlineM"][0]["extra"]=serde_json::json!(1);
+        assert!(decode_bytes(&serde_json::to_vec(&malformed).unwrap()).is_err());
+        let mut too_many=serde_json::to_value(&next).unwrap();let first=too_many["worldPersistentV1"]["mapKnowledgeArchiveV1"]["records"][0].clone();
+        too_many["worldPersistentV1"]["mapKnowledgeArchiveV1"]["records"]=serde_json::Value::Array(vec![first;39]);
+        assert!(decode_bytes(&serde_json::to_vec(&too_many).unwrap()).is_err());
+        let dir=TestDir::new();write_save(&dir.0,&old).unwrap();let target=save_path(&dir.0);let original=fs::read(&target).unwrap();
+        let backup=dir.0.join("formal-save-v6.json.pre-map-archive-v1.bak");fs::write(&backup,b"unrelated").unwrap();
+        assert!(write_save(&dir.0,&next).is_err());assert_eq!(fs::read(&target).unwrap(),original);assert_eq!(fs::read(&backup).unwrap(),b"unrelated");
+        fs::remove_file(&backup).unwrap();write_save(&dir.0,&next).unwrap();assert_eq!(fs::read(&backup).unwrap(),original);
+        assert_eq!(read_save(&dir.0).unwrap(),next);
+        crate::save_slots::create_slot_v6(&dir.0,"archive-test","Archive test",&old).unwrap();
+        let slot=dir.0.join("slots").join("archive-test").join("slot-v6.json");let original_slot=fs::read(&slot).unwrap();
+        let slot_backup=dir.0.join("slots").join("archive-test").join("slot-v6.json.pre-map-archive-v1.bak");fs::write(&slot_backup,b"unrelated").unwrap();
+        assert!(crate::save_slots::overwrite_slot_v6(&dir.0,"archive-test","Archive test",&next).is_err());
+        assert_eq!(fs::read(&slot).unwrap(),original_slot);assert_eq!(fs::read(&slot_backup).unwrap(),b"unrelated");
+        fs::remove_file(&slot_backup).unwrap();crate::save_slots::overwrite_slot_v6(&dir.0,"archive-test","Archive test",&next).unwrap();
+        assert_eq!(fs::read(&slot_backup).unwrap(),original_slot);
+        old_json.as_object_mut().unwrap().remove("effectSourcesVersion");
+    }
+    #[test]
+    fn shaft_recipe_recovery_keeps_known_backups_and_rejects_residue() {
+        let state=crate::formal_runtime::archive_test_initial_state().unwrap();let old=SaveV6::capture(&state,None).unwrap();
+        let mut next=old.clone();next.world_persistent_v1.shaft_recipe_format_v2=Some(crate::moving_support::ShaftLowerRecipeIdentity{recipe_version:2,scene_source_sha256:"6880bdf8dbab71a8bf74e38b8c614ad751e564cf87e8a2936ee801e52b72a832".into()});
+        let dir=TestDir::new();write_save(&dir.0,&old).unwrap();let target=save_path(&dir.0);let bytes=fs::read(&target).unwrap();
+        let transaction=dir.0.join(".formal-save-v6.json.123.4.bak");fs::rename(&target,&transaction).unwrap();
+        let retained=dir.0.join("formal-save-v6.json.pre-shaft-recipe-v2.bak");fs::write(&retained,b"invalid").unwrap();
+        assert!(recovery::backup(&target,"E_SAVE").is_err());fs::write(&retained,&bytes).unwrap();
+        fs::write(dir.0.join("formal-save-v6.json.pre-map-archive-v2.bak"),&bytes).unwrap();
+        let residue=dir.0.join("formal-save-v6.json.unknown.bak");fs::write(&residue,&bytes).unwrap();assert!(recovery::backup(&target,"E_SAVE").is_err());fs::remove_file(residue).unwrap();
+        let selected=recovery::backup(&target,"E_SAVE").unwrap().unwrap();assert_eq!(selected.bytes,bytes);write_recovered_save(&dir.0,&next,&selected).unwrap();assert_eq!(fs::read(&retained).unwrap(),bytes);
+        #[cfg(windows)] {
+            let link_dir=TestDir::new();let link_target=save_path(&link_dir.0);let ordinary=link_dir.0.join("ordinary.json");fs::write(&ordinary,&bytes).unwrap();
+            let link=link_dir.0.join("formal-save-v6.json.pre-shaft-recipe-v2.bak");
+            if std::os::windows::fs::symlink_file(&ordinary,&link).is_ok() {assert!(recovery::backup(&link_target,"E_SAVE").is_err());}
+            else {eprintln!("fixture symlink unavailable; source guard only");}
+        }
+        crate::save_slots::create_slot_v6(&dir.0,"shaft-recover","Shaft recovery",&old).unwrap();let slot=dir.0.join("slots/shaft-recover/slot-v6.json");let slot_bytes=fs::read(&slot).unwrap();
+        let transaction=dir.0.join("slots/shaft-recover/.slot-v6.json.123.4.bak");fs::rename(&slot,&transaction).unwrap();
+        fs::write(dir.0.join("slots/shaft-recover/slot-v6.json.pre-map-archive-v1.bak"),&slot_bytes).unwrap();
+        let selected=recovery::backup(&slot,"E_SLOT").unwrap().unwrap();crate::save_slots::write_continued_slot_v6(&dir.0,"shaft-recover","Shaft recovery",&next,Some(&selected)).unwrap();
+        assert_eq!(fs::read(dir.0.join("slots/shaft-recover/slot-v6.json.pre-shaft-recipe-v2.bak")).unwrap(),slot_bytes);
+    }
+    #[test]
+    fn shaft_recipe_format_marker_preserves_old_shape_and_upgrade_backup() {
+        let state=crate::formal_runtime::archive_test_initial_state().unwrap();let old=SaveV6::capture(&state,None).unwrap();
+        let old_json=serde_json::to_value(&old).unwrap();assert!(old_json["worldPersistentV1"].get("shaftRecipeFormatV2").is_none());
+        let mut null=old_json.clone();null["worldPersistentV1"]["shaftRecipeFormatV2"]=serde_json::Value::Null;
+        assert!(decode_bytes(&serde_json::to_vec(&null).unwrap()).is_err());
+        let marker=crate::moving_support::ShaftLowerRecipeIdentity{recipe_version:2,scene_source_sha256:"6880bdf8dbab71a8bf74e38b8c614ad751e564cf87e8a2936ee801e52b72a832".into()};
+        let mut next=old.clone();next.world_persistent_v1.shaft_recipe_format_v2=Some(marker);next.validate().unwrap();
+        let mut legacy=serde_json::to_value(&next).unwrap();legacy.as_object_mut().unwrap().remove("effectSourcesVersion");assert!(decode_bytes(&serde_json::to_vec(&legacy).unwrap()).is_err());
+        let mut invalid=next.clone();invalid.world_persistent_v1.shaft_recipe_format_v2.as_mut().unwrap().recipe_version=3;assert!(invalid.validate().is_err());
+        let mut mismatch=old.clone();mismatch.save.moving_support_frame=Some(crate::moving_support::SupportFrame{
+            world_epoch:mismatch.save.revision.world_epoch,server_time_ms:mismatch.save.server_time_ms,catalog_sha256:"0".repeat(64),
+            poses:vec![crate::formal_runtime::shaft_lift::ShaftClock::at_upper(mismatch.save.server_time_ms).pose()],
+            shaft_lower_recipe:next.world_persistent_v1.shaft_recipe_format_v2.clone()});
+        assert_eq!(mismatch.validate().unwrap_err(),"E_SAVE_SHAFT_RECIPE_FORMAT_MISMATCH");
+        let dir=TestDir::new();write_save(&dir.0,&old).unwrap();let target=save_path(&dir.0);let original=fs::read(&target).unwrap();let backup=dir.0.join("formal-save-v6.json.pre-shaft-recipe-v2.bak");
+        fs::write(&backup,b"unrelated").unwrap();write_save(&dir.0,&next).unwrap();assert_eq!(fs::read(&backup).unwrap(),b"unrelated");
+        let numbered=dir.0.join("formal-save-v6.json.pre-shaft-recipe-v2.1.bak");assert_eq!(fs::read(&numbered).unwrap(),original);
+        write_save(&dir.0,&next).unwrap();assert!(!dir.0.join("formal-save-v6.json.pre-shaft-recipe-v2.2.bak").exists());
+        let mut another=old.clone();another.save.server_time_ms+=1;write_save(&dir.0,&another).unwrap();let second_original=fs::read(&target).unwrap();
+        let mut next_journey=another.clone();next_journey.world_persistent_v1.shaft_recipe_format_v2=next.world_persistent_v1.shaft_recipe_format_v2.clone();write_save(&dir.0,&next_journey).unwrap();
+        assert_eq!(fs::read(dir.0.join("formal-save-v6.json.pre-shaft-recipe-v2.2.bak")).unwrap(),second_original);assert_eq!(fs::read(&numbered).unwrap(),original);
+        crate::save_slots::create_slot_v6(&dir.0,"shaft-recipe","Shaft recipe",&old).unwrap();let slot=dir.0.join("slots/shaft-recipe/slot-v6.json");let old_slot=fs::read(&slot).unwrap();let slot_backup=dir.0.join("slots/shaft-recipe/slot-v6.json.pre-shaft-recipe-v2.bak");
+        fs::write(&slot_backup,b"unrelated").unwrap();crate::save_slots::overwrite_slot_v6(&dir.0,"shaft-recipe","Shaft recipe",&next).unwrap();assert_eq!(fs::read(&slot_backup).unwrap(),b"unrelated");
+        assert_eq!(fs::read(dir.0.join("slots/shaft-recipe/slot-v6.json.pre-shaft-recipe-v2.1.bak")).unwrap(),old_slot);
+        crate::save_slots::overwrite_slot_v6(&dir.0,"shaft-recipe","Shaft recipe",&next).unwrap();assert!(!dir.0.join("slots/shaft-recipe/slot-v6.json.pre-shaft-recipe-v2.2.bak").exists());
+        let parent="grey_hive.gh_central_shaft.lower_service_v2.pipe_fittings";
+        let archive=crate::world_persistent_v1::LowerServiceMapArchive{schema_version:1,recipe:next.world_persistent_v1.shaft_recipe_format_v2.clone().unwrap(),records:vec![crate::world_persistent_v1::LowerServiceMapRecord{parent_id:parent.into(),rows:crate::formal_runtime::shaft_lower_service::candidate_rows(parent).unwrap()}]};
+        let mut mapped=next_journey.clone();mapped.world_persistent_v1.lower_service_map_v1=Some(archive.clone());mapped.validate().unwrap();
+        let mut no_marker=mapped.clone();no_marker.world_persistent_v1.shaft_recipe_format_v2=None;assert!(no_marker.validate().is_err());
+        let mut duplicate=mapped.clone();duplicate.world_persistent_v1.lower_service_map_v1.as_mut().unwrap().records.push(archive.records[0].clone());assert!(duplicate.validate().is_err());
+        let mut partial=mapped.clone();partial.world_persistent_v1.lower_service_map_v1.as_mut().unwrap().records[0].rows.pop();assert!(partial.validate().is_err());
+        let mut unknown=mapped.clone();unknown.world_persistent_v1.lower_service_map_v1.as_mut().unwrap().records[0].parent_id="unknown".into();assert!(unknown.validate().is_err());
+        let previous=fs::read(&target).unwrap();write_save(&dir.0,&mapped).unwrap();assert_eq!(fs::read(dir.0.join("formal-save-v6.json.pre-lower-service-map-v1.bak")).unwrap(),previous);
+        let previous_slot=fs::read(&slot).unwrap();crate::save_slots::overwrite_slot_v6(&dir.0,"shaft-recipe","Shaft recipe",&mapped).unwrap();assert_eq!(fs::read(dir.0.join("slots/shaft-recipe/slot-v6.json.pre-lower-service-map-v1.bak")).unwrap(),previous_slot);
+    }
+    #[test]
+    fn gh_archive_v2_preserves_v1_and_guards_default_and_slot_upgrades() {
+        let state=crate::formal_runtime::archive_test_initial_state().unwrap();let mut old=SaveV6::capture(&state,None).unwrap();
+        old.world_persistent_v1.map_knowledge_archive_v1=Some(crate::world_persistent_v1::MapKnowledgeArchiveV1{schema_version:1,records:vec![]});old.validate().unwrap();
+        let mut next=old.clone();next.world_persistent_v1.map_knowledge_archive_v2=Some(crate::world_persistent_v1::GhMapKnowledgeArchiveV2{schema_version:2,records:vec![crate::formal_runtime::gh_map_archive::test_record()],shaft_upper_observation:None,lockdown_observation:None});next.validate().unwrap();
+        let mut null=serde_json::to_value(&old).unwrap();null["worldPersistentV1"]["mapKnowledgeArchiveV2"]=serde_json::Value::Null;assert!(decode_bytes(&serde_json::to_vec(&null).unwrap()).is_err());
+        let mut legacy_null=null.clone();legacy_null.as_object_mut().unwrap().remove("effectSourcesVersion");assert!(decode_bytes(&serde_json::to_vec(&legacy_null).unwrap()).is_err());
+        let mut legacy=serde_json::to_value(&next).unwrap();legacy.as_object_mut().unwrap().remove("effectSourcesVersion");assert!(decode_bytes(&serde_json::to_vec(&legacy).unwrap()).is_err());
+        let mut unknown=next.clone();unknown.world_persistent_v1.map_knowledge_archive_v2.as_mut().unwrap().schema_version=3;assert_eq!(unknown.validate().unwrap_err(),"E_SAVE_GH_MAP_ARCHIVE_VERSION_UNSUPPORTED");
+        let dir=TestDir::new();write_save(&dir.0,&old).unwrap();let target=save_path(&dir.0);let original=fs::read(&target).unwrap();let backup=dir.0.join("formal-save-v6.json.pre-map-archive-v2.bak");
+        fs::write(&backup,b"unrelated").unwrap();assert!(write_save(&dir.0,&next).is_err());assert_eq!(fs::read(&target).unwrap(),original);assert_eq!(fs::read(&backup).unwrap(),b"unrelated");
+        fs::remove_file(&backup).unwrap();write_save(&dir.0,&next).unwrap();assert_eq!(fs::read(&backup).unwrap(),original);assert_eq!(read_save(&dir.0).unwrap(),next);
+        crate::save_slots::create_slot_v6(&dir.0,"gh-archive","GH archive",&old).unwrap();let slot=dir.0.join("slots/gh-archive/slot-v6.json");let old_slot=fs::read(&slot).unwrap();let slot_backup=dir.0.join("slots/gh-archive/slot-v6.json.pre-map-archive-v2.bak");
+        fs::write(&slot_backup,b"unrelated").unwrap();assert!(crate::save_slots::overwrite_slot_v6(&dir.0,"gh-archive","GH archive",&next).is_err());assert_eq!(fs::read(&slot).unwrap(),old_slot);assert_eq!(fs::read(&slot_backup).unwrap(),b"unrelated");
+        fs::remove_file(&slot_backup).unwrap();crate::save_slots::overwrite_slot_v6(&dir.0,"gh-archive","GH archive",&next).unwrap();assert_eq!(fs::read(&slot_backup).unwrap(),old_slot);
+        assert_eq!(next.world_persistent_v1.map_knowledge_archive_v1,old.world_persistent_v1.map_knowledge_archive_v1);
     }
 
     #[test]

@@ -1,0 +1,28 @@
+{
+  "schema": "wuxian.rs-exterior-backplate.internal-use/v1",
+  "resourceId": "ART-RS-EXTERIOR-BACKPLATE-20261027-001",
+  "revision": "r1",
+  "approval": "ACCEPT_LIMITED_STATIC_RS_BACKGROUND_USE",
+  "GodotDisplay": "NOT_RUN",
+  "publicRelease": "NOT_ESTABLISHED",
+  "asset": {
+    "path": "res://assets/props/return_station/rs_exterior_backplate_20261027_r1.png",
+    "bytes": 2307899,
+    "sha256": "9a0073546fb3cd61fb3bcd17b9fcb4cf6d2e1f9319796a936e81cca53c85939d",
+    "width": 1536,
+    "height": 1024,
+    "format": "RGB8"
+  },
+  "composition": {
+    "space": "SCREEN_SPACE_BACKGROUND_ONLY",
+    "fit": "CENTERED_COVER_FULL_VIEWPORT",
+    "filter": "LINEAR",
+    "repeat": "DISABLED"
+  },
+  "installation": {
+    "worldId": "return_station",
+    "sceneId": "rs_core_room",
+    "boundsM": [0, 0, 24, 16],
+    "nonInteractive": true
+  }
+}

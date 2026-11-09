@@ -125,6 +125,7 @@ impl FormalRuntime {
     /// All preflight checks and the simulation hold share the sole owner mutex.
     pub fn baizhi_begin(&self, request: BaizhiBeginRequest) -> Result<BaizhiCommandReceipt, String> {
         let mut state = self.state.lock().map_err(|_| "E_RUNTIME_LOCK_POISONED")?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if !same_session(&state, &request.context.world_id, &request.context.scene_id, request.context.world_epoch) {
             return Err("E_BAIZHI_STALE_CONTEXT".into());
         }
@@ -158,6 +159,7 @@ impl FormalRuntime {
     }
     pub fn baizhi_commit(&self, ticket: &BaizhiDialogueTicket, request_id: &str, selected: HiveChoice) -> Result<BaizhiCommandReceipt, String> {
         let mut state = self.state.lock().map_err(|_| "E_RUNTIME_LOCK_POISONED")?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if !valid_id(request_id) { return Err("E_BAIZHI_REQUEST_INVALID".into()); }
         // Payload identity precedes outcome checks. A failed write does not erase
         // the binding, while a successful replay never performs another write.
@@ -188,6 +190,7 @@ impl FormalRuntime {
     }
     pub fn baizhi_close(&self, ticket: &BaizhiDialogueTicket) -> Result<BaizhiCommandReceipt, String> {
         let mut state = self.state.lock().map_err(|_| "E_RUNTIME_LOCK_POISONED")?;
+        if state.pending_exit.is_some() { return Err("E_SCENE_ENTRY_NOT_READY".into()); }
         if !same_session(&state, &ticket.world_id, &ticket.scene_id, ticket.world_epoch) { return Err("E_BAIZHI_STALE_CONTEXT".into()); }
         let scene = self.scene_runtime.lock().map_err(|_| "E_SCENE_RUNTIME_LOCK_POISONED")?;
         let command = format!("baizhi-close:{}:{}", ticket.owner_id, ticket.generation);

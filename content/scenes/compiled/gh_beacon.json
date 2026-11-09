@@ -143,6 +143,153 @@
           15.5
         ]
       ]
+    },
+    {
+      "id": "beacon_north_edge_s0",
+      "polygon": [
+        [
+          0.5,
+          4.7
+        ],
+        [
+          6.0,
+          4.7
+        ],
+        [
+          6.0,
+          5.0
+        ],
+        [
+          0.5,
+          5.0
+        ]
+      ]
+    },
+    {
+      "id": "beacon_north_edge_s1",
+      "polygon": [
+        [
+          10.0,
+          4.7
+        ],
+        [
+          18.0,
+          4.7
+        ],
+        [
+          18.0,
+          5.0
+        ],
+        [
+          10.0,
+          5.0
+        ]
+      ]
+    },
+    {
+      "id": "beacon_north_edge_s2",
+      "polygon": [
+        [
+          22.0,
+          4.7
+        ],
+        [
+          23.5,
+          4.7
+        ],
+        [
+          23.5,
+          5.0
+        ],
+        [
+          22.0,
+          5.0
+        ]
+      ]
+    },
+    {
+      "id": "beacon_south_storage_edge_s3",
+      "polygon": [
+        [
+          0.5,
+          11.0
+        ],
+        [
+          3.0,
+          11.0
+        ],
+        [
+          3.0,
+          11.3
+        ],
+        [
+          0.5,
+          11.3
+        ]
+      ]
+    },
+    {
+      "id": "beacon_south_storage_edge_s4",
+      "polygon": [
+        [
+          7.0,
+          11.0
+        ],
+        [
+          11.5,
+          11.0
+        ],
+        [
+          11.5,
+          11.3
+        ],
+        [
+          7.0,
+          11.3
+        ]
+      ]
+    },
+    {
+      "id": "beacon_storage_side_s5",
+      "polygon": [
+        [
+          11.35,
+          11.3
+        ],
+        [
+          11.65,
+          11.3
+        ],
+        [
+          11.65,
+          12.0
+        ],
+        [
+          11.35,
+          12.0
+        ]
+      ]
+    },
+    {
+      "id": "beacon_storage_side_s6",
+      "polygon": [
+        [
+          11.35,
+          14.0
+        ],
+        [
+          11.65,
+          14.0
+        ],
+        [
+          11.65,
+          15.5
+        ],
+        [
+          11.35,
+          15.5
+        ]
+      ]
     }
   ],
   "doors": [],
@@ -183,8 +330,96 @@
         "to": "gh_beacon_mount_nav"
       },
       {
+        "from": "gh_beacon_device_nav",
+        "to": "north_door_w"
+      },
+      {
+        "from": "gh_beacon_device_nav",
+        "to": "main13"
+      },
+      {
+        "from": "gh_beacon_device_nav",
+        "to": "south_door"
+      },
+      {
         "from": "gh_beacon_mount_nav",
         "to": "gh_beacon_exit_nav"
+      },
+      {
+        "from": "gh_beacon_mount_nav",
+        "to": "north_door_e"
+      },
+      {
+        "from": "gh_beacon_mount_nav",
+        "to": "main13"
+      },
+      {
+        "from": "north_door_w",
+        "to": "gh_beacon_device_nav"
+      },
+      {
+        "from": "north_door_w",
+        "to": "north_inner_w"
+      },
+      {
+        "from": "north_inner_w",
+        "to": "north_door_w"
+      },
+      {
+        "from": "north_inner_w",
+        "to": "north_inner_e"
+      },
+      {
+        "from": "north_inner_e",
+        "to": "north_inner_w"
+      },
+      {
+        "from": "north_inner_e",
+        "to": "north_door_e"
+      },
+      {
+        "from": "north_door_e",
+        "to": "north_inner_e"
+      },
+      {
+        "from": "north_door_e",
+        "to": "gh_beacon_mount_nav"
+      },
+      {
+        "from": "south_door",
+        "to": "gh_beacon_device_nav"
+      },
+      {
+        "from": "south_door",
+        "to": "south_inner"
+      },
+      {
+        "from": "south_inner",
+        "to": "south_door"
+      },
+      {
+        "from": "south_inner",
+        "to": "south_return"
+      },
+      {
+        "from": "south_return",
+        "to": "south_inner"
+      },
+      {
+        "from": "south_return",
+        "to": "main13"
+      },
+      {
+        "from": "main13",
+        "to": "gh_beacon_mount_nav"
+      },
+      {
+        "from": "main13",
+        "to": "gh_beacon_device_nav"
+      },
+      {
+        "from": "main13",
+        "to": "south_return"
       }
     ],
     "nodes": [
@@ -216,6 +451,70 @@
         "id": "gh_beacon_exit_nav",
         "position": [
           22.0,
+          0.0,
+          8.0
+        ]
+      },
+      {
+        "id": "north_door_w",
+        "position": [
+          7.0,
+          0.0,
+          5.0
+        ]
+      },
+      {
+        "id": "north_inner_w",
+        "position": [
+          7.0,
+          0.0,
+          2.0
+        ]
+      },
+      {
+        "id": "north_inner_e",
+        "position": [
+          20.0,
+          0.0,
+          2.0
+        ]
+      },
+      {
+        "id": "north_door_e",
+        "position": [
+          20.0,
+          0.0,
+          5.0
+        ]
+      },
+      {
+        "id": "south_door",
+        "position": [
+          6.0,
+          0.0,
+          11.0
+        ]
+      },
+      {
+        "id": "south_inner",
+        "position": [
+          6.0,
+          0.0,
+          13.0
+        ]
+      },
+      {
+        "id": "south_return",
+        "position": [
+          13.0,
+          0.0,
+          13.0
+        ]
+      },
+      {
+        "id": "main13",
+        "position": [
+          13.0,
           0.0,
           8.0
         ]

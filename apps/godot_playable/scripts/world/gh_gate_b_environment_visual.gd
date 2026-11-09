@@ -361,26 +361,26 @@ func _draw_commands(canvas: CanvasItem, commands: Array[Dictionary]) -> void:
 			var outline_width: float = float(command.get('width'))
 			canvas.draw_polyline(outline_points, outline_color, outline_width, true)
 
-func draw_floor(canvas: CanvasItem, snapshot: Dictionary, scene: Dictionary, current_key: String, projection: Variant, viewport: Variant, state_props: Variant, crate_visual: Variant) -> bool:
+func prepare_floor(canvas: CanvasItem, snapshot: Dictionary, scene: Dictionary, current_key: String, projection: Variant, viewport: Variant, state_props: Variant, crate_visual: Variant) -> Variant:
 	if not _valid_context(canvas,snapshot,scene,current_key,projection,viewport):
-		return false
+		return null
 	var commands: Array[Dictionary] = []
 	var camera: RefCounted = projection
 	for row in range(4):
 		for column in range(6):
 			var delta: float = float((column + 2 * row) % 3 - 1) * 0.004
 			if not _append_gradient(commands,camera,float(column*4),float(row*4),float((column+1)*4),float((row+1)*4),delta):
-				return false
+				return null
 	var ppm: float = float(camera.get('ppm'))
 	var joint_width: float = 0.6 * ppm / 48.0
 	for x_index in range(1,6):
 		var x: float = float(x_index * 4)
 		if not _append_line(commands,camera,Vector2(x,0.0),Vector2(x,16.0),FLOOR_JOINT,joint_width):
-			return false
+			return null
 	for z_index in range(1,4):
 		var z: float = float(z_index * 4)
 		if not _append_line(commands,camera,Vector2(0.0,z),Vector2(24.0,z),FLOOR_JOINT,joint_width):
-			return false
+			return null
 	var door: Dictionary = _valid_snapshot_door(snapshot)
 	if not door.is_empty() and door.get('open') == false and state_props is Object and is_instance_valid(state_props):
 		var textures_value: Variant = state_props.get('textures')
@@ -389,24 +389,50 @@ func draw_floor(canvas: CanvasItem, snapshot: Dictionary, scene: Dictionary, cur
 			var gate_texture: Variant = textures.get('gate_b')
 			if gate_texture is Texture2D:
 				if not _append_ellipse(commands,camera,Vector2(12.0,8.0),1.4,0.6,GATE_REFLECTION):
-					return false
+					return null
 				if not _append_ellipse(commands,camera,Vector2(12.0,8.0),1.0,0.42,Color(0.40,0.57,0.60,0.045)):
-					return false
+					return null
 				if not _append_ellipse(commands,camera,Vector2(12.0,8.0),0.65,0.25,Color(0.40,0.57,0.60,0.055)):
-					return false
+					return null
 				if not _append_ellipse(commands,camera,Vector2(12.0,8.0),0.9,0.28,GATE_SHADOW):
-					return false
+					return null
 	if crate_visual is Object and is_instance_valid(crate_visual):
 		var crate_texture: Variant = crate_visual.get('texture')
 		if crate_texture is Texture2D:
 			if not _append_ellipse(commands,camera,Vector2(5.0,11.5),0.45,0.18,CRATE_SHADOW):
-				return false
+				return null
 	if commands.size() > 40:
-		return false
-	_draw_commands(canvas,commands)
+		return null
+	return commands
+
+func draw_floor(canvas: CanvasItem, snapshot: Dictionary, scene: Dictionary, current_key: String, projection: Variant, viewport: Variant, state_props: Variant, crate_visual: Variant, suppress_static: bool = false) -> bool:
+	var commands = prepare_floor(canvas,snapshot,scene,current_key,projection,viewport,state_props,crate_visual)
+	if not commands is Array or commands.size()<32: return false
+	if suppress_static:
+		var dynamic_commands: Array[Dictionary] = []
+		for i in range(32,commands.size()): dynamic_commands.append(commands[i])
+		_draw_commands(canvas,dynamic_commands)
+	else:
+		_draw_commands(canvas,commands)
 	return true
 
-func draw_wall(canvas: CanvasItem, snapshot: Dictionary, scene: Dictionary, current_key: String, projection: Variant, wall: Variant, viewport: Variant, cable_visual: Variant = null, receipt_value: Variant = null) -> bool:
+func whole_static_ready(canvas: CanvasItem, snapshot: Dictionary, scene: Dictionary, current_key: String, projection: Variant, viewport: Variant, state_props: Variant, crate_visual: Variant) -> bool:
+	var commands = prepare_floor(canvas,snapshot,scene,current_key,projection,viewport,state_props,crate_visual)
+	if not commands is Array or commands.size()<32: return false
+	var collision = scene.get('collision')
+	if not collision is Array: return false
+	var seen: Dictionary = {}
+	for wall in collision:
+		if not wall is Dictionary: return false
+		var id = wall.get('id')
+		if not WALLS.has(id): continue
+		if seen.has(id) or not _polygon_matches(wall.get('polygon'),WALLS[id].polygon): return false
+		var wall_commands: Array[Dictionary] = []
+		if not _append_wall_commands(wall_commands,projection,WALLS[id]) or wall_commands.size()!=4: return false
+		seen[id] = true
+	return seen.size()==6
+
+func draw_wall(canvas: CanvasItem, snapshot: Dictionary, scene: Dictionary, current_key: String, projection: Variant, wall: Variant, viewport: Variant, cable_visual: Variant = null, receipt_value: Variant = null, suppress_static: bool = false) -> bool:
 	if not _valid_context(canvas,snapshot,scene,current_key,projection,viewport) or not wall is Dictionary:
 		return false
 	var id_value: Variant = wall.get('id')
@@ -419,6 +445,11 @@ func draw_wall(canvas: CanvasItem, snapshot: Dictionary, scene: Dictionary, curr
 	var camera: RefCounted = projection
 	if not _append_wall_commands(commands,camera,wall_data) or commands.size() != 4:
 		return false
+	if suppress_static:
+		if id_value == 'gh_gate_b_wall_west_north' and cable_visual is RefCounted and is_instance_valid(cable_visual) and cable_visual.get_script()==GateBWestCableVisual and cable_visual.has_method('draw_wall_cable') and receipt_value is Dictionary and receipt_value.is_empty():
+			var cable_submitted: Variant = cable_visual.call('draw_wall_cable',canvas,snapshot,scene,current_key,projection,wall,viewport)
+			if typeof(cable_submitted)==TYPE_BOOL and cable_submitted: receipt_value['pipe_submitted'] = true
+		return true
 	if id_value == 'gh_gate_b_wall_west_north' and cable_visual is RefCounted and is_instance_valid(cable_visual) and cable_visual.get_script() == GateBWestCableVisual and cable_visual.has_method('draw_wall_cable') and receipt_value is Dictionary and receipt_value.is_empty():
 		var contact_face: Array[Dictionary] = [commands[0],commands[1]]
 		_draw_commands(canvas,contact_face)

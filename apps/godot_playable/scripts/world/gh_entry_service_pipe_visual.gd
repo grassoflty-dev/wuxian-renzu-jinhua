@@ -95,6 +95,98 @@ func draw_body(canvas, packet, snapshot, scene_data, current_key, projection, wa
 	canvas.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	return true
 
+func draw_power_body(canvas, snapshot, scene_data, current_key, scene_hash, projection) -> bool:
+	if not canvas is CanvasItem or not P.snapshot(snapshot) or snapshot.get('entryToken') != null or not scene_data is Dictionary or not _valid_projection(projection):
+		return false
+	if snapshot.get('worldId') != 'grey_hive' or snapshot.get('sceneId') != 'gh_power_room' or scene_data.get('worldId') != 'grey_hive' or scene_data.get('sceneId') != 'gh_power_room' or not P.counter(snapshot.get('worldEpoch'),1) or current_key != 'grey_hive:gh_power_room:'+str(snapshot.worldEpoch) or scene_hash != '3d05edeca4a119bc7f2db7aa094041a7ad61380b00015a613fda787025e67854':
+		return false
+	var presentation = scene_data.get('presentation')
+	if not presentation is Dictionary or not P.rows(presentation.get('sprites'),2048) or not P.unique(presentation.sprites,'id'):
+		return false
+	var matches: Array = presentation.sprites.filter(func(row): return row.get('id')=='power_room_pipes')
+	if matches.size()!=1 or not _keys_are(matches[0],['assetId','id','layer','position']) or matches[0].get('assetId')!=ASSET_ID or matches[0].get('layer')!='visual.props_back' or not _numbers_equal(matches[0].get('position'),[6,0,2]):
+		return false
+	_load_once()
+	if _texture == null or not is_instance_valid(_texture):
+		return false
+	var packet: Dictionary = _make_packet(current_key,projection)
+	if packet.is_empty():
+		return false
+	var old_center = projection.call('project',WORLD_POSITION)
+	var new_center = projection.call('project',Vector3(6,0,2))
+	var new_a = projection.call('project',Vector3(5.5,0,2))
+	var new_b = projection.call('project',Vector3(6.5,0,2))
+	if not old_center is Vector2 or not new_center is Vector2 or not new_a is Vector2 or not new_b is Vector2 or not _finite_point(old_center) or not _finite_point(new_center) or not _finite_point(new_a) or not _finite_point(new_b):
+		return false
+	var delta: Vector2 = new_center-old_center
+	var origin: Vector2 = packet.transform_origin+delta
+	if not _finite_point(origin) or (origin+_source_to_screen(CONTACT_A_LOCAL,packet.transform_rotation,packet.uniform_scale)).distance_to(new_a)>0.01 or (origin+_source_to_screen(CONTACT_B_LOCAL,packet.transform_rotation,packet.uniform_scale)).distance_to(new_b)>0.01:
+		return false
+	var body_rect: Rect2 = _transformed_bounds(origin,packet.transform_rotation,packet.transform_scale,COMPONENT_BOUNDS)
+	if not _finite_rect(body_rect) or maxf(body_rect.size.x,body_rect.size.y)>MAX_EXTENT_PX_AT_48*float(projection.ppm)/48.0+0.01:
+		return false
+	var shadow: PackedVector2Array = PackedVector2Array()
+	for index in range(SHADOW_STEPS):
+		var angle: float = TAU*float(index)/float(SHADOW_STEPS)
+		var actual = projection.call('project',Vector3(6.0+cos(angle)*SHADOW_RADII.x,0,2.0+sin(angle)*SHADOW_RADII.y))
+		var shifted: Vector2 = packet.shadow_points[index]+delta
+		if not actual is Vector2 or not _finite_point(actual) or not _finite_point(shifted) or shifted.distance_to(actual)>0.01:
+			return false
+		shadow.append(shifted)
+	if shadow.size()!=SHADOW_STEPS or not _finite_rect(_points_bounds(shadow)):
+		return false
+	canvas.draw_colored_polygon(shadow,Color(0.045,0.052,0.058,SHADOW_ALPHA))
+	canvas.draw_set_transform(origin,packet.transform_rotation,packet.transform_scale)
+	canvas.draw_texture_rect_region(_texture,packet.destination_rect,packet.source_rect,Color.WHITE,false,true)
+	canvas.draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
+	return true
+
+func draw_gate_a_body(canvas, snapshot, scene_data, current_key, scene_hash, projection) -> bool:
+	if not canvas is CanvasItem or not P.snapshot(snapshot) or snapshot.get('entryToken') != null or not scene_data is Dictionary or not _valid_projection(projection):
+		return false
+	if snapshot.get('worldId') != 'grey_hive' or snapshot.get('sceneId') != 'gh_gate_a' or scene_data.get('worldId') != 'grey_hive' or scene_data.get('sceneId') != 'gh_gate_a' or not P.counter(snapshot.get('worldEpoch'),1) or current_key != 'grey_hive:gh_gate_a:'+str(snapshot.worldEpoch) or scene_hash != '3c62f3c35a2c9f2e935707e7a93c34a8d6f5696ed730b8487c4efe0b6d1ee484':
+		return false
+	var presentation = scene_data.get('presentation')
+	if not presentation is Dictionary or not P.rows(presentation.get('sprites'),2048) or not P.unique(presentation.sprites,'id'):
+		return false
+	var matches: Array = presentation.sprites.filter(func(row): return row.get('id')=='gate_a_cabling')
+	if matches.size()!=1 or not _keys_are(matches[0],['assetId','id','layer','position']) or matches[0].get('assetId')!=ASSET_ID or matches[0].get('layer')!='visual.props_back' or not _numbers_equal(matches[0].get('position'),[6,0,2]):
+		return false
+	_load_once()
+	if _texture == null or not is_instance_valid(_texture):
+		return false
+	var packet: Dictionary = _make_packet(current_key,projection)
+	if packet.is_empty():
+		return false
+	var old_center = projection.call('project',WORLD_POSITION)
+	var new_center = projection.call('project',Vector3(6,0,2))
+	var new_a = projection.call('project',Vector3(5.5,0,2))
+	var new_b = projection.call('project',Vector3(6.5,0,2))
+	if not old_center is Vector2 or not new_center is Vector2 or not new_a is Vector2 or not new_b is Vector2 or not _finite_point(old_center) or not _finite_point(new_center) or not _finite_point(new_a) or not _finite_point(new_b):
+		return false
+	var delta: Vector2 = new_center-old_center
+	var origin: Vector2 = packet.transform_origin+delta
+	if not _finite_point(origin) or (origin+_source_to_screen(CONTACT_A_LOCAL,packet.transform_rotation,packet.uniform_scale)).distance_to(new_a)>0.01 or (origin+_source_to_screen(CONTACT_B_LOCAL,packet.transform_rotation,packet.uniform_scale)).distance_to(new_b)>0.01:
+		return false
+	var body_rect: Rect2 = _transformed_bounds(origin,packet.transform_rotation,packet.transform_scale,COMPONENT_BOUNDS)
+	if not _finite_rect(body_rect) or maxf(body_rect.size.x,body_rect.size.y)>MAX_EXTENT_PX_AT_48*float(projection.ppm)/48.0+0.01:
+		return false
+	var shadow: PackedVector2Array = PackedVector2Array()
+	for index in range(SHADOW_STEPS):
+		var angle: float = TAU*float(index)/float(SHADOW_STEPS)
+		var actual = projection.call('project',Vector3(6.0+cos(angle)*SHADOW_RADII.x,0,2.0+sin(angle)*SHADOW_RADII.y))
+		var shifted: Vector2 = packet.shadow_points[index]+delta
+		if not actual is Vector2 or not _finite_point(actual) or not _finite_point(shifted) or shifted.distance_to(actual)>0.01:
+			return false
+		shadow.append(shifted)
+	if shadow.size()!=SHADOW_STEPS or not _finite_rect(_points_bounds(shadow)):
+		return false
+	canvas.draw_colored_polygon(shadow,Color(0.045,0.052,0.058,SHADOW_ALPHA))
+	canvas.draw_set_transform(origin,packet.transform_rotation,packet.transform_scale)
+	canvas.draw_texture_rect_region(_texture,packet.destination_rect,packet.source_rect,Color.WHITE,false,true)
+	canvas.draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
+	return true
+
 func _valid_context(snapshot, scene_data, current_key, wall_visual) -> bool:
 	if not P.snapshot(snapshot) or not scene_data is Dictionary or typeof(current_key) != TYPE_STRING:
 		return false

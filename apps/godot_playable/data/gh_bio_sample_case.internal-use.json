@@ -1,0 +1,45 @@
+{
+  "schema": "wuxian.gh-bio-sample-case.internal-use/v1",
+  "registeredSourceReuse": true,
+  "assetId": "runtime2d.grey_hive.clutter.v1",
+  "sha256": "4743030e58286fdac5c4e119941608763d1ceb1d3bbed79ca1d7361ceab97ebe",
+  "framePx": [
+    45,
+    52,
+    373,
+    292
+  ],
+  "seedPx": [
+    200,
+    200
+  ],
+  "componentPixels": 69288,
+  "contactsSourcePx": [
+    [
+      128,
+      329
+    ],
+    [
+      390,
+      239
+    ]
+  ],
+  "contactsWorldM": [
+    [
+      10.918,
+      0,
+      12.418
+    ],
+    [
+      11.082,
+      0,
+      11.582
+    ]
+  ],
+  "positionM": [
+    11,
+    0,
+    12
+  ],
+  "scope": "visualOnlyClosedSampleTransportCase"
+}

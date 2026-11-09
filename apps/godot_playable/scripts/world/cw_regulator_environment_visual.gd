@@ -11,6 +11,11 @@ const WALLS: Dictionary = {
 	'cw_regulator_core_wall_east_north': [[[23.5,0.5],[24,0.5],[24,6],[23.5,6]], [23.5,0.5], [23.5,6], [1,0], 0.18],
 	'cw_regulator_core_wall_east_south': [[[23.5,9.5],[24,9.5],[24,15.5],[23.5,15.5]], [23.5,9.5], [23.5,15.5], [1,0], 0.18]
 }
+const OUTER_WALL_EDGES: Dictionary = {
+	'cw_regulator_core_wall_south': [Vector2(0.0,16.0),Vector2(24.0,16.0)],
+	'cw_regulator_core_wall_east_north': [Vector2(24.0,0.5),Vector2(24.0,6.0)],
+	'cw_regulator_core_wall_east_south': [Vector2(24.0,9.5),Vector2(24.0,15.5)]
+}
 const SPRITES: Dictionary = {
 	'cw_regulator_core_steel_floor': ['runtime2d.world.clockworks.floor_steel.v1','visual.floor',[12,0,8]],
 	'cw_regulator_core_factory_tiles': ['runtime2d.world.clockworks.factory_tiles.v1','visual.floor',[12,0,8]],
@@ -189,30 +194,35 @@ func _bounce(plan: Array[Dictionary], projection: Variant, viewport: Rect2, furn
 				return false
 	return true
 
-func draw_floor(canvas: Variant, snapshot: Variant, scene: Variant, current_key: Variant, projection: Variant, viewport: Variant, furnace_visual: Variant) -> bool:
+func draw_floor(canvas: Variant, snapshot: Variant, scene: Variant, current_key: Variant, projection: Variant, viewport: Variant, furnace_visual: Variant, reflections_only: bool = false) -> bool:
 	if not _context(canvas,snapshot,scene,current_key,projection,viewport):
 		return false
 	var plan: Array[Dictionary] = []
 	var camera: Variant = projection
-	for row: int in range(4):
-		for column: int in range(6):
-			var delta: float = float((column+2*row)%3-1)*0.006
-			var color: Color = Color(52.0/255.0+delta,58.0/255.0+delta,60.0/255.0+delta,1.0)
-			if not _quad(plan,camera,column*4,row*4,(column+1)*4,(row+1)*4,color):
+	if not reflections_only:
+		for row: int in range(4):
+			for column: int in range(6):
+				var delta: float = float((column+2*row)%3-1)*0.006
+				var color: Color = Color(52.0/255.0+delta,58.0/255.0+delta,60.0/255.0+delta,1.0)
+				if not _quad(plan,camera,column*4,row*4,(column+1)*4,(row+1)*4,color):
+					return false
+		var seam: Color = Color(0.04,0.055,0.06,0.075)
+		var width: float = 0.65*float(camera.get('ppm'))/48.0
+		for x: int in [4,8,12,16,20]:
+			if not _line(plan,camera,Vector3(x,0,0),Vector3(x,0,16),seam,width):
 				return false
-	var seam: Color = Color(0.04,0.055,0.06,0.075)
-	var width: float = 0.65*float(camera.get('ppm'))/48.0
-	for x: int in [4,8,12,16,20]:
-		if not _line(plan,camera,Vector3(x,0,0),Vector3(x,0,16),seam,width):
-			return false
-	for z: int in [4,8,12]:
-		if not _line(plan,camera,Vector3(0,0,z),Vector3(24,0,z),seam,width):
-			return false
-	if not _bounce(plan,camera,viewport,furnace_visual) or not _plan_valid(plan,64):
+		for z: int in [4,8,12]:
+			if not _line(plan,camera,Vector3(0,0,z),Vector3(24,0,z),seam,width):
+				return false
+	if not _bounce(plan,camera,viewport,furnace_visual) or (not plan.is_empty() and not _plan_valid(plan,64)) or (plan.is_empty() and not reflections_only):
 		return false
 	_emit(canvas,plan)
 	return true
 
+func reflections_ready(canvas: Variant, snapshot: Variant, scene: Variant, current_key: Variant, projection: Variant, viewport: Variant, furnace_visual: Variant) -> bool:
+	if not _context(canvas,snapshot,scene,current_key,projection,viewport): return false
+	var plan: Array[Dictionary] = []
+	return _bounce(plan,projection,viewport,furnace_visual) and (plan.is_empty() or _plan_valid(plan,64))
 func draw_wall(canvas: Variant, snapshot: Variant, scene: Variant, current_key: Variant, projection: Variant, wall: Variant, viewport: Variant) -> bool:
 	if not _context(canvas,snapshot,scene,current_key,projection,viewport) or not wall is Dictionary:
 		return false
@@ -263,6 +273,40 @@ func draw_wall(canvas: Variant, snapshot: Variant, scene: Variant, current_key: 
 	var joint_highlight: Color = Color(0.42,0.46,0.46,0.14)
 	if not _polygon(plan,camera,contact,Color(0.02,0.03,0.035,0.13)) or not _polygon(plan,camera,side,Color('#252c2f')):
 		return false
+	var extra_count: int = 0
+	var outer_edge_value: Variant = OUTER_WALL_EDGES.get(id_value)
+	if outer_edge_value is Array:
+		var canvas_snapshot: Variant = canvas.get('snapshot')
+		var canvas_scene: Variant = canvas.get('scene')
+		var canvas_key: Variant = canvas.get('current_key')
+		var canvas_camera: Variant = canvas.get('camera')
+		var canvas_viewport: Variant = canvas.get('viewport_rect')
+		var bound_viewport: Rect2 = viewport
+		if canvas_snapshot == snapshot and canvas_scene == scene and canvas_key == current_key and canvas_camera == camera and canvas_viewport == viewport and camera.get('viewport') == bound_viewport.size:
+			var edge: Array = outer_edge_value
+			if edge.size() != 2 or not edge[0] is Vector2 or not edge[1] is Vector2:
+				return false
+			var ground_a: Vector2 = edge[0]
+			var ground_b: Vector2 = edge[1]
+			if not _vec_finite(ground_a) or not _vec_finite(ground_b) or not is_finite(height) or height <= 0.0:
+				return false
+			var outer_world: Array[Vector3] = [Vector3(ground_a.x,0.0,ground_a.y),Vector3(ground_b.x,0.0,ground_b.y),Vector3(ground_b.x,height,ground_b.y),Vector3(ground_a.x,height,ground_a.y)]
+			var outer_plan: Array[Dictionary] = []
+			if not _polygon(outer_plan,camera,outer_world,Color('#252c2f')):
+				return false
+			var outer_points: PackedVector2Array = outer_plan[0].points
+			var doubled_area: float = 0.0
+			for point_index: int in range(outer_points.size()):
+				var point: Vector2 = outer_points[point_index]
+				var next_point: Vector2 = outer_points[(point_index+1)%outer_points.size()]
+				doubled_area += point.x*next_point.y-point.y*next_point.x
+			if not is_finite(doubled_area):
+				return false
+			if doubled_area != 0.0:
+				if not _plan_valid(outer_plan,1):
+					return false
+				plan.append(outer_plan[0])
+				extra_count = 1
 	for joint: float in joint_positions:
 		var start: Vector3
 		var finish: Vector3
@@ -277,7 +321,7 @@ func draw_wall(canvas: Variant, snapshot: Variant, scene: Variant, current_key: 
 			tangent = Vector3(0.0,0.0,0.025)
 		if not _line(plan,camera,start,finish,joint_dark,0.70*scale) or not _line(plan,camera,start+tangent,finish+tangent,joint_highlight,0.45*scale):
 			return false
-	if not _polygon(plan,camera,cap,Color('#4c5658')) or not _plan_valid(plan,13):
+	if not _polygon(plan,camera,cap,Color('#4c5658')) or not _plan_valid(plan,13+extra_count):
 		return false
 	_emit(canvas,plan)
 	return true

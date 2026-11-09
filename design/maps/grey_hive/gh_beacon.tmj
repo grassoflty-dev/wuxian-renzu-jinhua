@@ -180,6 +180,62 @@
           "y": 304,
           "width": 16,
           "height": 192
+        },
+        {
+          "id": 23,
+          "name": "beacon_north_edge_s0",
+          "x": 16.0,
+          "y": 150.4,
+          "width": 176.0,
+          "height": 9.599999999999994
+        },
+        {
+          "id": 24,
+          "name": "beacon_north_edge_s1",
+          "x": 320,
+          "y": 150.4,
+          "width": 256,
+          "height": 9.599999999999994
+        },
+        {
+          "id": 25,
+          "name": "beacon_north_edge_s2",
+          "x": 704,
+          "y": 150.4,
+          "width": 48.0,
+          "height": 9.599999999999994
+        },
+        {
+          "id": 26,
+          "name": "beacon_south_storage_edge_s3",
+          "x": 16.0,
+          "y": 352,
+          "width": 80.0,
+          "height": 9.600000000000023
+        },
+        {
+          "id": 27,
+          "name": "beacon_south_storage_edge_s4",
+          "x": 224,
+          "y": 352,
+          "width": 144.0,
+          "height": 9.600000000000023
+        },
+        {
+          "id": 28,
+          "name": "beacon_storage_side_s5",
+          "x": 363.2,
+          "y": 361.6,
+          "width": 9.600000000000023,
+          "height": 22.399999999999977
+        },
+        {
+          "id": 29,
+          "name": "beacon_storage_side_s6",
+          "x": 363.2,
+          "y": 448,
+          "width": 9.600000000000023,
+          "height": 48.0
         }
       ],
       "opacity": 1,
@@ -214,7 +270,7 @@
             {
               "name": "neighbors",
               "type": "string",
-              "value": "gh_beacon_mount_nav"
+              "value": "gh_beacon_mount_nav,north_door_w,main13,south_door"
             }
           ]
         },
@@ -227,7 +283,7 @@
             {
               "name": "neighbors",
               "type": "string",
-              "value": "gh_beacon_exit_nav"
+              "value": "gh_beacon_exit_nav,north_door_e,main13"
             }
           ]
         },
@@ -236,6 +292,110 @@
           "name": "gh_beacon_exit_nav",
           "x": 704,
           "y": 256
+        },
+        {
+          "id": 30,
+          "name": "north_door_w",
+          "x": 224,
+          "y": 160,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "gh_beacon_device_nav,north_inner_w"
+            }
+          ]
+        },
+        {
+          "id": 31,
+          "name": "north_inner_w",
+          "x": 224,
+          "y": 64,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "north_door_w,north_inner_e"
+            }
+          ]
+        },
+        {
+          "id": 32,
+          "name": "north_inner_e",
+          "x": 640,
+          "y": 64,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "north_inner_w,north_door_e"
+            }
+          ]
+        },
+        {
+          "id": 33,
+          "name": "north_door_e",
+          "x": 640,
+          "y": 160,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "north_inner_e,gh_beacon_mount_nav"
+            }
+          ]
+        },
+        {
+          "id": 34,
+          "name": "south_door",
+          "x": 192,
+          "y": 352,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "gh_beacon_device_nav,south_inner"
+            }
+          ]
+        },
+        {
+          "id": 35,
+          "name": "south_inner",
+          "x": 192,
+          "y": 416,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "south_door,south_return"
+            }
+          ]
+        },
+        {
+          "id": 36,
+          "name": "south_return",
+          "x": 416,
+          "y": 416,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "south_inner,main13"
+            }
+          ]
+        },
+        {
+          "id": 37,
+          "name": "main13",
+          "x": 416,
+          "y": 256,
+          "properties": [
+            {
+              "name": "neighbors",
+              "type": "string",
+              "value": "gh_beacon_mount_nav,gh_beacon_device_nav,south_return"
+            }
+          ]
         }
       ],
       "opacity": 1,
@@ -367,7 +527,7 @@
     }
   ],
   "nextlayerid": 10,
-  "nextobjectid": 23,
+  "nextobjectid": 38,
   "orientation": "orthogonal",
   "properties": [
     {
