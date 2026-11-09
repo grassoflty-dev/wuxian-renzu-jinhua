@@ -4019,7 +4019,9 @@ func _action_effect_texture(kind: String) -> Texture2D:
 	action_effects_attempted[kind]=true
 	# Prefer the alpha-cut VFX art (transparent background); the HUD skill icon is
 	# an opaque sheet and only stays as a compatibility fallback.
-	var icon=PlayerStatusUiArt.atlas('res://assets/ui/skill_family/vfx_'+kind+'_alpha_r1.png',Rect2(0,0,1254,1254))
+	var icon=PlayerStatusUiArt.atlas('res://assets/ui/skill_family/vfx_'+kind+'_alpha_r2.png',Rect2(0,0,1254,1254))
+	if icon==null or icon.atlas==null or icon.atlas.get_size()!=Vector2(1254,1254):
+		icon=PlayerStatusUiArt.atlas('res://assets/ui/skill_family/vfx_'+kind+'_alpha_r1.png',Rect2(0,0,1254,1254))
 	if icon==null or icon.atlas==null or icon.atlas.get_size()!=Vector2(1254,1254):
 		icon=PlayerStatusUiArt.atlas('res://assets/ui/skill_family/'+kind+'.png',Rect2(0,0,1254,1254))
 	if icon!=null and icon.atlas!=null and icon.atlas.get_size()==Vector2(1254,1254): action_effects[kind]=icon
