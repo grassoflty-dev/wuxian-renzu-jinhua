@@ -341,6 +341,12 @@ func _gameplay_inputs_released() -> bool:
 		if _key_held(key):
 			return false
 	return not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
+func _rearm_notice_visible() -> bool:
+	# Text/visibility only. The notice must also show during the frames right after an entry or
+	# scene change, where _eligible_without_rearm() is still false because the new frame/snapshot
+	# is settling (ready_pending, dense plan): otherwise the player is stopped with no explanation.
+	# It never changes gameplay: the clear condition remains line 398's full-key-release rule.
+	return gameplay_rearm and journey_started and rpc.authenticated and focused and not uncertain and not close_attempted and not panels.visible and not snapshot.is_empty() and P.snapshot(snapshot) and snapshot.player.currentHp>0 and exit_entry_preview.is_empty()
 func _process(delta: float) -> void:
 	if not run_end_notice.is_empty():
 		# The gate receipt also prints its generic 'interaction confirmed' line, so the
@@ -459,8 +465,8 @@ func _process(delta: float) -> void:
 		priority_lines.append('区域画面准备中 · 请等待当前画面准备完成')
 	elif visual_notice_context and dense_unavailable:
 		priority_lines.append('区域显示暂不可用 · 当前画面尚未就绪')
-	if gameplay_rearm and _eligible_without_rearm():
-		priority_lines.append('松开按键后可继续操作')
+	if _rearm_notice_visible():
+		priority_lines.append('松开全部按键（含 Shift）后可继续操作')
 	if renderer._region_visibility_scope() and not renderer.is_dense_region_available() and not (visual_notice_context and (frame_pending or dense_unavailable)):
 		priority_lines.append('区域显示暂不可用')
 	var current_interaction = _current_hud_interaction(nearest)
@@ -2702,7 +2708,7 @@ func _resync_from_hold() -> void:
 	# the player may still be holding the key that was pressed when the hold happened.
 	gameplay_rearm = true
 	audio.ui_cue('confirm',focused)
-	_feedback('已与权威重新同步 · 松开按键后可继续')
+	_feedback('已与权威重新同步 · 松开全部按键（含 Shift）后可继续')
 	if is_instance_valid(panels):
 		panels.close_page()
 func _set_world_loading_art(world: String) -> void:
