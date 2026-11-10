@@ -19,7 +19,11 @@ func _rect(poly: Variant) -> Rect2:
 		if not p is Array or p.size()!=2 or not P.number(p[0]) or not P.number(p[1]): return Rect2()
 	var a=Vector2(float(poly[0][0]),float(poly[0][1]))
 	var b=Vector2(float(poly[2][0]),float(poly[2][1]))
-	if poly[1]!=[b.x,a.y] or poly[3]!=[a.x,b.y] or b.x<=a.x or b.y<=a.y: return Rect2()
+	# Corner identity is compared in float64, exactly as the JSON writes it. Reading the
+	# corners back through Vector2 first truncates them to float32 (f32(6.2)=6.199999809265137),
+	# which rejected whole rects and emptied the region plan for this room.
+	var x0=float(poly[0][0]);var z0=float(poly[0][1]);var x1=float(poly[2][0]);var z1=float(poly[2][1])
+	if poly[1]!=[x1,z0] or poly[3]!=[x0,z1] or b.x<=a.x or b.y<=a.y: return Rect2()
 	return Rect2(a,b-a)
 
 func prepare(snapshot: Dictionary,scene: Dictionary,hash: String,camera,art) -> Dictionary:

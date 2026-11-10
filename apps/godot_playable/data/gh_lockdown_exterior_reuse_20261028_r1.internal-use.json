@@ -33,9 +33,9 @@
       24,
       16
     ],
-    "sceneSha256": "718489a1ea4ec4622ccdcefc8459a1dc1bd4f66ccf26abc813b6a06519197850",
+    "sceneSha256": "23e5d5d9f37f6f44b1f8b9105aab656424778ef5edf0e775bbc364143fe1b30c",
     "canonicalScenePath": "res://data/scenes/gh_lockdown.json",
-    "canonicalSceneBytes": 10081,
+    "canonicalSceneBytes": 24602,
     "nonInteractive": true,
     "unregistered": true
   }

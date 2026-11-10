@@ -113,7 +113,7 @@
   "registrationMeaning": "PROPOSED_ROOM_SPECIFIC_VISUAL_CALIBRATION_NOT_SOURCE_PHYSICAL_MEASUREMENT_OR_COLLISION",
   "canonicalScene": {
     "path": "res://data/scenes/gh_lockdown.json",
-    "bytes": 10081,
-    "sha256": "718489a1ea4ec4622ccdcefc8459a1dc1bd4f66ccf26abc813b6a06519197850"
+    "bytes": 24602,
+    "sha256": "23e5d5d9f37f6f44b1f8b9105aab656424778ef5edf0e775bbc364143fe1b30c"
   }
 }
