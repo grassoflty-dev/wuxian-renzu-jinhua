@@ -39,6 +39,8 @@ fn stopped_runtime(root: PathBuf, scene_id: Option<&str>) -> FormalRuntime {
         // Isolated production-scene consumer fixture, not campaign-completion evidence.
         state.route.current_world_id = state.world.world_id.clone();
     }
+    // Release the bridge boot hold; this fixture has no prepared entry ticket to acknowledge.
+    runtime.resume().unwrap();
     runtime
 }
 
@@ -345,12 +347,13 @@ fn live_equipment_projection_and_movement_survive_disk_save_close_continue() {
         }
         measured_walk(&runtime, Vec3::new(14.0, 0.0, 7.5).unwrap(), 3.2);
         let capabilities = runtime.snapshot().unwrap().capabilities;
-        expected = (
-            capabilities.explored_map,
-            capabilities.map_knowledge,
-            runtime.state.lock().unwrap().world_persistent_v1.clone(),
-        );
         runtime.save().unwrap();
+        // SaveV6 records the active scene row while live state stays row-free, so the
+        // durable capture is the correct expectation for what Continue may restore.
+        let saved_persistent = crate::save_v6::read_save(&runtime.save_root)
+            .unwrap()
+            .world_persistent_v1;
+        expected = (capabilities.explored_map, capabilities.map_knowledge, saved_persistent);
     }
     {
         let runtime = stopped_runtime(root.clone(), Some("mh_drowned_quay"));
@@ -1009,14 +1012,8 @@ fn rear_view_survives_public_world_gate_and_scene_transition_without_opening_loc
         Some(CAP_REAR_VIEW)
     );
     assert_eq!(runtime.build_snapshot().unwrap().1, sources);
-    runtime.state.lock().unwrap().world.player.position_m = Vec3::new(19.0, 0.0, 7.0).unwrap();
-    let moved = runtime
-        .transition_scene(
-            "gh_entry_to_power_room",
-            "rear-power-enter",
-            entered.world_epoch,
-        ).map(|view| crate::formal_runtime::entry_test_support::acknowledge_ready(&runtime, view))
-        .unwrap();
+    // The Entry/Power-room walk edge needs the prepared pair, not the bare teleport API.
+    let moved = crate::formal_runtime::tests::walk_to_scene(&runtime, "gh_power_room");
     assert_eq!(moved.scene_id, "gh_power_room");
     assert!(moved.capabilities.rear_view.granted);
     assert_eq!(

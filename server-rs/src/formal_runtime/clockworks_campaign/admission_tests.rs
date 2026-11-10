@@ -49,8 +49,14 @@ fn traverse_completed_route(runtime: &FormalRuntime, visit: u32) {
             assert!(state.kcc.valid_saved_support_contact(&state.world.player,state.world.server_time_ms));
         }
         let epoch = runtime.snapshot().unwrap().world_epoch;
-        let prepared = runtime.transition_scene(&transition.id, &format!("visit-{visit}-step-{index}"), epoch).unwrap();
-        acknowledge_ready(runtime, prepared);
+        match runtime.transition_scene(&transition.id, &format!("visit-{visit}-step-{index}"), epoch) {
+            Ok(prepared) => { acknowledge_ready(runtime, prepared); }
+            // A same-floor walk edge only commits through the prepared pair admission.
+            Err(error) if error == "E_SEAM_WALK_PREPARING" => {
+                crate::formal_runtime::tests::walk_to_scene(runtime, pair[1]);
+            }
+            Err(error) => panic!("visit {visit} step {index}: {error}"),
+        }
     }
 }
 

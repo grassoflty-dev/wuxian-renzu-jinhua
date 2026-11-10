@@ -251,8 +251,9 @@ fn never_talking_still_walks_production_kcc_straight_to_gate_b() {
     body.position_m = Vec3 { x_m: 2.0, y_m: 0.0, z_m: 8.0 };
     for target in [[8.0, 8.0], [20.0, 8.0], [23.0, 8.0]] { walk(&mut body, &kcc, target); }
     runtime.state.lock().unwrap().world.player = body;
-    let epoch = runtime.snapshot().unwrap().world_epoch;
-    assert_eq!(runtime.transition_scene("gh_bio_to_gate_b", "never-bz-gate", epoch).unwrap().scene_id, "gh_gate_b");
+    // Crossing the authored walk edge needs the prepared pair, not the bare teleport API.
+    let crossed = crate::formal_runtime::tests::walk_to_scene(&runtime, "gh_gate_b");
+    assert_eq!(crossed.scene_id, "gh_gate_b");
     assert_eq!(choice(&runtime.state.lock().unwrap()), Some(Unresolved));
     assert!(runtime.state.lock().unwrap().baizhi.ticket.is_none());
     assert!(!save_v6::save_path(&runtime.save_root).exists()); cleanup(&runtime);

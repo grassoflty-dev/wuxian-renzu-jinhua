@@ -22,6 +22,8 @@ fn runtime(powered: bool) -> FormalRuntime {
             event_id: "hive_power".into(), request_id: "scanner-power".into(),
         }, revision), RouteResult::Applied { .. })); }
     }
+    // Release the bridge boot hold; this fixture has no prepared entry ticket to acknowledge.
+    runtime.resume().unwrap();
     runtime
 }
 fn has_scanner(view: &WorldView) -> bool {

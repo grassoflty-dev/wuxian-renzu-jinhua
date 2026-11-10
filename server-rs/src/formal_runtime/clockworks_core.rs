@@ -557,19 +557,9 @@ mod tests {
                 .forged_guard_elite_first_kill = true;
             state.world.player.position_m = Vec3::new(1.0, 0.0, 8.0).unwrap();
         }
-        let epoch = runtime.snapshot().unwrap().world_epoch;
-        runtime
-            .transition_scene(
-                "cw_regulator_core_return_to_arena",
-                "core-dead-return",
-                epoch,
-            ).map(|view| crate::formal_runtime::entry_test_support::acknowledge_ready(&runtime, view))
-            .unwrap();
-        runtime.state.lock().unwrap().world.player.position_m = Vec3::new(23.0, 0.0, 8.0).unwrap();
-        let epoch = runtime.snapshot().unwrap().world_epoch;
-        let revisit = runtime
-            .transition_scene("cw_arena_to_regulator_core", "core-dead-revisit", epoch).map(|view| crate::formal_runtime::entry_test_support::acknowledge_ready(&runtime, view))
-            .unwrap();
+        // The Core/Arena walk edges require the prepared pair; drive the real crossing.
+        crate::formal_runtime::tests::walk_to_scene(&runtime, "cw_forged_guard_arena");
+        let revisit = crate::formal_runtime::tests::walk_to_scene(&runtime, "cw_regulator_core");
         assert_eq!(revisit.actors.len(), 1);
         assert!(!revisit.actors[0].active);
         assert_no_core_progress(&runtime);
@@ -587,24 +577,8 @@ mod tests {
         drop(state);
         drop(scene_guard);
         // A completed-core revisit must preserve both dead Boss and event idempotency.
-        runtime.state.lock().unwrap().world.player.position_m = Vec3::new(1.0, 0.0, 8.0).unwrap();
-        let epoch = runtime.snapshot().unwrap().world_epoch;
-        runtime
-            .transition_scene(
-                "cw_regulator_core_return_to_arena",
-                "core-completed-return",
-                epoch,
-            ).map(|view| crate::formal_runtime::entry_test_support::acknowledge_ready(&runtime, view))
-            .unwrap();
-        runtime.state.lock().unwrap().world.player.position_m = Vec3::new(23.0, 0.0, 8.0).unwrap();
-        let epoch = runtime.snapshot().unwrap().world_epoch;
-        let revisit = runtime
-            .transition_scene(
-                "cw_arena_to_regulator_core",
-                "core-completed-revisit",
-                epoch,
-            ).map(|view| crate::formal_runtime::entry_test_support::acknowledge_ready(&runtime, view))
-            .unwrap();
+        let _ = crate::formal_runtime::tests::walk_to_scene(&runtime, "cw_forged_guard_arena");
+        let revisit = crate::formal_runtime::tests::walk_to_scene(&runtime, "cw_regulator_core");
         assert!(!revisit.actors[0].active);
         assert!(
             completed_world_events(&runtime.state.lock().unwrap(), "clockworks")

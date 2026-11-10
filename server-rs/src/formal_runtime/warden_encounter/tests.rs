@@ -76,6 +76,8 @@ fn fixture() -> (FormalRuntime, std::path::PathBuf) {
     }
     let registry = runtime.scene_registry.lock().unwrap().clone().unwrap();
     runtime.install_scene_registry(registry, SCENE_ID).unwrap();
+    // Release the bridge boot hold; this fixture has no prepared entry ticket to acknowledge.
+    runtime.resume().unwrap();
     (runtime, root)
 }
 fn step(runtime: &FormalRuntime) {

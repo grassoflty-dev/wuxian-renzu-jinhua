@@ -334,6 +334,8 @@ fn stopped_authored(root: std::path::PathBuf, scene_id: &str) -> FormalRuntime {
         .clone();
     // Test-only selection of an embedded staged scene is not a route unlock.
     runtime.install_scene_registry(registry, scene_id).unwrap();
+    // Release the bridge boot hold; this fixture has no prepared entry ticket to acknowledge.
+    runtime.resume().unwrap();
     if scene_id.starts_with("cw_") {
         // Match this explicitly staged unit fixture's world label without adding
         // any completion event, opening a native gate or bypassing Continue guards.
@@ -678,10 +680,11 @@ fn actual_paused_owner_loop_keeps_environment_clock_damage_and_exposure_frozen()
 fn environment_transport_rejects_stale_rebound_legacy_and_payload_replay_with_atomic_receipts() {
     let (runtime, _) = authored("cw_boiler_chamber");
     let original_epoch = runtime.snapshot().unwrap().world_epoch;
-    runtime.state.lock().unwrap().world.player.position_m = vec3_from_array([23.0, 0.0, 8.0]);
-    runtime
-        .transition_scene("cw_boiler_to_gear_shaft", "next-one", original_epoch).map(|view| crate::formal_runtime::entry_test_support::acknowledge_ready(&runtime, view))
-        .unwrap();
+    // The boiler -> gear ground edge is a same-floor walk seam: acknowledge and cross it for real.
+    assert_eq!(
+        crate::formal_runtime::tests::walk_to_scene(&runtime, "cw_gear_shaft").scene_id,
+        "cw_gear_shaft"
+    );
     let middle = runtime.snapshot().unwrap().world_epoch;
     // Transport fixture only: the current Gear Shaft exit is on the y=2 deck.
     { let mut state=runtime.state.lock().unwrap();

@@ -8,7 +8,48 @@ fn fixture(scene_id:&str)->FormalRuntime{
     let r=FormalRuntime::new_with_save_dir(root).unwrap();r.pause().unwrap();r.stop_owner.store(true,Ordering::SeqCst);r.owner_handle.lock().unwrap().take().unwrap().join().unwrap();crate::production_scene_bootstrap::install(&r).unwrap();install(&r,scene_id);
     {let mut s=r.state.lock().unwrap();s.route.current_world_id="grey_hive".into();s.route.progress.iter_mut().find(|p|p.world_id=="grey_hive").unwrap().visit_id=1;s.paused=false;}r
 }
-fn install(r:&FormalRuntime,scene:&str){let registry=r.scene_registry.lock().unwrap().clone().unwrap();r.install_scene_registry(registry,scene).unwrap();}
+fn walk_exit_pair(r:&FormalRuntime,target:&str){
+    let east=target=="gh_exit";
+    position(r,if east{p(23.5,8.)}else{p(0.5,8.)});
+    r.state.lock().unwrap().world.player.grounded=true;
+    let before=r.snapshot().unwrap();
+    let neighbor=before.beacon_exit_neighbor.clone().expect("prepared Exit target");
+    assert_eq!(neighbor.target_scene_id,target);
+    let sha=r.scene_runtime.lock().unwrap().as_ref().unwrap().current_scene().verified_source_sha256.clone();
+    let proof=serde_json::json!({"sourceSha":sha,"progression":before.progression,"beacon":before.grey_hive_beacon});
+    r.scene_ready_with_exit_proof(&neighbor.token,false,Some(&neighbor.target_scene_source_sha256),Some(&proof)).expect("Exit pair acknowledgement");
+    let view={
+        let mut state=r.state.lock().unwrap();
+        let epoch=state.world.revision.world_epoch;
+        state.latest_sample=crate::continuous_input::InputSample::new(epoch,state.world.last_input_seq+1,state.world.last_client_time_ms+1,if east{1.0}else{-1.0},0.0).unwrap();
+        state.latest_input_received_at=std::time::Instant::now();
+        let mut scene=r.scene_runtime.lock().unwrap();
+        for _ in 0..8 {crate::formal_runtime::advance_owner_step_with_pair_crossing(&mut state,&mut scene).unwrap();if state.world.scene_id==target{break;}}
+        assert_eq!(state.world.scene_id,target);
+        crate::formal_runtime::project_scene_view(&state,scene.as_ref())
+    };
+    acknowledge_ready(r,view);
+}
+fn walk_to_exit(r:&FormalRuntime){walk_exit_pair(r,"gh_exit");}
+fn exit_source_sha(r:&FormalRuntime)->String{
+    r.scene_registry.lock().unwrap().as_ref().unwrap().scene("gh_exit").unwrap().verified_source_sha256.clone()
+}
+fn acknowledge_exit_continue(r:&FormalRuntime,view:&crate::world_v3::WorldView)->crate::world_v3::WorldView{
+    // Continue at the authored Exit is a staged target resource; only its exact hash proof commits it.
+    let sha=exit_source_sha(r);let token=view.entry_token.clone().expect("prepared Exit token");
+    let ready=r.scene_ready_with_exit_proof(&token,false,Some(&sha),None).expect("exact Exit target-resource proof");
+    assert_eq!(ready.scene_id,"gh_exit");
+    // The committed Exit holds the owner for the client's matching first frame.
+    r.resume().expect("resume after committed Exit frame");ready
+}
+fn install(r:&FormalRuntime,scene:&str){
+    // gh_exit is only reachable by acknowledging the prepared Exit pair and walking across it.
+    if scene!="gh_exit"{let registry=r.scene_registry.lock().unwrap().clone().unwrap();r.install_scene_registry(registry,scene).unwrap();return;}
+    let registry=r.scene_registry.lock().unwrap().clone().unwrap();
+    r.install_scene_registry(registry,"gh_beacon").unwrap();
+    r.state.lock().unwrap().paused=false;
+    walk_to_exit(r);
+}
 fn p(x:f32,z:f32)->Vec3{Vec3::new(x,0.,z).unwrap()}
 fn position(r:&FormalRuntime,pos:Vec3){r.state.lock().unwrap().world.player.position_m=pos;}
 fn saved(r:&FormalRuntime)->SaveV6{SaveV6::capture(&r.state.lock().unwrap(),r.scene_runtime.lock().unwrap().as_ref()).unwrap()}
@@ -64,7 +105,7 @@ fn carried_and_mounted_records_roundtrip_but_malformed_current_file_and_slot_are
 }
 #[test]
 fn legacy_completed_gh_stays_completed_without_beacon_and_current_uncollected_cannot_claim_completion(){
-    let r=fixture("gh_exit");prerequisites(&r);finish_old(&r);let old=saved(&r);assert!(old.world_persistent_v1.grey_hive.beacon.is_none());r.save().unwrap();let path=crate::save_v6::save_path(&r.save_root);let bytes=std::fs::read(&path).unwrap();let view=r.continue_saved().unwrap();assert!(view.grey_hive_beacon.as_ref().unwrap().legacy_completed_without_receipt);assert_eq!(view.grey_hive_beacon.as_ref().unwrap().state,Stage::Uncollected);assert_eq!(saved(&r).save.progression,old.save.progression);assert!(saved(&r).world_persistent_v1.grey_hive.beacon.is_none());acknowledge_ready(&r,view);assert_eq!(std::fs::read(&path).unwrap(),bytes);
+    let r=fixture("gh_exit");prerequisites(&r);finish_old(&r);let old=saved(&r);assert!(old.world_persistent_v1.grey_hive.beacon.is_none());r.save().unwrap();let path=crate::save_v6::save_path(&r.save_root);let bytes=std::fs::read(&path).unwrap();let view=r.continue_saved().unwrap();assert!(view.grey_hive_beacon.as_ref().unwrap().legacy_completed_without_receipt);assert_eq!(view.grey_hive_beacon.as_ref().unwrap().state,Stage::Uncollected);assert_eq!(saved(&r).save.progression,old.save.progression);assert!(saved(&r).world_persistent_v1.grey_hive.beacon.is_none());acknowledge_exit_continue(&r,&view);assert_eq!(std::fs::read(&path).unwrap(),bytes);
     position(&r,p(8.,8.));let returned=r.use_world_gate("gh_extraction_return_to_rs","legacy-return",r.snapshot().unwrap().world_epoch).unwrap();assert_eq!(returned.world_id,"return_station");assert!(returned.entry_token.is_some());acknowledge_ready(&r,returned);assert!(saved(&r).world_persistent_v1.grey_hive.beacon.is_none());assert!(completed(&r.state.lock().unwrap().route));assert_eq!(std::fs::read(&path).unwrap(),bytes);
     let mut bad=old;bad.world_persistent_v1.grey_hive.beacon=Some(GreyHiveBeaconState::new_uncollected());assert!(bad.validate().is_err());assert!(crate::save_v6::write_save(&r.save_root,&bad).is_err());assert_eq!(std::fs::read(&path).unwrap(),bytes);
 }
@@ -76,8 +117,8 @@ fn strict_native_gh_generic_progress_complete_enter_revisit_are_blocked_while_ge
 #[test]
 fn old_incomplete_exit_has_real_backtrack_collect_and_exact_console_completion_even_with_old_event(){
     for old_event in [false,true]{let r=fixture("gh_exit");prerequisites(&r);if old_event{progress(&r,EXTRACT_EVENT);let epoch=r.snapshot().unwrap().world_epoch;r.scene_runtime.lock().unwrap().as_mut().unwrap().interact(EXTRACT_ID,"old-exit-marker",epoch,p(8.,8.)).unwrap();}
-        r.save().unwrap();let path=crate::save_v6::save_path(&r.save_root);let bytes=std::fs::read(&path).unwrap();let old_epoch=r.snapshot().unwrap().world_epoch;acknowledge_ready(&r,r.continue_saved().unwrap());position(&r,p(8.,8.));let epoch=r.snapshot().unwrap().world_epoch;let before=fingerprint(&r);assert_eq!(r.interact(EXTRACT_ID,"no-epoch-extract").unwrap_err(),"E_INTERACTION_SOURCE_EPOCH_REQUIRED");assert!(!r.activate_scene_interaction(EXTRACT_ID,"late-extract",old_epoch).unwrap().applied);assert_eq!(fingerprint(&r),before);let denied=activate(&r,EXTRACT_ID,"finish-retry");assert_eq!(denied.error_code.as_deref(),Some("E_BEACON_REQUIRED"));assert_eq!(fingerprint(&r),before);
-        position(&r,p(1.5,8.));let back=r.transition_scene("gh_exit_to_beacon","back-to-beacon",epoch).unwrap();acknowledge_ready(&r,back);assert_eq!(r.snapshot().unwrap().scene_id,"gh_beacon");assert!(activate(&r,COLLECT_ID,"physical-collect").applied);position(&r,p(22.5,8.));let forward=r.transition_scene("gh_beacon_to_exit","back-to-exit",r.snapshot().unwrap().world_epoch).unwrap();acknowledge_ready(&r,forward);let extracted=activate(&r,EXTRACT_ID,"finish-retry");assert!(extracted.applied,"{:?}",extracted.error_code);assert!(completed(&r.state.lock().unwrap().route));assert!(owned(&r.state.lock().unwrap()));assert_eq!(std::fs::read(&path).unwrap(),bytes);
+        r.save().unwrap();let path=crate::save_v6::save_path(&r.save_root);let bytes=std::fs::read(&path).unwrap();let old_epoch=r.snapshot().unwrap().world_epoch;{let prepared=r.continue_saved().unwrap();acknowledge_exit_continue(&r,&prepared);}position(&r,p(8.,8.));let before=fingerprint(&r);assert_eq!(r.interact(EXTRACT_ID,"no-epoch-extract").unwrap_err(),"E_INTERACTION_SOURCE_EPOCH_REQUIRED");assert!(!r.activate_scene_interaction(EXTRACT_ID,"late-extract",old_epoch).unwrap().applied);assert_eq!(fingerprint(&r),before);let denied=activate(&r,EXTRACT_ID,"finish-retry");assert_eq!(denied.error_code.as_deref(),Some("E_BEACON_REQUIRED"));assert_eq!(fingerprint(&r),before);
+        walk_exit_pair(&r,"gh_beacon");assert_eq!(r.snapshot().unwrap().scene_id,"gh_beacon");assert!(activate(&r,COLLECT_ID,"physical-collect").applied);walk_to_exit(&r);let extracted=activate(&r,EXTRACT_ID,"finish-retry");assert!(extracted.applied,"{:?}",extracted.error_code);assert!(completed(&r.state.lock().unwrap().route));assert!(owned(&r.state.lock().unwrap()));assert_eq!(std::fs::read(&path).unwrap(),bytes);
     }
 }
 #[test]

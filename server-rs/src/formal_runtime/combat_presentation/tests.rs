@@ -250,6 +250,8 @@ fn pause_freezes_pulse_time_releases_guard_and_continue_cannot_replay_action_fee
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
     let root = std::env::temp_dir().join(format!("combat-presentation-{}-{}", std::process::id(), SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos()));
     let runtime = FormalRuntime::new_with_save_dir(root.clone()).unwrap();
+    // Release the bridge boot hold; this fixture loads no prepared entry to acknowledge.
+    runtime.resume().unwrap();
     let epoch = runtime.snapshot().unwrap().world_epoch;
     let start = runtime.submit_action(ActionCommandRequest { protocol_version: 2, world_epoch: epoch, request_id: 1, client_time_ms: 0, kind: ActionKind::Pulse }).unwrap();
     assert!(start.player.action_presentation.is_some());

@@ -58,7 +58,36 @@ fn returned(runtime: &FormalRuntime, world: &str, request: &str) -> WorldView {
     // Place this boundary fixture at the actual authored extraction; the gate
     // itself is public and requires the arranged completion/defeat authority.
     let registry = runtime.scene_registry.lock().unwrap().clone().unwrap();
-    runtime.install_scene_registry(registry, if world == "grey_hive" { "gh_exit" } else { "mh_extraction" }).unwrap();
+    if world == "grey_hive" {
+        // gh_exit only comes from acknowledging the prepared Exit pair and walking across it.
+        runtime.install_scene_registry(registry, "gh_beacon").unwrap();
+        {
+            let mut state = runtime.state.lock().unwrap();
+            state.world.player.position_m = Vec3::new(23.5, 0.0, 8.0).unwrap();
+            state.world.player.grounded = true;
+        }
+        let before = runtime.snapshot().unwrap();
+        let neighbor = before.beacon_exit_neighbor.clone().expect("prepared Exit target");
+        let source_sha = runtime.scene_runtime.lock().unwrap().as_ref().unwrap().current_scene().verified_source_sha256.clone();
+        let proof = serde_json::json!({"sourceSha": source_sha, "progression": before.progression, "beacon": before.grey_hive_beacon});
+        runtime.scene_ready_with_exit_proof(&neighbor.token, false, Some(&neighbor.target_scene_source_sha256), Some(&proof)).expect("Exit pair acknowledgement");
+        let view = {
+            let mut state = runtime.state.lock().unwrap();
+            let epoch = state.world.revision.world_epoch;
+            state.latest_sample = InputSample::new(epoch, state.world.last_input_seq + 1, state.world.last_client_time_ms + 1, 1.0, 0.0).unwrap();
+            state.latest_input_received_at = Instant::now();
+            let mut scene = runtime.scene_runtime.lock().unwrap();
+            for _ in 0..8 {
+                advance_owner_step_with_pair_crossing(&mut state, &mut scene).unwrap();
+                if state.world.scene_id == "gh_exit" { break; }
+            }
+            assert_eq!(state.world.scene_id, "gh_exit");
+            project_scene_view(&state, scene.as_ref())
+        };
+        acknowledge_ready(runtime, view);
+    } else {
+        runtime.install_scene_registry(registry, "mh_extraction").unwrap();
+    }
     at_marker(runtime, if world == "grey_hive" { "gh_exit_extraction_console" } else { "mh_extraction_exit" });
     let before = runtime.snapshot().unwrap();
     let view = runtime.use_world_gate(if world == "grey_hive" { "gh_extraction_return_to_rs" } else { "mh_extraction_return_to_rs" }, request, before.world_epoch).unwrap();

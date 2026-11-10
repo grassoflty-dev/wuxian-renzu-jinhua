@@ -188,7 +188,7 @@ fn historical_partial_security_and_late_gate_b_install_failure_do_not_mutate_aut
     assert_eq!(runtime.transition_scene(&transition.id, "late-brute-install", before.world_epoch).unwrap_err(), "E_SCENE_ENTRY_GENERATION_EXHAUSTED");
     assert_eq!(runtime.snapshot().unwrap(), before); assert_eq!(capture(&runtime).world_persistent_v1, persistent);
     runtime.state.lock().unwrap().entry_generation = 0;
-    let view = runtime.transition_scene(&transition.id, "late-brute-install", before.world_epoch).unwrap();
+    let view = crate::formal_runtime::tests::walk_to_scene_held(&runtime, "gh_gate_b");
     assert!(view.entry_token.is_some() && runtime.state.lock().unwrap().paused);
     assert_eq!(capture(&runtime).world_persistent_v1.grey_hive.gate_b_actor_roster_version, 1);
     assert!(view.actors.iter().any(|actor| actor.entity_id == "gh_gate_b_brute_01"));

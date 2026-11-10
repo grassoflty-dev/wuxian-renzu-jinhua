@@ -274,7 +274,16 @@ mod tests {
     fn transition(runtime: &FormalRuntime, id: &str, x: f32, request: &str) {
         runtime.state.lock().unwrap().world.player.position_m = Vec3::new(x, 0.0, 8.0).unwrap();
         let epoch = runtime.snapshot().unwrap().world_epoch;
-        acknowledge_ready(runtime, runtime.transition_scene(id, request, epoch).unwrap());
+        match runtime.transition_scene(id, request, epoch) {
+            Ok(view) => { acknowledge_ready(runtime, view); }
+            // A same-floor walk edge only commits through the prepared pair admission.
+            Err(error) if error == "E_SEAM_WALK_PREPARING" => {
+                let target = runtime.scene_runtime.lock().unwrap().as_ref().unwrap().current_scene()
+                    .transitions.iter().find(|item| item.id == id).unwrap().to_scene_id.clone();
+                let _ = crate::formal_runtime::tests::walk_to_scene(runtime, &target);
+            }
+            Err(error) => panic!("transition {id}: {error}"),
+        }
     }
     fn saved(runtime: &FormalRuntime) -> crate::save_v6::SaveV6 {
         let state = runtime.state.lock().unwrap();

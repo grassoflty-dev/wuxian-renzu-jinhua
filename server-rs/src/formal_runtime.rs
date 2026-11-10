@@ -8390,6 +8390,8 @@ mod tests {
                 &BTreeSet::new(),
             )
             .unwrap();
+        // Release the bridge boot hold; this fixture has no prepared entry ticket to acknowledge.
+        runtime.resume().unwrap();
         runtime
     }
 
@@ -9090,28 +9092,12 @@ mod tests {
             .world_persistent_v1
             .clockworks
             .forged_guard_elite_first_kill = true;
-        set_test_player_position(&runtime, Vec3::new(1.0, 0.0, 8.0).unwrap());
-        let epoch = runtime.state.lock().unwrap().world.revision.world_epoch;
+        // Assert the Core/Arena walk edges through their prepared pair admission.
         assert_eq!(
-            runtime
-                .transition_scene(
-                    "cw_regulator_core_return_to_arena",
-                    "regulator-phase2-return-arena",
-                    epoch,
-                ).map(|view| crate::formal_runtime::entry_test_support::acknowledge_ready(&runtime, view))
-                .unwrap()
-                .scene_id,
+            walk_to_scene(&runtime, CLOCKWORKS_ELITE_SCENE_ID).scene_id,
             CLOCKWORKS_ELITE_SCENE_ID
         );
-        set_test_player_position(&runtime, Vec3::new(23.0, 0.0, 8.0).unwrap());
-        let epoch = runtime.state.lock().unwrap().world.revision.world_epoch;
-        let revisited = runtime
-            .transition_scene(
-                "cw_arena_to_regulator_core",
-                "regulator-phase2-revisit-core",
-                epoch,
-            ).map(|view| crate::formal_runtime::entry_test_support::acknowledge_ready(&runtime, view))
-            .unwrap();
+        let revisited = walk_to_scene(&runtime, CLOCKWORKS_REGULATOR_SCENE_ID);
         assert_eq!(revisited.scene_id, CLOCKWORKS_REGULATOR_SCENE_ID);
         assert_eq!(revisited.actors.len(), 1);
         let state = runtime.state.lock().unwrap();
@@ -9604,6 +9590,11 @@ mod tests {
     #[test]
     fn clockworks_elite_transition_requires_real_death_and_persists_across_arena_revisit() {
         let runtime = runtime_for_clockworks_elite_gate();
+        // Bind the owner deterministically like the sibling elite-gate fixtures so the
+        // manual advance_owner_step calls below are the only simulation source.
+        stop_regulator_test_owner(&runtime);
+        // The stage is genuine Clockworks progress, so the live route names that world.
+        runtime.state.lock().unwrap().route.current_world_id = "clockworks".into();
         let arena_definition = runtime
             .scene_runtime
             .lock()
@@ -9673,7 +9664,8 @@ mod tests {
             .unwrap();
         }
 
-        set_test_player_position(&runtime, Vec3::new(23.0, 0.0, 8.0).unwrap());
+        // Stand inside the authored exit but clear of the closed shutter blocker.
+        set_test_player_position(&runtime, Vec3::new(22.5, 0.0, 8.0).unwrap());
         let blocked_epoch = runtime.state.lock().unwrap().world.revision.world_epoch;
         assert_eq!(
             runtime
@@ -9688,11 +9680,11 @@ mod tests {
         for (exit_id, position) in [
             (
                 "cw_arena_return_to_furnace_heart",
-                Vec3::new(1.0, 0.0, 8.0).unwrap(),
+                Vec3::new(1.5, 0.0, 8.0).unwrap(),
             ),
             (
                 "cw_arena_to_regulator_core",
-                Vec3::new(23.0, 0.0, 8.0).unwrap(),
+                Vec3::new(22.5, 0.0, 8.0).unwrap(),
             ),
         ] {
             set_test_player_position(&runtime, position);
@@ -9813,20 +9805,9 @@ mod tests {
             serde_json::from_value(serde_json::json!({"mistHarbor": {}})).unwrap();
         assert!(!old_persistence.clockworks.forged_guard_elite_first_kill);
 
-        set_test_player_position(&runtime, Vec3::new(1.0, 0.0, 8.0).unwrap());
-        let epoch = runtime.state.lock().unwrap().world.revision.world_epoch;
-        runtime
-            .transition_scene(
-                "cw_arena_return_to_furnace_heart",
-                "cw-elite-return-furnace",
-                epoch,
-            ).map(|view| crate::formal_runtime::entry_test_support::acknowledge_ready(&runtime, view))
-            .unwrap();
-        set_test_player_position(&runtime, Vec3::new(23.0, 0.0, 8.0).unwrap());
-        let epoch = runtime.state.lock().unwrap().world.revision.world_epoch;
-        let revisit = runtime
-            .transition_scene("cw_furnace_heart_to_arena", "cw-elite-revisit-arena", epoch).map(|view| crate::formal_runtime::entry_test_support::acknowledge_ready(&runtime, view))
-            .unwrap();
+        // The post-kill Arena exits are authored walk edges; cross them through their pairs.
+        walk_to_scene(&runtime, "cw_furnace_heart");
+        let revisit = walk_to_scene(&runtime, CLOCKWORKS_ELITE_SCENE_ID);
         assert_eq!(revisit.actors.len(), 1);
         assert!(!revisit.actors[0].active);
         let revisit_kcc = runtime.state.lock().unwrap().kcc.clone();
@@ -9836,19 +9817,8 @@ mod tests {
         ] {
             assert_shutter_allows_kcc_crossing(&revisit_kcc, &arena_definition, blocker_id);
         }
-        set_test_player_position(&runtime, Vec3::new(23.0, 0.0, 8.0).unwrap());
-        let epoch = runtime.state.lock().unwrap().world.revision.world_epoch;
-        assert_eq!(
-            runtime
-                .transition_scene(
-                    "cw_arena_to_regulator_core",
-                    "cw-elite-core-gate-retry",
-                    epoch,
-                ).map(|view| crate::formal_runtime::entry_test_support::acknowledge_ready(&runtime, view))
-                .unwrap()
-                .scene_id,
-            "cw_regulator_core"
-        );
+        let core = walk_to_scene(&runtime, "cw_regulator_core");
+        assert_eq!(core.scene_id, "cw_regulator_core");
         assert!(
             runtime
                 .state
@@ -9858,6 +9828,7 @@ mod tests {
                 .clockworks
                 .forged_guard_elite_first_kill
         );
+        settle_pair_crossing(&runtime);
         assert_eq!(runtime.state.lock().unwrap().kcc.walls.len(), 6);
 
         runtime.reset_new().map(|view| crate::formal_runtime::entry_test_support::acknowledge_ready(&runtime, view)).unwrap();
@@ -10026,6 +9997,7 @@ mod tests {
     #[test]
     fn sentinel_arena_uses_one_authored_dynamic_actor_on_scene_entry_paths() {
         let runtime = FormalRuntime::new().unwrap();
+        runtime.resume().unwrap();
         crate::production_scene_bootstrap::install(&runtime).unwrap();
         let registry = runtime
             .scene_registry
@@ -10096,18 +10068,8 @@ mod tests {
             .actors
             .iter()
             .all(|actor| actor.actor_kind == "enemy"));
-        {
-            let mut state = runtime.state.lock().unwrap();
-            state.world.player.position_m = crate::world_v3::Vec3::new(23.0, 0.0, 8.0).unwrap();
-        }
-        let transition_epoch = runtime.state.lock().unwrap().world.revision.world_epoch;
-        let transitioned = runtime
-            .transition_scene(
-                "gh_deep_decon_to_sentinel_arena",
-                "sentinel-scene-entry",
-                transition_epoch,
-            ).map(|view| crate::formal_runtime::entry_test_support::acknowledge_ready(&runtime, view))
-            .unwrap();
+        // Deep Decon -> Sentinel Arena is an authored walk edge; use its prepared pair.
+        let transitioned = walk_to_scene(&runtime, SENTINEL_SCENE_ID);
         assert_eq!(transitioned.scene_id, SENTINEL_SCENE_ID);
         assert_eq!(transitioned.actors.len(), 1);
         assert_eq!(transitioned.actors[0].entity_id, SENTINEL_SPAWN_ID);
@@ -10404,30 +10366,9 @@ mod tests {
         assert_eq!(runtime.state.lock().unwrap().world.sentinels[0].hp, 0);
 
         runtime.resume().unwrap();
-        {
-            let mut state = runtime.state.lock().unwrap();
-            state.world.player.position_m = crate::world_v3::Vec3::new(1.0, 0.0, 8.0).unwrap();
-        }
-        let epoch = runtime.state.lock().unwrap().world.revision.world_epoch;
-        runtime
-            .transition_scene(
-                "gh_sentinel_arena_return_to_deep_decon",
-                "first-kill-exit",
-                epoch,
-            ).map(|view| crate::formal_runtime::entry_test_support::acknowledge_ready(&runtime, view))
-            .unwrap();
-        {
-            let mut state = runtime.state.lock().unwrap();
-            state.world.player.position_m = crate::world_v3::Vec3::new(23.0, 0.0, 8.0).unwrap();
-        }
-        let epoch = runtime.state.lock().unwrap().world.revision.world_epoch;
-        let reentry = runtime
-            .transition_scene(
-                "gh_deep_decon_to_sentinel_arena",
-                "first-kill-reentry",
-                epoch,
-            ).map(|view| crate::formal_runtime::entry_test_support::acknowledge_ready(&runtime, view))
-            .unwrap();
+        // Both authored walk edges require the prepared pair admission.
+        walk_to_scene(&runtime, "gh_deep_decon");
+        let reentry = walk_to_scene(&runtime, "gh_sentinel_arena");
         assert!(reentry.actors[0].active);
         assert!(
             runtime
@@ -10616,6 +10557,59 @@ mod tests {
             project_scene_view(&state,scene.as_ref())
         };
         crate::formal_runtime::entry_test_support::acknowledge_ready(runtime,view)
+    }
+
+    /// Drive the real same-floor walk-in admission for `target`: stand on the owning
+    /// side, acknowledge the prepared pair proof, then cross with actual owner motion.
+    /// Only the seam preview decides the side, so this works for GH/MH/CW pairs.
+    pub(super) fn walk_to_scene(runtime:&FormalRuntime,target:&str)->WorldView {
+        let view=walk_to_scene_held(runtime,target);
+        crate::formal_runtime::entry_test_support::acknowledge_ready(runtime,view)
+    }
+
+    /// Same real walk-in, returning the prepared (paused, token-bearing) view before the client ack.
+    pub(super) fn walk_to_scene_held(runtime:&FormalRuntime,target:&str)->WorldView {
+        let width={let state=runtime.state.lock().unwrap();
+            if ["gh_entry_maintenance","gh_power_room"].contains(&state.world.scene_id.as_str()) {20.0} else {24.0}};
+        for east in [true,false] {
+            {
+                let mut state=runtime.state.lock().unwrap();
+                state.world.player.position_m=Vec3::new(if east {width-0.4} else {0.4},0.0,8.0).unwrap();
+                state.world.player.grounded=true;
+            }
+            let before=runtime.snapshot().unwrap();
+            let Some(route)=before.hive_route_neighbor.clone() else {continue};
+            if route.target_scene_id!=target {continue;}
+            let source_sha=runtime.scene_runtime.lock().unwrap().as_ref().unwrap().current_scene().verified_source_sha256.clone();
+            let mut proof=serde_json::json!({"hiveRoute":true,"sourceSha":source_sha,"progression":before.progression});
+            if before.hive_route_neighbor.as_ref().and_then(|n|n.arena_shutters_open).is_some() {
+                proof["arenaShuttersOpen"]=serde_json::json!(runtime.state.lock().unwrap().world_persistent_v1.clockworks.forged_guard_elite_first_kill);
+            }
+            runtime.scene_ready_with_exit_proof(&route.token,false,Some(&route.target_scene_source_sha256),Some(&proof))
+                .expect("prepared pair acknowledgement");
+            let view={
+                let mut state=runtime.state.lock().unwrap();let epoch=state.world.revision.world_epoch;
+                state.latest_sample=InputSample::new(epoch,state.world.last_input_seq+1,state.world.last_client_time_ms+1,if east {1.0} else {-1.0},0.0).unwrap();
+                state.latest_input_received_at=Instant::now();
+                let mut scene=runtime.scene_runtime.lock().unwrap();
+                for _ in 0..200 {advance_owner_step_with_pair_crossing(&mut state,&mut scene).unwrap();if state.world.scene_id==target {break;}}
+                assert_eq!(state.world.scene_id,target,"seam crossing must install the acknowledged target");
+                project_scene_view(&state,scene.as_ref())
+            };
+            return view;
+        }
+        panic!("no prepared same-floor seam preview for {target}");
+    }
+
+    /// One idle owner step resolves a completed pair crossing back to the target's own KCC.
+    pub(super) fn settle_pair_crossing(runtime:&FormalRuntime) {
+        let mut state=runtime.state.lock().unwrap();
+        if !state.kcc.is_hive_route_union() {return;}
+        let epoch=state.world.revision.world_epoch;
+        state.latest_sample=InputSample::new(epoch,state.world.last_input_seq+1,state.world.last_client_time_ms+1,0.0,0.0).unwrap();
+        state.latest_input_received_at=Instant::now();
+        let mut scene=runtime.scene_runtime.lock().unwrap();
+        advance_owner_step_with_pair_crossing(&mut state,&mut scene).unwrap();
     }
 
     #[test]
@@ -12379,6 +12373,7 @@ mod tests {
     #[test]
     fn mist_harbor_extraction_gate_stays_hidden_and_atomic_until_all_required_events() {
         let runtime = FormalRuntime::new().unwrap();
+        runtime.resume().unwrap();
         crate::production_scene_bootstrap::install(&runtime).unwrap();
         {
             let mut state = runtime.state.lock().unwrap();
@@ -13286,6 +13281,7 @@ mod tests {
     #[test]
     fn authored_signal_ping_is_epoch_scoped_and_only_successful_interaction_emits() {
         let (runtime, save_root) = acoustic_fixture("sound-authority");
+        runtime.resume().unwrap();
         let epoch = runtime.snapshot().unwrap().world_epoch;
         assert!(runtime.sound_cues_since(epoch, 0).unwrap().is_empty());
         assert_eq!(
@@ -13343,6 +13339,7 @@ mod tests {
     #[test]
     fn beacon_signal_ping_uses_authored_position_and_freezes_mapping_at_emission() {
         let (runtime, save_root) = acoustic_fixture("sound-beacon");
+        runtime.resume().unwrap();
         let registry = runtime
             .scene_registry
             .lock()
@@ -13400,6 +13397,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(save_root);
 
         let (mapped_runtime, mapped_root) = acoustic_fixture("sound-bearing");
+        mapped_runtime.resume().unwrap();
         let registry = mapped_runtime
             .scene_registry
             .lock()
@@ -13445,6 +13443,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(mapped_root);
 
         let (east_runtime, east_root) = acoustic_fixture("sound-east");
+        east_runtime.resume().unwrap();
         let registry = east_runtime
             .scene_registry
             .lock()
@@ -13514,6 +13513,7 @@ mod tests {
     #[test]
     fn authored_mist_signal_grants_selected_acoustic_mapping_once_and_survives_continue() {
         let (runtime, save_root) = acoustic_fixture("roundtrip");
+        runtime.resume().unwrap();
         let before = runtime.snapshot().unwrap();
         let unearned = runtime.apply_capability_command(CapabilityCommandRequest::Select {
             capability_ids: vec![CAP_ACOUSTIC_MAPPING.into()],
@@ -13661,6 +13661,7 @@ mod tests {
     #[test]
     fn mist_signal_route_request_collision_keeps_scene_and_capability_unapplied() {
         let (runtime, save_root) = acoustic_fixture("route-collision");
+        runtime.resume().unwrap();
         {
             let mut state = runtime.state.lock().unwrap();
             let revision = state.world.revision;
@@ -14435,6 +14436,8 @@ mod tests {
     #[test]
     fn owner_advances_without_browser_input_and_pause_holds_time() {
         let runtime = FormalRuntime::new().unwrap();
+        // Release the bridge boot hold; this fixture loads no prepared entry to acknowledge.
+        runtime.resume().unwrap();
         let before = runtime.snapshot().unwrap();
         std::thread::sleep(Duration::from_millis(100));
         let running = runtime.snapshot().unwrap();
@@ -14452,6 +14455,7 @@ mod tests {
     #[test]
     fn presentation_events_have_stable_ids_independent_of_snapshots() {
         let runtime = FormalRuntime::new().unwrap();
+        runtime.resume().unwrap();
         let epoch = runtime.snapshot().unwrap().world_epoch;
         runtime
             .submit_input(
@@ -14472,6 +14476,7 @@ mod tests {
     #[test]
     fn separate_action_mailbox_rejects_duplicates_and_applies_pulse() {
         let runtime = FormalRuntime::new().unwrap();
+        runtime.resume().unwrap();
         let view = runtime
             .submit_action(ActionCommandRequest {
                 protocol_version: 2,
@@ -14519,6 +14524,7 @@ mod tests {
     #[test]
     fn v2_action_epoch_version_and_time_are_validated_before_enqueue() {
         let runtime = FormalRuntime::new().unwrap();
+        runtime.resume().unwrap();
         let mut stale_epoch = ActionCommandRequest {
             protocol_version: 2,
             world_epoch: 2,
@@ -14582,6 +14588,7 @@ mod tests {
             .unwrap();
         assert!(legacy_projection.completed_events.is_empty());
         let runtime = FormalRuntime::new().unwrap();
+        runtime.resume().unwrap();
         let initial = runtime.snapshot().unwrap();
         assert_eq!(initial.world_id, "grey_hive");
         assert_eq!(initial.schema_version, "freeze-v02-interfaces/1.2");
@@ -14617,6 +14624,7 @@ mod tests {
     #[test]
     fn route_cannot_switch_to_a_world_without_loaded_geometry() {
         let runtime = FormalRuntime::new().unwrap();
+        runtime.resume().unwrap();
         let error = runtime
             .apply_route_command(RouteCommandRequest::Enter {
                 world_id: "mist_harbor".into(),
@@ -14648,6 +14656,7 @@ mod tests {
     #[test]
     fn action_v2_context_traversal_uses_loaded_marker_and_emits_events() {
         let runtime = FormalRuntime::new().unwrap();
+        runtime.resume().unwrap();
         runtime
             .load_traversal_scene_definition(&traversal_scene(
                 [0.5, 0.0, 0.5],
@@ -14722,6 +14731,7 @@ mod tests {
     #[test]
     fn context_traversal_fails_closed_without_marker_in_range_or_capability() {
         let runtime = FormalRuntime::new().unwrap();
+        runtime.resume().unwrap();
         let epoch = runtime.snapshot().unwrap().world_epoch;
         let request = |request_id, client_time_ms| ActionCommandRequest {
             protocol_version: 2,
