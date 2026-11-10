@@ -13,9 +13,10 @@ func _load_once() -> Texture2D:
 	if _attempted:
 		return _texture
 	_attempted = true
-	var t: Texture2D = null
-	if ResourceLoader.exists(PATH):
-		t = load(PATH) as Texture2D
+	# Resource first: an exported package ships only the imported .ctex, never the raw
+	# .png. No ResourceLoader.exists() gate — a .import without its .ctex cache answers
+	# exists()=true while load() returns null, so the null check below is the real gate.
+	var t: Texture2D = ResourceLoader.load(PATH, "Texture2D") as Texture2D
 	if t == null:
 		var raw := Image.new()
 		if raw.load(PATH) == OK and raw.get_format() == Image.FORMAT_RGBA8:
