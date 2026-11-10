@@ -10,6 +10,14 @@ const STEAM_ID: String = 'gh_decon_steam_jet_zone'
 const MIST_ID: String = 'gh_decon_mist_zone'
 const STEAM_POLYGON: Array = [[7.0,4.0],[10.0,4.0],[10.0,6.5],[7.0,6.5]]
 const MIST_POLYGON: Array = [[14.0,9.0],[18.0,9.0],[18.0,14.0],[14.0,14.0]]
+# The authored corners live in Vector3 (32-bit components) while the bounds they are
+# compared against are 64-bit literals. 0.2 and 0.15 stored in a Vector3 become
+# 0.2000000030 / 0.1500000060, so an exact `> max_height` rejects a shape whose top is
+# authored exactly ON the authored height: the warning-phase steam/mist bands then made
+# _append_* return false and draw_air's fail-closed early return dropped the whole effect
+# for the 1.2 s warning window. A 10 micrometre tolerance keeps the authored bound
+# meaningful and is far below anything the visual or collision semantics can observe.
+const BOUND_EPS: float = 0.00001
 
 func _finite_vector2(value) -> bool:
 	if typeof(value) != TYPE_VECTOR2:
@@ -173,7 +181,7 @@ func _append_world_polygon(shapes: Array[Dictionary], world_points_value, camera
 		if not _finite_vector3(world_value):
 			return false
 		var world_point: Vector3 = world_value
-		if world_point.x < zone.position.x or world_point.x > zone.end.x or world_point.z < zone.position.y or world_point.z > zone.end.y or world_point.y < 0.0 or world_point.y > max_height:
+		if world_point.x < zone.position.x-BOUND_EPS or world_point.x > zone.end.x+BOUND_EPS or world_point.z < zone.position.y-BOUND_EPS or world_point.z > zone.end.y+BOUND_EPS or world_point.y < -BOUND_EPS or world_point.y > max_height+BOUND_EPS:
 			return false
 		var projected_value: Variant = camera.call('project',world_point)
 		if not _finite_vector2(projected_value):
@@ -259,6 +267,25 @@ func _append_mist(shapes: Array[Dictionary], phase: String, camera: RefCounted) 
 				return false
 	return true
 
+# A projected silhouette is only drawable when it is a simple polygon. These shapes are
+# authored as 3D "lens" outlines that get flatter as the phase height drops; the affine
+# camera (projection.gd: screen = center + ((x-z)*ppm, (x+z)*ppm*0.5 - y*ppm)) squashes the
+# vertical axis with it, so at the idle/warning heights of the mist bands edges cross and
+# canvas_item_add_polygon prints "Invalid polygon data, triangulation failed" every frame
+# while drawing nothing. Keep the authored outline whenever it triangulates (bit-identical
+# output), otherwise fall back to its convex hull, which is always triangulable and keeps
+# the intended faint band instead of an engine error. Returns an empty list when neither is
+# drawable so the caller skips the shape.
+func _drawable_points(points: PackedVector2Array) -> PackedVector2Array:
+	if points.size() < 3:
+		return PackedVector2Array()
+	if not Geometry2D.triangulate_polygon(points).is_empty():
+		return points
+	var hull: PackedVector2Array = Geometry2D.convex_hull(points)
+	if hull.size() < 3 or Geometry2D.triangulate_polygon(hull).is_empty():
+		return PackedVector2Array()
+	return hull
+
 func draw_air(canvas_value, snapshot_value, scene_value, current_key_value, camera_value, viewport_value) -> int:
 	if not canvas_value is CanvasItem or not is_instance_valid(canvas_value) or not _valid_context(snapshot_value,scene_value,current_key_value,camera_value,viewport_value):
 		return 0
@@ -281,8 +308,10 @@ func draw_air(canvas_value, snapshot_value, scene_value, current_key_value, came
 		var bounds: Rect2 = shape.bounds
 		if not _rect_intersects(viewport_rect,bounds):
 			continue
-		var points: PackedVector2Array = shape.points
+		var points: PackedVector2Array = _drawable_points(shape.points)
 		var color: Color = shape.color
+		if points.size() < 3:
+			continue
 		canvas.draw_colored_polygon(points,color)
 		drawn += 1
 	return drawn
