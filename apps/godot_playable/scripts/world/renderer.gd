@@ -1036,7 +1036,31 @@ func is_dense_visible_interaction(row: Dictionary) -> bool:
 	if not _region_visibility_scope(): return true
 	if not P.transform(row.get('transform')): return false
 	var position: Vector3 = P.vector(row.transform.positionM)
-	return _dense_entity_allowed(row.get('entityId'),position)
+	if not position.is_finite(): return false
+	# Authored interactions are drawn from the same region geometry as their console
+	# body (_dense_object_allowed accepts gh_console_body via is_dense_visible_position),
+	# so selection must accept that geometry too. The published per-entity region map
+	# is the narrower extra source and some authored consoles are missing from it;
+	# requiring it alone left a visible, active console unselectable by F.
+	if _dense_entity_allowed(row.get('entityId'), position): return true
+	return is_dense_visible_position(position)
+
+# Read-only diagnostic: why an authored interaction is or is not selectable in a
+# dense region. Used by the in-game probe, never by gameplay decisions.
+func dense_interaction_diagnostic(row: Dictionary) -> Dictionary:
+	var scope: bool = _region_visibility_scope()
+	var position: Vector3 = P.vector(row.get('transform',{}).get('positionM')) if P.transform(row.get('transform')) else Vector3.INF
+	var regions = snapshot.get('denseEntityRegions')
+	var entity_region: Variant = regions.get(row.get('entityId')) if regions is Dictionary else null
+	return {
+		'scope': scope,
+		'entityId': row.get('entityId'),
+		'entity_region': entity_region,
+		'occupied': snapshot.get('denseOccupiedRegion'),
+		'by_entity': _dense_entity_allowed(row.get('entityId'), position) if position.is_finite() else false,
+		'by_position': is_dense_visible_position(position) if position.is_finite() else false,
+		'result': is_dense_visible_interaction(row),
+	}
 
 func is_baizhi_region_authorized() -> bool:
 	if not _bio_visibility_scope(): return true
@@ -1108,20 +1132,19 @@ func _rs_gate_badge(id: String) -> Dictionary:
 	if not rs_gate_atlas_attempted:
 		rs_gate_atlas_attempted = true
 		var path = 'res://assets/ui/map/map_region_ui_local_r1.png'
-		if ResourceLoader.exists(path):
-			var candidate = load(path)
-			if candidate is Texture2D and candidate.get_width()==1254 and candidate.get_height()==1254:
-				var image: Image = candidate.get_image()
-				if image!=null and image.get_format()==Image.FORMAT_RGBA8: rs_gate_atlas = candidate
+		var candidate: Texture2D = PlayerStatusUiArt.load_texture(path)
+		if candidate!=null and candidate.get_width()==1254 and candidate.get_height()==1254:
+			var image: Image = candidate.get_image()
+			if image==null or image.get_format()==Image.FORMAT_RGBA8: rs_gate_atlas = candidate
 	var texture: Texture2D=rs_gate_atlas
 	if id=='rs_world_gate_marker':
 		if not rs_gh_gate_atlas_attempted:
 			rs_gh_gate_atlas_attempted=true
 			rs_gh_gate_atlas=rs_gate_atlas
 			if not is_instance_valid(rs_gh_gate_atlas):
-				var raw=Image.new()
-				if raw.load('res://assets/ui/map/map_region_ui_local_r1.png')==OK and raw.get_width()==1254 and raw.get_height()==1254 and raw.get_format()==Image.FORMAT_RGBA8:
-					rs_gh_gate_atlas=ImageTexture.create_from_image(raw)
+				var fallback: Texture2D = PlayerStatusUiArt.load_texture('res://assets/ui/map/map_region_ui_local_r1.png')
+				if fallback!=null and fallback.get_width()==1254 and fallback.get_height()==1254:
+					rs_gh_gate_atlas=fallback
 		texture=rs_gh_gate_atlas
 	if not is_instance_valid(texture): return {}
 	var at: Vector2 = camera.project(roles[id])

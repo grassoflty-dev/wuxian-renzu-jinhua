@@ -628,12 +628,11 @@ func draw_pressure_steam(canvas_value: Variant, snapshot_value: Variant, scene_v
 		uv_plans.append(uv)
 	if uv_plans.size()==3 and not steam_puff_attempted:
 		steam_puff_attempted = true
-		if ResourceLoader.exists(STEAM_PUFF_PATH):
-			var loaded = load(STEAM_PUFF_PATH)
-			if loaded is Texture2D:
-				var imported_image: Image = loaded.get_image()
-				if is_instance_valid(imported_image) and imported_image.get_width()==1254 and imported_image.get_height()==1254 and imported_image.get_format()==Image.FORMAT_RGBA8:
-					steam_puff_texture = loaded
+		var loaded = load(STEAM_PUFF_PATH)
+		if loaded is Texture2D:
+			var imported_image: Image = loaded.get_image()
+			if is_instance_valid(imported_image) and imported_image.get_width()==1254 and imported_image.get_height()==1254 and imported_image.get_format()==Image.FORMAT_RGBA8:
+				steam_puff_texture = loaded
 		if not is_instance_valid(steam_puff_texture):
 			var image = Image.new()
 			var bytes: PackedByteArray = FileAccess.get_file_as_bytes(STEAM_PUFF_PATH)

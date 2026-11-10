@@ -15,8 +15,7 @@ func _valid_atlas(candidate: Texture2D) -> bool:
 func _atlas() -> Texture2D:
 	if _attempted: return _texture
 	_attempted=true
-	var imported: Texture2D=null
-	if ResourceLoader.exists(PATH): imported=load(PATH) as Texture2D
+	var imported: Texture2D=load(PATH) as Texture2D
 	if _valid_atlas(imported):
 		_texture=imported
 		return _texture
