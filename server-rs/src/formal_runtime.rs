@@ -15242,6 +15242,66 @@ mod tests {
         assert!(!runtime.state.lock().unwrap().paused);
     }
 
+    fn doorway_row(view:&WorldView,id:&str)->Option<bool>{
+        view.interactables.iter().find(|row|row.entity_id==id).map(|row|row.active)
+    }
+
+    fn place_at(runtime:&FormalRuntime,x:f32,z:f32){
+        let mut state=runtime.state.lock().unwrap();
+        state.paused=false;
+        state.world.player.position_m=Vec3::new(x,0.0,z).unwrap();
+        state.world.player.grounded=true;
+    }
+
+    fn push_input(runtime:&FormalRuntime,move_x:f32,tick:usize)->String{
+        let mut state=runtime.state.lock().unwrap();
+        let epoch=state.world.revision.world_epoch;
+        let seq=state.world.last_input_seq.max(state.latest_sample.seq).saturating_add(1);
+        state.latest_sample=InputSample::new(epoch,seq,state.world.last_client_time_ms+1,move_x,0.0).unwrap();
+        state.latest_input_received_at=Instant::now();
+        let mut scene=runtime.scene_runtime.lock().unwrap();
+        for _ in 0..tick {
+            advance_owner_step_with_pair_crossing(&mut state,&mut scene).unwrap();
+            if state.world.scene_id!="gh_power_room" {break;}
+        }
+        state.world.scene_id.clone()
+    }
+
+    /// Regression for the reported transition-door "soft-lock" (Lead 2026-11-10 §26.1).
+    /// The doorway of `gh_power_room` -> `gh_gate_a` is a pure `!paused && in-polygon`
+    /// predicate: standing in it, then stepping 12 cm north past its z<=8.0 edge, then
+    /// walking back in re-arms it with no reset, a stop inside it does not latch it shut,
+    /// and a pause/resume cycle restores both the row and the crossing. Pinned because a
+    /// future change could introduce exactly the latch the report suspected.
+    #[test]
+    fn power_gate_a_doorway_does_not_latch_after_a_stop() {
+        let runtime=runtime_for_sentinel_beacon_gate();
+        let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();
+        runtime.install_scene_registry(registry,"gh_power_room").unwrap();
+        let id="gh_power_to_gate_a";
+        place_at(&runtime,17.8,7.2);
+        assert_eq!(doorway_row(&runtime.snapshot().unwrap(),id),Some(true),"open while standing in the doorway");
+        place_at(&runtime,17.8,8.12);
+        assert_eq!(doorway_row(&runtime.snapshot().unwrap(),id),Some(false),"outside the band the same row is simply unavailable");
+        place_at(&runtime,17.8,7.2);
+        assert_eq!(doorway_row(&runtime.snapshot().unwrap(),id),Some(true),"walking back in re-arms it, nothing was latched");
+        // A stop of 12 ticks (0.6 s at 60 Hz) with every axis released, then keep walking.
+        assert_eq!(push_input(&runtime,0.0,12),"gh_power_room","a stop must not move the player through the door");
+        assert_eq!(doorway_row(&runtime.snapshot().unwrap(),id),Some(true),"the doorway is still open after the stop");
+        assert_eq!(push_input(&runtime,1.0,120),"gh_gate_a","continuing east after the stop crosses the doorway");
+        // Same cycle with an explicit authority pause in the middle.
+        let runtime=runtime_for_sentinel_beacon_gate();
+        let registry=runtime.scene_registry.lock().unwrap().as_ref().unwrap().clone();
+        runtime.install_scene_registry(registry,"gh_power_room").unwrap();
+        place_at(&runtime,17.8,7.2);
+        runtime.pause().unwrap();
+        assert_eq!(doorway_row(&runtime.snapshot().unwrap(),id),Some(false),"a paused authority closes every route row");
+        assert_eq!(push_input(&runtime,1.0,12),"gh_power_room","a paused doorway cannot be crossed");
+        runtime.resume().unwrap();
+        assert_eq!(doorway_row(&runtime.snapshot().unwrap(),id),Some(true),"resume restores the same doorway");
+        assert_eq!(push_input(&runtime,1.0,120),"gh_gate_a","the resumed doorway carries the player across");
+    }
+
 }
 
 #[cfg(test)]

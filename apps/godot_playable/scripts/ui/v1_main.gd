@@ -1156,11 +1156,60 @@ func _interact_walk_in(i: Dictionary) -> bool:
 	if typeof(i.get('entityId'))!=TYPE_STRING or i.get('kind')!='world_gate': return false
 	var key: String=_walk_in_scope()+':'+str(i.entityId)
 	return WALK_IN_GATES.has(key) and not _authored_interaction(str(i.entityId)).is_empty()
+func _authored_transition(id: String) -> Dictionary:
+	var rows=catalog.current.get('transitions')
+	if not P.rows(rows,2048): return {}
+	var matches: Array=[]
+	for row in rows:
+		if row is Dictionary and typeof(row.get('id'))==TYPE_STRING and row.id==id: matches.append(row)
+	return matches[0] if matches.size()==1 else {}
+
+# A walk-in doorway is usable only while the player stands inside its authored polygon,
+# and the room's own collision lets a player stand a hand's width outside that polygon
+# while facing an opening door (measured: z 8.05-8.15 against a band edge of z 8.0 in
+# gh_power_room). Printing 「当前不可用」 there reads exactly like a locked door, so say
+# what actually has to happen. Every real gate keeps the original wording: a still
+# missing progression event, a paused authority or a sentinel-gated seam returns ''.
+# Nothing here can make a locked door look passable — the authority still decides.
+func _doorway_margin_hint(i: Dictionary) -> String:
+	if typeof(i.get('kind'))!=TYPE_STRING or i.get('kind')!='scene_transition': return ''
+	if snapshot.get('worldId')!='grey_hive': return ''
+	if typeof(i.get('active'))!=TYPE_BOOL or i.get('active'): return ''
+	if not P.snapshot(snapshot) or not P.transform(snapshot.player.get('transform')): return ''
+	if status.is_empty() or not P.same(status,snapshot) or status.get('paused')!=false: return ''
+	var row: Dictionary=_authored_transition(str(i.get('entityId','')))
+	if row.is_empty() or row.get('requiresEvent')!=null: return ''
+	var progress: Dictionary=Content.progress(snapshot,'grey_hive')
+	for lock in HIVE_SEAM_LOCKS:
+		if not lock is Dictionary or lock.get('scene')!=snapshot.get('sceneId'): continue
+		if lock.get('sentinel')==true: return ''
+		var event_text=str(lock.get('event',''))
+		if not event_text.is_empty() and (progress.is_empty() or not (event_text in progress.completedEvents)): return ''
+	var polygon=row.get('polygon')
+	if not polygon is Array or polygon.size()<3: return ''
+	var points: Array=[]
+	for point in polygon:
+		if not point is Array or point.size()!=2 or not P.number(point[0]) or not P.number(point[1]): return ''
+		points.append(Vector2(float(point[0]),float(point[1])))
+	var target: Vector3=P.vector(snapshot.player.transform.positionM)
+	var flat:=Vector2(target.x,target.z)
+	if Geometry2D.is_point_in_polygon(flat,PackedVector2Array(points)): return ''
+	var margin:=1.5
+	var min_x: float=points[0].x; var max_x: float=points[0].x
+	var min_z: float=points[0].y; var max_z: float=points[0].y
+	for point in points:
+		min_x=minf(min_x,point.x); max_x=maxf(max_x,point.x)
+		min_z=minf(min_z,point.y); max_z=maxf(max_z,point.y)
+	var margin_box:=Rect2(Vector2(min_x-margin,min_z-margin),Vector2(max_x-min_x+2.0*margin,max_z-min_z+2.0*margin))
+	if not margin_box.has_point(flat): return ''
+	return '通道口在近旁 · 走进通道口即可通过'
 func _interaction_prompt(i: Dictionary) -> String:
 	var label = _interaction_label(i)
 	if _is_rs_gh_signpost(i):
 		return '灰巢入口标识 · 仅作标识，不可操作'
 	if typeof(i.get('active'))!=TYPE_BOOL or not i.active:
+		var doorway: String=_doorway_margin_hint(i)
+		if not doorway.is_empty(): return doorway
 		return label+' · 当前不可用'
 	if _interact_walk_in(i):
 		return '步入通道 · '+label
