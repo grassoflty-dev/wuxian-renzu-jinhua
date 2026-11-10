@@ -78,11 +78,20 @@ func current_region(snapshot: Dictionary) -> Dictionary:
 	var rows = layout.regions.filter(func(row): return row is Dictionary and row.get('id')==selected and row.get('sceneId')==snapshot.sceneId)
 	if rows.size()!=1: return {}
 	var point=P.vector(snapshot.player.transform.positionM)
-	var global_x=point.x+(20.0 if snapshot.sceneId=='gh_gate_a' else 0.0)
+	# The bounds below are JSON float64. Rebuilding the player coordinate through Vector3
+	# (single precision in the shipping build) and then comparing it with < / > excludes a
+	# player standing exactly on a region's min corner: f32(6.2)=6.199999809265137 < 6.2.
+	# Take the same coordinate from the snapshot's float64 metres; the inclusive bounds are
+	# unchanged (nothing is loosened, only the width of the measured value).
+	var pm = snapshot.player.transform.positionM
+	var px: float = float(pm.xM) if pm is Dictionary else float(point.x)
+	var pz: float = float(pm.zM) if pm is Dictionary else float(point.z)
+	var global_x: float = px + (20.0 if snapshot.sceneId=='gh_gate_a' else 0.0)
+	var global_z: float = pz
 	var poly: Array=rows[0].polygon
 	if poly.size()!=4: return {}
 	var x0=float(poly[0][0]); var z0=float(poly[0][1]); var x1=float(poly[2][0]); var z1=float(poly[2][1])
-	if not point.is_finite() or point.y!=0.0 or global_x<x0 or global_x>x1 or point.z<z0 or point.z>z1: return {}
+	if not point.is_finite() or point.y!=0.0 or global_x<x0 or global_x>x1 or global_z<z0 or global_z>z1: return {}
 	return {'id':rows[0].id,'name':rows[0].name,'rect':Rect2(x0,z0,x1-x0,z1-z0)}
 
 # Entity classification uses the same stable lexical shared-edge tie break as authority.
