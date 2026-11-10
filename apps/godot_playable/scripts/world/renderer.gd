@@ -943,7 +943,20 @@ func _floor_route_region_plan() -> Dictionary:
 		return gh_shaft_lower_service_visual.region_plan(snapshot,scene,scene_hash)
 	var progress: Dictionary=Content.progress(snapshot,'grey_hive')
 	if not progress.get('completedEvents') is Array: return {}
-	return gh_floor_route_region_visual.prepare(snapshot,scene,scene_hash,progress.completedEvents)
+	var plan=gh_floor_route_region_visual.prepare(snapshot,scene,scene_hash,progress.completedEvents)
+	if not plan.is_empty(): return plan
+	# The authority can publish no occupied region while the player is still inside the
+	# authored scene envelope (observed at (0.05,9.04) and (23.99,9.12) in
+	# gh_central_shaft). Input is still authoritative; planning against the nearest
+	# authored region keeps movement and rendering alive. A genuinely unready region
+	# still yields {} here, so nothing that is actually missing becomes "ready".
+	return gh_floor_route_region_visual.prepare_nearest(snapshot,scene,scene_hash,progress.completedEvents)
+
+# The region id the current floor-route plan actually describes: the authoritative one
+# when it exists, the nearest authored one for the no-region fallback.
+func _floor_route_plan_region() -> String:
+	var plan=_floor_route_region_plan()
+	return str(plan.get('region','')) if not plan.is_empty() else ''
 
 func _shaft_lower_region_active() -> bool:
 	var id=snapshot.get('denseOccupiedRegion')
@@ -955,7 +968,11 @@ func _region_visibility_scope() -> bool:
 func is_dense_region_available() -> bool:
 	if _floor_route_visibility_scope():
 		var plan=_floor_route_region_plan()
-		return not plan.is_empty() and gh_floor_route_region_visual.contains(plan,P.vector(snapshot.player.transform.positionM))
+		if plan.is_empty(): return false
+		if gh_floor_route_region_visual.contains(plan,P.vector(snapshot.player.transform.positionM)): return true
+		# Only the no-region fallback plan may stand in for an outside-the-parts position,
+		# and only while the player is still inside the authored scene envelope.
+		return plan.get('fallback')==true and gh_floor_route_region_visual.bounds_contain(scene.get('boundsM'),P.vector(snapshot.player.transform.positionM))
 	if _bio_visibility_scope():
 		return _utility_plan_current() and utility_plan.get('region')==snapshot.get('denseOccupiedRegion') and snapshot.get('currentVisibleRegions')==[utility_plan.get('region')] and gh_bio_region_visual.contains(utility_plan,P.vector(snapshot.player.transform.positionM))
 	if _pair_visibility_scope():
@@ -985,17 +1002,19 @@ func is_dense_visible_position(position: Vector3) -> bool:
 	if not is_dense_region_available(): return false
 	return gh_dense_service_wing_visual.same_region(snapshot,position)
 
-# Entity presentation requires the same authoritative region as the player.
+# Entity presentation requires the same authoritative region as the player. A null
+# occupied region is "unknown", not "everything": no entity is confirmed visible then.
 func _dense_entity_allowed(id: Variant, position: Vector3) -> bool:
 	if not _region_visibility_scope(): return true
 	if not is_dense_region_available() or not position.is_finite() or typeof(id)!=TYPE_STRING: return false
+	var occupied=snapshot.get('denseOccupiedRegion')
 	var regions = snapshot.get('denseEntityRegions')
-	return regions is Dictionary and regions.get(id)==snapshot.get('denseOccupiedRegion')
+	return typeof(occupied)==TYPE_STRING and regions is Dictionary and regions.get(id)==occupied
 
 func _dense_object_allowed(o: Dictionary) -> bool:
 	if _decon_visibility_scope() or _bio_visibility_scope() or _pair_visibility_scope() or _floor_route_visibility_scope():
 		if _floor_route_visibility_scope() and o.get('kind') in ['gh_entry_wall_module','gh_shaft_piece']: return true
-		if _floor_route_visibility_scope() and o.get('kind')=='gh_shaft_fixture': return is_dense_region_available() and o.get('data',{}).get('fixture',{}).get('region')==snapshot.get('denseOccupiedRegion')
+		if _floor_route_visibility_scope() and o.get('kind')=='gh_shaft_fixture': return is_dense_region_available() and o.get('data',{}).get('fixture',{}).get('region')==_floor_route_plan_region()
 		if _floor_route_visibility_scope() and snapshot.sceneId=='gh_sentinel_arena' and snapshot.get('denseOccupiedRegion')=='grey_hive.gh_sentinel_arena.info_v1.combat_floor' and is_dense_region_available() and o.get('kind')=='prop':
 			if o.get('id')=='sentinel_arena_pylon_left' and o.get('p')==Vector3(8,0,5): return true
 			if o.get('id')=='sentinel_arena_pylon_right' and o.get('p')==Vector3(17,0,5): return true
@@ -1303,7 +1322,10 @@ func dense_region_ready() -> bool:
 		if _gate_shaft_portal_plan().is_empty() or not _gate_shaft_portal_frame_current(): return false
 	if shaft_visual_expected() or shaft_legacy_deferred():
 		if _shaft_context_matches(shaft_frame_context): return true
-		return _shaft_context_matches(shaft_pending_context) and Time.get_ticks_msec()-shaft_frame_at<=SHAFT_PENDING_MAX_MS
+		if _shaft_context_matches(shaft_pending_context) and Time.get_ticks_msec()-shaft_frame_at<=SHAFT_PENDING_MAX_MS: return true
+		# No composed lift frame can exist when the authority publishes no support view at
+		# all. The lift overlay is optional; the authored floor is not. Keep input alive.
+		return gh_floor_route_region_visual.floor_without_support(snapshot,scene)
 	if snapshot.get('worldId')!='grey_hive' or not snapshot.get('sceneId') in ['gh_power_room','gh_gate_a']: return true
 	return dense_frame_ready and is_dense_region_available()
 

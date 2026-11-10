@@ -414,7 +414,9 @@ func _rebuild() -> void:
 			_button('新的旅程','new_confirm',null,connected)
 			_button('退出游戏（不保存）','close_client')
 		'error':
-			_text('游戏输入已停止。请保留当前会话结果，勿盲目重复未知操作。')
+			_text('游戏输入已停止。结果未知的操作不会自动重发。')
+			_text('若权威状态已重新确认，可尝试「重新同步」并松开按键继续；否则请保留当前会话并退出。')
+			_button('重新同步','resync',null,connected)
 			_button('返回状态','start')
 			_button('退出客户端','close_client')
 		'waiting': _text('正在等待当前请求的真实回执。')

@@ -11,6 +11,10 @@ const CombatFeedback = preload('res://scripts/ui/combat_feedback_model.gd')
 const Hud = preload('res://scripts/ui/game_hud.gd')
 const NativeAudio = preload('res://scripts/audio/native_audio.gd')
 const Panels = preload('res://scripts/ui/panels.gd')
+const HoldRecovery = preload('res://scripts/ui/hold_recovery.gd')
+# A dense-plan miss on the very first composed frame is normally gone on the next frame;
+# only a wait this long is reported as a real (recoverable) failure.
+const ENTRY_READY_WAIT_MS = 3000
 const WorldLoading = preload('res://scripts/ui/world_loading_view.gd')
 const FREE_TRAVERSAL_STARTS = {
 	'cw_conveyor_bridge':{'row':{'id':'cw_conveyor_context_vault','from':[8.0,0.0,8.0],'to':[10.0,0.0,8.0],'rangeM':1.2,'cooldownMs':350,'requiredCapabilities':[]},'band':[0.0,0.1],'label':'输送桥短跨'},
@@ -97,12 +101,23 @@ var movement_down: Dictionary = {}
 var pending_movement: Dictionary = {}
 var critical = ''
 var uncertain = false
+# A hold means "an operation's result is not confirmed". It is not a death sentence:
+# hold_at_ms and hold_code record when/why so the player can be offered a real
+# reconciliation with the authority instead of a restart. Neither value is shown as a
+# code; hold_code is kept for local diagnostics only.
+var hold_at_ms = 0
+var hold_code = ''
+var hold_recoveries = 0
 var connection_text = '未连接'
 var poll_accumulator = 0.0
 var input_accumulator = 0.0
 var last_snapshot_at = 0
 var ready_pending: Dictionary = {}
 var ready_sent = {}
+# Entry ack deferred because the first composition frame preceded the dense plan. Retried
+# every frame; only a bounded wait that never resolves becomes a (recoverable) hold.
+var entry_ready_wait_key = ''
+var entry_ready_wait_at = 0
 var frame_key = ''
 var pause_owned: Dictionary = {}
 var ticket: Dictionary = {}
@@ -302,12 +317,20 @@ func _connection(connected: bool, code: String) -> void:
 		status.clear()
 		if journey_started:
 			uncertain = true
+			hold_at_ms = Time.get_ticks_msec()
+			hold_code = 'E_CONNECTION_LOST'
 			_show('error')
 			panels.set_message('连接中断；未确认操作保持结果未知',false)
 		else:
 			_show('start')
 	else:
-		_show('start')
+		if uncertain and journey_started:
+			# Reconnected while a hold is still in force: offer the same reconciliation
+			# page instead of the start page, which cannot begin a journey while held.
+			_show('error')
+			panels.set_message('已重新连接；请等待权威状态确认后选择「重新同步」。',false)
+		else:
+			_show('start')
 		_refresh_saves()
 func _eligible() -> bool:
 	return not gameplay_rearm and _eligible_without_rearm()
@@ -326,6 +349,7 @@ func _process(delta: float) -> void:
 		run_end_notice = ''
 	_maybe_beacon_exit_ready()
 	_maybe_hive_route_ready()
+	_maybe_entry_ready()
 	_maybe_walk_in_gate()
 	_maybe_seam_hint()
 	_maybe_exit_ready()
@@ -866,6 +890,8 @@ func _ui_intent(kind: String, value, owner: Dictionary) -> void:
 	if not critical.is_empty() or uncertain:
 		if kind=='close_client':
 			get_tree().quit()
+		elif kind=='resync' and critical.is_empty():
+			_resync_from_hold()
 		return
 	if kind in ['continue_default','save_exit']:
 		_trace_save_flow('ui_intent_admitted','formal_continue' if kind=='continue_default' else 'formal_save',0)
@@ -2046,6 +2072,7 @@ func _accept_snapshot(s: Dictionary, permit_transition: bool = false, load_reque
 		enhancement_pending.clear()
 		ready_pending.clear()
 		frame_key = ''
+		entry_ready_wait_key = ''
 		event_view.reset(int(s.worldEpoch))
 		if journey_started:
 			panels.close_page()
@@ -2310,6 +2337,20 @@ func _prepare_entry(t: Dictionary) -> void:
 	_release()
 	if frame_key==key:
 		_scene_frame_committed(key)
+func _maybe_entry_ready() -> void:
+	if entry_ready_wait_key.is_empty(): return
+	if ready_pending.is_empty() or uncertain or not critical.is_empty() or not is_instance_valid(renderer):
+		entry_ready_wait_key = ''
+		return
+	if not renderer.dense_region_ready():
+		if Time.get_ticks_msec()-entry_ready_wait_at>ENTRY_READY_WAIT_MS:
+			entry_ready_wait_key = ''
+			_hold('E_DENSE_RESOURCE_NOT_READY')
+		return
+	var key: String = entry_ready_wait_key
+	entry_ready_wait_key = ''
+	_scene_frame_committed(key)
+
 func _scene_frame_committed(key: String) -> void:
 	frame_key = key
 	if ready_pending.is_empty() or not P.same(ready_pending,snapshot) or uncertain or not critical.is_empty():
@@ -2318,8 +2359,16 @@ func _scene_frame_committed(key: String) -> void:
 	if key!=expected or catalog.current.get('sceneId')!=snapshot.sceneId or catalog.current.get('worldId')!=snapshot.worldId:
 		return
 	if not renderer.dense_region_ready():
-		_hold('E_DENSE_RESOURCE_NOT_READY')
+		# A first composition frame after a scene change can commit before the dense region
+		# plan exists; that is a transient wait, not a lost resource (observed entering
+		# gh_lockdown: dense=false on the first commit, true one frame later). Keep the
+		# pending entry token and retry from _process once the plan is ready instead of
+		# holding terminally on it.
+		if entry_ready_wait_key!=key:
+			entry_ready_wait_key = key
+			entry_ready_wait_at = Time.get_ticks_msec()
 		return
+	entry_ready_wait_key = ''
 	var t = ready_pending.duplicate(true)
 	var token_key = str([t.generation,t.worldId,t.sceneId,t.worldEpoch])
 	if ready_sent.has(token_key):
@@ -2594,14 +2643,68 @@ func _failed(_id_value: int, method: String, code: String, association: Dictiona
 		panels.set_message(last_feedback)
 func _hold(code: String) -> void:
 	_clear_world_loading()
+	entry_ready_wait_key = ''
 	if close_attempted:
 		_trace_frontend('close_disposition',{'reason':'close_held'})
 	audio.ui_cue('error',focused)
+	if not uncertain:
+		hold_at_ms = Time.get_ticks_msec()
+		hold_code = code
 	uncertain = true
 	critical = ''
 	_release()
 	_show('error')
 	panels.set_message(_localized(code))
+
+# Recovery from a hold never resends the operation whose result was unknown. It only
+# adopts an authoritative state that arrived *after* the hold: a fresh, context-matching
+# snapshot and status pair, no blocking request, no pending entry/preview, healthy player.
+# Every clause is a fact the client already validates elsewhere, and the whole thing is
+# idempotent: a second attempt while already recovered is a no-op.
+func _hold_recovery_ready() -> bool:
+	if not is_instance_valid(panels) or not P.status(status) or not P.snapshot(snapshot): return false
+	var now: int = Time.get_ticks_msec()
+	return HoldRecovery.ready({
+		'uncertain':uncertain,
+		'journey_started':journey_started,
+		'error_page':panels.visible and panels.mode=='error',
+		'panel_pending':panels.pending,
+		'authenticated':is_instance_valid(rpc) and rpc.authenticated,
+		'focused':focused,
+		'critical_empty':critical.is_empty(),
+		'snapshot_valid':P.snapshot(snapshot),
+		'status_valid':P.status(status),
+		'context_same':P.same(status,snapshot),
+		'entry_token_absent':snapshot.get('entryToken')==null and status.get('entryToken')==null,
+		'paused':status.paused,
+		'alive':snapshot.player.currentHp>0,
+		'preview_absent':exit_entry_preview.is_empty(),
+		'ready_absent':ready_pending.is_empty(),
+		'ticket_absent':ticket.is_empty(),
+		'renderer_valid':is_instance_valid(renderer),
+		'dense_ready':is_instance_valid(renderer) and renderer.dense_region_ready(),
+		'hold_at_ms':hold_at_ms,
+		'last_snapshot_at':last_snapshot_at,
+		'last_status_at':last_status_at,
+		'now_ms':now})
+
+func _resync_from_hold() -> void:
+	if not uncertain: return
+	if not _hold_recovery_ready():
+		if is_instance_valid(panels):
+			panels.set_message('尚未收到新的权威确认；当前状态保持不变，未重发任何操作。')
+		return
+	hold_recoveries += 1
+	uncertain = false
+	hold_at_ms = 0
+	hold_code = ''
+	# Movement must be re-armed through a full key release, exactly like a scene change:
+	# the player may still be holding the key that was pressed when the hold happened.
+	gameplay_rearm = true
+	audio.ui_cue('confirm',focused)
+	_feedback('已与权威重新同步 · 松开按键后可继续')
+	if is_instance_valid(panels):
+		panels.close_page()
 func _set_world_loading_art(world: String) -> void:
 	if not world in ['return_station','grey_hive','mist_harbor','clockworks']:
 		world_loading.set_loading_art(null)
