@@ -2,8 +2,9 @@ extends RefCounted
 
 const P = preload('res://scripts/bridge/protocol.gd')
 const SCENE_PATH = 'res://data/scenes/gh_lockdown.json'
-const SCENE_BYTES = 10081
-const SCENE_SHA256 = '718489a1ea4ec4622ccdcefc8459a1dc1bd4f66ccf26abc813b6a06519197850'
+const SCENE_BYTES = 24602
+const SCENE_SHA256 = '23e5d5d9f37f6f44b1f8b9105aab656424778ef5edf0e775bbc364143fe1b30c'
+const LEGACY_SCENE_SHA256 = '718489a1ea4ec4622ccdcefc8459a1dc1bd4f66ccf26abc813b6a06519197850'
 const MAPPING_PATH = 'res://data/gh_lockdown_exterior_reuse_20261028_r1.internal-use.json'
 const IMAGE_PATH = 'res://assets/props/grey_hive/gh_entry_exterior_backplate_20261027_r1.png'
 const IMAGE_BYTES = 2211708
@@ -41,7 +42,7 @@ func _valid_binding(canvas: CanvasItem, snapshot: Dictionary, scene_data: Dictio
 		return false
 	if not P.snapshot(snapshot) or snapshot.get('entryToken') != null or snapshot.get('worldId') != 'grey_hive' or snapshot.get('sceneId') != 'gh_lockdown' or not P.counter(snapshot.get('worldEpoch'),1):
 		return false
-	if current_key != 'grey_hive:gh_lockdown:' + str(snapshot.get('worldEpoch')) or scene_hash != SCENE_SHA256:
+	if current_key != 'grey_hive:gh_lockdown:' + str(snapshot.get('worldEpoch')) or (scene_hash != SCENE_SHA256 and scene_hash != LEGACY_SCENE_SHA256):
 		return false
 	if scene_data.get('worldId') != 'grey_hive' or scene_data.get('sceneId') != 'gh_lockdown' or not P.counter(scene_data.get('schemaVersion'),1,1):
 		return false

@@ -82,7 +82,14 @@ func prepare(snapshot:Dictionary,scene:Dictionary,hash:String,events:Array) -> D
 		if not p is Array or p.size()!=4 or not p[0] is Array or not p[2] is Array or p[0].size()!=2 or p[2].size()!=2: return {}
 		if not P.number(p[0][0]) or not P.number(p[0][1]) or not P.number(p[2][0]) or not P.number(p[2][1]): return {}
 		var a=Vector2(p[0][0],p[0][1]);var b=Vector2(p[2][0],p[2][1])
-		if b.x<=a.x or b.y<=a.y or p[1]!=[b.x,a.y] or p[3]!=[a.x,b.y]: return {}
+		# Corner identity is compared in float64, exactly as the JSON writes it. Reading
+		# the corners back through Vector2 first truncates them to float32, so 6.35/9.65
+		# no longer equal their own literal (gh_lockdown west_transit) even though the
+		# rectangle is exact -- which emptied the whole region plan and froze the client
+		# at the spawn point. Same four-corner predicate, no float truncation, and the
+		# Rect2 below is still built exactly as before.
+		var x0=float(p[0][0]);var z0=float(p[0][1]);var x1=float(p[2][0]);var z1=float(p[2][1])
+		if x1<=x0 or z1<=z0 or p[1]!=[x1,z0] or p[3]!=[x0,z1]: return {}
 		parts.append(Rect2(a,b-a))
 	return {'region':visible[0],'parts':parts,'floor_y':float(selected.variant.get('floor_y',0.0))} if not parts.is_empty() else {}
 

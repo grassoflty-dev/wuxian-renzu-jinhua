@@ -6,8 +6,9 @@ const MAP_RESOURCE = "res://data/gh_lockdown_environment.internal-use.json"
 const SCENE_RESOURCE = "res://data/scenes/gh_lockdown.json"
 const MAP_BYTES = 4130
 const MAP_SHA256 = "fac1c2f5fb7f6cd7fee9a19e5473106af837bf86132c3bf80fb588c6b85f50c2"
-const SCENE_BYTES = 10081
-const SCENE_SHA256 = "718489a1ea4ec4622ccdcefc8459a1dc1bd4f66ccf26abc813b6a06519197850"
+const SCENE_BYTES = 24602
+const SCENE_SHA256 = "23e5d5d9f37f6f44b1f8b9105aab656424778ef5edf0e775bbc364143fe1b30c"
+const LEGACY_SCENE_SHA256 = "718489a1ea4ec4622ccdcefc8459a1dc1bd4f66ccf26abc813b6a06519197850"
 const FLOOR_PATH = "res://assets/props/grey_hive/floor_tiles.png"
 const FLOOR_BYTES = 1315059
 const FLOOR_SHA256 = "4c93e192505e71d6ec4e414aeb5c9b76376b7407d677017b31b8eba5e24e744f"
@@ -60,7 +61,7 @@ const OUTER_WALL_EDGES: Dictionary = {
 }
 
 # GB_SHORT_DATA_BEGIN
-const SHORT_SCENE_SHA: String = "718489a1ea4ec4622ccdcefc8459a1dc1bd4f66ccf26abc813b6a06519197850"
+const SHORT_SCENE_SHA: String = "23e5d5d9f37f6f44b1f8b9105aab656424778ef5edf0e775bbc364143fe1b30c"
 const SHORT_FACES: Array = [
 	{"id":"north_east_end","owner":"lockdown_wall_north","a":[24,0],"b":[24,0.5],"low":0,"high":0.9},
 	{"id":"south_east_end","owner":"lockdown_wall_south","a":[24,15.5],"b":[24,16],"low":0,"high":0.18},
@@ -84,7 +85,7 @@ var _status: Dictionary = {
 
 func prepare(snapshot, scene_data, current_key, scene_hash) -> void:
 	_context_ready = false
-	if not _valid_identity(snapshot, scene_data, current_key) or typeof(scene_hash) != TYPE_STRING or scene_hash != SCENE_SHA256:
+	if not _valid_identity(snapshot, scene_data, current_key) or typeof(scene_hash) != TYPE_STRING or (scene_hash != SCENE_SHA256 and scene_hash != LEGACY_SCENE_SHA256):
 		return
 	if _static_attempted:
 		_context_ready = _static_ready and _deep_equal(scene_data, _canonical_scene)
