@@ -1,9 +1,0 @@
-[package]
-name = "continuous-save-v3-optional-ag20"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-sha2 = "0.10"
