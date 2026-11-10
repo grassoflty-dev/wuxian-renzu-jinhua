@@ -319,7 +319,7 @@ func _valid_manifest(value) -> bool:
 	for index in range(RUNS.size()):
 		var row = mapped_runs[index]
 		var expected = RUNS[index]
-		if not row is Dictionary or not _keys_are(row, ['id','startM','endM']) or row.get('id') != expected.id or not _numbers_equal(row.get('startM'), [expected.start.x,expected.start.y,expected.start.z]) or not _numbers_equal(row.get('endM'), [expected.end.x,expected.end.y,expected.end.z]):
+		if not row is Dictionary or not _keys_are(row, ['id','startM','endM']) or row.get('id') != expected.id or not _numbers_equal_f32(row.get('startM'), expected.start) or not _numbers_equal_f32(row.get('endM'), expected.end):
 			return false
 	return true
 
@@ -455,6 +455,21 @@ func _run_by_id(run_id) -> Dictionary:
 
 func _polygon_equals(value, expected: Array) -> bool:
 	return _numbers_equal(value, expected)
+
+# `RUNS` endpoints live in a Vector3 (float32) while the installation record's
+# coordinates arrive from JSON as float64. Comparing them directly is the
+# float32-vs-float64 identity class (Lead 2026-11-10 11:30, §25.3): f32(6.2) is
+# 6.199999809265137, so `float(json) != float(Vector3.x)` for every x.2/x.35/x.65
+# run. Compare in the width the geometry uses instead: round the authored value to
+# single precision and require exact equality there. A corner that differs by more
+# than one f32 step, is not finite, or is not a number still fails.
+func _numbers_equal_f32(value, expected: Vector3) -> bool:
+	if not value is Array or value.size() != 3:
+		return false
+	for index in range(3):
+		if not P.number(value[index]):
+			return false
+	return Vector3(float(value[0]), float(value[1]), float(value[2])) == expected
 
 func _numbers_equal(value, expected: Array) -> bool:
 	if not value is Array or value.size() != expected.size():

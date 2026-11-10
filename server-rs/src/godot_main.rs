@@ -175,6 +175,10 @@ fn bind_owned_listener()->Result<(WinSockLease,TcpListener),String>{
 }
 fn run()->Result<(),String>{
     let (session,save,token,proof_target)=arguments()?;
+    // Test-only assist (Lead §25.1). Off unless the variable is set AND this
+    // isolated authority owns a session namespace outside the real profile. The
+    // released entry point never calls this, so normal play is unaffected.
+    let _=wuxian_horror_ch1::test_assist::activate(&session);
     fs::create_dir_all(session.join("run")).map_err(|_|"E_SESSION_CREATE")?;
     fs::create_dir_all(&save).map_err(|_|"E_SESSION_CREATE")?;ordinary(&save,false)?;ordinary(&session.join("run"),false)?;
     let (_winsock,listener)=bind_owned_listener()?;listener.set_nonblocking(true).map_err(|_|"E_SOCKET")?;
@@ -192,6 +196,8 @@ fn run()->Result<(),String>{
         thread::sleep(Duration::from_millis(5));
     }
     // FormalRuntime::drop requests stop and joins its actual simulation owner.
-    drop(client);drop(runtime);Ok(())
+    drop(client);drop(runtime);
+    if let Some(line)=wuxian_horror_ch1::test_assist::summary(){eprintln!("{}",line);}
+    Ok(())
 }
 fn main(){if let Err(error)=run(){eprintln!("{}",rpc::safe_error(&error));std::process::exit(2);}}

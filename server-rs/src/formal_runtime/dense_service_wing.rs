@@ -61,8 +61,13 @@ fn regions_valid() -> bool {
    let expected=[[r[0],r[1]],[r[2],r[1]],[r[2],r[3]],[r[0],r[3]]];
    let Some(poly)=matches[0].get("polygon").and_then(|v|v.as_array()) else{return false;};
    poly.len()==4 && poly.iter().zip(expected).all(|(point,expected)| {
+    // JSON corners arrive as f64 while REGIONS is the f32 geometry table, so the
+    // identity test has to happen in the width the geometry uses. Casting the
+    // authored value down to f32 (instead of widening the constant with `as f64`)
+    // keeps exact equality: a corner that differs by more than one f32 step still
+    // fails, and a value the KCC cannot tell apart from the authored one passes.
     let Some(pair)=point.as_array() else{return false;};
-    pair.len()==2 && pair[0].as_f64()==Some(expected[0] as f64) && pair[1].as_f64()==Some(expected[1] as f64)
+    pair.len()==2 && pair[0].as_f64().map(|v|v as f32)==Some(expected[0]) && pair[1].as_f64().map(|v|v as f32)==Some(expected[1])
    })
   })
  })

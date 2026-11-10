@@ -23,6 +23,7 @@ pub mod scene_route_commands;
 pub mod scene_runtime;
 pub mod sentinel_ai;
 pub mod signal_perception;
+pub mod test_assist;
 pub mod world_persistent_v1;
 pub mod world_progression;
 pub mod world_v3;

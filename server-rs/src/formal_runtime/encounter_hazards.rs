@@ -60,7 +60,9 @@ pub(super) fn apply_hazard_damage(
     feedback: &str,
 ) {
     let remaining = state.effective_rules_v6.hazards.remaining_damage_bps(tag);
-    let applied = ((u64::from(damage) * u64::from(remaining) + 5_000) / 10_000) as u32;
+    let applied = crate::test_assist::player_damage(
+        ((u64::from(damage) * u64::from(remaining) + 5_000) / 10_000) as u32,
+    );
     if applied > 0 && state.world.player_hp > 0 {
         state.world.player_hp = state.world.player_hp.saturating_sub(applied);
         state.last_damaged_at_ms = Some(state.world.server_time_ms);

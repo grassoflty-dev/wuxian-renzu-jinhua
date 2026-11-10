@@ -1362,7 +1362,7 @@ fn step_world_internal(
                         let absorbed = ((damage as f32)
                             * combat_data.guard_damage_reduction.clamp(0.0, 1.0))
                         .round() as u32;
-                        let applied_damage = damage.saturating_sub(absorbed);
+                        let applied_damage = crate::test_assist::player_damage(damage.saturating_sub(absorbed));
                         state.player_hp = state.player_hp.saturating_sub(applied_damage);
                         combat_events.push(CombatEvent::GuardImpact {
                             source_id: source_id.clone(),
@@ -1383,7 +1383,7 @@ fn step_world_internal(
                             source_id, reason: "invulnerable".into(), contact,
                         });
                     } else {
-                        let applied_damage = damage;
+                        let applied_damage = crate::test_assist::player_damage(damage);
                         state.player_hp = state.player_hp.saturating_sub(applied_damage);
                         if state.combat_state.qer_v1_active {
                             state.combat_state.invulnerability_remaining_ms =
@@ -1456,7 +1456,7 @@ fn step_world_internal(
                     let absorbed = ((damage as f32)
                         * combat_data.guard_damage_reduction.clamp(0.0, 1.0))
                     .round() as u32;
-                    let applied = damage.saturating_sub(absorbed);
+                    let applied = crate::test_assist::player_damage(damage.saturating_sub(absorbed));
                     state.player_hp = state.player_hp.saturating_sub(applied);
                     combat_events.push(CombatEvent::GuardImpact {
                         source_id: source_id.clone(),
@@ -1477,12 +1477,15 @@ fn step_world_internal(
                         source_id, reason: "invulnerable".into(), contact,
                     });
                 } else {
-                    state.player_hp = state.player_hp.saturating_sub(damage);
+                    let applied = crate::test_assist::player_damage(damage);
+                    state.player_hp = state.player_hp.saturating_sub(applied);
                     if state.combat_state.qer_v1_active {
                         state.combat_state.invulnerability_remaining_ms =
                             combat_data.invulnerability_ms;
                     }
-                    combat_events.push(CombatEvent::PlayerDamaged { source_id, damage, contact });
+                    if applied > 0 {
+                        combat_events.push(CombatEvent::PlayerDamaged { source_id, damage: applied, contact });
+                    }
                 }
             }
         }
